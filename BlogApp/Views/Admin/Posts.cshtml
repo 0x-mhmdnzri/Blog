@@ -1,0 +1,66 @@
+@model List<AdminPostListItem>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "نوشته‌ها";
+}
+
+<div class="d-flex justify-content-end mb-3">
+    <a class="btn btn-accent btn-sm" asp-controller="Posts" asp-action="Create">نوشته جدید</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="admin-empty">
+        <h2>هنوز نوشته‌ای ثبت نشده</h2>
+        <p class="mb-0">اولین نوشته خود را بنویسید تا اینجا نمایش داده شود.</p>
+    </div>
+}
+else
+{
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>عنوان</th>
+                <th>دسته‌بندی</th>
+                <th>وضعیت</th>
+                <th>بازدید</th>
+                <th>دیدگاه‌ها</th>
+                <th>تاریخ ایجاد</th>
+                <th>عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                <tr>
+                    <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
+                    <td dir="auto">@(p.CategoryName ?? "—")</td>
+                    <td>
+                        @if (p.IsPublished)
+                        {
+                            <span class="status-pill published">منتشرشده</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill draft">پیش‌نویس</span>
+                        }
+                    </td>
+                    <td><span class="ltr-field">@p.ViewCount</span></td>
+                    <td><span class="ltr-field">@p.CommentCount</span></td>
+                    <td><span class="ltr-field">@p.CreatedAtUtc.ToString("yyyy/MM/dd")</span></td>
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <a class="icon-btn" asp-controller="Posts" asp-action="Edit" asp-route-id="@p.Id">ویرایش</a>
+                            <form asp-action="TogglePublish" asp-route-id="@p.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="icon-btn @(p.IsPublished ? "reject" : "approve")">
+                                    @(p.IsPublished ? "لغو انتشار" : "انتشار")
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

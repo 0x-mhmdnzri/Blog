@@ -1,0 +1,87 @@
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var currentStatus = ViewBag.CurrentStatus as string;
+    bool IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " · پنل مدیریت" : "پنل مدیریت")</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin-rtl.css" asp-append-version="true" />
+</head>
+<body class="admin-body">
+    <div class="admin-shell">
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="admin-brand">
+                <span class="brand-cursor"></span> پنل مدیریت وبلاگ
+            </div>
+
+            <nav class="admin-nav">
+                <div class="admin-nav-group-label">کلی</div>
+                <a class="admin-nav-link @(IsActive("Index") ? "active" : "")" asp-controller="Admin" asp-action="Index">
+                    <span>داشبورد</span>
+                </a>
+                <a class="admin-nav-link @(IsActive("Posts") ? "active" : "")" asp-controller="Admin" asp-action="Posts">
+                    <span>نوشته‌ها</span>
+                </a>
+                <a class="admin-nav-link @(IsActive("Comments") ? "active" : "")" asp-controller="Admin" asp-action="Comments">
+                    <span>دیدگاه‌ها</span>
+                    @if (ViewBag.PendingCount != null && (int)ViewBag.PendingCount > 0)
+                    {
+                        <span class="badge-count">@ViewBag.PendingCount</span>
+                    }
+                </a>
+
+                <div class="admin-nav-group-label">محتوا</div>
+                <a class="admin-nav-link @(IsActive("Media") ? "active" : "")" asp-controller="Admin" asp-action="Media">
+                    <span>رسانه‌ها</span>
+                    <span class="soon-tag">دمو</span>
+                </a>
+                <a class="admin-nav-link @(IsActive("CategoriesAdmin") ? "active" : "")" asp-controller="Admin" asp-action="CategoriesAdmin">
+                    <span>دسته‌بندی‌ها</span>
+                    <span class="soon-tag">دمو</span>
+                </a>
+
+                <div class="admin-nav-group-label">سیستم</div>
+                <a class="admin-nav-link @(IsActive("Settings") ? "active" : "")" asp-controller="Admin" asp-action="Settings">
+                    <span>تنظیمات</span>
+                    <span class="soon-tag">دمو</span>
+                </a>
+            </nav>
+
+            <div class="admin-sidebar-footer">
+                <a asp-controller="Home" asp-action="Index">‹ بازگشت به سایت</a>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit">خروج از حساب</button>
+                </form>
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <header class="admin-topbar d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="eyebrow mb-1">پنل مدیریت</div>
+                    <h1>@ViewData["Title"]</h1>
+                </div>
+                <button class="btn btn-ghost btn-sm d-md-none" onclick="document.getElementById('adminSidebar').classList.toggle('open')">☰</button>
+            </header>
+
+            <div class="admin-content">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,100 @@
+@model List<AdminCommentListItem>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "دیدگاه‌ها";
+    var current = ViewBag.CurrentStatus as string ?? "pending";
+}
+
+<div class="admin-tabs">
+    <a class="admin-tab @(current == "pending" ? "active" : "")" asp-action="Comments" asp-route-status="pending">
+        در انتظار <span class="text-muted-dark">(@ViewBag.PendingCount)</span>
+    </a>
+    <a class="admin-tab @(current == "approved" ? "active" : "")" asp-action="Comments" asp-route-status="approved">
+        تأییدشده <span class="text-muted-dark">(@ViewBag.ApprovedCount)</span>
+    </a>
+    <a class="admin-tab @(current == "rejected" ? "active" : "")" asp-action="Comments" asp-route-status="rejected">
+        ردشده <span class="text-muted-dark">(@ViewBag.RejectedCount)</span>
+    </a>
+    <a class="admin-tab @(current == "all" ? "active" : "")" asp-action="Comments" asp-route-status="all">
+        همه <span class="text-muted-dark">(@ViewBag.AllCount)</span>
+    </a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="admin-empty">
+        <h2>موردی برای نمایش نیست</h2>
+        <p class="mb-0">دیدگاهی با این وضعیت وجود ندارد.</p>
+    </div>
+}
+else
+{
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>نویسنده</th>
+                <th>متن دیدگاه</th>
+                <th>مربوط به نوشته</th>
+                <th>تاریخ</th>
+                <th>وضعیت</th>
+                <th>عملیات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td dir="auto" style="white-space:nowrap;">@c.AuthorName</td>
+                    <td dir="auto" style="max-width:360px;">@c.Body</td>
+                    <td dir="auto" style="white-space:nowrap;">
+                        <a asp-controller="Posts" asp-action="Details" asp-route-slug="@c.PostSlug">@c.PostTitle</a>
+                    </td>
+                    <td><span class="ltr-field">@c.CreatedAtUtc.ToString("yyyy/MM/dd HH:mm")</span></td>
+                    <td>
+                        @switch (c.Status)
+                        {
+                            case CommentStatus.Approved:
+                                <span class="status-pill approved">تأییدشده</span>
+                                break;
+                            case CommentStatus.Rejected:
+                                <span class="status-pill rejected">ردشده</span>
+                                break;
+                            default:
+                                <span class="status-pill pending">در انتظار</span>
+                                break;
+                        }
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            @if (c.Status != CommentStatus.Approved)
+                            {
+                                <form asp-action="ApproveComment" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    <input type="hidden" name="returnStatus" value="@current" />
+                                    <button type="submit" class="icon-btn approve">تأیید</button>
+                                </form>
+                            }
+                            @if (c.Status != CommentStatus.Rejected)
+                            {
+                                <form asp-action="RejectComment" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    <input type="hidden" name="returnStatus" value="@current" />
+                                    <button type="submit" class="icon-btn reject">رد</button>
+                                </form>
+                            }
+                            <form asp-action="DeleteComment" method="post"
+                                  onsubmit="return confirm('این دیدگاه برای همیشه حذف شود؟');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <input type="hidden" name="returnStatus" value="@current" />
+                                <button type="submit" class="icon-btn">حذف</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

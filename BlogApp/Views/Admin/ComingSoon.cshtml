@@ -1,0 +1,10 @@
+@model ComingSoonViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="admin-empty">
+    <h2>@Model.Title</h2>
+    <p class="mb-0">@Model.Description</p>
+</div>

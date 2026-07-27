@@ -13,6 +13,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // --- Markdown rendering pipeline (readme-style: tables, fenced code, embeds, etc.) ---
 builder.Services.AddSingleton<MarkdownService>();
 
+// --- SEO / AEO meta + structured-data helper ---
+builder.Services.AddSingleton<SeoService>();
+
 // --- MVC ---
 builder.Services.AddControllersWithViews();
 

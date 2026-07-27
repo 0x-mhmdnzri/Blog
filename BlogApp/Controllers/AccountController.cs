@@ -16,7 +16,7 @@ public class AccountController : Controller
     {
         ViewBag.ReturnUrl = returnUrl;
         return View();
-    } 
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(string username, string password, string? returnUrl = null)

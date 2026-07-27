@@ -53,5 +53,12 @@ public class Comment
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
-    public bool IsApproved { get; set; }
+    public CommentStatus Status { get; set; } = CommentStatus.Pending;
+}
+
+public enum CommentStatus
+{
+    Pending,
+    Approved,
+    Rejected
 }

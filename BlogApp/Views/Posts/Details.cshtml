@@ -4,6 +4,11 @@
     var readingMinutes = Math.Max(1, Model.ContentMarkdown.Split(' ').Length / 220);
 }
 
+@section Head {
+    <script type="application/ld+json">@Html.Raw(ViewBag.PostJsonLd)</script>
+    <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
+}
+
 <article class="container py-5" style="max-width: 780px;">
     @if (User.Identity?.IsAuthenticated == true)
     {
@@ -25,7 +30,9 @@
     <h1 class="mb-3">@Model.Title</h1>
 
     <div class="post-meta-line mb-4 d-flex flex-wrap gap-3">
-        <span><span class="accent">$</span> published @Model.PublishedAtUtc?.ToString("MMM d, yyyy")</span>
+        <span><span class="accent">$</span> published
+            <time datetime="@(Model.PublishedAtUtc?.ToString("o"))">@Model.PublishedAtUtc?.ToString("MMM d, yyyy")</time>
+        </span>
         <span>· @readingMinutes min read</span>
         <span>· @Model.ViewCount views</span>
     </div>

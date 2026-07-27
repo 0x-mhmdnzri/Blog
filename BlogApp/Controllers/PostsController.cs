@@ -12,11 +12,13 @@ public class PostsController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly MarkdownService _markdown;
+    private readonly SeoService _seo;
 
-    public PostsController(ApplicationDbContext db, MarkdownService markdown)
+    public PostsController(ApplicationDbContext db, MarkdownService markdown, SeoService seo)
     {
         _db = db;
         _markdown = markdown;
+        _seo = seo;
     }
 
     // GET /post/{slug} — public reading view
@@ -26,7 +28,7 @@ public class PostsController : Controller
         var post = await _db.Posts
             .Include(p => p.Category)
             .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
-            .Include(p => p.Comments.Where(c => c.IsApproved))
+            .Include(p => p.Comments.Where(c => c.Status == CommentStatus.Approved))
             .FirstOrDefaultAsync(p => p.Slug == slug);
 
         if (post is null || (!post.IsPublished && !User.Identity!.IsAuthenticated))
@@ -34,6 +36,22 @@ public class PostsController : Controller
 
         post.ViewCount++;
         await _db.SaveChangesAsync();
+
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var canonicalUrl = $"{baseUrl}/post/{post.Slug}";
+        string? imageUrl = post.CoverMediaAssetId is int coverId ? $"{baseUrl}/media/{coverId}" : null;
+
+        ViewData["Title"] = post.Title;
+        ViewData["Description"] = post.Summary;
+        ViewData["OgType"] = "article";
+        ViewData["Canonical"] = canonicalUrl;
+        ViewData["OgImage"] = imageUrl;
+
+        ViewBag.PostJsonLd = _seo.BuildPostJsonLd(post, canonicalUrl, imageUrl);
+        ViewBag.BreadcrumbJsonLd = _seo.BuildBreadcrumbJsonLd(
+            ("Home", baseUrl + "/"),
+            post.Category != null ? (post.Category.Name, $"{baseUrl}/?category={post.Category.Slug}") : ("Posts", baseUrl + "/"),
+            (post.Title, canonicalUrl));
 
         ViewBag.RenderedHtml = _markdown.RenderToHtml(post.ContentMarkdown);
         return View(post);
@@ -157,7 +175,7 @@ public class PostsController : Controller
                 PostId = postId,
                 AuthorName = authorName.Trim(),
                 Body = body.Trim(),
-                IsApproved = false // moderated before showing publicly
+                Status = CommentStatus.Pending // moderated in the admin panel before showing publicly
             });
             await _db.SaveChangesAsync();
             TempData["CommentSubmitted"] = "Thanks — your comment is awaiting moderation.";

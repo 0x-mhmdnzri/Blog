@@ -1,0 +1,105 @@
+@model AdminDashboardViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "داشبورد";
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">کل نوشته‌ها</div>
+            <div class="stat-value">@Model.TotalPosts</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">منتشرشده / پیش‌نویس</div>
+            <div class="stat-value accent">@Model.PublishedPosts<span style="color:var(--text-faint); font-size:1.1rem;"> / @Model.DraftPosts</span></div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">دیدگاه‌های در انتظار</div>
+            <div class="stat-value @(Model.PendingComments > 0 ? "danger" : "")">@Model.PendingComments</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">بازدید کل</div>
+            <div class="stat-value">@Model.TotalViews</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-4">
+        <div class="stat-card">
+            <div class="stat-label">دیدگاه‌های تأییدشده</div>
+            <div class="stat-value" style="font-size:1.4rem;">@Model.ApprovedComments</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-4">
+        <div class="stat-card">
+            <div class="stat-label">دیدگاه‌های ردشده</div>
+            <div class="stat-value" style="font-size:1.4rem;">@Model.RejectedComments</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-4">
+        <div class="stat-card">
+            <div class="stat-label">فایل‌های رسانه</div>
+            <div class="stat-value" style="font-size:1.4rem;">@Model.TotalMedia</div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h6 mb-0 text-muted-dark">آخرین دیدگاه‌ها</h2>
+    <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="Comments">مشاهده همه</a>
+</div>
+
+@if (!Model.RecentComments.Any())
+{
+    <div class="admin-empty">
+        <h2>هنوز دیدگاهی ثبت نشده</h2>
+        <p class="mb-0">وقتی خواننده‌ای دیدگاهی بگذارد، همین‌جا نمایش داده می‌شود.</p>
+    </div>
+}
+else
+{
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>نویسنده</th>
+                <th>متن دیدگاه</th>
+                <th>مربوط به نوشته</th>
+                <th>وضعیت</th>
+                <th>تاریخ</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in Model.RecentComments)
+            {
+                <tr>
+                    <td dir="auto">@c.AuthorName</td>
+                    <td dir="auto" style="max-width:320px;">@(c.Body.Length > 90 ? c.Body[..90] + "…" : c.Body)</td>
+                    <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@c.PostSlug">@c.PostTitle</a></td>
+                    <td>
+                        @switch (c.Status)
+                        {
+                            case CommentStatus.Approved:
+                                <span class="status-pill approved">تأییدشده</span>
+                                break;
+                            case CommentStatus.Rejected:
+                                <span class="status-pill rejected">ردشده</span>
+                                break;
+                            default:
+                                <span class="status-pill pending">در انتظار</span>
+                                break;
+                        }
+                    </td>
+                    <td><span class="ltr-field">@c.CreatedAtUtc.ToString("yyyy/MM/dd")</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

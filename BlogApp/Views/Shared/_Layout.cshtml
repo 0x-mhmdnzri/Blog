@@ -1,15 +1,60 @@
+@inject BlogApp.Services.SeoService Seo
+@{
+    var pageTitle = ViewData["Title"] as string;
+    var fullTitle = pageTitle != null ? $"{pageTitle} · {Seo.SiteName}" : $"{Seo.SiteName} — {Seo.SiteDescription}";
+    var description = ViewData["Description"] as string ?? Seo.SiteDescription;
+    var currentUrl = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+    var canonicalUrl = ViewData["Canonical"] as string ?? currentUrl;
+    var ogType = ViewData["OgType"] as string ?? "website";
+    var ogImage = ViewData["OgImage"] as string;
+    var noIndex = ViewData["NoIndex"] as bool? ?? false;
+}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " · Dark Pro Blog" : "Dark Pro Blog")</title>
+    <title>@fullTitle</title>
+
+    <!-- Core SEO -->
+    <meta name="description" content="@description" />
+    <meta name="author" content="@Seo.AuthorName" />
+    <meta name="robots" content="@(noIndex ? "noindex, nofollow" : "index, follow")" />
+    <link rel="canonical" href="@canonicalUrl" />
+    <meta name="theme-color" content="#0b0e14" />
+
+    <!-- Open Graph (Facebook, LinkedIn, Slack previews, and read by many AEO/AI crawlers) -->
+    <meta property="og:site_name" content="@Seo.SiteName" />
+    <meta property="og:type" content="@ogType" />
+    <meta property="og:title" content="@(pageTitle ?? Seo.SiteName)" />
+    <meta property="og:description" content="@description" />
+    <meta property="og:url" content="@canonicalUrl" />
+    <meta property="og:locale" content="en_US" />
+    @if (!string.IsNullOrEmpty(ogImage))
+    {
+        <meta property="og:image" content="@ogImage" />
+    }
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="@(string.IsNullOrEmpty(ogImage) ? "summary" : "summary_large_image")" />
+    <meta name="twitter:title" content="@(pageTitle ?? Seo.SiteName)" />
+    <meta name="twitter:description" content="@description" />
+    @if (!string.IsNullOrEmpty(Seo.TwitterHandle))
+    {
+        <meta name="twitter:site" content="@Seo.TwitterHandle" />
+    }
+    @if (!string.IsNullOrEmpty(ogImage))
+    {
+        <meta name="twitter:image" content="@ogImage" />
+    }
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
+
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
     <header class="site-header">
@@ -28,6 +73,9 @@
                         </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
+                            <li class="nav-item">
+                                <a class="nav-link site-nav-link" asp-controller="Admin" asp-action="Index">Admin panel</a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link site-nav-link" asp-controller="Posts" asp-action="Create">New post</a>
                             </li>

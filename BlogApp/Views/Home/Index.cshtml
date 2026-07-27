@@ -4,6 +4,10 @@
     var categories = ViewBag.Categories as List<Category> ?? new();
 }
 
+@section Head {
+    <script type="application/ld+json">@Html.Raw(ViewBag.WebsiteJsonLd)</script>
+}
+
 <section class="hero py-5">
     <div class="container">
         <div class="hero-prompt mb-2">$ cat ./posts --sort=recent</div>
