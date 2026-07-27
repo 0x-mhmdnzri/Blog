@@ -1,0 +1,15 @@
+## .NET
+bin/
+obj/
+*.user
+
+## SQLite DB (generated at runtime)
+*.db
+*.db-shm
+*.db-wal
+
+## IDE
+.vs/
+.vscode/
+*.suo
+!/BlogApp/BlogApp.csproj

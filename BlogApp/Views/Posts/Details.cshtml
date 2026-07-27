@@ -1,0 +1,78 @@
+@model Post
+@{
+    ViewData["Title"] = Model.Title;
+    var readingMinutes = Math.Max(1, Model.ContentMarkdown.Split(' ').Length / 220);
+}
+
+<article class="container py-5" style="max-width: 780px;">
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <div class="d-flex gap-2 mb-4">
+            <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">Edit post</a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+                  onsubmit="return confirm('Delete this post and all its media? This cannot be undone.');">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-outline-danger-dark btn-sm" type="submit">Delete</button>
+            </form>
+        </div>
+    }
+
+    @if (Model.Category != null)
+    {
+        <span class="badge-category mb-3 d-inline-block">@Model.Category.Name</span>
+    }
+
+    <h1 class="mb-3">@Model.Title</h1>
+
+    <div class="post-meta-line mb-4 d-flex flex-wrap gap-3">
+        <span><span class="accent">$</span> published @Model.PublishedAtUtc?.ToString("MMM d, yyyy")</span>
+        <span>· @readingMinutes min read</span>
+        <span>· @Model.ViewCount views</span>
+    </div>
+
+    <div class="readme-content">
+        @Html.Raw(ViewBag.RenderedHtml)
+    </div>
+
+    @if (Model.PostTags.Any())
+    {
+        <div class="d-flex gap-2 flex-wrap mt-5 pt-4" style="border-top:1px solid var(--border-soft);">
+            @foreach (var pt in Model.PostTags)
+            {
+                <a class="tag-pill" asp-controller="Home" asp-action="Index" asp-route-tag="@pt.Tag.Slug">#@pt.Tag.Name</a>
+            }
+        </div>
+    }
+
+    <section class="mt-5 pt-4" style="border-top:1px solid var(--border-soft);">
+        <h2 class="h6 text-muted-dark mb-3">Comments</h2>
+
+        @if (TempData["CommentSubmitted"] != null)
+        {
+            <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["CommentSubmitted"]</div>
+        }
+
+        @foreach (var c in Model.Comments.OrderByDescending(c => c.CreatedAtUtc))
+        {
+            <div class="card-surface p-3 mb-3">
+                <div class="d-flex justify-content-between">
+                    <strong style="font-family:var(--font-mono); font-size:.9rem;">@c.AuthorName</strong>
+                    <span class="small" style="color:var(--text-faint);">@c.CreatedAtUtc.ToString("MMM d, yyyy")</span>
+                </div>
+                <p class="mb-0 mt-2 text-muted-dark">@c.Body</p>
+            </div>
+        }
+
+        <form asp-action="AddComment" method="post" class="card-surface p-3 mt-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="postId" value="@Model.Id" />
+            <div class="mb-2">
+                <input class="form-control form-control-sm" name="authorName" placeholder="Name" required maxlength="80" />
+            </div>
+            <div class="mb-2">
+                <textarea class="form-control form-control-sm" name="body" rows="3" placeholder="Say something…" required maxlength="2000"></textarea>
+            </div>
+            <button class="btn btn-accent btn-sm" type="submit">Post comment</button>
+        </form>
+    </section>
+</article>

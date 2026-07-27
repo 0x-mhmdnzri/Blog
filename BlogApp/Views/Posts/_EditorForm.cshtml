@@ -1,0 +1,75 @@
+@model PostEditViewModel
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert mb-4" style="background:rgba(229,99,122,.12); color:var(--danger); border:1px solid rgba(229,99,122,.3);">
+        <div asp-validation-summary="All"></div>
+    </div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-8">
+        <label class="form-label">Title</label>
+        <input asp-for="Title" class="form-control" placeholder="A great post title" />
+        <span asp-validation-for="Title" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Category</label>
+        <select asp-for="CategoryId" class="form-select">
+            <option value="">— None —</option>
+            @foreach (var c in Model.AvailableCategories)
+            {
+                <option value="@c.Id">@c.Name</option>
+            }
+        </select>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-8">
+        <label class="form-label">Summary (optional — auto-generated if left blank)</label>
+        <input asp-for="Summary" class="form-control" maxlength="400" />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Tags (comma separated)</label>
+        <input asp-for="TagsCsv" class="form-control" placeholder="dotnet, mvc, ef-core" />
+    </div>
+</div>
+
+<div class="form-check mb-4">
+    <input asp-for="IsPublished" class="form-check-input" type="checkbox" role="switch" />
+    <label asp-for="IsPublished" class="form-check-label text-muted-dark">Published (visible to everyone)</label>
+</div>
+
+<label class="form-label">Content — README-style Markdown, no length limit</label>
+<div class="editor-shell mb-2">
+    <div class="editor-toolbar">
+        <button type="button" data-md-action="h2">H2</button>
+        <button type="button" data-md-action="bold">Bold</button>
+        <button type="button" data-md-action="italic">Italic</button>
+        <button type="button" data-md-action="code-inline">Code</button>
+        <button type="button" data-md-action="code-block">Code block</button>
+        <button type="button" data-md-action="quote">Quote</button>
+        <button type="button" data-md-action="link">Link</button>
+        <button type="button" data-md-action="table">Table</button>
+    </div>
+    <div class="row g-0">
+        <div class="col-lg-6">
+            <textarea id="markdown-input" asp-for="ContentMarkdown" class="form-control"
+                      data-preview-url="@Url.Action("PreviewMarkdown", "Posts")"
+                      data-upload-url="@Url.Action("Upload", "Media")"
+                      placeholder="# Start writing…"></textarea>
+        </div>
+        <div class="col-lg-6">
+            <div id="preview-pane" class="readme-content editor-preview-pane"></div>
+        </div>
+    </div>
+</div>
+
+<div id="dropzone" class="upload-dropzone mb-4">Drop an image or video here, or click to upload</div>
+<input type="file" id="file-input" accept="image/*,video/*" class="d-none" />
+
+<div class="d-flex gap-2">
+    <button type="submit" class="btn btn-accent">Save post</button>
+    <a asp-controller="Home" asp-action="Index" class="btn btn-ghost">Cancel</a>
+</div>
