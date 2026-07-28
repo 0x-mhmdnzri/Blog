@@ -1,8 +1,11 @@
-@{ ViewData["Title"] = "Error"; }
+@{
+    ViewData["Title"] = "خطا";
+    ViewData["NoIndex"] = true;
+}
 
 <div class="container py-5 text-center">
     <div class="hero-prompt mb-2">$ echo $?</div>
-    <h1 class="h3 mb-2">Something went wrong</h1>
-    <p class="text-muted-dark">The request could not be completed. Try going back to the homepage.</p>
-    <a class="btn btn-ghost mt-3" asp-controller="Home" asp-action="Index">Back to posts</a>
+    <h1 class="h3 mb-2">مشکلی پیش آمد</h1>
+    <p class="text-muted-dark">درخواست شما قابل انجام نبود. به صفحه اصلی بازگردید.</p>
+    <a class="btn btn-ghost mt-3" asp-controller="Home" asp-action="Index">بازگشت به نوشته‌ها</a>
 </div>

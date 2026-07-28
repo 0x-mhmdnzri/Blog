@@ -22,8 +22,8 @@
   --radius-sm: 6px;
   --radius: 10px;
   --radius-lg: 16px;
-  --font-display: "Space Grotesk", "Inter", sans-serif;
-  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Vazirmatn", "Space Grotesk", sans-serif;
+  --font-body: "Vazirmatn", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   --shadow-soft: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
 }
@@ -54,6 +54,30 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.01em;
   color: var(--text);
 }
+
+/* ---------- Bidi handling ---------------------------------------------------
+   The whole site is RTL/Persian now, but a few elements are deliberately
+   English "terminal signature" text (the brand mark, "$ cat ..." prompts) or
+   inherently-LTR technical content (code, URLs, dates, numbers). Those must
+   NOT be reordered by the RTL bidi algorithm, so they're explicitly isolated
+   here rather than left to inherit the page's RTL default. ------------------ */
+
+.ltr-signature, .ltr-field {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+.ltr-field {
+  font-family: var(--font-mono);
+}
+
+code, pre, kbd, samp {
+  direction: ltr;
+  unicode-bidi: embed;
+  text-align: left;
+}
+
+[dir="auto"] { unicode-bidi: plaintext; }
 
 /* ---------- Layout shell ---------- */
 
@@ -182,6 +206,9 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   font-family: var(--font-mono);
   color: var(--text-faint);
   font-size: 0.9rem;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: right;
 }
 .hero h1 { font-size: clamp(2rem, 4vw, 3rem); }
 
@@ -214,10 +241,10 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   border: 1px solid var(--border-soft);
 }
 .readme-content blockquote {
-  border-left: 3px solid var(--accent);
+  border-right: 3px solid var(--accent);
   background: var(--surface);
   padding: 0.8rem 1.2rem;
-  border-radius: 0 var(--radius) var(--radius) 0;
+  border-radius: var(--radius) 0 0 var(--radius);
   color: var(--text-muted);
 }
 .readme-content table {
@@ -229,7 +256,7 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   border: 1px solid var(--border);
   padding: 0.5rem 0.8rem;
 }
-.readme-content th { background: var(--surface-2); text-align: left; }
+.readme-content th { background: var(--surface-2); text-align: right; }
 .readme-content hr { border-color: var(--border); }
 
 .readme-content code {
@@ -240,6 +267,8 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   padding: 0.1em 0.4em;
   font-size: 0.88em;
   color: var(--accent);
+  direction: ltr;
+  unicode-bidi: embed;
 }
 
 /* Fenced code blocks: the signature "terminal window" treatment */
@@ -262,6 +291,9 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   font-size: 0.88rem;
   line-height: 1.6;
   border-radius: 0;
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: embed;
 }
 .readme-content pre::before {
   content: "";
@@ -341,7 +373,7 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
 
 .editor-preview-pane {
   background: var(--bg);
-  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   padding: 1.5rem;
   overflow-y: auto;
   max-height: 600px;

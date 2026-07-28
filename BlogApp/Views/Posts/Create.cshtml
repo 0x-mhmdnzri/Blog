@@ -1,18 +1,14 @@
 @model PostEditViewModel
 @{
-    ViewData["Title"] = "New post";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "نوشته جدید";
     ViewData["NoIndex"] = true;
 }
 
-<div class="container py-5" style="max-width: 1100px;">
-    <div class="hero-prompt mb-2">$ posts new</div>
-    <h1 class="h3 mb-4">Write a new post</h1>
-
-    <form asp-action="Create" method="post">
-        @Html.AntiForgeryToken()
-        @await Html.PartialAsync("_EditorForm", Model)
-    </form>
-</div>
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+    @await Html.PartialAsync("_EditorForm", Model)
+</form>
 
 @section Scripts {
     <script src="~/js/editor.js" asp-append-version="true"></script>

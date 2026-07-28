@@ -7,34 +7,24 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c56777a1-b8f7-4518-a074-7b6e03f7a470" name="Changes" comment="first commit">
-      <change afterPath="$PROJECT_DIR$/BlogApp/BlogApp.csproj" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Controllers/AccountController.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Controllers/HomeController.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Controllers/MediaController.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Controllers/PostsController.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Data/ApplicationDbContext.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Data/DbSeeder.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Models/MediaAsset.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Models/Post.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Models/Taxonomy.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Models/ViewModels/PostEditViewModel.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Program.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Services/MarkdownService.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Services/SlugHelper.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/Account/Login.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/Home/Error.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/Home/Index.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/Posts/Create.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/Posts/Details.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/Posts/Edit.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/Posts/_EditorForm.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/Shared/_Layout.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/_ViewImports.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/Views/_ViewStart.cshtml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/appsettings.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/wwwroot/css/dark-theme.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BlogApp/wwwroot/js/editor.js" afterDir="false" />
+    <list default="true" id="c56777a1-b8f7-4518-a074-7b6e03f7a470" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.BlogApp/.idea/material_theme_project_new.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.BlogApp/.idea/material_theme_project_new.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.BlogApp/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.BlogApp/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Controllers/AccountController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Controllers/AccountController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Data/DbSeeder.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Data/DbSeeder.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Models/ViewModels/PostEditViewModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Models/ViewModels/PostEditViewModel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Account/Login.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Account/Login.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Admin/_AdminLayout.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Admin/_AdminLayout.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Home/Error.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Home/Error.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Home/Index.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Home/Index.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Posts/Create.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Posts/Create.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Posts/Details.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Posts/Details.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Posts/Edit.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Posts/Edit.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Posts/_EditorForm.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Posts/_EditorForm.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Shared/_Layout.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Shared/_Layout.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/appsettings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/wwwroot/css/dark-theme.css" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/wwwroot/css/dark-theme.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/wwwroot/js/editor.js" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/wwwroot/js/editor.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,6 +39,7 @@
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/BlogApp/Controllers/AccountController.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/mohammadnazari/Downloads/BlogApp/BlogApp/Views/Shared/_Layout.cshtml" root0="FORCE_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="SKIP_HIGHLIGHTING" />
     <setting file="file:///usr/local/share/dotnet/sdk/10.0.301/Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
@@ -65,7 +56,8 @@
   &quot;keyToString&quot;: {
     &quot;.NET Project.BlogApp.executor&quot;: &quot;Debug&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;&lt;unknown&gt;&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;dev&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -107,7 +99,36 @@
       <workItem from="1785133510783" duration="298000" />
       <workItem from="1785133812687" duration="462000" />
       <workItem from="1785137492966" duration="1349000" />
+      <workItem from="1785140622986" duration="828000" />
+      <workItem from="1785176625541" duration="33000" />
+      <workItem from="1785176665747" duration="1816000" />
+      <workItem from="1785216491677" duration="7000" />
     </task>
+    <task id="LOCAL-00001" summary="first commit">
+      <option name="closed" value="true" />
+      <created>1785140640504</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1785140640504</updated>
+    </task>
+    <task id="LOCAL-00002" summary="first commit">
+      <option name="closed" value="true" />
+      <created>1785140696075</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1785140696075</updated>
+    </task>
+    <task id="LOCAL-00003" summary="fix RTL &amp; align right">
+      <option name="closed" value="true" />
+      <created>1785177109827</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1785177109827</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -118,6 +139,7 @@
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="first commit" />
-    <option name="LAST_COMMIT_MESSAGE" value="first commit" />
+    <MESSAGE value="fix RTL &amp; align right" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix RTL &amp; align right" />
   </component>
 </project>

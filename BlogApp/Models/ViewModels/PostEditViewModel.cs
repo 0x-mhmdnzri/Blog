@@ -6,21 +6,21 @@ public class PostEditViewModel
 {
     public int Id { get; set; }
 
-    [Required, MaxLength(200)]
-    [Display(Name = "Title")]
+    [Required(ErrorMessage = "عنوان الزامی است"), MaxLength(200, ErrorMessage = "عنوان نباید بیشتر از ۲۰۰ نویسه باشد")]
+    [Display(Name = "عنوان")]
     public string Title { get; set; } = string.Empty;
 
-    [MaxLength(400)]
-    [Display(Name = "Summary")]
+    [MaxLength(400, ErrorMessage = "خلاصه نباید بیشتر از ۴۰۰ نویسه باشد")]
+    [Display(Name = "خلاصه")]
     public string? Summary { get; set; }
 
-    [Required]
-    [Display(Name = "Content (Markdown)")]
+    [Required(ErrorMessage = "محتوای نوشته الزامی است")]
+    [Display(Name = "محتوا (مارک‌داون)")]
     public string ContentMarkdown { get; set; } = string.Empty;
 
     public int? CategoryId { get; set; }
 
-    [Display(Name = "Tags (comma separated)")]
+    [Display(Name = "برچسب‌ها (جدا شده با کاما)")]
     public string? TagsCsv { get; set; }
 
     public bool IsPublished { get; set; }

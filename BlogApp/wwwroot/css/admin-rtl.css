@@ -1,0 +1,280 @@
+/* =========================================================================
+   Admin panel — RTL, Persian, Vazirmatn. Reuses the Dark Pro color tokens
+   from dark-theme.css (loaded first) so the panel feels like part of the
+   same product, just laid out for a sidebar-driven, right-to-left workspace.
+   ========================================================================= */
+
+.admin-body {
+  font-family: "Vazirmatn", var(--font-body);
+  background: var(--bg);
+}
+
+.admin-body * { font-family: "Vazirmatn", var(--font-body); }
+.admin-body code, .admin-body pre { font-family: var(--font-mono); }
+
+.admin-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar ---------- */
+
+.admin-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.admin-brand {
+  padding: 1.5rem 1.25rem;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.admin-brand .brand-cursor {
+  width: 9px; height: 18px;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.admin-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+.admin-nav-group-label {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 0.6rem 0.4rem;
+}
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.92rem;
+  margin-bottom: 0.15rem;
+}
+.admin-nav-link:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
+.admin-nav-link.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.admin-nav-link .badge-count {
+  background: var(--danger);
+  color: #14110a;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+}
+.admin-nav-link .soon-tag {
+  font-size: 0.66rem;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+}
+
+.admin-sidebar-footer {
+  padding: 1rem 1.25rem 1.5rem;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.admin-sidebar-footer a { color: var(--text-muted); font-size: 0.86rem; }
+.admin-sidebar-footer a:hover { color: var(--text); text-decoration: none; }
+.admin-sidebar-footer button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.86rem;
+  width: 100%;
+  text-align: right;
+}
+.admin-sidebar-footer button:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ---------- Main area ---------- */
+
+.admin-main { flex: 1; min-width: 0; }
+
+.admin-topbar {
+  background: rgba(11, 14, 20, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-soft);
+  padding: 1.1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.admin-topbar h1 { font-size: 1.15rem; margin: 0; }
+.admin-topbar .eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+
+.admin-content { padding: 2rem; max-width: 1200px; }
+
+/* ---------- Stat cards ---------- */
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 1.3rem 1.4rem;
+  height: 100%;
+}
+.stat-card .stat-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+.stat-card .stat-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+}
+.stat-card .stat-value.accent { color: var(--accent); }
+.stat-card .stat-value.danger { color: var(--danger); }
+
+/* ---------- Tables ---------- */
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.admin-table th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-align: right;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.admin-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 0.9rem;
+  vertical-align: top;
+}
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tr:hover td { background: var(--surface-2); }
+
+/* ---------- Bidi handling ---------------------------------------------------
+   The panel is RTL/Persian, but table cells routinely hold LTR content — post
+   titles, slugs, URLs, ISO dates, numbers — that must NOT be reordered by the
+   RTL bidi algorithm. Code/monospace content is *always* LTR regardless of
+   surrounding language, so it's hard-coded below; free text that may be
+   Persian OR English (titles, comment bodies, author names) uses dir="auto"
+   in markup so the browser detects direction from the actual first strong
+   character instead of blindly inheriting the page's RTL default. ---------- */
+
+.admin-body code,
+.admin-body pre,
+.admin-body kbd,
+.admin-body samp {
+  direction: ltr;
+  unicode-bidi: embed;
+  text-align: left;
+}
+
+.admin-body [dir="auto"] {
+  unicode-bidi: plaintext;
+}
+
+/* Numbers, dates, slugs, and URLs: always render left-to-right and left-aligned
+   even inside an RTL row, so "2026/07/27" or "/post/my-slug" never flips. */
+.ltr-field {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.status-pill {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+}
+.status-pill.pending { background: rgba(227, 179, 65, 0.15); color: var(--accent); }
+.status-pill.approved { background: rgba(158, 203, 140, 0.15); color: #9ecb8c; }
+.status-pill.rejected { background: rgba(229, 99, 122, 0.15); color: var(--danger); }
+.status-pill.published { background: rgba(158, 203, 140, 0.15); color: #9ecb8c; }
+.status-pill.draft { background: var(--surface-3); color: var(--text-muted); }
+
+/* ---------- Filter tabs ---------- */
+
+.admin-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.admin-tab {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+}
+.admin-tab:hover { color: var(--text); text-decoration: none; }
+.admin-tab.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-dim); }
+
+/* ---------- Empty state / coming soon ---------- */
+
+.admin-empty {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 3.5rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+.admin-empty h2 { margin-bottom: 0.5rem; }
+
+/* ---------- Small utility buttons inside tables ---------- */
+
+.icon-btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.icon-btn.approve:hover { border-color: #9ecb8c; color: #9ecb8c; }
+.icon-btn.reject:hover { border-color: var(--danger); color: var(--danger); }
+.icon-btn:hover { color: var(--text); }
+
+@media (max-width: 900px) {
+  .admin-sidebar { position: fixed; right: -260px; z-index: 100; transition: right .2s ease; }
+  .admin-sidebar.open { right: 0; }
+  .admin-content { padding: 1.25rem; }
+}

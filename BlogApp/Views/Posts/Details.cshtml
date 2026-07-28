@@ -13,31 +13,31 @@
     @if (User.Identity?.IsAuthenticated == true)
     {
         <div class="d-flex gap-2 mb-4">
-            <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">Edit post</a>
+            <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">ویرایش نوشته</a>
             <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
-                  onsubmit="return confirm('Delete this post and all its media? This cannot be undone.');">
+                  onsubmit="return confirm('این نوشته و همه رسانه‌های آن حذف شود؟ این عمل قابل بازگشت نیست.');">
                 @Html.AntiForgeryToken()
-                <button class="btn btn-outline-danger-dark btn-sm" type="submit">Delete</button>
+                <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف</button>
             </form>
         </div>
     }
 
     @if (Model.Category != null)
     {
-        <span class="badge-category mb-3 d-inline-block">@Model.Category.Name</span>
+        <span class="badge-category mb-3 d-inline-block" dir="auto">@Model.Category.Name</span>
     }
 
-    <h1 class="mb-3">@Model.Title</h1>
+    <h1 class="mb-3" dir="auto">@Model.Title</h1>
 
     <div class="post-meta-line mb-4 d-flex flex-wrap gap-3">
-        <span><span class="accent">$</span> published
-            <time datetime="@(Model.PublishedAtUtc?.ToString("o"))">@Model.PublishedAtUtc?.ToString("MMM d, yyyy")</time>
+        <span><span class="accent">$</span> انتشار در
+            <time class="ltr-field" datetime="@(Model.PublishedAtUtc?.ToString("o"))">@Model.PublishedAtUtc?.ToString("yyyy-MM-dd")</time>
         </span>
-        <span>· @readingMinutes min read</span>
-        <span>· @Model.ViewCount views</span>
+        <span>· <span class="ltr-field">@readingMinutes</span> دقیقه مطالعه</span>
+        <span>· <span class="ltr-field">@Model.ViewCount</span> بازدید</span>
     </div>
 
-    <div class="readme-content">
+    <div class="readme-content" dir="auto">
         @Html.Raw(ViewBag.RenderedHtml)
     </div>
 
@@ -46,27 +46,32 @@
         <div class="d-flex gap-2 flex-wrap mt-5 pt-4" style="border-top:1px solid var(--border-soft);">
             @foreach (var pt in Model.PostTags)
             {
-                <a class="tag-pill" asp-controller="Home" asp-action="Index" asp-route-tag="@pt.Tag.Slug">#@pt.Tag.Name</a>
+                <a class="tag-pill" dir="auto" asp-controller="Home" asp-action="Index" asp-route-tag="@pt.Tag.Slug">#@pt.Tag.Name</a>
             }
         </div>
     }
 
     <section class="mt-5 pt-4" style="border-top:1px solid var(--border-soft);">
-        <h2 class="h6 text-muted-dark mb-3">Comments</h2>
+        <h2 class="h6 text-muted-dark mb-3">دیدگاه‌ها</h2>
 
         @if (TempData["CommentSubmitted"] != null)
         {
             <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["CommentSubmitted"]</div>
         }
 
+        @if (!Model.Comments.Any())
+        {
+            <p class="text-muted-dark small mb-3">هنوز دیدگاهی ثبت نشده — اولین نفری باشید که نظر می‌دهد.</p>
+        }
+
         @foreach (var c in Model.Comments.OrderByDescending(c => c.CreatedAtUtc))
         {
             <div class="card-surface p-3 mb-3">
                 <div class="d-flex justify-content-between">
-                    <strong style="font-family:var(--font-mono); font-size:.9rem;">@c.AuthorName</strong>
-                    <span class="small" style="color:var(--text-faint);">@c.CreatedAtUtc.ToString("MMM d, yyyy")</span>
+                    <strong dir="auto" style="font-size:.9rem;">@c.AuthorName</strong>
+                    <span class="ltr-field small" style="color:var(--text-faint);">@c.CreatedAtUtc.ToString("yyyy-MM-dd")</span>
                 </div>
-                <p class="mb-0 mt-2 text-muted-dark">@c.Body</p>
+                <p class="mb-0 mt-2 text-muted-dark" dir="auto">@c.Body</p>
             </div>
         }
 
@@ -74,12 +79,17 @@
             @Html.AntiForgeryToken()
             <input type="hidden" name="postId" value="@Model.Id" />
             <div class="mb-2">
-                <input class="form-control form-control-sm" name="authorName" placeholder="Name" required maxlength="80" />
+                <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" />
             </div>
             <div class="mb-2">
-                <textarea class="form-control form-control-sm" name="body" rows="3" placeholder="Say something…" required maxlength="2000"></textarea>
+                <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" placeholder="دیدگاه خود را بنویسید…" required maxlength="2000"></textarea>
             </div>
-            <button class="btn btn-accent btn-sm" type="submit">Post comment</button>
+            <button class="btn btn-accent btn-sm" type="submit">ارسال دیدگاه</button>
         </form>
+
+        @if (TempData["CommentSubmitted"] == null)
+        {
+            <p class="text-muted-dark small mt-2 mb-0">دیدگاه شما پیش از نمایش عمومی، توسط نویسنده بررسی می‌شود.</p>
+        }
     </section>
 </article>

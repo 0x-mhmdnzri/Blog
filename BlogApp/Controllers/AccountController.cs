@@ -36,7 +36,7 @@ public class AccountController : Controller
                 : RedirectToAction("Index", "Home");
         }
 
-        ModelState.AddModelError(string.Empty, "Invalid username or password.");
+        ModelState.AddModelError(string.Empty, "نام کاربری یا رمز عبور نادرست است.");
         ViewBag.ReturnUrl = returnUrl;
         return View();
     }

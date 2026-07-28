@@ -1,7 +1,11 @@
 @{
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentStatus = ViewBag.CurrentStatus as string;
     bool IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+    var isPostsSection = (currentController == "Admin" && currentAction == "Posts")
+        || (currentController == "Posts" && (currentAction == "Create" || currentAction == "Edit"));
+    var isDashboard = currentController == "Admin" && currentAction == "Index";
 }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" data-bs-theme="dark">
@@ -9,6 +13,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@(ViewData["Title"] != null ? ViewData["Title"] + " · پنل مدیریت" : "پنل مدیریت")</title>
+    <meta name="robots" content="noindex, nofollow" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -26,10 +31,10 @@
 
             <nav class="admin-nav">
                 <div class="admin-nav-group-label">کلی</div>
-                <a class="admin-nav-link @(IsActive("Index") ? "active" : "")" asp-controller="Admin" asp-action="Index">
+                <a class="admin-nav-link @(isDashboard ? "active" : "")" asp-controller="Admin" asp-action="Index">
                     <span>داشبورد</span>
                 </a>
-                <a class="admin-nav-link @(IsActive("Posts") ? "active" : "")" asp-controller="Admin" asp-action="Posts">
+                <a class="admin-nav-link @(isPostsSection ? "active" : "")" asp-controller="Admin" asp-action="Posts">
                     <span>نوشته‌ها</span>
                 </a>
                 <a class="admin-nav-link @(IsActive("Comments") ? "active" : "")" asp-controller="Admin" asp-action="Comments">

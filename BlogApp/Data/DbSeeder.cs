@@ -10,9 +10,9 @@ public static class DbSeeder
         if (!await db.Categories.AnyAsync())
         {
             db.Categories.AddRange(
-                new Category { Name = ".NET", Slug = "dotnet" },
-                new Category { Name = "Architecture", Slug = "architecture" },
-                new Category { Name = "Notes", Slug = "notes" }
+                new Category { Name = "دات‌نت", Slug = "dotnet" },
+                new Category { Name = "معماری", Slug = "architecture" },
+                new Category { Name = "یادداشت‌ها", Slug = "notes" }
             );
         }
 
@@ -22,32 +22,36 @@ public static class DbSeeder
 
             db.Posts.Add(new Post
             {
-                Title = "Welcome to the blog",
+                Title = "به وبلاگ خوش آمدید",
                 Slug = "welcome-to-the-blog",
-                Summary = "How this blog works: everything — text, images, video, code — lives in one database.",
+                Summary = "این وبلاگ چطور کار می‌کند: متن، تصویر، ویدیو و کد — همه در یک پایگاه‌داده ذخیره می‌شوند.",
                 Category = dotnet,
                 IsPublished = true,
                 PublishedAtUtc = DateTime.UtcNow,
                 ContentMarkdown =
 """
-# Welcome
+# خوش آمدید
 
-This is a **README-style** post editor. Write plain Markdown and it renders exactly
-like a GitHub README — headings, lists, tables, block quotes, and fenced code:
+این ویرایشگر به سبک **ریدمی** کار می‌کند. مارک‌داون ساده بنویسید و دقیقاً مثل یک
+ریدمی گیت‌هاب نمایش داده می‌شود — تیتر، لیست، جدول، نقل‌قول، و بلوک کد:
 
 ```csharp
 public record Post(string Title, string Slug, string ContentMarkdown);
 ```
 
-> Every image, video, and file you drop into a post is uploaded straight into the
-> database as bytes — nothing touches the disk. Delete the post, and its media goes
-> with it automatically.
+توجه کنید که بلوک کد بالا همیشه چپ‌به‌راست باقی می‌ماند، حتی هنگامی که
+بقیه متن راست‌به‌چپ و فارسی است — این دقیقاً همان رفتاری است که یک بلوک
+کد باید داشته باشد.
 
-- No artificial length limit on post content
-- Syntax-highlighted code blocks in the dark theme
-- Drop in `{{video:ID}}` to embed an uploaded video inline
+> هر تصویر، ویدیو یا فایلی که در یک نوشته قرار می‌دهید مستقیماً به‌صورت
+> بایت در پایگاه‌داده ذخیره می‌شود — چیزی روی دیسک نوشته نمی‌شود. با حذف
+> نوشته، رسانه‌های آن هم به‌طور خودکار حذف می‌شوند.
 
-Happy writing.
+- هیچ محدودیت مصنوعی برای طول محتوای نوشته وجود ندارد
+- بلوک‌های کد با رنگ‌بندی نحوی در تم تیره نمایش داده می‌شوند
+- با نوشتن `{{video:ID}}` می‌توانید ویدیوی آپلودشده را درون متن جای دهید
+
+نوشتن خوشی داشته باشید.
 """
             });
         }

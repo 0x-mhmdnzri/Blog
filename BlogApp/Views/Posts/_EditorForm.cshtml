@@ -9,14 +9,14 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-8">
-        <label class="form-label">Title</label>
-        <input asp-for="Title" class="form-control" placeholder="A great post title" />
+        <label class="form-label">عنوان</label>
+        <input asp-for="Title" class="form-control" dir="auto" placeholder="یک عنوان جذاب برای نوشته" />
         <span asp-validation-for="Title" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
-        <label class="form-label">Category</label>
+        <label class="form-label">دسته‌بندی</label>
         <select asp-for="CategoryId" class="form-select">
-            <option value="">— None —</option>
+            <option value="">— بدون دسته —</option>
             @foreach (var c in Model.AvailableCategories)
             {
                 <option value="@c.Id">@c.Name</option>
@@ -27,49 +27,49 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-8">
-        <label class="form-label">Summary (optional — auto-generated if left blank)</label>
-        <input asp-for="Summary" class="form-control" maxlength="400" />
+        <label class="form-label">خلاصه (اختیاری — در صورت خالی بودن به‌طور خودکار ساخته می‌شود)</label>
+        <input asp-for="Summary" class="form-control" dir="auto" maxlength="400" />
     </div>
     <div class="col-md-4">
-        <label class="form-label">Tags (comma separated)</label>
-        <input asp-for="TagsCsv" class="form-control" placeholder="dotnet, mvc, ef-core" />
+        <label class="form-label">برچسب‌ها (با کاما جدا کنید)</label>
+        <input asp-for="TagsCsv" class="form-control ltr-field" style="width:100%; display:block;" placeholder="dotnet, mvc, ef-core" />
     </div>
 </div>
 
 <div class="form-check mb-4">
     <input asp-for="IsPublished" class="form-check-input" type="checkbox" role="switch" />
-    <label asp-for="IsPublished" class="form-check-label text-muted-dark">Published (visible to everyone)</label>
+    <label asp-for="IsPublished" class="form-check-label text-muted-dark">منتشر شده (برای همه قابل مشاهده)</label>
 </div>
 
-<label class="form-label">Content — README-style Markdown, no length limit</label>
+<label class="form-label">محتوا — نوشتار به سبک ریدمی، بدون محدودیت طول</label>
 <div class="editor-shell mb-2">
     <div class="editor-toolbar">
-        <button type="button" data-md-action="h2">H2</button>
-        <button type="button" data-md-action="bold">Bold</button>
-        <button type="button" data-md-action="italic">Italic</button>
-        <button type="button" data-md-action="code-inline">Code</button>
-        <button type="button" data-md-action="code-block">Code block</button>
-        <button type="button" data-md-action="quote">Quote</button>
-        <button type="button" data-md-action="link">Link</button>
-        <button type="button" data-md-action="table">Table</button>
+        <button type="button" data-md-action="h2">تیتر H2</button>
+        <button type="button" data-md-action="bold">ضخیم</button>
+        <button type="button" data-md-action="italic">مورب</button>
+        <button type="button" data-md-action="code-inline">کد</button>
+        <button type="button" data-md-action="code-block">بلوک کد</button>
+        <button type="button" data-md-action="quote">نقل‌قول</button>
+        <button type="button" data-md-action="link">لینک</button>
+        <button type="button" data-md-action="table">جدول</button>
     </div>
     <div class="row g-0">
         <div class="col-lg-6">
-            <textarea id="markdown-input" asp-for="ContentMarkdown" class="form-control"
+            <textarea id="markdown-input" asp-for="ContentMarkdown" class="form-control" dir="auto"
                       data-preview-url="@Url.Action("PreviewMarkdown", "Posts")"
                       data-upload-url="@Url.Action("Upload", "Media")"
-                      placeholder="# Start writing…"></textarea>
+                      placeholder="# نوشتن را شروع کنید…"></textarea>
         </div>
         <div class="col-lg-6">
-            <div id="preview-pane" class="readme-content editor-preview-pane"></div>
+            <div id="preview-pane" class="readme-content editor-preview-pane" dir="auto"></div>
         </div>
     </div>
 </div>
 
-<div id="dropzone" class="upload-dropzone mb-4">Drop an image or video here, or click to upload</div>
+<div id="dropzone" class="upload-dropzone mb-4">یک تصویر یا ویدیو اینجا رها کنید، یا برای آپلود کلیک کنید</div>
 <input type="file" id="file-input" accept="image/*,video/*" class="d-none" />
 
 <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-accent">Save post</button>
-    <a asp-controller="Home" asp-action="Index" class="btn btn-ghost">Cancel</a>
+    <button type="submit" class="btn btn-accent">ذخیره نوشته</button>
+    <a asp-controller="Admin" asp-action="Posts" class="btn btn-ghost">انصراف</a>
 </div>

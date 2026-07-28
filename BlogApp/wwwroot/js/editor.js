@@ -40,13 +40,13 @@
         case 'bold': wrapSelection('**', '**'); break;
         case 'italic': wrapSelection('_', '_'); break;
         case 'code-inline': wrapSelection('`', '`'); break;
-        case 'code-block': insertAtCursor('\n```csharp\n// code here\n```\n'); break;
-        case 'h2': insertAtCursor('\n## Heading\n'); break;
-        case 'link': insertAtCursor('[link text](https://example.com)'); break;
+        case 'code-block': insertAtCursor('\n```csharp\n// کد اینجا\n```\n'); break;
+        case 'h2': insertAtCursor('\n## تیتر\n'); break;
+        case 'link': insertAtCursor('[متن لینک](https://example.com)'); break;
         case 'table':
-          insertAtCursor('\n| Column A | Column B |\n| --- | --- |\n| value | value |\n');
+          insertAtCursor('\n| ستون الف | ستون ب |\n| --- | --- |\n| مقدار | مقدار |\n');
           break;
-        case 'quote': insertAtCursor('\n> quoted text\n'); break;
+        case 'quote': insertAtCursor('\n> متن نقل‌قول\n'); break;
       }
     });
   });
@@ -80,15 +80,15 @@
     form.append('file', file);
     form.append('__RequestVerificationToken', token || '');
 
-    dropzone.textContent = `Uploading ${file.name}…`;
+    dropzone.textContent = `در حال آپلود ${file.name}…`;
     try {
       const res = await fetch(uploadUrl, { method: 'POST', body: form });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
       insertAtCursor('\n' + data.markdownSnippet + '\n');
-      dropzone.textContent = 'Drop an image or video here, or click to upload';
+      dropzone.textContent = 'یک تصویر یا ویدیو اینجا رها کنید، یا برای آپلود کلیک کنید';
     } catch (err) {
-      dropzone.textContent = 'Upload failed — try again';
+      dropzone.textContent = 'آپلود ناموفق بود — دوباره تلاش کنید';
       console.error(err);
     }
   }

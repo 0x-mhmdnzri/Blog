@@ -1,6 +1,6 @@
 @model List<PostListItemViewModel>
 @{
-    ViewData["Title"] = "Posts";
+    ViewData["Title"] = "نوشته‌ها";
     var categories = ViewBag.Categories as List<Category> ?? new();
 }
 
@@ -11,10 +11,10 @@
 <section class="hero py-5">
     <div class="container">
         <div class="hero-prompt mb-2">$ cat ./posts --sort=recent</div>
-        <h1 class="mb-3">Notes on building things.</h1>
+        <h1 class="mb-3">یادداشت‌هایی درباره ساختن چیزها.</h1>
         <p class="text-muted-dark" style="max-width:640px;">
-            Long-form write-ups, stored the same way a README is written — Markdown in,
-            styled HTML out, with code, images, and video embedded right in the text.
+            نوشته‌های بلند، دقیقاً به همان سبکی که یک ریدمی نوشته می‌شود — مارک‌داون به‌عنوان ورودی،
+            خروجی شیک و استایل‌دار، همراه با کد، تصویر و ویدیو دقیقاً درون متن.
         </p>
     </div>
 </section>
@@ -23,10 +23,10 @@
     <div class="d-flex flex-wrap gap-2 mb-4">
         <a class="tag-pill @(ViewBag.CurrentCategory == null ? "border-0" : "")"
            style="@(ViewBag.CurrentCategory == null ? "background:var(--accent-soft);color:var(--accent);" : "")"
-           asp-action="Index">All</a>
+           asp-action="Index">همه</a>
         @foreach (var c in categories)
         {
-            <a class="tag-pill" style="@(ViewBag.CurrentCategory == c.Slug ? "background:var(--accent-soft);color:var(--accent);" : "")"
+            <a class="tag-pill" dir="auto" style="@(ViewBag.CurrentCategory == c.Slug ? "background:var(--accent-soft);color:var(--accent);" : "")"
                asp-action="Index" asp-route-category="@c.Slug">@c.Name</a>
         }
     </div>
@@ -34,7 +34,7 @@
     @if (!Model.Any())
     {
         <div class="card-surface p-5 text-center text-muted-dark">
-            <p class="mb-0 font-monospace">// no posts yet — the first one is waiting to be written.</p>
+            <p class="mb-0">هنوز نوشته‌ای منتشر نشده — اولین نوشته منتظر نوشته‌شدن است.</p>
         </div>
     }
 
@@ -46,25 +46,25 @@
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         @if (post.CategoryName != null)
                         {
-                            <div class="eyebrow">@post.CategoryName</div>
+                            <div class="eyebrow" dir="auto">@post.CategoryName</div>
                         }
                         @if (!post.IsPublished)
                         {
-                            <span class="tag-pill" style="color:var(--danger); border-color:rgba(229,99,122,.4);">Draft</span>
+                            <span class="tag-pill" style="color:var(--danger); border-color:rgba(229,99,122,.4);">پیش‌نویس</span>
                         }
                     </div>
-                    <h2 class="h5 mb-2">
+                    <h2 class="h5 mb-2" dir="auto">
                         <a asp-controller="Posts" asp-action="Details" asp-route-slug="@post.Slug">@post.Title</a>
                     </h2>
-                    <p class="text-muted-dark small mb-3">@post.Summary</p>
+                    <p class="text-muted-dark small mb-3" dir="auto">@post.Summary</p>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-faint small" style="color:var(--text-faint); font-family:var(--font-mono); font-size:.78rem;">
-                            @(post.PublishedAtUtc?.ToString("MMM d, yyyy"))
+                        <span class="ltr-field small" style="color:var(--text-faint); font-size:.78rem;">
+                            @(post.PublishedAtUtc?.ToString("yyyy-MM-dd"))
                         </span>
                         <div class="d-flex gap-1">
                             @foreach (var t in post.Tags.Take(2))
                             {
-                                <span class="tag-pill">#@t</span>
+                                <span class="tag-pill" dir="auto">#@t</span>
                             }
                         </div>
                     </div>
@@ -78,7 +78,7 @@
         <nav class="mt-5 d-flex justify-content-center gap-2">
             @for (int p = 1; p <= (int)ViewBag.TotalPages; p++)
             {
-                <a class="btn btn-ghost btn-sm @(p == (int)ViewBag.Page ? "border-accent" : "")"
+                <a class="btn btn-ghost btn-sm ltr-field @(p == (int)ViewBag.Page ? "border-accent" : "")"
                    style="@(p == (int)ViewBag.Page ? "border-color:var(--accent);color:var(--accent);" : "")"
                    asp-action="Index" asp-route-page="@p" asp-route-category="@ViewBag.CurrentCategory">@p</a>
             }
