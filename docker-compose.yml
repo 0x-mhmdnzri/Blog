@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     image: dark-pro-blog:latest
     container_name: dark-pro-blog
     restart: unless-stopped
