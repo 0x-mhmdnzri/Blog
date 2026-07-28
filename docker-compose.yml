@@ -1,0 +1,38 @@
+services:
+  blog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dark-pro-blog:latest
+    container_name: dark-pro-blog
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ForceHttps: "false"
+      ConnectionStrings__DefaultConnection: "Data Source=/app/data/blog.db"
+
+      # Change these before exposing the container publicly.
+      Admin__Username: admin
+      Admin__Password: ChangeMe123!
+
+      Seo__SiteName: "وبلاگ دارک‌پرو"
+      Seo__SiteDescription: "یادداشت‌های بلند و فنی به سبک ریدمی درباره دات‌نت، معماری نرم‌افزار و ساختن درست چیزها."
+      Seo__AuthorName: "نویسنده سایت"
+      Seo__BaseUrl: "http://localhost:8080"
+      Seo__TwitterHandle: ""
+    volumes:
+      # Everything the blog stores — posts, comments, and every uploaded image/video as
+      # bytes — lives in this one SQLite file, so this single volume is all that needs
+      # to persist across `docker compose down` / image upgrades.
+      - blog_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  blog_data:

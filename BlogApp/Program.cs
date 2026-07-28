@@ -5,10 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Database (everything the blog needs lives in one SQLite file: blog.db) ---
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Data Source=blog.db"));
+// --- Database (everything the blog needs lives in one SQLite file). The connection
+// string can be overridden via ConnectionStrings__DefaultConnection (e.g. in Docker,
+// pointed at a mounted volume like /app/data/blog.db so posts/media survive restarts). ---
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=blog.db";
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
 
 // --- Markdown rendering pipeline (readme-style: tables, fenced code, embeds, etc.) ---
 builder.Services.AddSingleton<MarkdownService>();
@@ -41,6 +42,12 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 
+// Make sure the folder for the SQLite file exists — matters on first run against a fresh
+// Docker volume mount, where the parent directory may not exist yet.
+var dbDirectory = Path.GetDirectoryName(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(connectionString).DataSource);
+if (!string.IsNullOrEmpty(dbDirectory))
+    Directory.CreateDirectory(dbDirectory);
+
 // Auto-create the SQLite database file + schema on first run (no `dotnet ef` step required
 // to get started). Once you want proper incremental migrations, run:
 //   dotnet ef migrations add InitialCreate
@@ -53,13 +60,18 @@ using (var scope = app.Services.CreateScope())
     await DbSeeder.SeedAsync(db);
 }
 
+// HTTPS redirection/HSTS assume Kestrel itself terminates TLS. In the Docker image, TLS is
+// normally terminated by a reverse proxy (nginx, Traefik, a cloud load balancer) in front of
+// the plain-HTTP container, so this is disabled there via the ForceHttps=false env var.
+var forceHttps = builder.Configuration.GetValue("ForceHttps", true);
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    if (forceHttps) app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (forceHttps) app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
