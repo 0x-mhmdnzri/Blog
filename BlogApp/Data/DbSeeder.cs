@@ -4,10 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Data;
 
-/// <summary>
-/// Seeds roles, default SuperAdmin, and taxonomy only.
-/// Never seeds posts, comments, media, or fake page views — analytics stay empty until real traffic.
-/// </summary>
 public static class DbSeeder
 {
     public static async Task SeedAsync(
@@ -16,7 +12,7 @@ public static class DbSeeder
         RoleManager<IdentityRole> roleManager,
         IConfiguration config)
     {
-        foreach (var role in new[] { AppRoles.SuperAdmin, AppRoles.Author })
+        foreach (var role in new[] { AppRoles.SuperAdmin, AppRoles.Author, AppRoles.Reader })
         {
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
@@ -42,6 +38,7 @@ public static class DbSeeder
             {
                 await userManager.AddToRoleAsync(user, AppRoles.SuperAdmin);
                 await userManager.AddToRoleAsync(user, AppRoles.Author);
+                await userManager.AddToRoleAsync(user, AppRoles.Reader);
 
                 await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(AppClaims.CanModerateAllComments, "true"));
                 await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(AppClaims.CanManageAllPosts, "true"));

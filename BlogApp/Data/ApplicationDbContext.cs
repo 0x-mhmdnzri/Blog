@@ -22,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SeriesPost> SeriesPosts => Set<SeriesPost>();
     public DbSet<TopicCollection> TopicCollections => Set<TopicCollection>();
     public DbSet<TopicCollectionItem> TopicCollectionItems => Set<TopicCollectionItem>();
+    public DbSet<PostBookmark> PostBookmarks => Set<PostBookmark>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -141,6 +142,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(r => r.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(r => r.PostId);
+        });
+
+        modelBuilder.Entity<PostBookmark>(e =>
+        {
+            e.HasKey(b => new { b.UserId, b.PostId });
+            e.HasOne(b => b.User)
+                .WithMany(u => u.Bookmarks)
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(b => b.Post)
+                .WithMany()
+                .HasForeignKey(b => b.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(b => b.UserId);
+            e.HasIndex(b => b.CreatedAtUtc);
         });
 
         modelBuilder.Entity<ApplicationUser>(e =>
