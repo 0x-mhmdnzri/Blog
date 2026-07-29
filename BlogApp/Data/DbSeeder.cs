@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore;
 namespace BlogApp.Data;
 
 /// <summary>
-/// Seeds roles, default SuperAdmin, and taxonomy. No demo posts/views.
+/// Seeds roles, default SuperAdmin, and taxonomy only.
+/// Never seeds posts, comments, media, or fake page views — analytics stay empty until real traffic.
 /// </summary>
 public static class DbSeeder
 {
@@ -15,14 +16,12 @@ public static class DbSeeder
         RoleManager<IdentityRole> roleManager,
         IConfiguration config)
     {
-        // Roles
         foreach (var role in new[] { AppRoles.SuperAdmin, AppRoles.Author })
         {
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
 
-        // Default SuperAdmin from config (or sensible defaults)
         var adminUser = config["Admin:Username"] ?? "admin";
         var adminPass = config["Admin:Password"] ?? "ChangeMe123!";
         var adminEmail = config["Admin:Email"] ?? $"{adminUser}@localhost";
@@ -44,14 +43,12 @@ public static class DbSeeder
                 await userManager.AddToRoleAsync(user, AppRoles.SuperAdmin);
                 await userManager.AddToRoleAsync(user, AppRoles.Author);
 
-                // SuperAdmin claims — full visibility
                 await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(AppClaims.CanModerateAllComments, "true"));
                 await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(AppClaims.CanManageAllPosts, "true"));
                 await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(AppClaims.CanViewAllAnalytics, "true"));
             }
         }
 
-        // Categories
         if (!await db.Categories.AnyAsync())
         {
             db.Categories.AddRange(

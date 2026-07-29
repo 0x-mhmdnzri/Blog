@@ -33,15 +33,30 @@ public partial class PostsController : Controller
         if (!post.IsPublished && !AuthorAccess.OwnsPost(User, post)) return NotFound();
         if (post.ExpiresAtUtc.HasValue && post.ExpiresAtUtc <= DateTime.UtcNow && !AuthorAccess.OwnsPost(User, post)) return NotFound();
 
-        var visitorHash = VisitorIdentity.ComputeHash(HttpContext);
-        var window = DateTime.UtcNow.AddMinutes(-30);
-        if (!await _db.PostViews.AnyAsync(v => v.PostId == post.Id && v.VisitorHash == visitorHash && v.ViewedAtUtc >= window))
+        // Real public traffic only: never count the author/admin previewing their own post.
+        var isStaffPreview = User.Identity?.IsAuthenticated == true
+            && (User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
+
+        if (!isStaffPreview)
         {
-            post.ViewCount++;
-            var pv = new PostView { PostId = post.Id, ViewedAtUtc = DateTime.UtcNow, VisitorHash = visitorHash };
-            _db.PostViews.Add(pv);
-            await _db.SaveChangesAsync();
-            _broadcaster.Publish(new { type = "view", postId = post.Id, postTitle = post.Title, authorId = post.AuthorId, viewedAtUtc = pv.ViewedAtUtc, totalViews = post.ViewCount });
+            var visitorHash = VisitorIdentity.ComputeHash(HttpContext);
+            var window = DateTime.UtcNow.AddMinutes(-30);
+            if (!await _db.PostViews.AnyAsync(v => v.PostId == post.Id && v.VisitorHash == visitorHash && v.ViewedAtUtc >= window))
+            {
+                post.ViewCount++;
+                var pv = new PostView { PostId = post.Id, ViewedAtUtc = DateTime.UtcNow, VisitorHash = visitorHash };
+                _db.PostViews.Add(pv);
+                await _db.SaveChangesAsync();
+                _broadcaster.Publish(new
+                {
+                    type = "view",
+                    postId = post.Id,
+                    postTitle = post.Title,
+                    authorId = post.AuthorId,
+                    viewedAtUtc = pv.ViewedAtUtc,
+                    totalViews = post.ViewCount
+                });
+            }
         }
 
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -155,7 +170,7 @@ public partial class PostsController : Controller
             var comment = new Comment { PostId = postId, AuthorName = authorName.Trim(), Body = body.Trim(), Status = CommentStatus.Pending };
             _db.Comments.Add(comment);
             await _db.SaveChangesAsync();
-            TempData["CommentSubmitted"] = "\u0645\u0645\u0646\u0648\u0646 \u2014 \u062F\u06CC\u062F\u06AF\u0627\u0647 \u0634\u0645\u0627 \u062F\u0631 \u0627\u0646\u062A\u0638\u0627\u0631 \u0628\u0631\u0631\u0633\u06CC \u0627\u0633\u062A.";
+            TempData["CommentSubmitted"] = "ممنون — دیدگاه شما در انتظار بررسی است.";
             var info = await _db.Posts.Where(p => p.Id == postId).Select(p => new { p.Title, p.AuthorId }).FirstOrDefaultAsync();
             _broadcaster.Publish(new { type = "comment", status = "pending", postId, postTitle = info?.Title, authorId = info?.AuthorId, authorName = comment.AuthorName });
         }
