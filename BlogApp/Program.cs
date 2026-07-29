@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
 using Serilog;
+using SameSiteMode = Microsoft.AspNetCore.Http.SameSiteMode;
 
 SerilogBootstrap.CreateBootstrapLogger();
 
