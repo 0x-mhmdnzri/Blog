@@ -86,7 +86,7 @@ public class MarkdownService
             var level = m.Groups[1].Value.Length;
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text)) continue;
-            var slug =SlugifyHeading(text);
+            var slug = SlugifyHeading(text);
             while (prevLevel > level) { sb.Append("</ul></li>"); prevLevel--; }
             if (prevLevel == level)
             {
@@ -125,7 +125,7 @@ public class MarkdownService
         return html;
     }
 
-    private static string SlugifyHeading(string text)
+    private static stringSlugifyHeading(string text)
     {
         var s = text.ToLowerInvariant().Trim();
         s = Regex.Replace(s, @"\s+", "-");
