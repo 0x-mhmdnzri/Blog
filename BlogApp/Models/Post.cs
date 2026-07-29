@@ -10,8 +10,7 @@ public class Post
     public string Title { get; set; } = string.Empty;
 
     [Required, MaxLength(220)]
-    public string
-        Slug { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
 
     [MaxLength(400)]
     public string? Summary { get; set; }
@@ -42,6 +41,15 @@ public class Post
 
     public int? CategoryId { get; set; }
     public Category? Category { get; set; }
+
+    /// <summary>ISO 639-1 language code (fa, en, ar).</summary>
+    [Required, MaxLength(8)]
+    public string LanguageCode { get; set; } = AppCultures.Default;
+
+    /// <summary>Shared id across language versions of the same article. Defaults to Id.</summary>
+    public int? TranslationGroupId { get; set; }
+
+    public TranslationStatus TranslationStatus { get; set; } = TranslationStatus.Original;
 
     public ICollection<PostTag> PostTags { get; set; } = new List<PostTag>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
