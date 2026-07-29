@@ -4,9 +4,8 @@ using Microsoft.AspNetCore.Identity;
 namespace BlogApp.Models;
 
 /// <summary>
-/// Extended Identity user for multi-author blog.
-/// Roles: SuperAdmin (sees everything), Author (owns own posts/comments).
-/// Claims can further refine permissions (e.g. CanModerateComments).
+/// Extended Identity user.
+/// Roles: SuperAdmin, Author, Reader (bookmark + public account).
 /// </summary>
 public class ApplicationUser : IdentityUser
 {
@@ -16,7 +15,6 @@ public class ApplicationUser : IdentityUser
     [MaxLength(500)]
     public string? Bio { get; set; }
 
-    /// <summary>Profile image stored as bytes in the DB (same pattern as MediaAsset).</summary>
     public byte[]? ProfileImage { get; set; }
 
     [MaxLength(80)]
@@ -25,12 +23,15 @@ public class ApplicationUser : IdentityUser
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public ICollection<Post> Posts { get; set; } = new List<Post>();
+    public ICollection<PostBookmark> Bookmarks { get; set; } = new List<PostBookmark>();
 }
 
 public static class AppRoles
 {
     public const string SuperAdmin = "SuperAdmin";
     public const string Author = "Author";
+    /// <summary>Registered reader — can bookmark posts; no admin panel.</summary>
+    public const string Reader = "Reader";
 }
 
 public static class AppClaims
