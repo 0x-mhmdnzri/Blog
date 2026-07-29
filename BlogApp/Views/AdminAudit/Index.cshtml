@@ -4,7 +4,7 @@
     ViewData["Title"] = "گزارش حسابرسی";
     var actionFilter = ViewBag.ActionFilter as string;
     var topActions = ViewBag.TopActions as List<NamedCount> ?? new();
-    var page = (int)(ViewBag.Page ?? 1);
+    var currentPage = (int)(ViewBag.Page ?? 1);
     var totalPages = (int)(ViewBag.TotalPages ?? 1);
 }
 
@@ -62,14 +62,14 @@
 @if (totalPages > 1)
 {
     <div class="d-flex gap-2 mt-3">
-        @if (page > 1)
+        @if (currentPage > 1)
         {
-            <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-page="@(page - 1)" asp-route-actionFilter="@actionFilter">قبلی</a>
+            <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-page="@(currentPage - 1)" asp-route-actionFilter="@actionFilter">قبلی</a>
         }
-        <span class="small text-muted-dark align-self-center ltr-field">@(page) / @totalPages</span>
-        @if (page < totalPages)
+        <span class="small text-muted-dark align-self-center ltr-field">@currentPage / @totalPages</span>
+        @if (currentPage < totalPages)
         {
-            <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-page="@(page + 1)" asp-route-actionFilter="@actionFilter">بعدی</a>
+            <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-page="@(currentPage + 1)" asp-route-actionFilter="@actionFilter">بعدی</a>
         }
     </div>
 }
