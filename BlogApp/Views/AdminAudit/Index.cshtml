@@ -66,7 +66,7 @@
         {
             <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-page="@(page - 1)" asp-route-actionFilter="@actionFilter">قبلی</a>
         }
-        <span class="small text-muted-dark align-self-center ltr-field">@page / @totalPages</span>
+        <span class="small text-muted-dark align-self-center ltr-field">@(page) / @totalPages</span>
         @if (page < totalPages)
         {
             <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-page="@(page + 1)" asp-route-actionFilter="@actionFilter">بعدی</a>
