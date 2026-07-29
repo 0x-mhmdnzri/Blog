@@ -10,12 +10,11 @@ public class Category
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(90)]
-    public string Slug { get; set; } = string.Empty;
+    public stringSlug { get; set; } = string.Empty;
 
     [MaxLength(400)]
     public string? Description { get; set; }
 
-    /// <summary>Parent category for nesting. Null = root.</summary>
     public int? ParentId { get; set; }
     public Category? Parent { get; set; }
     public ICollection<Category> Children { get; set; } = new List<Category>();
@@ -50,7 +49,6 @@ public class PostTag
     public Tag Tag { get; set; } = null!;
 }
 
-/// <summary>Ordered collection of posts (e.g. "ASP.NET series").</summary>
 public class PostSeries
 {
     public int Id { get; set; }
@@ -77,11 +75,9 @@ public class SeriesPost
     public int PostId { get; set; }
     public Post Post { get; set; } = null!;
 
-    /// <summary>1-based order within the series.</summary>
     public int SortOrder { get; set; }
 }
 
-/// <summary>Curated topic grouping categories and/or tags under one landing page.</summary>
 public class TopicCollection
 {
     public int Id { get; set; }
@@ -90,7 +86,7 @@ public class TopicCollection
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(140)]
-    public string Slug { get; set; } = string.Empty;
+    public stringSlug { get; set; } = string.Empty;
 
     [MaxLength(500)]
     public string? Description { get; set; }
@@ -134,6 +130,11 @@ public class Comment
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public CommentStatus Status { get; set; } = CommentStatus.Pending;
+
+    /// <summary>Denormalized like count for “relevant” sort.</summary>
+    public int LikeCount { get; set; }
+
+    public ICollection<CommentLike> Likes { get; set; } = new List<CommentLike>();
 }
 
 public enum CommentStatus
