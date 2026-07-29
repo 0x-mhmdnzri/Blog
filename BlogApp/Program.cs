@@ -34,6 +34,7 @@ try
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=blog.db";
     builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
     builder.Services.AddMemoryCache();
+    builder.Services.AddHttpContextAccessor();
 
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
@@ -166,6 +167,7 @@ try
     builder.Services.AddScoped<BrokenLinkService>();
     builder.Services.AddScoped<ISiteConfigService, SiteConfigService>();
     builder.Services.AddScoped<IAuditService, AuditService>();
+    builder.Services.AddScoped<ICultureService, CultureService>();
 
     builder.Services.AddControllersWithViews(options =>
     {
@@ -285,6 +287,9 @@ try
     };
     app.UseStaticFiles(staticCache);
 
+    // Culture before routing so path rewrite applies
+    app.UseMiddleware<CultureMiddleware>();
+
     app.UseRouting();
     app.UseRateLimiter();
 
@@ -313,7 +318,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening (security hardening + rate limits active)");
+    Log.Information("BlogApp listening (i18n + security hardening active)");
     app.Run();
 }
 catch (Exception ex)
