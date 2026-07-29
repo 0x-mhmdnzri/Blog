@@ -69,9 +69,14 @@ public class AdminPostListItem
     public string Slug { get; set; } = string.Empty;
     public string? CategoryName { get; set; }
     public bool IsPublished { get; set; }
+    public bool IsFeatured { get; set; }
+    public bool IsSticky { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? ScheduledPublishAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public int ViewCount { get; set; }
     public int CommentCount { get; set; }
+    public int ReadingTimeMinutes { get; set; }
     public string AuthorDisplayName { get; set; } = string.Empty;
     public string AuthorId { get; set; } = string.Empty;
 }

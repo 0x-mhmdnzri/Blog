@@ -25,15 +25,39 @@ public class PostEditViewModel
 
     public bool IsPublished { get; set; }
 
+    [Display(Name = "انتشار زمان‌بندی‌شده")]
+    public DateTime? ScheduledPublishAtUtc { get; set; }
+
+    [Display(Name = "انقضای محتوا")]
+    public DateTime? ExpiresAtUtc { get; set; }
+
+    [Display(Name = "نوشته ویژه")]
+    public bool IsFeatured { get; set; }
+
+    [Display(Name = "نوشته چسبان")]
+    public bool IsSticky { get; set; }
+
     public int? CoverMediaAssetId { get; set; }
 
+    public int ReadingTimeMinutes { get; set; }
+
     public List<CategoryOption> AvailableCategories { get; set; } = new();
+
+    public List<PostRevisionItem> Revisions { get; set; } = new();
 }
 
 public class CategoryOption
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+}
+
+public class PostRevisionItem
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public DateTime CreatedAtUtc { get; set; }
+    public string? Note { get; set; }
 }
 
 public class PostListItemViewModel
@@ -46,5 +70,9 @@ public class PostListItemViewModel
     public DateTime? PublishedAtUtc { get; set; }
     public int? CoverMediaAssetId { get; set; }
     public bool IsPublished { get; set; }
+    public bool IsFeatured { get; set; }
+    public bool IsSticky { get; set; }
+    public bool IsDeleted { get; set; }
+    public int ReadingTimeMinutes { get; set; }
     public List<string> Tags { get; set; } = new();
 }
