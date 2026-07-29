@@ -1,4 +1,4 @@
-/* CMS UI extras — layered on top of dark-theme.css restored from 93cb53c */
+/* CMS UI extras — RTL Persian first; LTR only for code / English signatures */
 
 .post-toc {
   background: var(--surface);
@@ -7,21 +7,77 @@
   padding: 1rem 1.25rem;
   margin-bottom: 2rem;
   font-size: 0.92rem;
+  direction: rtl;
+  text-align: right;
 }
 .post-toc .toc-title {
   font-weight: 600;
   margin: 0 0 0.6rem;
   color: var(--text-muted);
   font-size: 0.85rem;
+  text-align: right;
 }
-.post-toc ul { margin: 0; padding-inline-start: 1.1rem; list-style: disc; }
+.post-toc ul { margin: 0; padding-inline-start: 1.1rem; list-style: disc; text-align: right; }
 .post-toc li { margin: 0.25rem 0; }
 .post-toc a { color: var(--text-muted); text-decoration: none; }
 .post-toc a:hover { color: var(--accent); }
 
+.readme-content {
+  direction: rtl;
+  text-align: right;
+}
 .readme-content h1,
 .readme-content h2,
-.readme-content h3 { scroll-margin-top: 5rem; }
+.readme-content h3 {
+  scroll-margin-top: 5rem;
+  text-align: right;
+}
+
+/* Fenced code + inline code — always LTR (English / signatures / source) */
+.readme-content pre.md-code-block,
+.readme-content pre[dir="ltr"],
+.readme-content pre {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate;
+}
+.readme-content pre code,
+.readme-content code[dir="ltr"],
+.readme-content :not(pre) > code {
+  direction: ltr !important;
+  unicode-bidi: isolate;
+  text-align: left !important;
+  font-family: var(--font-mono);
+}
+
+/* Markdown tables: RTL layout, cells auto for mixed FA/EN */
+.readme-content table.md-table,
+.readme-content table {
+  direction: rtl;
+  width: 100%;
+}
+.readme-content th,
+.readme-content td {
+  text-align: right;
+}
+.readme-content th[dir="ltr"],
+.readme-content td[dir="ltr"] {
+  text-align: left;
+}
+
+/* Explicit English / terminal signature blocks */
+.ltr-block,
+.ltr-signature {
+  direction: ltr !important;
+  unicode-bidi: isolate;
+  text-align: left !important;
+  font-family: var(--font-mono);
+}
+
+.post-article {
+  direction: rtl;
+  text-align: right;
+}
 
 .status-pill.scheduled { background: rgba(111, 179, 210, 0.15); color: #6fb3d2; }
 .status-pill.featured { background: rgba(227, 179, 65, 0.18); color: var(--accent); }
@@ -32,7 +88,7 @@
 .form-check-input { background-color: var(--surface-3); border-color: var(--border); }
 .form-check-input:checked { background-color: var(--accent); border-color: var(--accent); }
 
-#ai-hints ul { padding-inline-start: 1.2rem; margin: 0.4rem 0 0; }
+#ai-hints ul { padding-inline-start: 1.2rem; margin: 0.4rem 0 0; text-align: right; }
 #ai-hints li { margin: 0.2rem 0; font-size: 0.88rem; }
 
 .editor-toolbar button#btn-autosave,
