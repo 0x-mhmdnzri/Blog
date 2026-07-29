@@ -1,0 +1,44 @@
+@model List<Post>
+@{
+    var series = (BlogApp.Models.PostSeries)ViewBag.Series;
+}
+
+<section class="hero py-4">
+    <div class="container" style="max-width:780px;">
+        <div class="eyebrow mb-2">سری نوشته‌ها</div>
+        <h1 class="mb-2" dir="auto">@series.Name</h1>
+        @if (!string.IsNullOrEmpty(series.Description))
+        {
+            <p class="text-muted-dark" dir="auto">@series.Description</p>
+        }
+    </div>
+</section>
+
+<div class="container py-4" style="max-width:780px;">
+    @if (!Model.Any())
+    {
+        <div class="card-surface p-4 text-muted-dark">هنوز نوشته‌ای در این سری منتشر نشده.</div>
+    }
+    else
+    {
+        <ol class="list-unstyled">
+            @{ var i = 1; }
+            @foreach (var p in Model)
+            {
+                <li class="card-surface p-3 mb-3">
+                    <div class="d-flex gap-3 align-items-start">
+                        <span class="ltr-field" style="color:var(--accent);font-weight:700;min-width:2rem;">@i.</span>
+                        <div>
+                            <a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug" dir="auto" style="font-weight:600;color:var(--text);">@p.Title</a>
+                            @if (!string.IsNullOrEmpty(p.Summary))
+                            {
+                                <p class="text-muted-dark small mb-0 mt-1" dir="auto">@p.Summary</p>
+                            }
+                        </div>
+                    </div>
+                </li>
+                i++;
+            }
+        </ol>
+    }
+</div>
