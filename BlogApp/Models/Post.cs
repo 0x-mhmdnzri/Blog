@@ -10,7 +10,8 @@ public class Post
     public string Title { get; set; } = string.Empty;
 
     [Required, MaxLength(220)]
-    public string Slug { get; set; } = string.Empty;
+    public string
+        Slug { get; set; } = string.Empty;
 
     [MaxLength(400)]
     public string? Summary { get; set; }
@@ -59,6 +60,27 @@ public class PostView
 
     [MaxLength(64)]
     public string VisitorHash { get; set; } = string.Empty;
+
+    [MaxLength(64)]
+    public string? SessionKey { get; set; }
+
+    [MaxLength(16)]
+    public string? DeviceType { get; set; }
+
+    [MaxLength(40)]
+    public string? Browser { get; set; }
+
+    [MaxLength(40)]
+    public string? Os { get; set; }
+
+    [MaxLength(40)]
+    public string? TrafficSource { get; set; }
+
+    [MaxLength(200)]
+    public string? ReferrerHost { get; set; }
+
+    [MaxLength(8)]
+    public string? CountryCode { get; set; }
 }
 
 public class PostRevision
