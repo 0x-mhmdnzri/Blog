@@ -178,7 +178,12 @@
             labels: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Label), json)),
             datasets: [{ data: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Value), json)), borderColor: accent, fill: true, tension: 0.3, backgroundColor: 'rgba(227,179,65,.12)' }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
     });
 
     doughnut('sourceChart',
