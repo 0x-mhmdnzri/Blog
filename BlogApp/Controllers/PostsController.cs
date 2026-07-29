@@ -35,10 +35,14 @@ public partial class PostsController : Controller
     }
 
     [HttpGet("post/{slug}")]
-    public async Task<IActionResult> Details(string slug)
+    public async Task<IActionResult> Details(string slug, string? sort = null)
     {
         if (string.IsNullOrWhiteSpace(slug) || slug.Length > 220)
             return NotFound();
+
+        var commentSort = string.Equals(sort, "latest", StringComparison.OrdinalIgnoreCase)
+            ? "latest"
+            : "relevant";
 
         await ApplyScheduledAndExpirationAsync();
         var post = await _db.Posts.Include(p => p.Category).Include(p => p.Author)
@@ -97,10 +101,26 @@ public partial class PostsController : Controller
             ? post.ReadingTimeMinutes
             : _markdown.EstimateReadingTimeMinutes(post.ContentMarkdown);
         ViewBag.CanEdit = AuthorAccess.OwnsPost(User, post);
+        ViewBag.CommentSort = commentSort;
 
         var uid = AuthorAccess.UserId(User);
         ViewBag.IsBookmarked = uid != null
             && await _db.PostBookmarks.AnyAsync(b => b.UserId == uid && b.PostId == post.Id);
+
+        if (uid != null)
+        {
+            var commentIds = post.Comments.Select(c => c.Id).ToList();
+            ViewBag.LikedCommentIds = commentIds.Count == 0
+                ? new HashSet<int>()
+                : (await _db.CommentLikes
+                    .Where(l => l.UserId == uid && commentIds.Contains(l.CommentId))
+                    .Select(l => l.CommentId)
+                    .ToListAsync()).ToHashSet();
+        }
+        else
+        {
+            ViewBag.LikedCommentIds = new HashSet<int>();
+        }
 
         await LoadTaxonomyContextAsync(post);
 
