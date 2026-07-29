@@ -28,6 +28,10 @@
     {
         <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["BookmarkMsg"]</div>
     }
+    @if (TempData["ReportMsg"] != null)
+    {
+        <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["ReportMsg"]</div>
+    }
 
     @if (canEdit)
     {
@@ -58,25 +62,56 @@
     <div class="d-flex justify-content-between align-items-start gap-3 mb-3 flex-wrap">
         <h1 class="post-title mb-0" dir="@titleDir">@Model.Title</h1>
 
-        @if (canBookmark)
-        {
-            <form asp-controller="Bookmarks" asp-action="Toggle" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="postId" value="@Model.Id" />
-                <input type="hidden" name="returnUrl" value="@postUrl" />
-                <button type="submit" class="btn btn-ghost btn-sm bookmark-btn @(isBookmarked ? "bookmarked" : "")"
-                        title="@(isBookmarked ? "برداشتن نشان" : "نشان‌گذاری")">
-                    @(isBookmarked ? "★ نشان‌شده" : "☆ نشان")
-                </button>
-            </form>
-        }
-        else
-        {
-            <a class="btn btn-ghost btn-sm bookmark-btn"
-               asp-controller="Account" asp-action="Login"
-               asp-route-returnUrl="@postUrl"
-               title="برای نشان‌گذاری وارد شوید">☆ نشان</a>
-        }
+        <div class="d-flex gap-2 flex-wrap">
+            @if (canBookmark)
+            {
+                <form asp-controller="Bookmarks" asp-action="Toggle" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@Model.Id" />
+                    <input type="hidden" name="returnUrl" value="@postUrl" />
+                    <button type="submit" class="btn btn-ghost btn-sm bookmark-btn @(isBookmarked ? "bookmarked" : "")"
+                            title="@(isBookmarked ? "برداشتن نشان" : "نشان‌گذاری")">
+                        @(isBookmarked ? "★ نشان‌شده" : "☆ نشان")
+                    </button>
+                </form>
+            }
+            else
+            {
+                <a class="btn btn-ghost btn-sm bookmark-btn"
+                   asp-controller="Account" asp-action="Login"
+                   asp-route-returnUrl="@postUrl"
+                   title="برای نشان‌گذاری وارد شوید">☆ نشان</a>
+            }
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('reportBox').hidden = !document.getElementById('reportBox').hidden">گزارش</button>
+        </div>
+    </div>
+
+    <div id="reportBox" class="card-surface p-3 mb-3" hidden>
+        <form asp-controller="Reports" asp-action="Submit" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="TargetType" value="post" />
+            <input type="hidden" name="TargetId" value="@Model.Id" />
+            <input type="hidden" name="returnUrl" value="@postUrl" />
+            <div class="mb-2">
+                <label class="form-label small">دلیل گزارش</label>
+                <select class="form-select form-select-sm" name="Reason" required>
+                    <option value="spam">هرزنامه</option>
+                    <option value="abuse">محتوای توهین‌آمیز</option>
+                    <option value="copyright">نقض حق نشر</option>
+                    <option value="other">سایر</option>
+                </select>
+            </div>
+            <div class="mb-2">
+                <textarea class="form-control form-control-sm" name="Details" dir="auto" rows="2" maxlength="1000" placeholder="توضیح اختیاری…"></textarea>
+            </div>
+            @if (User.Identity?.IsAuthenticated != true)
+            {
+                <div class="mb-2">
+                    <input class="form-control form-control-sm" name="ReporterName" dir="auto" maxlength="100" placeholder="نام شما (اختیاری)" />
+                </div>
+            }
+            <button type="submit" class="btn btn-outline-danger-dark btn-sm">ارسال گزارش</button>
+        </form>
     </div>
 
     <div class="post-meta-line mb-4 d-flex flex-wrap gap-2 align-items-center">

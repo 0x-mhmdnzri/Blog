@@ -1,4 +1,5 @@
 @inject BlogApp.Services.SeoService Seo
+@inject BlogApp.Services.ISiteConfigService SiteConfig
 @using BlogApp.Models
 @{
     var pageTitle = ViewData["Title"] as string;
@@ -11,6 +12,10 @@
     var noIndex = ViewData["NoIndex"] as bool? ?? false;
     var isStaff = User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin);
     var isReader = User.IsInRole(AppRoles.Reader) || isStaff;
+
+    var announceOn = await SiteConfig.GetBoolAsync(SiteSettingKeys.AnnouncementEnabled);
+    var announceText = await SiteConfig.GetAsync(SiteSettingKeys.AnnouncementText);
+    var announceStyle = await SiteConfig.GetAsync(SiteSettingKeys.AnnouncementStyle) ?? "info";
 }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" data-bs-theme="dark">
@@ -54,10 +59,21 @@
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/media-blur.css" asp-append-version="true" />
+    <style>
+        .site-announce { padding: .65rem 1rem; text-align: center; font-size: .9rem; border-bottom: 1px solid var(--border-soft, #1e2430); }
+        .site-announce.info { background: rgba(111,179,210,.12); color: #b8d4e8; }
+        .site-announce.warn { background: rgba(227,179,65,.15); color: #e3b341; }
+        .site-announce.success { background: rgba(158,203,140,.12); color: #9ecb8c; }
+    </style>
 
     @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
+    @if (announceOn && !string.IsNullOrWhiteSpace(announceText))
+    {
+        <div class="site-announce @announceStyle" dir="auto" role="status">@announceText</div>
+    }
+
     <header class="site-header">
         <nav class="navbar navbar-expand-md py-3">
             <div class="container">
