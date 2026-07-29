@@ -4,6 +4,7 @@ using BlogApp.Models.ViewModels;
 using BlogApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
@@ -36,6 +37,9 @@ public partial class PostsController : Controller
     [HttpGet("post/{slug}")]
     public async Task<IActionResult> Details(string slug)
     {
+        if (string.IsNullOrWhiteSpace(slug) || slug.Length > 220)
+            return NotFound();
+
         await ApplyScheduledAndExpirationAsync();
         var post = await _db.Posts.Include(p => p.Category).Include(p => p.Author)
             .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
@@ -218,32 +222,48 @@ public partial class PostsController : Controller
         Content(_markdown.RenderToHtmlWithToc(content ?? "", false), "text/html");
 
     [HttpPost, ValidateAntiForgeryToken, AllowAnonymous]
+    [EnableRateLimiting("comment")]
     public async Task<IActionResult> AddComment(int postId, string authorName, string body)
     {
-        if (!string.IsNullOrWhiteSpace(authorName) && !string.IsNullOrWhiteSpace(body))
+        authorName = (authorName ?? string.Empty).Trim();
+        body = (body ?? string.Empty).Trim();
+
+        if (authorName.Length is < 2 or > 80 || body.Length is < 2 or > 2000)
         {
-            var comment = new Comment
-            {
-                PostId = postId,
-                AuthorName = authorName.Trim(),
-                Body = body.Trim(),
-                Status = CommentStatus.Pending
-            };
-            _db.Comments.Add(comment);
-            await _db.SaveChangesAsync();
-            TempData["CommentSubmitted"] = "ممنون — دیدگاه شما در انتظار بررسی است.";
-            var info = await _db.Posts.Where(p => p.Id == postId).Select(p => new { p.Title, p.AuthorId }).FirstOrDefaultAsync();
-            _broadcaster.Publish(new
-            {
-                type = "comment",
-                status = "pending",
-                postId,
-                postTitle = info?.Title,
-                authorId = info?.AuthorId,
-                authorName = comment.AuthorName
-            });
+            TempData["CommentSubmitted"] = "نام یا متن دیدگاه معتبر نیست.";
+            var badSlug = await _db.Posts.Where(p => p.Id == postId).Select(p => p.Slug).FirstOrDefaultAsync();
+            return RedirectToAction(nameof(Details), new { slug = badSlug });
         }
-        var slug = await _db.Posts.Where(p => p.Id == postId).Select(p => p.Slug).FirstOrDefaultAsync();
-        return RedirectToAction(nameof(Details), new { slug });
+
+        // Strip control chars; Razor encodes output — still keep body plain text only.
+        authorName = new string(authorName.Where(c => !char.IsControl(c)).ToArray());
+        body = new string(body.Where(c => c is '\n' or '\r' or '\t' || !char.IsControl(c)).ToArray());
+
+        var postExists = await _db.Posts.AnyAsync(p => p.Id == postId && p.IsPublished && !p.IsDeleted);
+        if (!postExists)
+            return NotFound();
+
+        var comment = new Comment
+        {
+            PostId = postId,
+            AuthorName = authorName,
+            Body = body,
+            Status = CommentStatus.Pending
+        };
+        _db.Comments.Add(comment);
+        await _db.SaveChangesAsync();
+        TempData["CommentSubmitted"] = "ممنون — دیدگاه شما در انتظار بررسی است.";
+        var info = await _db.Posts.Where(p => p.Id == postId).Select(p => new { p.Title, p.AuthorId, p.Slug }).FirstOrDefaultAsync();
+        _broadcaster.Publish(new
+        {
+            type = "comment",
+            status = "pending",
+            postId,
+            postTitle = info?.Title,
+            authorId = info?.AuthorId,
+            authorName = comment.AuthorName
+        });
+
+        return RedirectToAction(nameof(Details), new { slug = info?.Slug });
     }
 }
