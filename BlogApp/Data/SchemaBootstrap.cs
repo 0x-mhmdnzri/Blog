@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BlogApp.Data;
 
-public static class SchemaBootstrap
+public static partial class SchemaBootstrap
 {
     public static async Task EnsureAsync(ApplicationDbContext db, ILogger? logger = null)
     {
@@ -148,6 +148,8 @@ public static class SchemaBootstrap
                     FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE
             );
             """);
+
+        await EnsureNotificationTablesAsync(db);
 
         logger?.LogInformation("Schema bootstrap complete");
     }

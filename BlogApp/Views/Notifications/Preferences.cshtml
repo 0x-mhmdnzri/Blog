@@ -1,0 +1,58 @@
+@model BlogApp.Models.NotificationPreference
+@{
+    ViewData["Title"] = "تنظیمات اعلان";
+}
+
+<div class="container py-5" style="max-width:520px;">
+    <h1 class="h4 mb-4">تنظیمات اعلان</h1>
+
+    @if (TempData["PrefsSaved"] != null)
+    {
+        <div class="card-surface p-2 px-3 mb-3 small">@TempData["PrefsSaved"]</div>
+    }
+
+    <form asp-action="Preferences" method="post" class="card-surface p-4">
+        @Html.AntiForgeryToken()
+
+        <h2 class="h6 text-muted-dark mb-3">کانال‌ها</h2>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" asp-for="EmailEnabled" />
+            <label class="form-check-label" asp-for="EmailEnabled">ایمیل</label>
+        </div>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" asp-for="InAppEnabled" />
+            <label class="form-check-label" asp-for="InAppEnabled">اعلان داخل سایت</label>
+        </div>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" asp-for="PushEnabled" />
+            <label class="form-check-label" asp-for="PushEnabled">پوش (نیاز به پیکربندی VAPID)</label>
+        </div>
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" asp-for="SmsEnabled" />
+            <label class="form-check-label" asp-for="SmsEnabled">پیامک تبلیغاتی</label>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label" asp-for="PhoneE164">شماره موبایل (E.164)</label>
+            <input class="form-control ltr-field" asp-for="PhoneE164" placeholder="+98912…" />
+            <div class="form-text">برای SMS تبلیغات — سرویس‌دهنده را خودتان در Sms:* تنظیم کنید.</div>
+        </div>
+
+        <h2 class="h6 text-muted-dark mb-3">رویدادها</h2>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" asp-for="NotifyNewComment" />
+            <label class="form-check-label" asp-for="NotifyNewComment">دیدگاه جدید روی نوشته‌های من</label>
+        </div>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" asp-for="NotifyNewFollower" />
+            <label class="form-check-label" asp-for="NotifyNewFollower">دنبال‌کننده جدید</label>
+        </div>
+        <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" asp-for="WeeklyDigest" />
+            <label class="form-check-label" asp-for="WeeklyDigest">خلاصه هفتگی ایمیل</label>
+        </div>
+
+        <button type="submit" class="btn btn-accent">ذخیره</button>
+        <a class="btn btn-ghost" asp-action="Index">بازگشت</a>
+    </form>
+</div>

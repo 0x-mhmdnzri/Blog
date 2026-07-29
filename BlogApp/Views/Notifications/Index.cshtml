@@ -1,0 +1,45 @@
+@model List<BlogApp.Models.AppNotification>
+@{
+    ViewData["Title"] = "اعلان‌ها";
+}
+
+<div class="container py-5" style="max-width:640px;">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="h4 mb-0">اعلان‌ها</h1>
+        <div class="d-flex gap-2">
+            <a class="btn btn-ghost btn-sm" asp-action="Preferences">تنظیمات</a>
+            <form asp-action="MarkAllRead" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-ghost btn-sm">خواندن همه</button>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="card-surface p-4 text-muted-dark">اعلانی نیست.</div>
+    }
+    else
+    {
+        @foreach (var n in Model)
+        {
+            <div class="card-surface p-3 mb-2 @(n.IsRead ? "" : "border-accent")">
+                <div class="d-flex justify-content-between gap-2">
+                    <strong dir="auto">@n.Title</strong>
+                    <span class="ltr-field small text-muted-dark">@PersianDate.DateTime(n.CreatedAtUtc)</span>
+                </div>
+                @if (!string.IsNullOrEmpty(n.Body))
+                {
+                    <p class="mb-2 mt-1 small text-muted-dark" dir="auto">@n.Body</p>
+                }
+                <form asp-action="MarkRead" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@n.Id" />
+                    <button type="submit" class="btn btn-ghost btn-sm py-0">
+                        @(string.IsNullOrEmpty(n.LinkUrl) ? "خواندم" : "مشاهده")
+                    </button>
+                </form>
+            </div>
+        }
+    }
+</div>
