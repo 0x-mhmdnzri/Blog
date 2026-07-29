@@ -85,4 +85,5 @@ public class ComingSoonViewModel
 {
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public List<string> DemoFeatures { get; set; } = new();
 }

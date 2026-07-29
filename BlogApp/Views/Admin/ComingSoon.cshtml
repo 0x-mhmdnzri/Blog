@@ -2,9 +2,28 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = Model.Title;
+    var features = Model.DemoFeatures ?? new List<string>();
 }
 
-<div class="admin-empty">
-    <h2>@Model.Title</h2>
-    <p class="mb-0">@Model.Description</p>
+<div class="admin-empty text-end" style="text-align:right;">
+    <div class="mb-3" style="font-size:2rem;opacity:.5;">◇</div>
+    <h2 class="mb-2">@Model.Title</h2>
+    <p class="text-muted-dark mb-4" style="max-width:520px;margin-inline:auto;">@Model.Description</p>
+
+    @if (features.Count > 0)
+    {
+        <div class="card-surface p-4 text-start mx-auto" style="max-width:480px;text-align:right !important;">
+            <div class="eyebrow mb-2 text-muted-dark">ویژگی‌های برنامه‌ریزی‌شده (دمو)</div>
+            <ul class="mb-0" style="padding-inline-start:1.2rem;text-align:right;">
+                @foreach (var f in features)
+                {
+                    <li class="mb-2 text-muted-dark">@f</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <p class="mt-4 mb-0 small text-muted-dark">
+        این بخش به‌زودی فعال می‌شود — فعلاً فقط پیش‌نمایش منوی کناری است.
+    </p>
 </div>

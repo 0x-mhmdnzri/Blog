@@ -10,26 +10,26 @@
     <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
 }
 
-<article class="container py-5" style="max-width:780px;">
+<article class="container py-5 post-article" style="max-width:780px;">
     @if (canEdit)
     {
         <div class="d-flex gap-2 mb-4 flex-wrap">
-            <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+            <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">ویرایش</a>
             <form asp-action="Duplicate" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
-                <button class="btn btn-ghost btn-sm" type="submit">Duplicate</button>
+                <button class="btn btn-ghost btn-sm" type="submit">کپی</button>
             </form>
             <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
-                  onsubmit="return confirm('Move to trash?');">
+                  onsubmit="return confirm('انتقال به سطل زباله؟');">
                 @Html.AntiForgeryToken()
-                <button class="btn btn-outline-danger-dark btn-sm" type="submit">Soft delete</button>
+                <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف نرم</button>
             </form>
         </div>
     }
 
-    @if (Model.IsFeatured) { <span class="badge bg-warning text-dark mb-2">Featured</span> }
-    @if (Model.IsSticky) { <span class="badge bg-info text-dark mb-2">Sticky</span> }
+    @if (Model.IsFeatured) { <span class="badge-category mb-2 d-inline-block">ویژه</span> }
+    @if (Model.IsSticky) { <span class="status-pill sticky mb-2 d-inline-block">چسبان</span> }
 
     @if (Model.Category != null)
     {
@@ -46,14 +46,16 @@
                 <span dir="auto">@Model.Author.DisplayName</span>
             </a>
         }
-        <span><span class="accent">$</span>
+        <span>
+            <span class="accent ltr-signature">$</span>
             <time class="ltr-field" datetime="@(Model.PublishedAtUtc?.ToString("o"))">@Model.PublishedAtUtc?.ToString("yyyy-MM-dd")</time>
         </span>
-        <span>\u00B7 <span class="ltr-field">@readingMinutes</span> min</span>
-        <span>\u00B7 <span class="ltr-field">@Model.ViewCount</span> views</span>
+        <span>· <span class="ltr-field">@readingMinutes</span> دقیقه مطالعه</span>
+        <span>· <span class="ltr-field">@Model.ViewCount</span> بازدید</span>
     </div>
 
-    <div class="readme-content" dir="auto">
+    @* Body is RTL Persian; code/pre forced LTR in CSS; mixed English uses dir=auto *@
+    <div class="readme-content">
         @Html.Raw(ViewBag.RenderedHtml)
     </div>
 
@@ -67,8 +69,8 @@
         </div>
     }
 
-    <section class="mt-5 pt-4" style="border-top:1px solid var(--border-soft);">
-        <h2 class="h6 text-muted-dark mb-3">Comments</h2>
+    <section class="mt-5 pt-4 comments-section" style="border-top:1px solid var(--border-soft);">
+        <h2 class="h6 text-muted-dark mb-3">دیدگاه‌ها</h2>
         @if (TempData["CommentSubmitted"] != null)
         {
             <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["CommentSubmitted"]</div>
@@ -87,12 +89,12 @@
             @Html.AntiForgeryToken()
             <input type="hidden" name="postId" value="@Model.Id" />
             <div class="mb-2">
-                <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="Name" required maxlength="80" />
+                <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" />
             </div>
             <div class="mb-2">
-                <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" required maxlength="2000"></textarea>
+                <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" required maxlength="2000" placeholder="متن دیدگاه…"></textarea>
             </div>
-            <button class="btn btn-accent btn-sm" type="submit">Submit</button>
+            <button class="btn btn-accent btn-sm" type="submit">ارسال دیدگاه</button>
         </form>
     </section>
 </article>
