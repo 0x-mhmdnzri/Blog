@@ -1,7 +1,7 @@
 @model Post
 @{
     ViewData["Title"] = Model.Title;
-    var readingMinutes = Math.Max(1, Model.ContentMarkdown.Split(' ').Length / 220);
+    var readingMinutes = ViewBag.ReadingTimeMinutes as int? ?? Math.Max(1, Model.ReadingTimeMinutes);
     var canEdit = ViewBag.CanEdit as bool? ?? false;
 }
 
@@ -10,18 +10,26 @@
     <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
 }
 
-<article class="container py-5" style="max-width: 780px;">
+<article class="container py-5" style="max-width:780px;">
     @if (canEdit)
     {
-        <div class="d-flex gap-2 mb-4">
-            <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">ویرایش نوشته</a>
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
-                  onsubmit="return confirm('این نوشته و همه رسانه‌های آن حذف شود؟ این عمل قابل بازگشت نیست.');">
+        <div class="d-flex gap-2 mb-4 flex-wrap">
+            <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+            <form asp-action="Duplicate" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
-                <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف</button>
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button class="btn btn-ghost btn-sm" type="submit">Duplicate</button>
+            </form>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+                  onsubmit="return confirm('Move to trash?');">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-outline-danger-dark btn-sm" type="submit">Soft delete</button>
             </form>
         </div>
     }
+
+    @if (Model.IsFeatured) { <span class="badge bg-warning text-dark mb-2">Featured</span> }
+    @if (Model.IsSticky) { <span class="badge bg-info text-dark mb-2">Sticky</span> }
 
     @if (Model.Category != null)
     {
@@ -35,26 +43,14 @@
         {
             <a asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@Model.Author.UserName"
                class="d-inline-flex align-items-center gap-2 text-decoration-none" style="color:inherit;">
-                @if (Model.Author.ProfileImage is { Length: > 0 })
-                {
-                    <img src="@Url.Action("ProfileImage", "Account", new { userId = Model.Author.Id })"
-                         class="rounded-circle" style="width:28px;height:28px;object-fit:cover;" alt="" />
-                }
-                else
-                {
-                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center"
-                          style="width:28px;height:28px;background:var(--surface-2);font-size:.75rem;">
-                        @Model.Author.DisplayName.FirstOrDefault()
-                    </span>
-                }
                 <span dir="auto">@Model.Author.DisplayName</span>
             </a>
         }
-        <span><span class="accent">$</span> انتشار در
+        <span><span class="accent">$</span>
             <time class="ltr-field" datetime="@(Model.PublishedAtUtc?.ToString("o"))">@Model.PublishedAtUtc?.ToString("yyyy-MM-dd")</time>
         </span>
-        <span>· <span class="ltr-field">@readingMinutes</span> دقیقه مطالعه</span>
-        <span>· <span class="ltr-field">@Model.ViewCount</span> بازدید</span>
+        <span>\u00B7 <span class="ltr-field">@readingMinutes</span> min</span>
+        <span>\u00B7 <span class="ltr-field">@Model.ViewCount</span> views</span>
     </div>
 
     <div class="readme-content" dir="auto">
@@ -72,18 +68,11 @@
     }
 
     <section class="mt-5 pt-4" style="border-top:1px solid var(--border-soft);">
-        <h2 class="h6 text-muted-dark mb-3">دیدگاه‌ها</h2>
-
+        <h2 class="h6 text-muted-dark mb-3">Comments</h2>
         @if (TempData["CommentSubmitted"] != null)
         {
             <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["CommentSubmitted"]</div>
         }
-
-        @if (!Model.Comments.Any())
-        {
-            <p class="text-muted-dark small mb-3">هنوز دیدگاهی ثبت نشده — اولین نفری باشید که نظر می‌دهد.</p>
-        }
-
         @foreach (var c in Model.Comments.OrderByDescending(c => c.CreatedAtUtc))
         {
             <div class="card-surface p-3 mb-3">
@@ -94,22 +83,16 @@
                 <p class="mb-0 mt-2 text-muted-dark" dir="auto">@c.Body</p>
             </div>
         }
-
         <form asp-action="AddComment" method="post" class="card-surface p-3 mt-3">
             @Html.AntiForgeryToken()
             <input type="hidden" name="postId" value="@Model.Id" />
             <div class="mb-2">
-                <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" />
+                <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="Name" required maxlength="80" />
             </div>
             <div class="mb-2">
-                <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" placeholder="دیدگاه خود را بنویسید…" required maxlength="2000"></textarea>
+                <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" required maxlength="2000"></textarea>
             </div>
-            <button class="btn btn-accent btn-sm" type="submit">ارسال دیدگاه</button>
+            <button class="btn btn-accent btn-sm" type="submit">Submit</button>
         </form>
-
-        @if (TempData["CommentSubmitted"] == null)
-        {
-            <p class="text-muted-dark small mt-2 mb-0">دیدگاه شما پیش از نمایش عمومی، توسط نویسنده بررسی می‌شود.</p>
-        }
     </section>
 </article>
