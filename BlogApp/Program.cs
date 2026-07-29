@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using BlogApp.Data;
 using BlogApp.Logging;
@@ -6,7 +7,9 @@ using BlogApp.Models;
 using BlogApp.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Net.Http.Headers;
 using Serilog;
 
 SerilogBootstrap.CreateBootstrapLogger();
@@ -51,6 +54,25 @@ try
         options.SlidingExpiration = true;
     });
 
+    // ---- HTTP: Brotli + Gzip (smaller payloads → lower bandwidth, faster TTFB on text) ----
+    builder.Services.AddResponseCompression(options =>
+    {
+        options.EnableForHttps = true;
+        options.Providers.Add<BrotliCompressionProvider>();
+        options.Providers.Add<GzipCompressionProvider>();
+        options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+        {
+            "application/javascript",
+            "application/json",
+            "application/xml",
+            "text/xml",
+            "image/svg+xml",
+            "application/ld+json"
+        });
+    });
+    builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+    builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+
     builder.Services.AddSingleton<MarkdownService>();
     builder.Services.AddSingleton<SeoService>();
     builder.Services.AddSingleton<AnalyticsBroadcaster>();
@@ -62,10 +84,23 @@ try
     builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
     {
         options.MultipartBodyLengthLimit = 500L * 1024 * 1024;
+        options.ValueLengthLimit = int.MaxValue;
+        options.MemoryBufferThreshold = 64 * 1024;
     });
+
+    // ---- Kestrel: throughput + safety knobs ----
     builder.WebHost.ConfigureKestrel(options =>
     {
+        options.AddServerHeader = false;
         options.Limits.MaxRequestBodySize = 500L * 1024 * 1024;
+        options.Limits.MaxConcurrentConnections = 1000;
+        options.Limits.MaxConcurrentUpgradedConnections = 100;
+        options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+        options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+        options.Limits.Http2.MaxStreamsPerConnection = 100;
+        options.Limits.Http2.KeepAlivePingTimeout = TimeSpan.FromSeconds(30);
+        options.Limits.MinRequestBodyDataRate = null; // large media uploads over slow links
+        options.Limits.MinResponseDataRate = null;
     });
 
     var app = builder.Build();
@@ -116,6 +151,9 @@ try
 
     if (forceHttps) app.UseHttpsRedirection();
 
+    // Compression must run early so static files + MVC responses are compressed.
+    app.UseResponseCompression();
+
     app.UseMiddleware<RequestLoggingMiddleware>();
 
     app.Use(async (ctx, next) =>
@@ -136,7 +174,17 @@ try
         await next();
     });
 
-    app.UseStaticFiles();
+    var staticCache = new StaticFileOptions
+    {
+        OnPrepareResponse = ctx =>
+        {
+            // Versioned assets (asp-append-version) can be cached aggressively.
+            var headers = ctx.Context.Response.Headers;
+            headers[HeaderNames.CacheControl] = "public,max-age=604800,immutable"; // 7 days
+        }
+    };
+    app.UseStaticFiles(staticCache);
+
     app.UseRouting();
 
     app.UseMiddleware<RedirectMiddleware>();
@@ -158,7 +206,7 @@ try
         name: "default",
         pattern: "{controller=Home}/{action=Index}/{id?}");
 
-    Log.Information("BlogApp listening");
+    Log.Information("BlogApp listening (compression + Kestrel limits active)");
     app.Run();
 }
 catch (Exception ex)
