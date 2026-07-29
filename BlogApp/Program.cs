@@ -31,7 +31,6 @@ try
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=blog.db";
     builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
 
-    // ---- Identity: lockout + stronger passwords ----
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
             options.Password.RequireDigit = true;
@@ -59,7 +58,7 @@ try
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
-        options.Cookie.Name = "__Host-BlogAuth";
+        options.Cookie.Name = "Blog.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.Cookie.SameSite = SameSiteMode.Strict;
@@ -69,13 +68,12 @@ try
     builder.Services.AddAntiforgery(options =>
     {
         options.HeaderName = "X-CSRF-TOKEN";
-        options.Cookie.Name = "__Host-BlogCSRF";
+        options.Cookie.Name = "Blog.CSRF";
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.Cookie.SameSite = SameSiteMode.Strict;
     });
 
-    // ---- Rate limiting (per-IP partitions) ----
     builder.Services.AddRateLimiter(options =>
     {
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -159,7 +157,7 @@ try
     builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
     {
         options.MultipartBodyLengthLimit = SafeUpload.MaxVideoBytes;
-        options.ValueLengthLimit = 1024 * 1024; // 1 MB form fields
+        options.ValueLengthLimit = 1024 * 1024;
         options.MemoryBufferThreshold = 64 * 1024;
     });
 
@@ -233,7 +231,6 @@ try
 
     app.Use(async (ctx, next) =>
     {
-        // Block TRACE / TRACK (XST)
         if (HttpMethods.IsTrace(ctx.Request.Method) ||
             string.Equals(ctx.Request.Method, "TRACK", StringComparison.OrdinalIgnoreCase))
         {
@@ -276,7 +273,6 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    // Apply global limiter to all endpoints; named policies stack on top where attributes set them.
     app.MapControllerRoute(
             name: "post-details",
             pattern: "post/{slug}",
