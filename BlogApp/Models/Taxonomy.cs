@@ -10,7 +10,8 @@ public class Category
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(90)]
-    public stringSlug { get; set; } = string.Empty;
+    public string
+        Slug { get; set; } = string.Empty;
 
     [MaxLength(400)]
     public string? Description { get; set; }
@@ -32,7 +33,8 @@ public class Tag
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(70)]
-    public stringSlug { get; set; } = string.Empty;
+    public string
+        Slug { get; set; } = string.Empty;
 
     [MaxLength(300)]
     public string? Description { get; set; }
@@ -57,7 +59,8 @@ public class PostSeries
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(140)]
-    public stringSlug { get; set; } = string.Empty;
+    public string
+        Slug { get; set; } = string.Empty;
 
     [MaxLength(500)]
     public string? Description { get; set; }
@@ -86,7 +89,8 @@ public class TopicCollection
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(140)]
-    public stringSlug { get; set; } = string.Empty;
+    public string
+        Slug { get; set; } = string.Empty;
 
     [MaxLength(500)]
     public string? Description { get; set; }
