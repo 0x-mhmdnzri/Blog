@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BlogApp.Data;
 
 public static class SchemaBootstrap
 {
-    public static async Task EnsureAsync(ApplicationDbContext db)
+    public static async Task EnsureAsync(ApplicationDbContext db, ILogger? logger = null)
     {
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "RedirectRules" (
@@ -65,7 +66,6 @@ public static class SchemaBootstrap
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_PostRevisions_PostId\" ON \"PostRevisions\" (\"PostId\");");
 
-        // Nested categories
         await TryAddColumnAsync(db, "Categories", "ParentId", "INTEGER NULL");
         await TryAddColumnAsync(db, "Categories", "Description", "TEXT NULL");
         await TryAddColumnAsync(db, "Categories", "DisplayOrder", "INTEGER NOT NULL DEFAULT 0");
@@ -118,15 +118,44 @@ public static class SchemaBootstrap
                     FOREIGN KEY ("TopicCollectionId") REFERENCES "TopicCollections" ("Id") ON DELETE CASCADE
             );
             """);
+
+        logger?.LogInformation("Schema bootstrap complete");
     }
 
+    /// <summary>
+    /// Uses PRAGMA table_info so we never run ALTER when the column exists (avoids EF ERR noise).
+    /// </summary>
     private static async Task TryAddColumnAsync(ApplicationDbContext db, string table, string column, string sqlType)
     {
+        if (await ColumnExistsAsync(db, table, column))
+            return;
+
         try
         {
             await db.Database.ExecuteSqlRawAsync(
                 $"ALTER TABLE \"{table}\" ADD COLUMN \"{column}\" {sqlType};");
         }
-        catch { /* already exists */ }
+        catch (Exception)
+        {
+            // Race or already-added by another process — safe to ignore.
+        }
+    }
+
+    private static async Task<bool> ColumnExistsAsync(ApplicationDbContext db, string table, string column)
+    {
+        // SQLite PRAGMA — table name is from our constant list only (not user input).
+        await using var cmd = db.Database.GetDbConnection().CreateCommand();
+        if (cmd.Connection!.State != System.Data.ConnectionState.Open)
+            await cmd.Connection.OpenAsync();
+
+        cmd.CommandText = $"PRAGMA table_info(\"{table}\");";
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            // column name is at ordinal 1
+            if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
 }

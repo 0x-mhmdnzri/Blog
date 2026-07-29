@@ -1,5 +1,5 @@
 @{
-    Layout = "_AdminLayout";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
     var series = (BlogApp.Models.PostSeries)ViewBag.Series;
     var members = (List<BlogApp.Models.SeriesPost>)ViewBag.Members;
     var available = ViewBag.AvailablePosts as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
