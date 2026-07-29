@@ -6,6 +6,7 @@ using BlogApp.Logging;
 using BlogApp.Middleware;
 using BlogApp.Models;
 using BlogApp.Services;
+using BlogApp.Services.Messaging;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -143,6 +144,17 @@ try
     });
     builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
     builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+
+    builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+    builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
+    builder.Services.Configure<PushOptions>(builder.Configuration.GetSection("Push"));
+    builder.Services.Configure<DigestOptions>(builder.Configuration.GetSection("Digest"));
+
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+    builder.Services.AddSingleton<ISmsSender, ConfigurableSmsSender>();
+    builder.Services.AddSingleton<IPushSender, NoOpPushSender>();
+    builder.Services.AddScoped<INotificationService, NotificationService>();
+    builder.Services.AddHostedService<WeeklyDigestHostedService>();
 
     builder.Services.AddSingleton<MarkdownService>();
     builder.Services.AddSingleton<SeoService>();
