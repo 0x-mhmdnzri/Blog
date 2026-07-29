@@ -23,12 +23,12 @@ public class PostsController : Controller
         _broadcaster = broadcaster;
     }
 
-    // GET /post/{slug} — public reading view
     [HttpGet("post/{slug}")]
     public async Task<IActionResult> Details(string slug)
     {
         var post = await _db.Posts
             .Include(p => p.Category)
+            .Include(p => p.Author)
             .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
             .Include(p => p.Comments.Where(c => c.Status == CommentStatus.Approved))
             .FirstOrDefaultAsync(p => p.Slug == slug);
@@ -36,11 +36,10 @@ public class PostsController : Controller
         if (post is null || (!post.IsPublished && !User.Identity!.IsAuthenticated))
             return NotFound();
 
-        // Count the view for every visitor (including the signed-in author — excluding them
-        // was the previous behavior and is exactly why views weren't counting up while
-        // testing). To avoid one visitor's reloads inflating the numbers, a view only counts
-        // as "new" if the same IP+User-Agent fingerprint hasn't been seen for this post in
-        // the last 30 minutes.
+        // Drafts: only owner or SuperAdmin can view
+        if (!post.IsPublished && !AuthorAccess.OwnsPost(User, post))
+            return NotFound();
+
         var visitorHash = VisitorIdentity.ComputeHash(HttpContext);
         var dedupWindowStart = DateTime.UtcNow.AddMinutes(-30);
         var isDuplicateVisit = await _db.PostViews.AnyAsync(v =>
@@ -58,6 +57,7 @@ public class PostsController : Controller
                 type = "view",
                 postId = post.Id,
                 postTitle = post.Title,
+                authorId = post.AuthorId,
                 viewedAtUtc = postView.ViewedAtUtc,
                 totalViews = post.ViewCount
             });
@@ -80,18 +80,19 @@ public class PostsController : Controller
             (post.Title, canonicalUrl));
 
         ViewBag.RenderedHtml = _markdown.RenderToHtml(post.ContentMarkdown);
+        ViewBag.CanEdit = AuthorAccess.OwnsPost(User, post);
         return View(post);
     }
 
-    // GET /Posts/Create — author only
-    [Authorize]
+    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
     public async Task<IActionResult> Create()
     {
         var vm = new PostEditViewModel { AvailableCategories = await GetCategoryOptionsAsync() };
         return View(vm);
     }
 
-    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PostEditViewModel vm)
     {
         if (!ModelState.IsValid)
@@ -100,9 +101,12 @@ public class PostsController : Controller
             return View(vm);
         }
 
+        var authorId = AuthorAccess.UserId(User)!;
+
         var post = new Post
         {
             Title = vm.Title,
+            AuthorId = authorId,
             Slug = await MakeUniqueSlugAsync(SlugHelper.Slugify(vm.Title)),
             Summary = string.IsNullOrWhiteSpace(vm.Summary)
                 ? _markdown.ToPlainText(vm.ContentMarkdown)
@@ -122,12 +126,13 @@ public class PostsController : Controller
         return RedirectToAction(nameof(Details), new { slug = post.Slug });
     }
 
-    [Authorize]
+    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
     public async Task<IActionResult> Edit(int id)
     {
         var post = await _db.Posts.Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
             .FirstOrDefaultAsync(p => p.Id == id);
         if (post is null) return NotFound();
+        if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
 
         var vm = new PostEditViewModel
         {
@@ -144,11 +149,13 @@ public class PostsController : Controller
         return View(vm);
     }
 
-    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(PostEditViewModel vm)
     {
         var post = await _db.Posts.Include(p => p.PostTags).FirstOrDefaultAsync(p => p.Id == vm.Id);
         if (post is null) return NotFound();
+        if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
 
         if (!ModelState.IsValid)
         {
@@ -174,18 +181,21 @@ public class PostsController : Controller
         return RedirectToAction(nameof(Details), new { slug = post.Slug });
     }
 
-    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
         var post = await _db.Posts.FindAsync(id);
         if (post is null) return NotFound();
-        _db.Posts.Remove(post); // cascades to media + comments
+        if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
+
+        _db.Posts.Remove(post);
         await _db.SaveChangesAsync();
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("Posts", "Admin");
     }
 
-    // POST /Posts/PreviewMarkdown — used by the live editor preview pane
-    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
+    [HttpPost, ValidateAntiForgeryToken]
     public IActionResult PreviewMarkdown([FromForm] string content)
     {
         return Content(_markdown.RenderToHtml(content ?? string.Empty), "text/html");
@@ -201,19 +211,21 @@ public class PostsController : Controller
                 PostId = postId,
                 AuthorName = authorName.Trim(),
                 Body = body.Trim(),
-                Status = CommentStatus.Pending // moderated in the admin panel before showing publicly
+                Status = CommentStatus.Pending
             };
             _db.Comments.Add(comment);
             await _db.SaveChangesAsync();
             TempData["CommentSubmitted"] = "ممنون — دیدگاه شما در انتظار بررسی است.";
 
-            var postTitle = await _db.Posts.Where(p => p.Id == postId).Select(p => p.Title).FirstOrDefaultAsync();
+            var postInfo = await _db.Posts.Where(p => p.Id == postId)
+                .Select(p => new { p.Title, p.AuthorId }).FirstOrDefaultAsync();
             _broadcaster.Publish(new
             {
                 type = "comment",
                 status = "pending",
                 postId,
-                postTitle,
+                postTitle = postInfo?.Title,
+                authorId = postInfo?.AuthorId,
                 authorName = comment.AuthorName
             });
         }

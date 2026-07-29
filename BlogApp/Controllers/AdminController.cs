@@ -3,40 +3,53 @@ using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
 /// <summary>
-/// The author-only admin panel: dashboard, comment moderation (approve/reject), and post
-/// management. Rendered with its own RTL / Persian / Vazirmatn layout (_AdminLayout.cshtml),
-/// separate from the public-facing blog theme.
+/// Multi-author admin panel. Authors see only their own posts/comments/analytics.
+/// SuperAdmin sees everything.
 /// </summary>
-[Authorize]
+[Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
 public class AdminController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly AnalyticsBroadcaster _broadcaster;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public AdminController(ApplicationDbContext db, AnalyticsBroadcaster broadcaster)
+    public AdminController(
+        ApplicationDbContext db,
+        AnalyticsBroadcaster broadcaster,
+        UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _broadcaster = broadcaster;
+        _userManager = userManager;
     }
 
     public async Task<IActionResult> Index(int range = 30)
     {
         if (range != 7 && range != 30 && range != 90) range = 30;
 
+        var userId = AuthorAccess.UserId(User)!;
+        var seeAll = AuthorAccess.CanViewAllAnalytics(User);
+
         var today = DateTime.UtcNow.Date;
         var rangeStart = today.AddDays(-(range - 1));
         var previousRangeStart = rangeStart.AddDays(-range);
 
-        // One query covers both the current and the previous comparison window; the rest
-        // of the split happens in memory, which is plenty fast at this data scale.
+        // Scope posts to current author unless SuperAdmin
+        var postQuery = _db.Posts.AsQueryable();
+        if (!seeAll)
+            postQuery = postQuery.Where(p => p.AuthorId == userId);
+
+        var myPostIds = await postQuery.Select(p => p.Id).ToListAsync();
+
         var recentViews = await _db.PostViews
-            .Where(v => v.ViewedAtUtc >= previousRangeStart)
+            .Where(v => v.ViewedAtUtc >= previousRangeStart && myPostIds.Contains(v.PostId))
             .Select(v => new { v.PostId, v.ViewedAtUtc })
             .ToListAsync();
 
@@ -57,9 +70,8 @@ public class AdminController : Controller
             ? (currentRangeViews.Count > 0 ? 100 : 0)
             : Math.Round((currentRangeViews.Count - previousRangeViews.Count) / (double)previousRangeViews.Count * 100, 1);
 
-        // Posts created per month, last 6 months.
         var sixMonthsAgo = new DateTime(today.Year, today.Month, 1).AddMonths(-5);
-        var recentPostDates = await _db.Posts
+        var recentPostDates = await postQuery
             .Where(p => p.CreatedAtUtc >= sixMonthsAgo)
             .Select(p => p.CreatedAtUtc)
             .ToListAsync();
@@ -74,16 +86,13 @@ public class AdminController : Controller
             });
         }
 
-        var postsByCategory = await _db.Posts
+        var postsByCategory = await postQuery
             .GroupBy(p => p.Category != null ? p.Category.Name : "بدون دسته")
             .Select(g => new NamedCount { Name = g.Key, Count = g.Count() })
             .OrderByDescending(g => g.Count)
             .ToListAsync();
 
-        // Top posts by all-time views, annotated with how many of those views fall in the
-        // selected range — mirrors how most analytics dashboards pair a leaderboard with a
-        // recency window instead of only ever showing the same all-time list.
-        var topPostsRaw = await _db.Posts
+        var topPostsRaw = await postQuery
             .OrderByDescending(p => p.ViewCount)
             .Take(5)
             .Select(p => new { p.Id, p.Title, p.Slug, p.ViewCount })
@@ -97,17 +106,28 @@ public class AdminController : Controller
             RangeViews = currentRangeViews.Count(v => v.PostId == p.Id)
         }).ToList();
 
+        // Comments scoped to own posts
+        var commentQuery = _db.Comments.AsQueryable();
+        if (!seeAll)
+            commentQuery = commentQuery.Where(c => myPostIds.Contains(c.PostId));
+
+        var currentUser = await _userManager.GetUserAsync(User);
+
         var vm = new AdminDashboardViewModel
         {
-            TotalPosts = await _db.Posts.CountAsync(),
-            PublishedPosts = await _db.Posts.CountAsync(p => p.IsPublished),
-            DraftPosts = await _db.Posts.CountAsync(p => !p.IsPublished),
-            PendingComments = await _db.Comments.CountAsync(c => c.Status == CommentStatus.Pending),
-            ApprovedComments = await _db.Comments.CountAsync(c => c.Status == CommentStatus.Approved),
-            RejectedComments = await _db.Comments.CountAsync(c => c.Status == CommentStatus.Rejected),
-            TotalMedia = await _db.MediaAssets.CountAsync(),
-            TotalMediaBytes = await _db.MediaAssets.SumAsync(m => (long?)m.SizeBytes) ?? 0,
-            TotalViews = await _db.Posts.SumAsync(p => (int?)p.ViewCount) ?? 0,
+            TotalPosts = await postQuery.CountAsync(),
+            PublishedPosts = await postQuery.CountAsync(p => p.IsPublished),
+            DraftPosts = await postQuery.CountAsync(p => !p.IsPublished),
+            PendingComments = await commentQuery.CountAsync(c => c.Status == CommentStatus.Pending),
+            ApprovedComments = await commentQuery.CountAsync(c => c.Status == CommentStatus.Approved),
+            RejectedComments = await commentQuery.CountAsync(c => c.Status == CommentStatus.Rejected),
+            TotalMedia = seeAll
+                ? await _db.MediaAssets.CountAsync()
+                : await _db.MediaAssets.CountAsync(m => m.PostId != null && myPostIds.Contains(m.PostId.Value)),
+            TotalMediaBytes = seeAll
+                ? await _db.MediaAssets.SumAsync(m => (long?)m.SizeBytes) ?? 0
+                : await _db.MediaAssets.Where(m => m.PostId != null && myPostIds.Contains(m.PostId.Value)).SumAsync(m => (long?)m.SizeBytes) ?? 0,
+            TotalViews = await postQuery.SumAsync(p => (int?)p.ViewCount) ?? 0,
             ViewsToday = currentRangeViews.Count(v => v.ViewedAtUtc.Date == today),
             ViewsThisRange = currentRangeViews.Count,
             ViewsPreviousRange = previousRangeViews.Count,
@@ -117,7 +137,7 @@ public class AdminController : Controller
             PostsByMonth = postsByMonth,
             PostsByCategory = postsByCategory,
             TopPosts = topPosts,
-            RecentComments = await _db.Comments
+            RecentComments = await commentQuery
                 .Include(c => c.Post)
                 .OrderByDescending(c => c.CreatedAtUtc)
                 .Take(6)
@@ -132,7 +152,10 @@ public class AdminController : Controller
                     PostTitle = c.Post.Title,
                     PostSlug = c.Post.Slug
                 })
-                .ToListAsync()
+                .ToListAsync(),
+            DisplayName = currentUser?.DisplayName ?? User.Identity?.Name ?? "",
+            IsSuperAdmin = AuthorAccess.IsSuperAdmin(User),
+            ScopeLabel = seeAll ? "همه نویسندگان" : "فقط نوشته‌های من"
         };
 
         return View(vm);
@@ -140,7 +163,12 @@ public class AdminController : Controller
 
     public async Task<IActionResult> Comments(string status = "pending")
     {
+        var userId = AuthorAccess.UserId(User)!;
+        var seeAll = AuthorAccess.CanModerateAllComments(User);
+
         var query = _db.Comments.Include(c => c.Post).AsQueryable();
+        if (!seeAll)
+            query = query.Where(c => c.Post.AuthorId == userId);
 
         query = status switch
         {
@@ -165,11 +193,16 @@ public class AdminController : Controller
             })
             .ToListAsync();
 
+        // Badge counts also scoped
+        var baseComments = _db.Comments.AsQueryable();
+        if (!seeAll)
+            baseComments = baseComments.Where(c => c.Post.AuthorId == userId);
+
         ViewBag.CurrentStatus = status;
-        ViewBag.PendingCount = await _db.Comments.CountAsync(c => c.Status == CommentStatus.Pending);
-        ViewBag.ApprovedCount = await _db.Comments.CountAsync(c => c.Status == CommentStatus.Approved);
-        ViewBag.RejectedCount = await _db.Comments.CountAsync(c => c.Status == CommentStatus.Rejected);
-        ViewBag.AllCount = await _db.Comments.CountAsync();
+        ViewBag.PendingCount = await baseComments.CountAsync(c => c.Status == CommentStatus.Pending);
+        ViewBag.ApprovedCount = await baseComments.CountAsync(c => c.Status == CommentStatus.Approved);
+        ViewBag.RejectedCount = await baseComments.CountAsync(c => c.Status == CommentStatus.Rejected);
+        ViewBag.AllCount = await baseComments.CountAsync();
 
         return View(items);
     }
@@ -177,8 +210,8 @@ public class AdminController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveComment(int id, string? returnStatus)
     {
-        var comment = await _db.Comments.FindAsync(id);
-        if (comment is not null)
+        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        if (comment is not null && AuthorAccess.OwnsPost(User, comment.Post))
         {
             comment.Status = CommentStatus.Approved;
             await _db.SaveChangesAsync();
@@ -190,8 +223,8 @@ public class AdminController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> RejectComment(int id, string? returnStatus)
     {
-        var comment = await _db.Comments.FindAsync(id);
-        if (comment is not null)
+        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        if (comment is not null && AuthorAccess.OwnsPost(User, comment.Post))
         {
             comment.Status = CommentStatus.Rejected;
             await _db.SaveChangesAsync();
@@ -203,8 +236,8 @@ public class AdminController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteComment(int id, string? returnStatus)
     {
-        var comment = await _db.Comments.FindAsync(id);
-        if (comment is not null)
+        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        if (comment is not null && AuthorAccess.OwnsPost(User, comment.Post))
         {
             _db.Comments.Remove(comment);
             await _db.SaveChangesAsync();
@@ -213,17 +246,12 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Comments), new { status = returnStatus ?? "pending" });
     }
 
-    /// <summary>
-    /// Server-Sent Events stream of live dashboard activity (new views, new/moderated
-    /// comments). The admin layout opens one connection per browser tab and keeps it open
-    /// for the life of the page.
-    /// </summary>
     [HttpGet]
     public async Task Stream(CancellationToken cancellationToken)
     {
         Response.ContentType = "text/event-stream";
         Response.Headers["Cache-Control"] = "no-cache";
-        Response.Headers["X-Accel-Buffering"] = "no"; // disable nginx buffering, if fronted by one
+        Response.Headers["X-Accel-Buffering"] = "no";
 
         var bufferingFeature = HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>();
         bufferingFeature?.DisableBuffering();
@@ -246,8 +274,6 @@ public class AdminController : Controller
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
-                    // Heartbeat tick, not a real disconnect — fall through and send a comment
-                    // line to keep the connection alive through proxies/load balancers.
                 }
 
                 if (cancellationToken.IsCancellationRequested) break;
@@ -262,7 +288,6 @@ public class AdminController : Controller
         }
         catch (OperationCanceledException)
         {
-            // Client disconnected — expected when a browser tab closes or navigates away.
         }
         finally
         {
@@ -272,8 +297,14 @@ public class AdminController : Controller
 
     public async Task<IActionResult> Posts()
     {
-        var items = await _db.Posts
-            .Include(p => p.Category)
+        var userId = AuthorAccess.UserId(User)!;
+        var seeAll = AuthorAccess.CanManageAllPosts(User);
+
+        var query = _db.Posts.Include(p => p.Category).Include(p => p.Author).AsQueryable();
+        if (!seeAll)
+            query = query.Where(p => p.AuthorId == userId);
+
+        var items = await query
             .OrderByDescending(p => p.CreatedAtUtc)
             .Select(p => new AdminPostListItem
             {
@@ -284,10 +315,13 @@ public class AdminController : Controller
                 IsPublished = p.IsPublished,
                 CreatedAtUtc = p.CreatedAtUtc,
                 ViewCount = p.ViewCount,
-                CommentCount = p.Comments.Count
+                CommentCount = p.Comments.Count,
+                AuthorDisplayName = p.Author.DisplayName,
+                AuthorId = p.AuthorId
             })
             .ToListAsync();
 
+        ViewBag.ShowAuthorColumn = seeAll;
         return View(items);
     }
 
@@ -295,7 +329,7 @@ public class AdminController : Controller
     public async Task<IActionResult> TogglePublish(int id)
     {
         var post = await _db.Posts.FindAsync(id);
-        if (post is not null)
+        if (post is not null && AuthorAccess.OwnsPost(User, post))
         {
             post.IsPublished = !post.IsPublished;
             if (post.IsPublished && post.PublishedAtUtc is null)
@@ -305,8 +339,6 @@ public class AdminController : Controller
         }
         return RedirectToAction(nameof(Posts));
     }
-
-    // ---- Demo placeholders for the sidebar so the panel reads as a real product ----
 
     public IActionResult Media() => View("ComingSoon", new ComingSoonViewModel
     {

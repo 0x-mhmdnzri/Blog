@@ -24,16 +24,18 @@ public class AdminDashboardViewModel
     public List<ChartPoint> PostsByMonth { get; set; } = new();
     public List<NamedCount> PostsByCategory { get; set; } = new();
     public List<TopPostItem> TopPosts { get; set; } = new();
+
+    public string DisplayName { get; set; } = string.Empty;
+    public bool IsSuperAdmin { get; set; }
+    public string ScopeLabel { get; set; } = string.Empty;
 }
 
-/// <summary>A single (label, value) point for a time-series chart (Chart.js line/bar data).</summary>
 public class ChartPoint
 {
     public string Label { get; set; } = string.Empty;
     public int Value { get; set; }
 }
 
-/// <summary>A single (name, count) slice for a pie/donut chart.</summary>
 public class NamedCount
 {
     public string Name { get; set; } = string.Empty;
@@ -70,6 +72,8 @@ public class AdminPostListItem
     public DateTime CreatedAtUtc { get; set; }
     public int ViewCount { get; set; }
     public int CommentCount { get; set; }
+    public string AuthorDisplayName { get; set; } = string.Empty;
+    public string AuthorId { get; set; } = string.Empty;
 }
 
 public class ComingSoonViewModel
