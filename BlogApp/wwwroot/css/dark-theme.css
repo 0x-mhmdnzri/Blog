@@ -1,5 +1,6 @@
 /* =========================================================================
-   Dark Pro — full RTL / Persian. LTR only for code, tables of code, signatures.
+   Dark Pro — site chrome RTL/Persian. Content uses dir=auto:
+   English → LTR + left, Persian → RTL + right. Code always LTR.
    ========================================================================= */
 
 :root {
@@ -58,11 +59,25 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
+}
+
+/* Default chrome right-aligned; user content with dir=auto follows script */
+p, li, label, .form-label, td, th {
   text-align: right;
 }
 
-p, li, label, .form-label, td, th {
-  text-align: right;
+/* ---- auto-direction for mixed language content ---- */
+[dir="auto"] {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+h1[dir="auto"],
+h2[dir="auto"],
+h3[dir="auto"],
+p[dir="auto"],
+.dir-auto {
+  text-align: start;
 }
 
 /* English / terminal signatures — always LTR */
@@ -75,7 +90,7 @@ p, li, label, .form-label, td, th {
 }
 .ltr-field { font-family: var(--font-mono); }
 
-/* Code, pre, kbd — always LTR (readme + editor + everywhere) */
+/* Code, pre, kbd — always LTR */
 code, pre, kbd, samp,
 .readme-content code,
 .readme-content pre,
@@ -86,14 +101,11 @@ code, pre, kbd, samp,
   font-family: var(--font-mono);
 }
 
-/* Markdown source editor is technical — LTR */
 #markdown-input {
   direction: ltr !important;
   text-align: left !important;
   font-family: var(--font-mono);
 }
-
-[dir="auto"] { unicode-bidi: plaintext; }
 
 .site-header {
   background: rgba(11, 14, 20, 0.85);
@@ -177,6 +189,11 @@ input[type="datetime-local"] {
   direction: ltr !important;
   text-align: left !important;
 }
+.form-control[dir="auto"],
+.form-select[dir="auto"],
+textarea[dir="auto"] {
+  text-align: start;
+}
 .form-control:focus, .form-select:focus {
   background: var(--surface-2);
   border-color: var(--accent-dim);
@@ -203,6 +220,10 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
 }
 .post-card h2 a { color: var(--text); }
 .post-card h2 a:hover { color: var(--accent); text-decoration: none; }
+.post-card h2[dir="auto"],
+.post-card p[dir="auto"] {
+  text-align: start;
+}
 
 .tag-pill {
   display: inline-block;
@@ -234,50 +255,60 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
 }
 .post-meta-line .accent { color: var(--accent); font-family: var(--font-mono); }
 
+/* Post body: follow dir=auto (English LTR/left, Persian RTL/right) */
 .readme-content {
   font-size: 1.05rem;
   color: #d7dbe4;
-  text-align: right;
-  direction: rtl;
+  text-align: start;
+  /* do NOT force direction:rtl — dir="auto" on the element decides */
 }
-.readme-content h1, .readme-content h2, .readme-content h3 {
+.readme-content[dir="auto"] {
+  unicode-bidi: plaintext;
+}
+.readme-content h1,
+.readme-content h2,
+.readme-content h3 {
   margin-top: 2.2em;
   margin-bottom: 0.7em;
   padding-bottom: 0.35em;
   border-bottom: 1px solid var(--border-soft);
-  text-align: right;
+  text-align: start;
   scroll-margin-top: 5rem;
 }
-.readme-content h1:first-child, .readme-content h2:first-child { margin-top: 0; }
-.readme-content p { margin-bottom: 1.1em; text-align: right; }
+.readme-content h1:first-child,
+.readme-content h2:first-child { margin-top: 0; }
+.readme-content p {
+  margin-bottom: 1.1em;
+  text-align: start;
+}
 .readme-content img {
   max-width: 100%;
   border-radius: var(--radius);
   border: 1px solid var(--border-soft);
 }
 .readme-content blockquote {
-  border-right: 3px solid var(--accent);
-  border-left: none;
+  border-inline-start: 3px solid var(--accent);
+  border-inline-end: none;
   background: var(--surface);
   padding: 0.8rem 1.2rem;
-  border-radius: var(--radius) 0 0 var(--radius);
+  border-radius: var(--radius);
   color: var(--text-muted);
-  text-align: right;
+  text-align: start;
 }
 
-/* Tables in readme: structure RTL-friendly headers, cell text can use dir=auto */
 .readme-content table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.94rem;
-  direction: rtl;
+  /* table follows parent direction from dir=auto */
 }
-.readme-content th, .readme-content td {
+.readme-content th,
+.readme-content td {
   border: 1px solid var(--border);
   padding: 0.5rem 0.8rem;
-  text-align: right;
+  text-align: start;
 }
-.readme-content th { background: var(--surface-2); text-align: right; }
+.readme-content th { background: var(--surface-2); }
 .readme-content hr { border-color: var(--border); }
 
 .readme-content code {
@@ -389,13 +420,14 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
 
 .editor-preview-pane {
   background: var(--bg);
-  border-left: 1px solid var(--border);
-  border-right: none;
+  border-inline-start: 1px solid var(--border);
   padding: 1.5rem;
   overflow-y: auto;
   max-height: 600px;
-  direction: rtl;
-  text-align: right;
+  text-align: start;
+}
+.editor-preview-pane .readme-content {
+  text-align: start;
 }
 
 .upload-dropzone {
@@ -424,9 +456,14 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   font-size: 0.75rem;
 }
 
+/* Post article: title follows language */
+.post-article h1[dir="auto"] {
+  text-align: start;
+}
+
 @media (max-width: 991.98px) {
   .editor-preview-pane {
-    border-left: none;
+    border-inline-start: none;
     border-top: 1px solid var(--border);
     max-height: 320px;
   }
