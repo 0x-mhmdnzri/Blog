@@ -42,7 +42,6 @@ public class MarkdownService
         html = Regex.Replace(html, @"<th>", "<th dir=\"auto\">");
         html = Regex.Replace(html, @"<p>", "<p dir=\"auto\">");
 
-        // Verbatim strings: escape " as "" (not \")
         html = Regex.Replace(
             html,
             @"<p dir=""auto"">\[\[VIDEO_EMBED_(\d+)\]\]</p>",
@@ -132,12 +131,12 @@ public class MarkdownService
         return html;
     }
 
-    private static string SlugifyHeading(string text)
+    private static stringSlugifyHeading(string text)
     {
         var s = text.ToLowerInvariant().Trim();
         s = Regex.Replace(s, @"\s+", "-");
-        // Non-verbatim so \u0600-\u06FF expand to real Persian/Arabic code points.
-        s = Regex.Replace(s, "[^\w\u0600-\u06FF\-]", "");
+        // Non-verbatim: \\w and \\- for regex; \u0600-\u06FF for Persian letters.
+        s = Regex.Replace(s, "[^\\w\u0600-\u06FF\\-]", "");
         return s.Length > 80 ? s[..80] : s;
     }
 }
