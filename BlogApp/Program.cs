@@ -6,6 +6,7 @@ using BlogApp.Logging;
 using BlogApp.Middleware;
 using BlogApp.Models;
 using BlogApp.Services;
+using BlogApp.Services.Analytics;
 using BlogApp.Services.Messaging;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -159,6 +160,7 @@ try
     builder.Services.AddSingleton<MarkdownService>();
     builder.Services.AddSingleton<SeoService>();
     builder.Services.AddSingleton<AnalyticsBroadcaster>();
+    builder.Services.AddScoped<IAnalyticsTracker, AnalyticsTracker>();
     builder.Services.AddScoped<AiContentService>();
     builder.Services.AddScoped<BrokenLinkService>();
 
