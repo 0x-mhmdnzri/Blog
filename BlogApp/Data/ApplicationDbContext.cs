@@ -43,8 +43,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<Post>(e =>
         {
-            e.HasIndex(p => p.Slug).IsUnique();
+            // Slug unique per language (same article can share slug across locales)
+            e.HasIndex(p => new { p.LanguageCode, p.Slug }).IsUnique();
+            e.HasIndex(p => p.LanguageCode);
+            e.HasIndex(p => p.TranslationGroupId);
             e.Property(p => p.ContentMarkdown).HasColumnType("TEXT");
+            e.Property(p => p.LanguageCode).HasMaxLength(8).HasDefaultValue(AppCultures.Default);
             e.HasOne(p => p.CoverMediaAsset).WithMany().HasForeignKey(p => p.CoverMediaAssetId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(p => p.Category).WithMany(c => c.Posts).HasForeignKey(p => p.CategoryId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(p => p.Author).WithMany(u => u.Posts).HasForeignKey(p => p.AuthorId).OnDelete(DeleteBehavior.Restrict);
