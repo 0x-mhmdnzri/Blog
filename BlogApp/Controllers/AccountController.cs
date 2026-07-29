@@ -65,7 +65,6 @@ public class AccountController : Controller
                 if (!string.IsNullOrEmpty(returnUrl))
                     return Redirect(returnUrl);
 
-                // Staff → admin; pure readers → bookmarks list
                 if (await _userManager.IsInRoleAsync(user, AppRoles.Author)
                     || await _userManager.IsInRoleAsync(user, AppRoles.SuperAdmin))
                     return RedirectToAction("Index", "Admin");
@@ -167,12 +166,21 @@ public class AccountController : Controller
             .Select(p => new { p.Title, p.Slug, p.Summary, p.PublishedAtUtc, p.ViewCount })
             .ToListAsync();
 
+        var viewerId = AuthorAccess.UserId(User);
+        var canFollow = viewerId != null && viewerId != user.Id
+            && (User.IsInRole(AppRoles.Reader) || User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
+        var isFollowing = canFollow
+            && await _db.AuthorFollows.AnyAsync(f => f.FollowerUserId == viewerId && f.AuthorUserId == user.Id);
+
         var vm = new PublicAuthorProfileViewModel
         {
+            UserId = user.Id,
             UserName = user.UserName!,
             DisplayName = user.DisplayName,
             Bio = user.Bio,
             HasProfileImage = user.ProfileImage is { Length: > 0 },
+            CanFollow = canFollow,
+            IsFollowing = isFollowing,
             Posts = posts.Select(p => new AuthorPostItem
             {
                 Title = p.Title,
