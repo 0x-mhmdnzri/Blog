@@ -13,6 +13,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PostTag> PostTags => Set<PostTag>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
+    public DbSet<PostView> PostViews => Set<PostView>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,5 +55,15 @@ public class ApplicationDbContext : DbContext
             .WithMany(p => p.Comments)
             .HasForeignKey(c => c.PostId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PostView>(e =>
+        {
+            e.HasIndex(v => v.ViewedAtUtc);
+            e.HasIndex(v => new { v.PostId, v.VisitorHash, v.ViewedAtUtc }); // powers the dedup check
+            e.HasOne(v => v.Post)
+                .WithMany(p => p.Views)
+                .HasForeignKey(v => v.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

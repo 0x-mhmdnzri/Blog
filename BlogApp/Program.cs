@@ -1,6 +1,7 @@
 using BlogApp.Data;
 using BlogApp.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,9 @@ builder.Services.AddSingleton<MarkdownService>();
 
 // --- SEO / AEO meta + structured-data helper ---
 builder.Services.AddSingleton<SeoService>();
+
+// --- Live dashboard updates over Server-Sent Events ---
+builder.Services.AddSingleton<AnalyticsBroadcaster>();
 
 // --- MVC ---
 builder.Services.AddControllersWithViews();
@@ -41,6 +45,19 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 var app = builder.Build();
+
+// Trust X-Forwarded-For from the reverse proxy in front of this container so
+// HttpContext.Connection.RemoteIpAddress (used for view-deduplication hashing) reflects the
+// real visitor, not the proxy's own address. KnownNetworks/KnownProxies are cleared because
+// the proxy's address isn't known ahead of time in a typical container/compose setup — if
+// you deploy this behind an untrusted network, tighten this to your actual proxy's IP.
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Make sure the folder for the SQLite file exists — matters on first run against a fresh
 // Docker volume mount, where the parent directory may not exist yet.

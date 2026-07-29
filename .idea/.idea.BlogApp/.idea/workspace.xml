@@ -7,7 +7,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c56777a1-b8f7-4518-a074-7b6e03f7a470" name="Changes" comment="fix RTL styles" />
+    <list default="true" id="c56777a1-b8f7-4518-a074-7b6e03f7a470" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.BlogApp/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.BlogApp/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Controllers/AdminController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Controllers/AdminController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Controllers/PostsController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Controllers/PostsController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Data/ApplicationDbContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Data/ApplicationDbContext.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Data/DbSeeder.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Data/DbSeeder.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Models/Post.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Models/Post.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Models/ViewModels/AdminViewModels.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Models/ViewModels/AdminViewModels.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Admin/Index.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Admin/Index.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/Admin/_AdminLayout.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/Admin/_AdminLayout.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/Views/_ViewImports.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/Views/_ViewImports.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BlogApp/wwwroot/css/admin-rtl.css" beforeDir="false" afterPath="$PROJECT_DIR$/BlogApp/wwwroot/css/admin-rtl.css" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -21,6 +34,7 @@
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/BlogApp/Controllers/AccountController.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/mohammadnazari/Downloads/BlogApp/BlogApp/Program.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///Users/mohammadnazari/Downloads/BlogApp/BlogApp/Views/Admin/_AdminLayout.cshtml" root0="FORCE_HIGHLIGHTING" root1="FORCE_HIGHLIGHTING" root2="SKIP_HIGHLIGHTING" />
     <setting file="file:///usr/local/share/dotnet/sdk/10.0.301/Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets" root0="FORCE_HIGHLIGHTING" />
   </component>
@@ -85,7 +99,9 @@
       <workItem from="1785176625541" duration="33000" />
       <workItem from="1785176665747" duration="1816000" />
       <workItem from="1785216491677" duration="7000" />
-      <workItem from="1785216552637" duration="266000" />
+      <workItem from="1785216552637" duration="591000" />
+      <workItem from="1785217424344" duration="798000" />
+      <workItem from="1785262095727" duration="1323000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -127,7 +143,23 @@
       <option name="project" value="LOCAL" />
       <updated>1785216879496</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="dokerized">
+      <option name="closed" value="true" />
+      <created>1785217117559</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1785217117559</updated>
+    </task>
+    <task id="LOCAL-00007" summary="envs for devops">
+      <option name="closed" value="true" />
+      <created>1785218001052</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1785218001052</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -140,6 +172,8 @@
     <MESSAGE value="first commit" />
     <MESSAGE value="fix RTL &amp; align right" />
     <MESSAGE value="fix RTL styles" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix RTL styles" />
+    <MESSAGE value="dokerized" />
+    <MESSAGE value="envs for devops" />
+    <option name="LAST_COMMIT_MESSAGE" value="envs for devops" />
   </component>
 </project>

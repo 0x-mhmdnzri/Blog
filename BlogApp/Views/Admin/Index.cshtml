@@ -1,60 +1,195 @@
 @model AdminDashboardViewModel
+@using System.Text.Json
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "داشبورد";
+
+    string FormatBytes(long bytes)
+    {
+        if (bytes >= 1024L * 1024 * 1024) return $"{bytes / (1024.0 * 1024 * 1024):0.##} GB";
+        if (bytes >= 1024L * 1024) return $"{bytes / (1024.0 * 1024):0.##} MB";
+        if (bytes >= 1024) return $"{bytes / 1024.0:0.##} KB";
+        return $"{bytes} B";
+    }
+
+    var jsonOptions = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    var viewsByDayLabels = JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Label), jsonOptions);
+    var viewsByDayValues = JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Value), jsonOptions);
+    var postsByMonthLabels = JsonSerializer.Serialize(Model.PostsByMonth.Select(p => p.Label), jsonOptions);
+    var postsByMonthValues = JsonSerializer.Serialize(Model.PostsByMonth.Select(p => p.Value), jsonOptions);
+    var categoryLabels = JsonSerializer.Serialize(Model.PostsByCategory.Select(c => c.Name), jsonOptions);
+    var categoryValues = JsonSerializer.Serialize(Model.PostsByCategory.Select(c => c.Count), jsonOptions);
+    var commentStatusValues = JsonSerializer.Serialize(new[] { Model.ApprovedComments, Model.PendingComments, Model.RejectedComments }, jsonOptions);
+    var maxLeaderViews = Math.Max(1, Model.TopPosts.Any() ? Model.TopPosts.Max(p => p.Views) : 1);
 }
 
-<div class="row g-3 mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="range-tabs">
+        <a class="admin-tab @(Model.RangeDays == 7 ? "active" : "")" asp-action="Index" asp-route-range="7">۷ روز اخیر</a>
+        <a class="admin-tab @(Model.RangeDays == 30 ? "active" : "")" asp-action="Index" asp-route-range="30">۳۰ روز اخیر</a>
+        <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Index" asp-route-range="90">۹۰ روز اخیر</a>
+    </div>
+</div>
+
+<!-- KPI row -->
+<div class="row g-3 mb-3">
     <div class="col-6 col-lg-3">
-        <div class="stat-card">
-            <div class="stat-label">کل نوشته‌ها</div>
-            <div class="stat-value">@Model.TotalPosts</div>
+        <div class="kpi-card">
+            <div class="kpi-label">بازدید در بازه انتخاب‌شده</div>
+            <div class="kpi-value"><span class="ltr-field" id="kpiViewsRange" style="font-size:inherit;color:inherit;">@Model.ViewsThisRange</span></div>
+            <div class="kpi-sub">
+                @{
+                    var trendClass = Model.ViewsTrendPercent > 0 ? "up" : Model.ViewsTrendPercent < 0 ? "down" : "flat";
+                    var trendArrow = Model.ViewsTrendPercent > 0 ? "▲" : Model.ViewsTrendPercent < 0 ? "▼" : "—";
+                }
+                <span class="trend-badge @trendClass">@trendArrow @Math.Abs(Model.ViewsTrendPercent)٪</span>
+                نسبت به بازه قبلی
+            </div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
-        <div class="stat-card">
-            <div class="stat-label">منتشرشده / پیش‌نویس</div>
-            <div class="stat-value accent">@Model.PublishedPosts<span style="color:var(--text-faint); font-size:1.1rem;"> / @Model.DraftPosts</span></div>
+        <div class="kpi-card">
+            <div class="kpi-label">بازدید امروز</div>
+            <div class="kpi-value" id="kpiViewsToday">@Model.ViewsToday</div>
+            <div class="kpi-sub">بازدید کل تاریخی: <span class="ltr-field" id="kpiViewsTotal" style="font-size:inherit;color:inherit;">@Model.TotalViews</span></div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
-        <div class="stat-card">
-            <div class="stat-label">دیدگاه‌های در انتظار</div>
-            <div class="stat-value @(Model.PendingComments > 0 ? "danger" : "")">@Model.PendingComments</div>
+        <div class="kpi-card @(Model.PendingComments > 0 ? "kpi-danger" : "kpi-good")" id="kpiPendingCard">
+            <div class="kpi-label">دیدگاه‌های در انتظار بررسی</div>
+            <div class="kpi-value" id="kpiPending">@Model.PendingComments</div>
+            <div class="kpi-sub">
+                <a asp-action="Comments" asp-route-status="pending">مشاهده در صف مدیریت ›</a>
+            </div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
-        <div class="stat-card">
-            <div class="stat-label">بازدید کل</div>
-            <div class="stat-value">@Model.TotalViews</div>
+        <div class="kpi-card kpi-good">
+            <div class="kpi-label">نوشته‌ها</div>
+            <div class="kpi-value">@Model.TotalPosts</div>
+            <div class="kpi-sub">@Model.PublishedPosts منتشرشده · @Model.DraftPosts پیش‌نویس</div>
         </div>
     </div>
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-4">
-        <div class="stat-card">
-            <div class="stat-label">دیدگاه‌های تأییدشده</div>
-            <div class="stat-value" style="font-size:1.4rem;">@Model.ApprovedComments</div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-label">دیدگاه‌های تأییدشده</div>
+            <div class="kpi-value" id="kpiApproved" style="font-size:1.3rem;">@Model.ApprovedComments</div>
         </div>
     </div>
-    <div class="col-6 col-lg-4">
-        <div class="stat-card">
-            <div class="stat-label">دیدگاه‌های ردشده</div>
-            <div class="stat-value" style="font-size:1.4rem;">@Model.RejectedComments</div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-label">دیدگاه‌های ردشده</div>
+            <div class="kpi-value" id="kpiRejected" style="font-size:1.3rem;">@Model.RejectedComments</div>
         </div>
     </div>
-    <div class="col-6 col-lg-4">
-        <div class="stat-card">
-            <div class="stat-label">فایل‌های رسانه</div>
-            <div class="stat-value" style="font-size:1.4rem;">@Model.TotalMedia</div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-label">فایل‌های رسانه</div>
+            <div class="kpi-value" style="font-size:1.3rem;">@Model.TotalMedia</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-label">حجم رسانه‌های ذخیره‌شده</div>
+            <div class="kpi-value ltr-field" style="font-size:1.3rem;color:inherit;">@FormatBytes(Model.TotalMediaBytes)</div>
         </div>
     </div>
 </div>
 
+<!-- Charts row 1 -->
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-title">روند بازدید</div>
+            <div class="chart-subtitle">تعداد بازدید واقعی خوانندگان در @Model.RangeDays روز اخیر</div>
+            <div class="chart-canvas-wrap" style="height:260px;">
+                <canvas id="viewsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <div class="chart-title">وضعیت دیدگاه‌ها</div>
+            <div class="chart-subtitle">تأییدشده / در انتظار / ردشده</div>
+            <div class="chart-canvas-wrap" style="height:260px;">
+                <canvas id="commentStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts row 2 -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="chart-card">
+            <div class="chart-title">نوشته‌های ایجادشده</div>
+            <div class="chart-subtitle">۶ ماه اخیر</div>
+            <div class="chart-canvas-wrap" style="height:240px;">
+                <canvas id="postsByMonthChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="chart-card">
+            <div class="chart-title">نوشته‌ها بر اساس دسته‌بندی</div>
+            <div class="chart-subtitle">توزیع کل نوشته‌ها</div>
+            <div class="chart-canvas-wrap" style="height:240px;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top posts leaderboard -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h6 mb-0 text-muted-dark">پربازدیدترین نوشته‌ها</h2>
+    <a class="btn btn-ghost btn-sm" asp-action="Posts">مشاهده همه نوشته‌ها</a>
+</div>
+
+@if (!Model.TopPosts.Any())
+{
+    <div class="admin-empty mb-4">
+        <h2>هنوز داده‌ای برای نمایش نیست</h2>
+        <p class="mb-0">وقتی نوشته‌ها بازدید بگیرند، رتبه‌بندی همین‌جا نمایش داده می‌شود.</p>
+    </div>
+}
+else
+{
+    <table class="admin-table mb-4">
+        <thead>
+            <tr>
+                <th>نوشته</th>
+                <th style="width:40%;">بازدید کل</th>
+                <th>بازدید در بازه</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model.TopPosts)
+            {
+                <tr>
+                    <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="leader-bar-track" style="max-width:220px;">
+                                <div class="leader-bar-fill" style="width:@((int)(p.Views * 100.0 / maxLeaderViews))%;"></div>
+                            </div>
+                            <span class="ltr-field">@p.Views</span>
+                        </div>
+                    </td>
+                    <td><span class="ltr-field">@p.RangeViews</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Recent comments -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="h6 mb-0 text-muted-dark">آخرین دیدگاه‌ها</h2>
-    <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="Comments">مشاهده همه</a>
+    <a class="btn btn-ghost btn-sm" asp-action="Comments">مشاهده همه</a>
 </div>
 
 @if (!Model.RecentComments.Any())
@@ -97,9 +232,197 @@ else
                                 break;
                         }
                     </td>
-                    <td><span class="ltr-field">@c.CreatedAtUtc.ToString("yyyy/MM/dd")</span></td>
+                    <td><span class="ltr-field">@c.CreatedAtUtc.ToString("yyyy-MM-dd")</span></td>
                 </tr>
             }
         </tbody>
     </table>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"
+            onerror="this.dataset.failed='1'"></script>
+    <script>
+        (function () {
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js failed to load — charts on this page will not render. Check network access to cdn.jsdelivr.net.');
+                document.querySelectorAll('.chart-canvas-wrap').forEach(el => {
+                    el.innerHTML = '<div class="admin-empty" style="padding:1rem;">' +
+                        '<p class="mb-0">بارگذاری کتابخانه نمودار ناموفق بود.</p></div>';
+                });
+                return;
+            }
+
+            const styles = getComputedStyle(document.documentElement);
+            const textMuted = styles.getPropertyValue('--text-muted').trim();
+            const borderSoft = styles.getPropertyValue('--border-soft').trim();
+            const accent = styles.getPropertyValue('--accent').trim();
+            const good = '#9ecb8c';
+            const danger = styles.getPropertyValue('--danger').trim();
+            const info = '#6fb3d2';
+            const purple = '#c9a0f2';
+
+            Chart.defaults.color = textMuted;
+            Chart.defaults.borderColor = borderSoft;
+            Chart.defaults.font.family = "Vazirmatn, sans-serif";
+
+            // Each chart is created independently — one bad dataset/canvas shouldn't blank
+            // out the other three the way a single unguarded script used to.
+            function safeChart(label, factory) {
+                try { return factory(); }
+                catch (err) { console.error('Chart failed to render: ' + label, err); return null; }
+            }
+
+            safeChart('viewsChart', () => new Chart(document.getElementById('viewsChart'), {
+                type: 'line',
+                data: {
+                    labels: @Html.Raw(viewsByDayLabels),
+                    datasets: [{
+                        label: 'بازدید',
+                        data: @Html.Raw(viewsByDayValues),
+                        borderColor: accent,
+                        backgroundColor: 'rgba(227,179,65,0.12)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            }));
+
+            safeChart('commentStatusChart', () => new Chart(document.getElementById('commentStatusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['تأییدشده', 'در انتظار', 'ردشده'],
+                    datasets: [{
+                        data: @Html.Raw(commentStatusValues),
+                        backgroundColor: [good, accent, danger],
+                        borderColor: borderSoft,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } }
+                }
+            }));
+
+            safeChart('postsByMonthChart', () => new Chart(document.getElementById('postsByMonthChart'), {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(postsByMonthLabels),
+                    datasets: [{
+                        label: 'نوشته‌ها',
+                        data: @Html.Raw(postsByMonthValues),
+                        backgroundColor: info,
+                        borderRadius: 4,
+                        maxBarThickness: 40
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            }));
+
+            safeChart('categoryChart', () => new Chart(document.getElementById('categoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: @Html.Raw(categoryLabels),
+                    datasets: [{
+                        data: @Html.Raw(categoryValues),
+                        backgroundColor: [accent, info, purple, good, danger, '#f2789f'],
+                        borderColor: borderSoft,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } }
+                }
+            }));
+
+            const viewsChart = Chart.getChart('viewsChart');
+            const commentStatusChart = Chart.getChart('commentStatusChart');
+
+            function bump(elId, delta) {
+                const el = document.getElementById(elId);
+                if (!el) return;
+                const current = parseInt(el.textContent.replace(/[^\d-]/g, ''), 10) || 0;
+                el.textContent = current + delta;
+                el.classList.add('kpi-flash');
+                setTimeout(() => el.classList.remove('kpi-flash'), 900);
+            }
+
+            // Live updates pushed from the server over the shared SSE connection opened in
+            // _AdminLayout.cshtml — no polling, no manual refresh needed.
+            window.addEventListener('admin-sse-message', (e) => {
+                const data = e.detail;
+
+                if (data.type === 'view') {
+                    bump('kpiViewsToday', 1);
+                    bump('kpiViewsRange', 1);
+                    bump('kpiViewsTotal', 1);
+
+                    if (viewsChart) {
+                        const values = viewsChart.data.datasets[0].data;
+                        values[values.length - 1] = (values[values.length - 1] || 0) + 1;
+                        viewsChart.update('none');
+                    }
+                }
+
+                if (data.type === 'comment') {
+                    if (data.status === 'pending') {
+                        bump('kpiPending', 1);
+                        if (commentStatusChart) {
+                            commentStatusChart.data.datasets[0].data[1]++;
+                            commentStatusChart.update('none');
+                        }
+                    } else if (data.status === 'approved') {
+                        bump('kpiApproved', 1);
+                        bump('kpiPending', -1);
+                        if (commentStatusChart) {
+                            commentStatusChart.data.datasets[0].data[0]++;
+                            commentStatusChart.data.datasets[0].data[1] = Math.max(0, commentStatusChart.data.datasets[0].data[1] - 1);
+                            commentStatusChart.update('none');
+                        }
+                    } else if (data.status === 'rejected') {
+                        bump('kpiRejected', 1);
+                        bump('kpiPending', -1);
+                        if (commentStatusChart) {
+                            commentStatusChart.data.datasets[0].data[2]++;
+                            commentStatusChart.data.datasets[0].data[1] = Math.max(0, commentStatusChart.data.datasets[0].data[1] - 1);
+                            commentStatusChart.update('none');
+                        }
+                    }
+
+                    const pendingEl = document.getElementById('kpiPending');
+                    const pendingCard = document.getElementById('kpiPendingCard');
+                    if (pendingEl && pendingCard) {
+                        const stillPending = parseInt(pendingEl.textContent, 10) > 0;
+                        pendingCard.classList.toggle('kpi-danger', stillPending);
+                        pendingCard.classList.toggle('kpi-good', !stillPending);
+                    }
+                }
+            });
+        })();
+    </script>
 }

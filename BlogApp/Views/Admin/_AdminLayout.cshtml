@@ -1,3 +1,4 @@
+@inject BlogApp.Data.ApplicationDbContext Db
 @{
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -6,6 +7,8 @@
     var isPostsSection = (currentController == "Admin" && currentAction == "Posts")
         || (currentController == "Posts" && (currentAction == "Create" || currentAction == "Edit"));
     var isDashboard = currentController == "Admin" && currentAction == "Index";
+    var pendingCount = ViewBag.PendingCount as int?
+        ?? await Db.Comments.CountAsync(c => c.Status == BlogApp.Models.CommentStatus.Pending);
 }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" data-bs-theme="dark">
@@ -39,10 +42,7 @@
                 </a>
                 <a class="admin-nav-link @(IsActive("Comments") ? "active" : "")" asp-controller="Admin" asp-action="Comments">
                     <span>دیدگاه‌ها</span>
-                    @if (ViewBag.PendingCount != null && (int)ViewBag.PendingCount > 0)
-                    {
-                        <span class="badge-count">@ViewBag.PendingCount</span>
-                    }
+                    <span class="badge-count" id="pendingBadge" style="@(pendingCount > 0 ? "" : "display:none;")">@pendingCount</span>
                 </a>
 
                 <div class="admin-nav-group-label">محتوا</div>
@@ -77,7 +77,12 @@
                     <div class="eyebrow mb-1">پنل مدیریت</div>
                     <h1>@ViewData["Title"]</h1>
                 </div>
-                <button class="btn btn-ghost btn-sm d-md-none" onclick="document.getElementById('adminSidebar').classList.toggle('open')">☰</button>
+                <div class="d-flex align-items-center gap-3">
+                    <span id="liveIndicator" class="live-indicator" title="اتصال زنده به سرور">
+                        <span class="live-dot"></span> زنده
+                    </span>
+                    <button class="btn btn-ghost btn-sm d-md-none" onclick="document.getElementById('adminSidebar').classList.toggle('open')">☰</button>
+                </div>
             </header>
 
             <div class="admin-content">
@@ -87,6 +92,45 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // One shared SSE connection per admin tab. Individual pages (like the dashboard)
+        // listen for 'admin-sse-message' on window to react to specific event types without
+        // opening their own connection.
+        (function () {
+            const indicator = document.getElementById('liveIndicator');
+            const pendingBadge = document.getElementById('pendingBadge');
+            let pendingCount = @pendingCount;
+
+            function setLive(isLive) {
+                if (!indicator) return;
+                indicator.classList.toggle('live-on', isLive);
+                indicator.classList.toggle('live-off', !isLive);
+            }
+
+            function updatePendingBadge(delta) {
+                pendingCount = Math.max(0, pendingCount + delta);
+                if (!pendingBadge) return;
+                pendingBadge.textContent = pendingCount;
+                pendingBadge.style.display = pendingCount > 0 ? '' : 'none';
+            }
+
+            const source = new EventSource('/Admin/Stream');
+            source.onopen = () => setLive(true);
+            source.onerror = () => setLive(false);
+            source.onmessage = (e) => {
+                setLive(true);
+                let data;
+                try { data = JSON.parse(e.data); } catch { return; }
+
+                if (data.type === 'comment') {
+                    if (data.status === 'pending') updatePendingBadge(1);
+                    else if (['approved', 'rejected', 'deleted'].includes(data.status)) updatePendingBadge(-1);
+                }
+
+                window.dispatchEvent(new CustomEvent('admin-sse-message', { detail: data }));
+            };
+        })();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

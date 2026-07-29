@@ -13,12 +13,14 @@ public class PostsController : Controller
     private readonly ApplicationDbContext _db;
     private readonly MarkdownService _markdown;
     private readonly SeoService _seo;
+    private readonly AnalyticsBroadcaster _broadcaster;
 
-    public PostsController(ApplicationDbContext db, MarkdownService markdown, SeoService seo)
+    public PostsController(ApplicationDbContext db, MarkdownService markdown, SeoService seo, AnalyticsBroadcaster broadcaster)
     {
         _db = db;
         _markdown = markdown;
         _seo = seo;
+        _broadcaster = broadcaster;
     }
 
     // GET /post/{slug} — public reading view
@@ -34,8 +36,32 @@ public class PostsController : Controller
         if (post is null || (!post.IsPublished && !User.Identity!.IsAuthenticated))
             return NotFound();
 
-        post.ViewCount++;
-        await _db.SaveChangesAsync();
+        // Count the view for every visitor (including the signed-in author — excluding them
+        // was the previous behavior and is exactly why views weren't counting up while
+        // testing). To avoid one visitor's reloads inflating the numbers, a view only counts
+        // as "new" if the same IP+User-Agent fingerprint hasn't been seen for this post in
+        // the last 30 minutes.
+        var visitorHash = VisitorIdentity.ComputeHash(HttpContext);
+        var dedupWindowStart = DateTime.UtcNow.AddMinutes(-30);
+        var isDuplicateVisit = await _db.PostViews.AnyAsync(v =>
+            v.PostId == post.Id && v.VisitorHash == visitorHash && v.ViewedAtUtc >= dedupWindowStart);
+
+        if (!isDuplicateVisit)
+        {
+            post.ViewCount++;
+            var postView = new PostView { PostId = post.Id, ViewedAtUtc = DateTime.UtcNow, VisitorHash = visitorHash };
+            _db.PostViews.Add(postView);
+            await _db.SaveChangesAsync();
+
+            _broadcaster.Publish(new
+            {
+                type = "view",
+                postId = post.Id,
+                postTitle = post.Title,
+                viewedAtUtc = postView.ViewedAtUtc,
+                totalViews = post.ViewCount
+            });
+        }
 
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var canonicalUrl = $"{baseUrl}/post/{post.Slug}";
@@ -170,15 +196,26 @@ public class PostsController : Controller
     {
         if (!string.IsNullOrWhiteSpace(authorName) && !string.IsNullOrWhiteSpace(body))
         {
-            _db.Comments.Add(new Comment
+            var comment = new Comment
             {
                 PostId = postId,
                 AuthorName = authorName.Trim(),
                 Body = body.Trim(),
                 Status = CommentStatus.Pending // moderated in the admin panel before showing publicly
-            });
+            };
+            _db.Comments.Add(comment);
             await _db.SaveChangesAsync();
-            TempData["CommentSubmitted"] = "Thanks — your comment is awaiting moderation.";
+            TempData["CommentSubmitted"] = "ممنون — دیدگاه شما در انتظار بررسی است.";
+
+            var postTitle = await _db.Posts.Where(p => p.Id == postId).Select(p => p.Title).FirstOrDefaultAsync();
+            _broadcaster.Publish(new
+            {
+                type = "comment",
+                status = "pending",
+                postId,
+                postTitle,
+                authorName = comment.AuthorName
+            });
         }
 
         var slug = await _db.Posts.Where(p => p.Id == postId).Select(p => p.Slug).FirstOrDefaultAsync();

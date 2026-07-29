@@ -43,4 +43,23 @@ public class Post
 
     /// <summary>Every image/video/file referenced from ContentMarkdown, so nothing orphans in the DB.</summary>
     public ICollection<MediaAsset> Media { get; set; } = new List<MediaAsset>();
+
+    /// <summary>Per-visit log (real reader traffic only) backing the analytics dashboard's
+    /// time-series charts. ViewCount above stays a fast all-time counter; this is what
+    /// makes "views over time" and "top posts this week" possible.</summary>
+    public ICollection<PostView> Views { get; set; } = new List<PostView>();
+}
+
+/// <summary>One row per de-duplicated page view. No raw IP/User-Agent is stored — only a
+/// one-way hash (see VisitorIdentity.ComputeHash), just enough to tell "the same visitor
+/// reloading" apart from "a new visitor" for a short window.</summary>
+public class PostView
+{
+    public int Id { get; set; }
+    public int PostId { get; set; }
+    public Post Post { get; set; } = null!;
+    public DateTime ViewedAtUtc { get; set; } = DateTime.UtcNow;
+
+    [MaxLength(64)]
+    public string VisitorHash { get; set; } = string.Empty;
 }

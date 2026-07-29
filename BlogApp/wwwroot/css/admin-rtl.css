@@ -134,6 +134,35 @@
   letter-spacing: 0.04em;
 }
 
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  display: inline-block;
+}
+.live-indicator.live-on { color: #9ecb8c; }
+.live-indicator.live-on .live-dot {
+  background: #9ecb8c;
+  box-shadow: 0 0 0 0 rgba(158, 203, 140, 0.6);
+  animation: live-pulse 2s infinite;
+}
+.live-indicator.live-off { color: var(--danger); }
+.live-indicator.live-off .live-dot { background: var(--danger); }
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(158, 203, 140, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(158, 203, 140, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(158, 203, 140, 0); }
+}
+
 .admin-content { padding: 2rem; max-width: 1200px; }
 
 /* ---------- Stat cards ---------- */
@@ -185,6 +214,90 @@
 }
 .admin-table tr:last-child td { border-bottom: none; }
 .admin-table tr:hover td { background: var(--surface-2); }
+
+/* ---------- Analytics dashboard (Power BI style) ---------- */
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-inline-start: 3px solid var(--accent-dim);
+  border-radius: var(--radius-lg);
+  padding: 1.2rem 1.3rem;
+  height: 100%;
+}
+.kpi-card.kpi-danger { border-inline-start-color: var(--danger); }
+.kpi-card.kpi-good { border-inline-start-color: #9ecb8c; }
+
+.kpi-label {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-bottom: 0.35rem;
+}
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.kpi-sub {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  margin-top: 0.35rem;
+}
+
+@keyframes kpi-flash-anim {
+  0% { color: var(--accent); }
+  100% { color: inherit; }
+}
+.kpi-flash { animation: kpi-flash-anim 0.9s ease-out; }
+
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.trend-badge.up { background: rgba(158, 203, 140, 0.15); color: #9ecb8c; }
+.trend-badge.down { background: rgba(229, 99, 122, 0.15); color: var(--danger); }
+.trend-badge.flat { background: var(--surface-3); color: var(--text-muted); }
+
+.range-tabs { display: flex; gap: 0.4rem; }
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 1.3rem 1.4rem;
+  height: 100%;
+}
+.chart-card .chart-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.1rem; }
+.chart-card .chart-subtitle { color: var(--text-faint); font-size: 0.78rem; margin-bottom: 1rem; }
+.chart-card .chart-canvas-wrap {
+  direction: ltr; /* charts/axes are inherently LTR visualizations regardless of page language */
+  unicode-bidi: isolate;
+  position: relative;
+}
+
+/* Simple leaderboard bars for the top-posts table — a lightweight CSS-only visualization
+   so the ranking isn't just a bare number column. */
+.leader-bar-track {
+  background: var(--surface-2);
+  border-radius: 999px;
+  height: 6px;
+  width: 100%;
+  overflow: hidden;
+  direction: ltr;
+}
+.leader-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
 
 /* ---------- Bidi handling ---------------------------------------------------
    The panel is RTL/Persian, but table cells routinely hold LTR content — post
