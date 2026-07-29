@@ -1,4 +1,5 @@
 @inject BlogApp.Services.SeoService Seo
+@using BlogApp.Models
 @{
     var pageTitle = ViewData["Title"] as string;
     var fullTitle = pageTitle != null ? $"{pageTitle} · {Seo.SiteName}" : $"{Seo.SiteName} — {Seo.SiteDescription}";
@@ -8,6 +9,8 @@
     var ogType = ViewData["OgType"] as string ?? "website";
     var ogImage = ViewData["OgImage"] as string;
     var noIndex = ViewData["NoIndex"] as bool? ?? false;
+    var isStaff = User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin);
+    var isReader = User.IsInRole(AppRoles.Reader) || isStaff;
 }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" data-bs-theme="dark">
@@ -69,11 +72,20 @@
                         <li class="nav-item">
                             <a class="nav-link site-nav-link" asp-controller="Home" asp-action="Index">نوشته‌ها</a>
                         </li>
-                        @if (User.Identity?.IsAuthenticated == true)
+                        @if (isReader)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link site-nav-link" asp-controller="Bookmarks" asp-action="Index">نشان‌ها</a>
+                            </li>
+                        }
+                        @if (isStaff)
                         {
                             <li class="nav-item">
                                 <a class="nav-link site-nav-link" asp-controller="Admin" asp-action="Index">پنل مدیریت</a>
                             </li>
+                        }
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
                             <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                     @Html.AntiForgeryToken()
@@ -83,6 +95,9 @@
                         }
                         else
                         {
+                            <li class="nav-item">
+                                <a class="btn btn-ghost btn-sm" asp-controller="Account" asp-action="Register">ثبت‌نام</a>
+                            </li>
                             <li class="nav-item">
                                 <a class="btn btn-ghost btn-sm ms-md-2" asp-controller="Account" asp-action="Login">ورود</a>
                             </li>

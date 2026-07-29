@@ -98,6 +98,10 @@ public partial class PostsController : Controller
             : _markdown.EstimateReadingTimeMinutes(post.ContentMarkdown);
         ViewBag.CanEdit = AuthorAccess.OwnsPost(User, post);
 
+        var uid = AuthorAccess.UserId(User);
+        ViewBag.IsBookmarked = uid != null
+            && await _db.PostBookmarks.AnyAsync(b => b.UserId == uid && b.PostId == post.Id);
+
         await LoadTaxonomyContextAsync(post);
 
         return View(post);
@@ -235,7 +239,6 @@ public partial class PostsController : Controller
             return RedirectToAction(nameof(Details), new { slug = badSlug });
         }
 
-        // Strip control chars; Razor encodes output — still keep body plain text only.
         authorName = new string(authorName.Where(c => !char.IsControl(c)).ToArray());
         body = new string(body.Where(c => c is '\n' or '\r' or '\t' || !char.IsControl(c)).ToArray());
 
