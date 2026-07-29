@@ -112,16 +112,18 @@ public class AdminAnalyticsController : Controller
             .Select(p => new ValueTuple<int, string>(p.Id, p.Title))
             .ToListAsync();
 
-        var hmId = heatmapPostId ?? heatmapOptions.FirstOrDefault().Item1;
+        // Map to named tuple list for the view (Id, Title)
+        var heatmapNamed = heatmapOptions.Select(t => (Id: t.Item1, Title: t.Item2)).ToList();
+
+        var hmId = heatmapPostId ?? heatmapNamed.FirstOrDefault().Id;
         List<HeatmapPoint> heatmap = new();
         string? hmTitle = null;
         if (hmId > 0)
         {
-            hmTitle = heatmapOptions.FirstOrDefault(o => o.Item1 == hmId).Item2;
+            hmTitle = heatmapNamed.FirstOrDefault(o => o.Id == hmId).Title;
             var clicks = await _db.HeatmapClicks.AsNoTracking()
                 .Where(h => h.PostId == hmId && h.ClickedAtUtc >= rangeStart)
                 .ToListAsync();
-            // Bucket 50×50 grid (0–1000 → 0–20)
             heatmap = clicks
                 .GroupBy(c => (c.X / 50) * 50 + "," + (c.Y / 50) * 50)
                 .Select(g =>
@@ -157,7 +159,7 @@ public class AdminAnalyticsController : Controller
             Heatmap = heatmap,
             HeatmapPostId = hmId > 0 ? hmId : null,
             HeatmapPostTitle = hmTitle,
-            HeatmapPostOptions = heatmapOptions
+            HeatmapPostOptions = heatmapNamed
         });
     }
 }

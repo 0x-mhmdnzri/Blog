@@ -24,9 +24,30 @@
         <label class="form-label small mb-1">نقش</label>
         <select class="form-select form-select-sm" name="role" style="min-width:120px;">
             <option value="">همه</option>
-            <option value="@AppRoles.Reader" selected="@(role == AppRoles.Reader)">Reader</option>
-            <option value="@AppRoles.Author" selected="@(role == AppRoles.Author)">Author</option>
-            <option value="@AppRoles.SuperAdmin" selected="@(role == AppRoles.SuperAdmin)">SuperAdmin</option>
+            @if (role == AppRoles.Reader)
+            {
+                <option value="@AppRoles.Reader" selected>Reader</option>
+            }
+            else
+            {
+                <option value="@AppRoles.Reader">Reader</option>
+            }
+            @if (role == AppRoles.Author)
+            {
+                <option value="@AppRoles.Author" selected>Author</option>
+            }
+            else
+            {
+                <option value="@AppRoles.Author">Author</option>
+            }
+            @if (role == AppRoles.SuperAdmin)
+            {
+                <option value="@AppRoles.SuperAdmin" selected>SuperAdmin</option>
+            }
+            else
+            {
+                <option value="@AppRoles.SuperAdmin">SuperAdmin</option>
+            }
         </select>
     </div>
     <button type="submit" class="btn btn-ghost btn-sm">فیلتر</button>

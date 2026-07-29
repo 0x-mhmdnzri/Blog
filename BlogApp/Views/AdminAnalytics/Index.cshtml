@@ -126,7 +126,14 @@
             <select name="heatmapPostId" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width:240px;">
                 @foreach (var o in Model.HeatmapPostOptions)
                 {
-                    <option value="@o.Item1" selected="@(Model.HeatmapPostId == o.Item1)">@o.Item2</option>
+                    if (Model.HeatmapPostId == o.Id)
+                    {
+                        <option value="@o.Id" selected>@o.Title</option>
+                    }
+                    else
+                    {
+                        <option value="@o.Id">@o.Title</option>
+                    }
                 }
             </select>
         </form>
@@ -171,7 +178,7 @@
             labels: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Label), json)),
             datasets: [{ data: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Value), json)), borderColor: accent, fill: true, tension: 0.3, backgroundColor: 'rgba(227,179,65,.12)' }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
     });
 
     doughnut('sourceChart',
