@@ -56,14 +56,21 @@ public class AccountController : Controller
 
         if (user is not null)
         {
-            // lockoutOnFailure: true — Identity increments AccessFailedCount
             var result = await _signInManager.PasswordSignInAsync(
                 user, password, isPersistent: true, lockoutOnFailure: true);
 
             if (result.Succeeded)
             {
                 _logger.LogInformation("Login succeeded UserId={UserId} UserName={UserName}", user.Id, user.UserName);
-                return Redirect(returnUrl ?? Url.Action("Index", "Admin")!);
+                if (!string.IsNullOrEmpty(returnUrl))
+                    return Redirect(returnUrl);
+
+                // Staff → admin; pure readers → bookmarks list
+                if (await _userManager.IsInRoleAsync(user, AppRoles.Author)
+                    || await _userManager.IsInRoleAsync(user, AppRoles.SuperAdmin))
+                    return RedirectToAction("Index", "Admin");
+
+                return RedirectToAction("Index", "Bookmarks");
             }
 
             if (result.IsLockedOut)
@@ -79,13 +86,52 @@ public class AccountController : Controller
         else
         {
             _logger.LogWarning("Login failed unknown user UserName={UserName}", username);
-            // Constant-time-ish delay to reduce user enumeration timing
             await Task.Delay(Random.Shared.Next(80, 180));
         }
 
         ModelState.AddModelError(string.Empty, "نام کاربری یا رمز عبور نادرست است.");
         ViewBag.ReturnUrl = returnUrl;
         return View();
+    }
+
+    [HttpGet]
+    [IgnoreAntiforgeryToken]
+    public IActionResult Register(string? returnUrl = null)
+    {
+        return View(new RegisterReaderViewModel { ReturnUrl = SanitizeReturnUrl(returnUrl) });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [EnableRateLimiting("login")]
+    public async Task<IActionResult> Register(RegisterReaderViewModel vm)
+    {
+        vm.ReturnUrl = SanitizeReturnUrl(vm.ReturnUrl);
+        if (!ModelState.IsValid) return View(vm);
+
+        var user = new ApplicationUser
+        {
+            UserName = vm.UserName.Trim(),
+            Email = vm.Email.Trim(),
+            EmailConfirmed = true,
+            DisplayName = vm.DisplayName.Trim()
+        };
+
+        var result = await _userManager.CreateAsync(user, vm.Password);
+        if (!result.Succeeded)
+        {
+            foreach (var err in result.Errors)
+                ModelState.AddModelError(string.Empty, err.Description);
+            return View(vm);
+        }
+
+        await _userManager.AddToRoleAsync(user, AppRoles.Reader);
+        await _signInManager.SignInAsync(user, isPersistent: true);
+        _logger.LogInformation("Reader registered UserId={UserId} UserName={UserName}", user.Id, user.UserName);
+
+        if (!string.IsNullOrEmpty(vm.ReturnUrl))
+            return Redirect(vm.ReturnUrl);
+
+        return RedirectToAction("Index", "Bookmarks");
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -162,7 +208,7 @@ public class AccountController : Controller
         return File(user.ProfileImage, ct);
     }
 
-    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
+    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin + "," + AppRoles.Reader)]
     [HttpGet]
     public async Task<IActionResult> Profile()
     {
@@ -179,7 +225,7 @@ public class AccountController : Controller
         return View(vm);
     }
 
-    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
+    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin + "," + AppRoles.Reader)]
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Profile(ProfileEditViewModel vm)
     {
@@ -236,13 +282,10 @@ public class AccountController : Controller
             foreach (var err in result.Errors)
                 ModelState.AddModelError(string.Empty, err.Description);
             vm.HasProfileImage = user.ProfileImage is { Length: > 0 };
-            _logger.LogWarning("Profile update failed UserId={UserId}", user.Id);
             return View(vm);
         }
 
         await _signInManager.RefreshSignInAsync(user);
-        _logger.LogInformation("Profile updated UserId={UserId}", user.Id);
-
         TempData["ProfileSaved"] = "پروفایل با موفقیت ذخیره شد.";
         return RedirectToAction(nameof(Profile));
     }
@@ -271,11 +314,11 @@ public class AccountController : Controller
         {
             foreach (var err in result.Errors)
                 ModelState.AddModelError(string.Empty, err.Description);
-            _logger.LogWarning("CreateAuthor failed UserName={UserName}", vm.UserName);
             return View(vm);
         }
 
         await _userManager.AddToRoleAsync(user, AppRoles.Author);
+        await _userManager.AddToRoleAsync(user, AppRoles.Reader);
         _logger.LogInformation("Author created UserId={UserId} UserName={UserName}", user.Id, user.UserName);
 
         TempData["AuthorCreated"] = $"نویسنده «{user.DisplayName}» ایجاد شد.";
@@ -306,7 +349,6 @@ public class AccountController : Controller
         return View(items);
     }
 
-    /// <summary>Only same-origin relative paths — blocks open redirects.</summary>
     private string? SanitizeReturnUrl(string? returnUrl)
     {
         if (string.IsNullOrWhiteSpace(returnUrl)) return null;

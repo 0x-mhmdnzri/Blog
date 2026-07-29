@@ -3,8 +3,12 @@
     ViewData["Title"] = Model.Title;
     var readingMinutes = ViewBag.ReadingTimeMinutes as int? ?? Math.Max(1, Model.ReadingTimeMinutes);
     var canEdit = ViewBag.CanEdit as bool? ?? false;
+    var isBookmarked = ViewBag.IsBookmarked as bool? ?? false;
     var published = Model.PublishedAtUtc ?? Model.CreatedAtUtc;
     var titleDir = MarkdownService.DetectDir(Model.Title);
+    var postUrl = Url.Action("Details", "Posts", new { slug = Model.Slug })!;
+    var canBookmark = User.Identity?.IsAuthenticated == true
+        && (User.IsInRole(AppRoles.Reader) || User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
 }
 
 @section Head {
@@ -13,6 +17,11 @@
 }
 
 <article class="container py-5 post-article" style="max-width:780px;">
+    @if (TempData["BookmarkMsg"] != null)
+    {
+        <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["BookmarkMsg"]</div>
+    }
+
     @if (canEdit)
     {
         <div class="d-flex gap-2 mb-4 flex-wrap">
@@ -39,7 +48,33 @@
         <span class="badge-category mb-3 d-inline-block" dir="@MarkdownService.DetectDir(Model.Category.Name)">@Model.Category.Name</span>
     }
 
-    <h1 class="post-title mb-3" dir="@titleDir">@Model.Title</h1>
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-3 flex-wrap">
+        <h1 class="post-title mb-0" dir="@titleDir">@Model.Title</h1>
+
+        @* Bookmark: guest → login with returnUrl; signed-in → toggle *@
+        @if (canBookmark)
+        {
+            <form asp-controller="Bookmarks" asp-action="Toggle" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="postId" value="@Model.Id" />
+                <input type="hidden" name="returnUrl" value="@postUrl" />
+                <button type="submit" class="btn btn-ghost btn-sm bookmark-btn @(isBookmarked ? "bookmarked" : "")"
+                        title="@(isBookmarked ? "برداشتن نشان" : "نشان‌گذاری")"
+                        aria-label="@(isBookmarked ? "برداشتن نشان" : "نشان‌گذاری")">
+                    @(isBookmarked ? "★ نشان‌شده" : "☆ نشان")
+                </button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-ghost btn-sm bookmark-btn"
+               asp-controller="Account" asp-action="Login"
+               asp-route-returnUrl="@postUrl"
+               title="برای نشان‌گذاری وارد شوید">
+                ☆ نشان
+            </a>
+        }
+    </div>
 
     <div class="post-meta-line mb-4 d-flex flex-wrap gap-2 align-items-center">
         @if (Model.Author != null)
@@ -60,7 +95,6 @@
         <span><span class="ltr-field">@Model.ViewCount</span> بازدید</span>
     </div>
 
-    @* Isolated content island: chrome stays RTL; body follows each block's dir *@
     <div class="readme-content post-body-island">
         @Html.Raw(ViewBag.RenderedHtml)
     </div>
