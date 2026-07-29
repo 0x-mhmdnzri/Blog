@@ -37,6 +37,13 @@ public class MarkdownService
     private static readonly Regex ImgHtmlRegex =
         new(@"<img\s+([^>]*?)\s*/?>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
+    // Non-verbatim patterns so \u and " work correctly
+    private static readonly Regex VideoEmbedDirRegex =
+        new("<p dir=\"(?:ltr|rtl|auto)\" class=\"md-p\">\\[\\[VIDEO_EMBED_(\\d+)\\]\\]</p>", RegexOptions.Compiled);
+
+    private static readonly Regex VideoEmbedPlainRegex =
+        new("<p>\\[\\[VIDEO_EMBED_(\\d+)\\]\\]</p>", RegexOptions.Compiled);
+
     private readonly MarkdownPipeline _pipeline;
 
     public MarkdownService()
@@ -95,22 +102,17 @@ public class MarkdownService
             var attrs = m.Groups[1].Value;
             if (attrs.Contains("media-blur", StringComparison.OrdinalIgnoreCase))
                 return m.Value;
-            attrs = Regex.Replace(attrs, @"\s*loading\s*=\s*[""'][^""']*[""']", "", RegexOptions.IgnoreCase);
-            attrs = Regex.Replace(attrs, @"\s*decoding\s*=\s*[""'][^""']*[""']", "", RegexOptions.IgnoreCase);
-            attrs = Regex.Replace(attrs, @"\s*class\s*=\s*[""']([^""']*)[""']", " class=\"$1 media-blur\"", RegexOptions.IgnoreCase);
-            if (!attrs.Contains("class=", StringComparison.OrdinalIgnoreCase))
+            attrs = Regex.Replace(attrs, "\\s*loading\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
+            attrs = Regex.Replace(attrs, "\\s*decoding\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
+            if (Regex.IsMatch(attrs, "\\bclass\\s*=", RegexOptions.IgnoreCase))
+                attrs = Regex.Replace(attrs, "class\\s*=\\s*[\"']([^\"']*)[\"']", "class=\"$1 media-blur\"", RegexOptions.IgnoreCase);
+            else
                 attrs += " class=\"media-blur\"";
             return $"<span class=\"media-blur-wrap\"><img {attrs} loading=\"lazy\" decoding=\"async\" /></span>";
         });
 
-        html = Regex.Replace(
-            html,
-            @"<p dir=\"(?:ltr|rtl|auto)\" class=\"md-p\">\[\[VIDEO_EMBED_(\d+)\]\]</p>",
-            m => VideoEmbedHtml(m.Groups[1].Value));
-        html = Regex.Replace(
-            html,
-            @"<p>\[\[VIDEO_EMBED_(\d+)\]\]</p>",
-            m => VideoEmbedHtml(m.Groups[1].Value));
+        html = VideoEmbedDirRegex.Replace(html, m => VideoEmbedHtml(m.Groups[1].Value));
+        html = VideoEmbedPlainRegex.Replace(html, m => VideoEmbedHtml(m.Groups[1].Value));
 
         return html;
     }
@@ -149,7 +151,7 @@ public class MarkdownService
             var level = m.Groups[1].Value.Length;
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text)) continue;
-            var slug = SlugifyHeading(text);
+            var slug =SlugifyHeading(text);
             var dir = DetectDir(text);
             while (prevLevel > level) { sb.Append("</ul></li>"); prevLevel--; }
             if (prevLevel == level)
@@ -182,9 +184,9 @@ public class MarkdownService
             var inner = m.Groups[3].Value;
             var plain = StripTags(inner).Trim();
             var dir = DetectDir(plain);
-            var id = SlugifyHeading(plain);
-            attrs = Regex.Replace(attrs, @"\s*id\s*=\s*[""'][^""']*[""']", "", RegexOptions.IgnoreCase);
-            attrs = Regex.Replace(attrs, @"\s*dir\s*=\s*[""'][^""']*[""']", "", RegexOptions.IgnoreCase);
+            var id =SlugifyHeading(plain);
+            attrs = Regex.Replace(attrs, "\\s*id\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
+            attrs = Regex.Replace(attrs, "\\s*dir\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
             return $"<h{level} id=\"{id}\" dir=\"{dir}\" class=\"md-heading\"{attrs}>{inner}</h{level}>";
         });
 
