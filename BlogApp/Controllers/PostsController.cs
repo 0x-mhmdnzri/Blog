@@ -2,6 +2,7 @@ using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
+using BlogApp.Services.Analytics;
 using BlogApp.Services.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ public partial class PostsController : Controller
     private readonly AnalyticsBroadcaster _broadcaster;
     private readonly AiContentService _ai;
     private readonly INotificationService _notify;
+    private readonly IAnalyticsTracker _analytics;
     private readonly ILogger<PostsController> _logger;
 
     public PostsController(
@@ -27,6 +29,7 @@ public partial class PostsController : Controller
         AnalyticsBroadcaster broadcaster,
         AiContentService ai,
         INotificationService notify,
+        IAnalyticsTracker analytics,
         ILogger<PostsController> logger)
     {
         _db = db;
@@ -35,6 +38,7 @@ public partial class PostsController : Controller
         _broadcaster = broadcaster;
         _ai = ai;
         _notify = notify;
+        _analytics = analytics;
         _logger = logger;
     }
 
@@ -64,16 +68,10 @@ public partial class PostsController : Controller
 
         if (!isStaffPreview)
         {
-            var visitorHash = VisitorIdentity.ComputeHash(HttpContext);
-            var windowStart = DateTime.UtcNow - VisitorIdentity.DedupeWindow;
-            var alreadyCounted = await _db.PostViews.AnyAsync(v =>
-                v.PostId == post.Id && v.VisitorHash == visitorHash && v.ViewedAtUtc >= windowStart);
-            if (!alreadyCounted)
+            var before = post.ViewCount;
+            await _analytics.TrackPostViewAsync(HttpContext, post);
+            if (post.ViewCount > before)
             {
-                post.ViewCount++;
-                var pv = new PostView { PostId = post.Id, ViewedAtUtc = DateTime.UtcNow, VisitorHash = visitorHash };
-                _db.PostViews.Add(pv);
-                await _db.SaveChangesAsync();
                 _broadcaster.Publish(new
                 {
                     type = "view",
@@ -81,7 +79,7 @@ public partial class PostsController : Controller
                     postSlug = post.Slug,
                     postTitle = post.Title,
                     authorId = post.AuthorId,
-                    viewedAtUtc = pv.ViewedAtUtc,
+                    viewedAtUtc = DateTime.UtcNow,
                     totalViews = post.ViewCount
                 });
             }
