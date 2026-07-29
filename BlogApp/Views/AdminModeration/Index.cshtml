@@ -1,0 +1,78 @@
+@model ModerationQueueViewModel
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "صف بررسی";
+}
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <h2 class="h6 text-muted-dark mb-3">دیدگاه‌های در انتظار (@Model.PendingComments.Count)</h2>
+        @if (Model.PendingComments.Count == 0)
+        {
+            <div class="admin-empty"><p>دیدگاه معلقی نیست.</p></div>
+        }
+        else
+        {
+            @foreach (var c in Model.PendingComments)
+            {
+                <div class="card-surface p-3 mb-2">
+                    <div class="d-flex justify-content-between gap-2">
+                        <strong dir="auto">@c.AuthorName</strong>
+                        <span class="ltr-field small text-muted-dark">@PersianDate.DateTime(c.CreatedAtUtc)</span>
+                    </div>
+                    <p class="mb-2 mt-1 text-muted-dark" dir="auto">@c.Body</p>
+                    <div class="small mb-2">
+                        <a asp-controller="Posts" asp-action="Details" asp-route-slug="@c.PostSlug" dir="auto">@c.PostTitle</a>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <form asp-controller="Admin" asp-action="ApproveComment" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@c.Id" />
+                            <button type="submit" class="icon-btn approve">تأیید</button>
+                        </form>
+                        <form asp-controller="Admin" asp-action="RejectComment" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@c.Id" />
+                            <button type="submit" class="icon-btn reject">رد</button>
+                        </form>
+                    </div>
+                </div>
+            }
+            <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="Comments">همه دیدگاه‌ها →</a>
+        }
+    </div>
+    <div class="col-lg-6">
+        <h2 class="h6 text-muted-dark mb-3">گزارش‌های باز (@Model.OpenReports.Count)</h2>
+        @if (Model.OpenReports.Count == 0)
+        {
+            <div class="admin-empty"><p>گزارش بازی نیست.</p></div>
+        }
+        else
+        {
+            @foreach (var r in Model.OpenReports)
+            {
+                <div class="card-surface p-3 mb-2">
+                    <div class="small text-muted-dark">@(r.TargetType == ContentReportTarget.Post ? "نوشته" : "دیدگاه") · @r.Reason</div>
+                    <div dir="auto" class="mb-1">@(r.TargetTitle ?? "#" + r.TargetId)</div>
+                    @if (!string.IsNullOrEmpty(r.Details))
+                    {
+                        <p class="small text-muted-dark mb-2" dir="auto">@r.Details</p>
+                    }
+                    <div class="d-flex gap-1">
+                        <form asp-controller="AdminReports" asp-action="Resolve" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <button type="submit" class="icon-btn approve">حل</button>
+                        </form>
+                        <form asp-controller="AdminReports" asp-action="Dismiss" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <button type="submit" class="icon-btn reject">رد</button>
+                        </form>
+                    </div>
+                </div>
+            }
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminReports" asp-action="Index">همه گزارش‌ها →</a>
+        }
+    </div>
+</div>

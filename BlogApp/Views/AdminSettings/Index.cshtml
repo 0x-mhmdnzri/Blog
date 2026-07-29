@@ -1,0 +1,69 @@
+@model SiteSettingsViewModel
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "تنظیمات سایت";
+}
+
+@if (TempData["Saved"] != null)
+{
+    <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
+}
+
+<form method="post" class="card-surface p-4" style="max-width:720px;">
+    @Html.AntiForgeryToken()
+
+    <h2 class="h6 text-muted-dark mb-3">عمومی و سئو</h2>
+    <div class="mb-3">
+        <label class="form-label" asp-for="SiteName">نام سایت</label>
+        <input class="form-control" asp-for="SiteName" dir="auto" />
+        <span asp-validation-for="SiteName" class="text-danger small"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" asp-for="SiteDescription">توضیح سایت</label>
+        <textarea class="form-control" asp-for="SiteDescription" rows="3" dir="auto"></textarea>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label class="form-label" asp-for="AuthorName">نام نویسنده پیش‌فرض</label>
+            <input class="form-control" asp-for="AuthorName" dir="auto" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" asp-for="TwitterHandle">توییتر</label>
+            <input class="form-control ltr-field" asp-for="TwitterHandle" placeholder="@handle" />
+        </div>
+    </div>
+    <div class="mb-4">
+        <label class="form-label" asp-for="BaseUrl">آدرس پایه</label>
+        <input class="form-control ltr-field" asp-for="BaseUrl" placeholder="https://example.com" />
+    </div>
+
+    <h2 class="h6 text-muted-dark mb-3">حالت نگهداری</h2>
+    <div class="form-check mb-2">
+        <input class="form-check-input" asp-for="MaintenanceMode" />
+        <label class="form-check-label" asp-for="MaintenanceMode">فعال‌سازی حالت نگهداری (فقط SuperAdmin عبور می‌کند)</label>
+    </div>
+    <div class="mb-4">
+        <label class="form-label" asp-for="MaintenanceMessage">پیام نگهداری</label>
+        <textarea class="form-control" asp-for="MaintenanceMessage" rows="2" dir="auto"></textarea>
+    </div>
+
+    <h2 class="h6 text-muted-dark mb-3">بنر اعلان سراسری</h2>
+    <div class="form-check mb-2">
+        <input class="form-check-input" asp-for="AnnouncementEnabled" />
+        <label class="form-check-label" asp-for="AnnouncementEnabled">نمایش بنر در بالای سایت</label>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" asp-for="AnnouncementText">متن بنر</label>
+        <input class="form-control" asp-for="AnnouncementText" dir="auto" />
+    </div>
+    <div class="mb-4">
+        <label class="form-label" asp-for="AnnouncementStyle">سبک</label>
+        <select class="form-select" asp-for="AnnouncementStyle" style="max-width:200px;">
+            <option value="info">اطلاع</option>
+            <option value="warn">هشدار</option>
+            <option value="success">موفقیت</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-accent">ذخیره تنظیمات</button>
+</form>

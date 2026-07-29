@@ -1,0 +1,57 @@
+@model List<FeatureFlag>
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "پرچم‌های ویژگی";
+}
+
+@if (TempData["Saved"] != null)
+{
+    <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
+}
+
+<p class="text-muted-dark mb-3">بدون redeploy ویژگی‌ها را روشن/خاموش کنید.</p>
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>ویژگی</th>
+            <th>کلید</th>
+            <th>وضعیت</th>
+            <th>آخرین تغییر</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var f in Model)
+    {
+        <tr>
+            <td>
+                <div dir="auto">@f.Name</div>
+                @if (!string.IsNullOrEmpty(f.Description))
+                {
+                    <div class="small text-muted-dark" dir="auto">@f.Description</div>
+                }
+            </td>
+            <td class="ltr-field small">@f.Key</td>
+            <td>
+                @if (f.IsEnabled)
+                {
+                    <span class="status-pill approved">فعال</span>
+                }
+                else
+                {
+                    <span class="status-pill rejected">غیرفعال</span>
+                }
+            </td>
+            <td class="ltr-field">@PersianDate.DateTime(f.UpdatedAtUtc)</td>
+            <td>
+                <form asp-action="ToggleFlag" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="key" value="@f.Key" />
+                    <button type="submit" class="icon-btn">@(f.IsEnabled ? "خاموش" : "روشن")</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

@@ -5,6 +5,7 @@
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     bool IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+    bool IsCtrl(string c) => string.Equals(currentController, c, StringComparison.OrdinalIgnoreCase);
     var isPostsSection = (currentController == "Admin" && currentAction == "Posts")
         || (currentController == "Posts" && (currentAction == "Create" || currentAction == "Edit"));
     var isDashboard = currentController == "Admin" && currentAction == "Index";
@@ -12,6 +13,11 @@
     var isAuthors = currentController == "Account" && (currentAction == "Authors" || currentAction == "CreateAuthor");
     var isTaxonomy = currentController == "Taxonomy";
     var isAnalytics = currentController == "AdminAnalytics";
+    var isSettings = currentController == "AdminSettings";
+    var isUsers = currentController == "AdminUsers";
+    var isAudit = currentController == "AdminAudit";
+    var isReports = currentController == "AdminReports";
+    var isModeration = currentController == "AdminModeration";
     var isSuperAdmin = AuthorAccess.IsSuperAdmin(User);
 
     var userId = AuthorAccess.UserId(User);
@@ -50,12 +56,18 @@
                 <a class="admin-nav-link @(isDashboard ? "active" : "")" asp-controller="Admin" asp-action="Index">
                     <span>داشبورد</span>
                 </a>
+                <a class="admin-nav-link @(isModeration ? "active" : "")" asp-controller="AdminModeration" asp-action="Index">
+                    <span>صف بررسی</span>
+                </a>
                 <a class="admin-nav-link @(isPostsSection ? "active" : "")" asp-controller="Admin" asp-action="Posts">
                     <span>نوشته‌ها</span>
                 </a>
                 <a class="admin-nav-link @(IsActive("Comments") ? "active" : "")" asp-controller="Admin" asp-action="Comments">
                     <span>دیدگاه‌ها</span>
                     <span class="badge-count" id="pendingBadge" style="@(pendingCount > 0 ? "" : "display:none;")">@pendingCount</span>
+                </a>
+                <a class="admin-nav-link @(isReports ? "active" : "")" asp-controller="AdminReports" asp-action="Index">
+                    <span>گزارش‌ها</span>
                 </a>
 
                 <div class="admin-nav-group-label">محتوا</div>
@@ -86,16 +98,34 @@
                 </a>
                 @if (isSuperAdmin)
                 {
+                    <a class="admin-nav-link @(isUsers ? "active" : "")" asp-controller="AdminUsers" asp-action="Index">
+                        <span>مدیریت کاربران</span>
+                    </a>
                     <a class="admin-nav-link @(isAuthors ? "active" : "")" asp-controller="Account" asp-action="Authors">
                         <span>نویسندگان</span>
                     </a>
                 }
 
                 <div class="admin-nav-group-label">سیستم</div>
-                <a class="admin-nav-link @(IsActive("Settings") ? "active" : "")" asp-controller="Admin" asp-action="Settings">
-                    <span>تنظیمات</span>
-                    <span class="soon-tag">دمو</span>
-                </a>
+                @if (isSuperAdmin)
+                {
+                    <a class="admin-nav-link @(isSettings && IsActive("Index") ? "active" : "")" asp-controller="AdminSettings" asp-action="Index">
+                        <span>تنظیمات سایت</span>
+                    </a>
+                    <a class="admin-nav-link @(isSettings && IsActive("FeatureFlags") ? "active" : "")" asp-controller="AdminSettings" asp-action="FeatureFlags">
+                        <span>پرچم‌های ویژگی</span>
+                    </a>
+                    <a class="admin-nav-link @(isAudit ? "active" : "")" asp-controller="AdminAudit" asp-action="Index">
+                        <span>حسابرسی</span>
+                    </a>
+                }
+                else
+                {
+                    <a class="admin-nav-link" asp-controller="Admin" asp-action="Settings">
+                        <span>تنظیمات</span>
+                        <span class="soon-tag">فقط ادمین</span>
+                    </a>
+                }
             </nav>
 
             <div class="admin-sidebar-footer">

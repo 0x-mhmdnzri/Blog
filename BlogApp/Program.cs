@@ -33,6 +33,7 @@ try
 
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=blog.db";
     builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
+    builder.Services.AddMemoryCache();
 
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
@@ -163,6 +164,8 @@ try
     builder.Services.AddScoped<IAnalyticsTracker, AnalyticsTracker>();
     builder.Services.AddScoped<AiContentService>();
     builder.Services.AddScoped<BrokenLinkService>();
+    builder.Services.AddScoped<ISiteConfigService, SiteConfigService>();
+    builder.Services.AddScoped<IAuditService, AuditService>();
 
     builder.Services.AddControllersWithViews(options =>
     {
@@ -214,12 +217,14 @@ try
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var siteConfig = scope.ServiceProvider.GetRequiredService<ISiteConfigService>();
 
         try
         {
             db.Database.EnsureCreated();
             await SchemaBootstrap.EnsureAsync(db);
             await DbSeeder.SeedAsync(db, userManager, roleManager, config);
+            await siteConfig.EnsureDefaultsAsync();
             Log.Information("Database ready Path={DbPath}", connectionString);
         }
         catch (Exception ex)
@@ -287,6 +292,9 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+
+    // After auth so SuperAdmin can bypass maintenance
+    app.UseMiddleware<MaintenanceMiddleware>();
 
     app.MapControllerRoute(
             name: "post-details",
