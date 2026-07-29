@@ -7,11 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Database ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=blog.db";
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
 
-// --- ASP.NET Core Identity (RBAC with roles + claims) ---
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
         options.Password.RequireDigit = true;
@@ -32,10 +30,10 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
-// --- Services ---
 builder.Services.AddSingleton<MarkdownService>();
 builder.Services.AddSingleton<SeoService>();
 builder.Services.AddSingleton<AnalyticsBroadcaster>();
+builder.Services.AddScoped<AiContentService>();
 
 builder.Services.AddControllersWithViews();
 
@@ -69,7 +67,6 @@ using (var scope = app.Services.CreateScope())
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
-    // EnsureCreated is fine for first run; for production prefer Migrate().
     db.Database.EnsureCreated();
     await DbSeeder.SeedAsync(db, userManager, roleManager, config);
 }

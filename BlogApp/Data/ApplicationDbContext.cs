@@ -15,6 +15,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
     public DbSet<PostView> PostViews => Set<PostView>();
+    public DbSet<PostRevision> PostRevisions => Set<PostRevision>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany(u => u.Posts)
                 .HasForeignKey(p => p.AuthorId)
                 .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(p => p.IsDeleted);
+            e.HasIndex(p => p.IsPublished);
+            e.HasIndex(p => p.ScheduledPublishAtUtc);
+            e.HasIndex(p => p.IsFeatured);
+            e.HasIndex(p => p.IsSticky);
         });
 
         modelBuilder.Entity<Category>().HasIndex(c => c.Slug).IsUnique();
@@ -71,6 +77,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany(p => p.Views)
                 .HasForeignKey(v => v.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PostRevision>(e =>
+        {
+            e.Property(r => r.ContentMarkdown).HasColumnType("TEXT");
+            e.HasOne(r => r.Post)
+                .WithMany(p => p.Revisions)
+                .HasForeignKey(r => r.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => r.PostId);
+            e.HasIndex(r => r.CreatedAtUtc);
         });
 
         modelBuilder.Entity<ApplicationUser>(e =>
