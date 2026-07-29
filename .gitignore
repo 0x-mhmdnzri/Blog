@@ -3,12 +3,17 @@ bin/
 obj/
 *.user
 
+## Secrets
+.env
+.env.local
+.env.*.local
+
 ## SQLite DB (generated at runtime)
 *.db
 *.db-shm
 *.db-wal
 
-## Serilog rolling JSON (ELK ship target)
+## Serilog rolling JSON
 logs/
 
 ## IDE

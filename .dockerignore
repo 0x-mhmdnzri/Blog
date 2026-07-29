@@ -1,0 +1,31 @@
+# Git / IDE
+.git
+.github
+.idea
+.vs
+.vscode
+**/*.user
+**/*.suo
+
+# Build artifacts
+**/bin
+**/obj
+**/out
+**/publish
+
+# Local secrets & data
+.env
+.env.*
+!.env.example
+**/*.db
+**/*.db-shm
+**/*.db-wal
+logs/
+
+# Docs / misc not needed in image context
+**/*.md
+!README.md
+FEATURES.md
+.dockerignore
+docker-compose*.yml
+global.json
