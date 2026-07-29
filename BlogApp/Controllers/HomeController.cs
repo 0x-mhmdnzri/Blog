@@ -1,6 +1,7 @@
 using BlogApp.Data;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
+using BlogApp.Services.Analytics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,14 +11,16 @@ public class HomeController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly SeoService _seo;
+    private readonly IAnalyticsTracker _analytics;
 
-    public HomeController(ApplicationDbContext db, SeoService seo)
+    public HomeController(ApplicationDbContext db, SeoService seo, IAnalyticsTracker analytics)
     {
         _db = db;
         _seo = seo;
+        _analytics = analytics;
     }
 
-    public async Task<IActionResult> Index(string? category, string? tag, int page = 1)
+    public async Task<IActionResult> Index(string? category, string? tag, string? q, int page = 1)
     {
         const int pageSize = 8;
         var isAuthor = User.Identity?.IsAuthenticated == true;
@@ -42,7 +45,20 @@ public class HomeController : Controller
         if (!string.IsNullOrWhiteSpace(tag))
             query = query.Where(p => p.PostTags.Any(pt => pt.Tag.Slug == tag));
 
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            if (term.Length > 100) term = term[..100];
+            query = query.Where(p =>
+                p.Title.Contains(term) ||
+                (p.Summary != null && p.Summary.Contains(term)) ||
+                p.ContentMarkdown.Contains(term));
+        }
+
         var total = await query.CountAsync();
+
+        if (!string.IsNullOrWhiteSpace(q))
+            await _analytics.TrackSearchAsync(HttpContext, q.Trim(), total);
 
         var posts = await query
             .Skip((page - 1) * pageSize)
@@ -67,13 +83,14 @@ public class HomeController : Controller
         ViewBag.Categories = await _db.Categories.OrderBy(c => c.Name).ToListAsync();
         ViewBag.CurrentCategory = category;
         ViewBag.CurrentTag = tag;
+        ViewBag.SearchQuery = q;
         ViewBag.Page = page;
         ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
 
         ViewData["Description"] = _seo.SiteDescription;
         ViewData["OgType"] = "website";
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
-        ViewData["Canonical"] = string.IsNullOrEmpty(category) && string.IsNullOrEmpty(tag) && page == 1
+        ViewData["Canonical"] = string.IsNullOrEmpty(category) && string.IsNullOrEmpty(tag) && string.IsNullOrEmpty(q) && page == 1
             ? baseUrl + "/"
             : $"{baseUrl}{Request.Path}{Request.QueryString}";
         ViewBag.WebsiteJsonLd = _seo.BuildWebsiteJsonLd(baseUrl);
