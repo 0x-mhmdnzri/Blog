@@ -42,16 +42,10 @@ public partial class PostsController : Controller
             .Include(p => p.Comments.Where(c => c.Status == CommentStatus.Approved))
             .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted);
         if (post is null || (!post.IsPublished && !User.Identity!.IsAuthenticated))
-        {
-            _logger.LogDebug("Post not found or unpublished Slug={Slug}", slug);
             return NotFound();
-        }
         if (!post.IsPublished && !AuthorAccess.OwnsPost(User, post)) return NotFound();
         if (post.ExpiresAtUtc.HasValue && post.ExpiresAtUtc <= DateTime.UtcNow && !AuthorAccess.OwnsPost(User, post))
-        {
-            _logger.LogInformation("Expired post blocked Slug={Slug} PostId={PostId}", slug, post.Id);
             return NotFound();
-        }
 
         var isStaffPreview = User.Identity?.IsAuthenticated == true
             && (User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
@@ -60,28 +54,14 @@ public partial class PostsController : Controller
         {
             var visitorHash = VisitorIdentity.ComputeHash(HttpContext);
             var windowStart = DateTime.UtcNow - VisitorIdentity.DedupeWindow;
-
             var alreadyCounted = await _db.PostViews.AnyAsync(v =>
-                v.PostId == post.Id
-                && v.VisitorHash == visitorHash
-                && v.ViewedAtUtc >= windowStart);
-
+                v.PostId == post.Id && v.VisitorHash == visitorHash && v.ViewedAtUtc >= windowStart);
             if (!alreadyCounted)
             {
                 post.ViewCount++;
-                var pv = new PostView
-                {
-                    PostId = post.Id,
-                    ViewedAtUtc = DateTime.UtcNow,
-                    VisitorHash = visitorHash
-                };
+                var pv = new PostView { PostId = post.Id, ViewedAtUtc = DateTime.UtcNow, VisitorHash = visitorHash };
                 _db.PostViews.Add(pv);
                 await _db.SaveChangesAsync();
-
-                _logger.LogInformation(
-                    "Post view counted PostId={PostId} Slug={Slug} TotalViews={TotalViews} VisitorHash={VisitorHash}",
-                    post.Id, post.Slug, post.ViewCount, visitorHash);
-
                 _broadcaster.Publish(new
                 {
                     type = "view",
@@ -93,16 +73,6 @@ public partial class PostsController : Controller
                     totalViews = post.ViewCount
                 });
             }
-            else
-            {
-                _logger.LogDebug(
-                    "Duplicate view skipped PostId={PostId} VisitorHash={VisitorHash}",
-                    post.Id, visitorHash);
-            }
-        }
-        else
-        {
-            _logger.LogDebug("Staff preview — view not counted PostId={PostId}", post.Id);
         }
 
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -114,10 +84,18 @@ public partial class PostsController : Controller
         ViewData["Canonical"] = canonicalUrl;
         ViewData["OgImage"] = imageUrl;
         ViewBag.PostJsonLd = _seo.BuildPostJsonLd(post, canonicalUrl, imageUrl);
-        ViewBag.BreadcrumbJsonLd = _seo.BuildBreadcrumbJsonLd(("Home", baseUrl + "/"), post.Category != null ? (post.Category.Name, $"{baseUrl}/?category={post.Category.Slug}") : ("Posts", baseUrl + "/"), (post.Title, canonicalUrl));
+        ViewBag.BreadcrumbJsonLd = _seo.BuildBreadcrumbJsonLd(
+            ("Home", baseUrl + "/"),
+            post.Category != null ? (post.Category.Name, $"{baseUrl}/?category={post.Category.Slug}") : ("Posts", baseUrl + "/"),
+            (post.Title, canonicalUrl));
         ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(post.ContentMarkdown, true);
-        ViewBag.ReadingTimeMinutes = post.ReadingTimeMinutes > 0 ? post.ReadingTimeMinutes : _markdown.EstimateReadingTimeMinutes(post.ContentMarkdown);
+        ViewBag.ReadingTimeMinutes = post.ReadingTimeMinutes > 0
+            ? post.ReadingTimeMinutes
+            : _markdown.EstimateReadingTimeMinutes(post.ContentMarkdown);
         ViewBag.CanEdit = AuthorAccess.OwnsPost(User, post);
+
+        await LoadTaxonomyContextAsync(post);
+
         return View(post);
     }
 
@@ -131,20 +109,24 @@ public partial class PostsController : Controller
     {
         if (!ModelState.IsValid)
         {
-            _logger.LogWarning("Post create validation failed User={User}", User.Identity?.Name);
             vm.AvailableCategories = await GetCategoryOptionsAsync();
             return View(vm);
         }
         var authorId = AuthorAccess.UserId(User)!;
         var post = new Post
         {
-            Title = vm.Title, AuthorId = authorId,
+            Title = vm.Title,
+            AuthorId = authorId,
             Slug = await MakeUniqueSlugAsync(SlugHelper.Slugify(vm.Title)),
             Summary = string.IsNullOrWhiteSpace(vm.Summary) ? _ai.Summarize(vm.ContentMarkdown) : vm.Summary,
-            ContentMarkdown = vm.ContentMarkdown, CategoryId = vm.CategoryId, CoverMediaAssetId = vm.CoverMediaAssetId,
+            ContentMarkdown = vm.ContentMarkdown,
+            CategoryId = vm.CategoryId,
+            CoverMediaAssetId = vm.CoverMediaAssetId,
             IsPublished = vm.IsPublished && !vm.ScheduledPublishAtUtc.HasValue,
-            ScheduledPublishAtUtc = vm.ScheduledPublishAtUtc, ExpiresAtUtc = vm.ExpiresAtUtc,
-            IsFeatured = vm.IsFeatured, IsSticky = vm.IsSticky,
+            ScheduledPublishAtUtc = vm.ScheduledPublishAtUtc,
+            ExpiresAtUtc = vm.ExpiresAtUtc,
+            IsFeatured = vm.IsFeatured,
+            IsSticky = vm.IsSticky,
             ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown),
             PublishedAtUtc = (vm.IsPublished && !vm.ScheduledPublishAtUtc.HasValue) ? DateTime.UtcNow : null
         };
@@ -152,9 +134,6 @@ public partial class PostsController : Controller
         _db.Posts.Add(post);
         await _db.SaveChangesAsync();
         await SaveRevisionAsync(post, authorId, "initial");
-        _logger.LogInformation(
-            "Post created PostId={PostId} Slug={Slug} Published={Published} AuthorId={AuthorId}",
-            post.Id, post.Slug, post.IsPublished, authorId);
         return RedirectToAction(nameof(Details), new { slug = post.Slug });
     }
 
@@ -165,19 +144,27 @@ public partial class PostsController : Controller
             .Include(p => p.Revisions.OrderByDescending(r => r.CreatedAtUtc).Take(20))
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
         if (post is null) return NotFound();
-        if (!AuthorAccess.OwnsPost(User, post))
-        {
-            _logger.LogWarning("Edit forbidden PostId={PostId} User={User}", id, User.Identity?.Name);
-            return Forbid();
-        }
+        if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
         return View(new PostEditViewModel
         {
-            Id = post.Id, Title = post.Title, Summary = post.Summary, ContentMarkdown = post.ContentMarkdown,
-            CategoryId = post.CategoryId, TagsCsv = string.Join(", ", post.PostTags.Select(pt => pt.Tag.Name)),
-            IsPublished = post.IsPublished, ScheduledPublishAtUtc = post.ScheduledPublishAtUtc, ExpiresAtUtc = post.ExpiresAtUtc,
-            IsFeatured = post.IsFeatured, IsSticky = post.IsSticky, CoverMediaAssetId = post.CoverMediaAssetId,
-            ReadingTimeMinutes = post.ReadingTimeMinutes, AvailableCategories = await GetCategoryOptionsAsync(),
-            Revisions = post.Revisions.Select(r => new PostRevisionItem { Id = r.Id, Title = r.Title, CreatedAtUtc = r.CreatedAtUtc, Note = r.Note }).ToList()
+            Id = post.Id,
+            Title = post.Title,
+            Summary = post.Summary,
+            ContentMarkdown = post.ContentMarkdown,
+            CategoryId = post.CategoryId,
+            TagsCsv = string.Join(", ", post.PostTags.Select(pt => pt.Tag.Name)),
+            IsPublished = post.IsPublished,
+            ScheduledPublishAtUtc = post.ScheduledPublishAtUtc,
+            ExpiresAtUtc = post.ExpiresAtUtc,
+            IsFeatured = post.IsFeatured,
+            IsSticky = post.IsSticky,
+            CoverMediaAssetId = post.CoverMediaAssetId,
+            ReadingTimeMinutes = post.ReadingTimeMinutes,
+            AvailableCategories = await GetCategoryOptionsAsync(),
+            Revisions = post.Revisions.Select(r => new PostRevisionItem
+            {
+                Id = r.Id, Title = r.Title, CreatedAtUtc = r.CreatedAtUtc, Note = r.Note
+            }).ToList()
         });
     }
 
@@ -187,14 +174,9 @@ public partial class PostsController : Controller
     {
         var post = await _db.Posts.Include(p => p.PostTags).FirstOrDefaultAsync(p => p.Id == vm.Id && !p.IsDeleted);
         if (post is null) return NotFound();
-        if (!AuthorAccess.OwnsPost(User, post))
-        {
-            _logger.LogWarning("Edit save forbidden PostId={PostId} User={User}", vm.Id, User.Identity?.Name);
-            return Forbid();
-        }
+        if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
         if (!ModelState.IsValid)
         {
-            _logger.LogWarning("Post edit validation failed PostId={PostId}", vm.Id);
             vm.AvailableCategories = await GetCategoryOptionsAsync();
             return View(vm);
         }
@@ -205,25 +187,28 @@ public partial class PostsController : Controller
         post.Title = vm.Title;
         post.Summary = string.IsNullOrWhiteSpace(vm.Summary) ? _ai.Summarize(vm.ContentMarkdown) : vm.Summary;
         post.ContentMarkdown = vm.ContentMarkdown;
-        post.CategoryId = vm.CategoryId; post.CoverMediaAssetId = vm.CoverMediaAssetId;
-        post.IsFeatured = vm.IsFeatured; post.IsSticky = vm.IsSticky;
+        post.CategoryId = vm.CategoryId;
+        post.CoverMediaAssetId = vm.CoverMediaAssetId;
+        post.IsFeatured = vm.IsFeatured;
+        post.IsSticky = vm.IsSticky;
         post.ExpiresAtUtc = vm.ExpiresAtUtc;
         post.ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown);
         post.UpdatedAtUtc = DateTime.UtcNow;
         if (vm.ScheduledPublishAtUtc.HasValue && vm.ScheduledPublishAtUtc > DateTime.UtcNow)
-        { post.IsPublished = false; post.ScheduledPublishAtUtc = vm.ScheduledPublishAtUtc; }
+        {
+            post.IsPublished = false;
+            post.ScheduledPublishAtUtc = vm.ScheduledPublishAtUtc;
+        }
         else
         {
-            post.IsPublished = vm.IsPublished; post.ScheduledPublishAtUtc = null;
+            post.IsPublished = vm.IsPublished;
+            post.ScheduledPublishAtUtc = null;
             if (!wasPublished && vm.IsPublished) post.PublishedAtUtc = DateTime.UtcNow;
         }
         _db.PostTags.RemoveRange(post.PostTags);
         await ApplyTagsAsync(post, vm.TagsCsv);
         await _db.SaveChangesAsync();
         if (changed) await SaveRevisionAsync(post, authorId, "after-edit");
-        _logger.LogInformation(
-            "Post updated PostId={PostId} Slug={Slug} Published={Published} ContentChanged={Changed}",
-            post.Id, post.Slug, post.IsPublished, changed);
         return RedirectToAction(nameof(Details), new { slug = post.Slug });
     }
 
@@ -237,19 +222,26 @@ public partial class PostsController : Controller
     {
         if (!string.IsNullOrWhiteSpace(authorName) && !string.IsNullOrWhiteSpace(body))
         {
-            var comment = new Comment { PostId = postId, AuthorName = authorName.Trim(), Body = body.Trim(), Status = CommentStatus.Pending };
+            var comment = new Comment
+            {
+                PostId = postId,
+                AuthorName = authorName.Trim(),
+                Body = body.Trim(),
+                Status = CommentStatus.Pending
+            };
             _db.Comments.Add(comment);
             await _db.SaveChangesAsync();
             TempData["CommentSubmitted"] = "ممنون — دیدگاه شما در انتظار بررسی است.";
             var info = await _db.Posts.Where(p => p.Id == postId).Select(p => new { p.Title, p.AuthorId }).FirstOrDefaultAsync();
-            _logger.LogInformation(
-                "Comment submitted PostId={PostId} CommentId={CommentId} AuthorName={AuthorName}",
-                postId, comment.Id, comment.AuthorName);
-            _broadcaster.Publish(new { type = "comment", status = "pending", postId, postTitle = info?.Title, authorId = info?.AuthorId, authorName = comment.AuthorName });
-        }
-        else
-        {
-            _logger.LogWarning("Comment rejected empty fields PostId={PostId}", postId);
+            _broadcaster.Publish(new
+            {
+                type = "comment",
+                status = "pending",
+                postId,
+                postTitle = info?.Title,
+                authorId = info?.AuthorId,
+                authorName = comment.AuthorName
+            });
         }
         var slug = await _db.Posts.Where(p => p.Id == postId).Select(p => p.Slug).FirstOrDefaultAsync();
         return RedirectToAction(nameof(Details), new { slug });
