@@ -91,7 +91,7 @@ else
                         </td>
                         <td><span class="ltr-field">@p.ViewCount</span></td>
                         <td><span class="ltr-field">@p.CommentCount</span></td>
-                        <td><span class="ltr-field">@p.CreatedAtUtc.ToString("yyyy/MM/dd")</span></td>
+                        <td><span class="ltr-field">@PersianDate.Date(p.CreatedAtUtc)</span></td>
                         <td>
                             <div class="d-flex gap-1 flex-wrap">
                                 @if (!p.IsDeleted)

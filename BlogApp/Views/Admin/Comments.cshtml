@@ -49,7 +49,7 @@ else
                     <td dir="auto" style="white-space:nowrap;">
                         <a asp-controller="Posts" asp-action="Details" asp-route-slug="@c.PostSlug">@c.PostTitle</a>
                     </td>
-                    <td><span class="ltr-field">@c.CreatedAtUtc.ToString("yyyy/MM/dd HH:mm")</span></td>
+                    <td><span class="ltr-field">@PersianDate.DateTime(c.CreatedAtUtc)</span></td>
                     <td>
                         @switch (c.Status)
                         {

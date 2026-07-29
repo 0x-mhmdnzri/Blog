@@ -59,7 +59,7 @@
                     <p class="text-muted-dark small mb-3" dir="auto">@post.Summary</p>
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="ltr-field small" style="color:var(--text-faint); font-size:.78rem;">
-                            @(post.PublishedAtUtc?.ToString("yyyy-MM-dd"))
+                            @PersianDate.Date(post.PublishedAtUtc)
                         </span>
                         <div class="d-flex gap-1">
                             @foreach (var t in post.Tags.Take(2))
