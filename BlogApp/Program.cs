@@ -1,43 +1,47 @@
 using BlogApp.Data;
+using BlogApp.Models;
 using BlogApp.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Database (everything the blog needs lives in one SQLite file). The connection
-// string can be overridden via ConnectionStrings__DefaultConnection (e.g. in Docker,
-// pointed at a mounted volume like /app/data/blog.db so posts/media survive restarts). ---
+// --- Database ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=blog.db";
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
 
-// --- Markdown rendering pipeline (readme-style: tables, fenced code, embeds, etc.) ---
+// --- ASP.NET Core Identity (RBAC with roles + claims) ---
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 6;
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.ExpireTimeSpan = TimeSpan.FromDays(14);
+    options.SlidingExpiration = true;
+});
+
+// --- Services ---
 builder.Services.AddSingleton<MarkdownService>();
-
-// --- SEO / AEO meta + structured-data helper ---
 builder.Services.AddSingleton<SeoService>();
-
-// --- Live dashboard updates over Server-Sent Events ---
 builder.Services.AddSingleton<AnalyticsBroadcaster>();
 
-// --- MVC ---
 builder.Services.AddControllersWithViews();
 
-// --- Simple cookie auth so only the developer/author can create & edit posts ---
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/Account/Login";
-        options.AccessDeniedPath = "/Account/Login";
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
-        options.SlidingExpiration = true;
-    });
-
-// Uploads can be large (video). Raise the request body size limit.
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 500L * 1024 * 1024; // 500 MB
+    options.MultipartBodyLengthLimit = 500L * 1024 * 1024;
 });
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -46,11 +50,6 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 
-// Trust X-Forwarded-For from the reverse proxy in front of this container so
-// HttpContext.Connection.RemoteIpAddress (used for view-deduplication hashing) reflects the
-// real visitor, not the proxy's own address. KnownNetworks/KnownProxies are cleared because
-// the proxy's address isn't known ahead of time in a typical container/compose setup — if
-// you deploy this behind an untrusted network, tighten this to your actual proxy's IP.
 var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -59,27 +58,22 @@ forwardedHeadersOptions.KnownNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
-// Make sure the folder for the SQLite file exists — matters on first run against a fresh
-// Docker volume mount, where the parent directory may not exist yet.
 var dbDirectory = Path.GetDirectoryName(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(connectionString).DataSource);
 if (!string.IsNullOrEmpty(dbDirectory))
     Directory.CreateDirectory(dbDirectory);
 
-// Auto-create the SQLite database file + schema on first run (no `dotnet ef` step required
-// to get started). Once you want proper incremental migrations, run:
-//   dotnet ef migrations add InitialCreate
-//   dotnet ef database update
-// and swap EnsureCreated() below for db.Database.Migrate().
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+    // EnsureCreated is fine for first run; for production prefer Migrate().
     db.Database.EnsureCreated();
-    await DbSeeder.SeedAsync(db);
+    await DbSeeder.SeedAsync(db, userManager, roleManager, config);
 }
 
-// HTTPS redirection/HSTS assume Kestrel itself terminates TLS. In the Docker image, TLS is
-// normally terminated by a reverse proxy (nginx, Traefik, a cloud load balancer) in front of
-// the plain-HTTP container, so this is disabled there via the ForceHttps=false env var.
 var forceHttps = builder.Configuration.GetValue("ForceHttps", true);
 
 if (!app.Environment.IsDevelopment())
@@ -99,6 +93,11 @@ app.MapControllerRoute(
     name: "post-details",
     pattern: "post/{slug}",
     defaults: new { controller = "Posts", action = "Details" });
+
+app.MapControllerRoute(
+    name: "author-profile",
+    pattern: "author/{userName}",
+    defaults: new { controller = "Account", action = "PublicProfile" });
 
 app.MapControllerRoute(
     name: "default",
