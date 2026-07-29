@@ -3,6 +3,7 @@
     ViewData["Title"] = Model.Title;
     var readingMinutes = ViewBag.ReadingTimeMinutes as int? ?? Math.Max(1, Model.ReadingTimeMinutes);
     var canEdit = ViewBag.CanEdit as bool? ?? false;
+    var published = Model.PublishedAtUtc ?? Model.CreatedAtUtc;
 }
 
 @section Head {
@@ -20,9 +21,10 @@
                 <input type="hidden" name="id" value="@Model.Id" />
                 <button class="btn btn-ghost btn-sm" type="submit">کپی</button>
             </form>
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+            <form asp-action="Delete" method="post"
                   onsubmit="return confirm('انتقال به سطل زباله؟');">
                 @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
                 <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف نرم</button>
             </form>
         </div>
@@ -38,24 +40,26 @@
 
     <h1 class="mb-3" dir="auto">@Model.Title</h1>
 
-    <div class="post-meta-line mb-4 d-flex flex-wrap gap-3 align-items-center">
+    <div class="post-meta-line mb-4 d-flex flex-wrap gap-2 align-items-center">
         @if (Model.Author != null)
         {
             <a asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@Model.Author.UserName"
                class="d-inline-flex align-items-center gap-2 text-decoration-none" style="color:inherit;">
                 <span dir="auto">@Model.Author.DisplayName</span>
             </a>
+            <span class="meta-sep" aria-hidden="true">·</span>
         }
         <span>
             <span class="accent ltr-signature">$</span>
-            <time class="ltr-field" datetime="@(Model.PublishedAtUtc?.ToString("o"))">@Model.PublishedAtUtc?.ToString("yyyy-MM-dd")</time>
+            <time class="ltr-field" datetime="@published.ToString("o")">@published.ToString("yyyy-MM-dd")</time>
         </span>
-        <span>· <span class="ltr-field">@readingMinutes</span> دقیقه مطالعه</span>
-        <span>· <span class="ltr-field">@Model.ViewCount</span> بازدید</span>
+        <span class="meta-sep" aria-hidden="true">·</span>
+        <span><span class="ltr-field">@readingMinutes</span> دقیقه مطالعه</span>
+        <span class="meta-sep" aria-hidden="true">·</span>
+        <span><span class="ltr-field">@Model.ViewCount</span> بازدید</span>
     </div>
 
-    @* Body is RTL Persian; code/pre forced LTR in CSS; mixed English uses dir=auto *@
-    <div class="readme-content">
+    <div class="readme-content" dir="auto">
         @Html.Raw(ViewBag.RenderedHtml)
     </div>
 

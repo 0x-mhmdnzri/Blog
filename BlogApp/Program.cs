@@ -1,3 +1,4 @@
+using System.Text;
 using BlogApp.Data;
 using BlogApp.Middleware;
 using BlogApp.Models;
@@ -5,6 +6,10 @@ using BlogApp.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
+// Ensure process-wide UTF-8 for console / file defaults
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+Console.OutputEncoding = Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,8 +42,10 @@ builder.Services.AddSingleton<AnalyticsBroadcaster>();
 builder.Services.AddScoped<AiContentService>();
 builder.Services.AddScoped<BrokenLinkService>();
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddViewOptions(o => { /* keep default */ });
 
+// Force UTF-8 for all HTML / JSON responses
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 500L * 1024 * 1024;
@@ -70,7 +77,6 @@ using (var scope = app.Services.CreateScope())
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
     db.Database.EnsureCreated();
-    // Patch existing SQLite files that were created before newer tables/columns
     await SchemaBootstrap.EnsureAsync(db);
     await DbSeeder.SeedAsync(db, userManager, roleManager, config);
 }
@@ -84,6 +90,26 @@ if (!app.Environment.IsDevelopment())
 }
 
 if (forceHttps) app.UseHttpsRedirection();
+
+// Always declare UTF-8 charset on text responses
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.OnStarting(() =>
+    {
+        var ct = ctx.Response.ContentType;
+        if (!string.IsNullOrEmpty(ct)
+            && (ct.StartsWith("text/", StringComparison.OrdinalIgnoreCase)
+                || ct.StartsWith("application/json", StringComparison.OrdinalIgnoreCase)
+                || ct.StartsWith("application/javascript", StringComparison.OrdinalIgnoreCase))
+            && !ct.Contains("charset", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Response.ContentType = ct + "; charset=utf-8";
+        }
+        return Task.CompletedTask;
+    });
+    await next();
+});
+
 app.UseStaticFiles();
 app.UseRouting();
 
