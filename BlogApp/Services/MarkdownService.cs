@@ -131,11 +131,12 @@ public class MarkdownService
         return html;
     }
 
-    private static stringSlugifyHeading(string text)
+    private static string SlugifyHeading(string text)
     {
         var s = text.ToLowerInvariant().Trim();
         s = Regex.Replace(s, @"\s+", "-");
-        // Non-verbatim: \\w and \\- for regex; \u0600-\u06FF for Persian letters.
+        // Pattern seen by Regex: [^\w\u0600-\u06FF\-]
+        // C# non-verbatim needs \\w and \\- ; \u0600 is a real Unicode escape.
         s = Regex.Replace(s, "[^\\w\u0600-\u06FF\\-]", "");
         return s.Length > 80 ? s[..80] : s;
     }
