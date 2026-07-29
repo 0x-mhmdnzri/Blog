@@ -1,10 +1,11 @@
-using System.Security.Claims;
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Models.ViewModels;
+using BlogApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
@@ -29,27 +30,48 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [IgnoreAntiforgeryToken]
     public IActionResult Login(string? returnUrl = null)
     {
-        ViewBag.ReturnUrl = returnUrl;
+        ViewBag.ReturnUrl = SanitizeReturnUrl(returnUrl);
         return View();
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login(string username, string password, string? returnUrl = null)
     {
+        returnUrl = SanitizeReturnUrl(returnUrl);
+        username = (username ?? string.Empty).Trim();
+
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || password.Length > 256)
+        {
+            ModelState.AddModelError(string.Empty, "نام کاربری یا رمز عبور نادرست است.");
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
         var user = await _userManager.FindByNameAsync(username)
                    ?? await _userManager.FindByEmailAsync(username);
 
         if (user is not null)
         {
-            var result = await _signInManager.PasswordSignInAsync(user, password, isPersistent: true, lockoutOnFailure: false);
+            // lockoutOnFailure: true — Identity increments AccessFailedCount
+            var result = await _signInManager.PasswordSignInAsync(
+                user, password, isPersistent: true, lockoutOnFailure: true);
+
             if (result.Succeeded)
             {
                 _logger.LogInformation("Login succeeded UserId={UserId} UserName={UserName}", user.Id, user.UserName);
-                return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
-                    ? Redirect(returnUrl)
-                    : RedirectToAction("Index", "Admin");
+                return Redirect(returnUrl ?? Url.Action("Index", "Admin")!);
+            }
+
+            if (result.IsLockedOut)
+            {
+                _logger.LogWarning("Login locked out UserName={UserName}", username);
+                ModelState.AddModelError(string.Empty, "حساب موقتاً قفل شده است. کمی بعد دوباره تلاش کنید.");
+                ViewBag.ReturnUrl = returnUrl;
+                return View();
             }
 
             _logger.LogWarning("Login failed bad password UserName={UserName}", username);
@@ -57,6 +79,8 @@ public class AccountController : Controller
         else
         {
             _logger.LogWarning("Login failed unknown user UserName={UserName}", username);
+            // Constant-time-ish delay to reduce user enumeration timing
+            await Task.Delay(Random.Shared.Next(80, 180));
         }
 
         ModelState.AddModelError(string.Empty, "نام کاربری یا رمز عبور نادرست است.");
@@ -74,6 +98,7 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [IgnoreAntiforgeryToken]
     public IActionResult AccessDenied()
     {
         _logger.LogWarning("Access denied User={User} Path={Path}", User.Identity?.Name, Request.Path.Value);
@@ -81,13 +106,17 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [IgnoreAntiforgeryToken]
     public async Task<IActionResult> PublicProfile(string userName)
     {
+        if (string.IsNullOrWhiteSpace(userName) || userName.Length > 64)
+            return NotFound();
+
         var user = await _userManager.FindByNameAsync(userName);
         if (user is null) return NotFound();
 
         var posts = await _db.Posts
-            .Where(p => p.AuthorId == user.Id && p.IsPublished)
+            .Where(p => p.AuthorId == user.Id && p.IsPublished && !p.IsDeleted)
             .OrderByDescending(p => p.PublishedAtUtc)
             .Select(p => new { p.Title, p.Slug, p.Summary, p.PublishedAtUtc, p.ViewCount })
             .ToListAsync();
@@ -111,13 +140,26 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [IgnoreAntiforgeryToken]
     public async Task<IActionResult> ProfileImage(string userId)
     {
+        if (string.IsNullOrWhiteSpace(userId) || userId.Length > 64)
+            return NotFound();
+
         var user = await _userManager.FindByIdAsync(userId);
         if (user?.ProfileImage is null || user.ProfileImage.Length == 0)
             return NotFound();
 
-        return File(user.ProfileImage, user.ProfileImageContentType ?? "image/png");
+        var ct = user.ProfileImageContentType ?? "image/png";
+        if (ct.Contains("svg", StringComparison.OrdinalIgnoreCase)
+            || ct.Contains("html", StringComparison.OrdinalIgnoreCase)
+            || ct.Contains("javascript", StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound();
+        }
+
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(user.ProfileImage, ct);
     }
 
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
@@ -161,6 +203,14 @@ public class AccountController : Controller
 
         if (vm.ProfileImageFile is { Length: > 0 })
         {
+            var check = SafeUpload.Validate(vm.ProfileImageFile);
+            if (!check.Ok || check.Kind != MediaKind.Image)
+            {
+                ModelState.AddModelError(nameof(vm.ProfileImageFile), check.Error ?? "تصویر نامعتبر است.");
+                vm.HasProfileImage = user.ProfileImage is { Length: > 0 };
+                return View(vm);
+            }
+
             if (vm.ProfileImageFile.Length > 2 * 1024 * 1024)
             {
                 ModelState.AddModelError(nameof(vm.ProfileImageFile), "حداکثر اندازه تصویر پروفایل ۲ مگابایت است.");
@@ -168,10 +218,10 @@ public class AccountController : Controller
                 return View(vm);
             }
 
-            using var ms = new MemoryStream();
+            await using var ms = new MemoryStream();
             await vm.ProfileImageFile.CopyToAsync(ms);
             user.ProfileImage = ms.ToArray();
-            user.ProfileImageContentType = vm.ProfileImageFile.ContentType;
+            user.ProfileImageContentType = check.ContentType;
         }
 
         if (vm.RemoveProfileImage)
@@ -254,5 +304,15 @@ public class AccountController : Controller
             });
         }
         return View(items);
+    }
+
+    /// <summary>Only same-origin relative paths — blocks open redirects.</summary>
+    private string? SanitizeReturnUrl(string? returnUrl)
+    {
+        if (string.IsNullOrWhiteSpace(returnUrl)) return null;
+        if (!Url.IsLocalUrl(returnUrl)) return null;
+        if (returnUrl.StartsWith("//", StringComparison.Ordinal)) return null;
+        if (returnUrl.Contains('\\')) return null;
+        return returnUrl;
     }
 }

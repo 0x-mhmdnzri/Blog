@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using System.Threading.RateLimiting;
 using BlogApp.Data;
 using BlogApp.Logging;
 using BlogApp.Middleware;
@@ -7,6 +8,8 @@ using BlogApp.Models;
 using BlogApp.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
@@ -16,14 +19,8 @@ SerilogBootstrap.CreateBootstrapLogger();
 
 try
 {
-    try
-    {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-    }
-    catch
-    {
-        // Optional: package missing in some publish layouts — UTF-8 still works as default.
-    }
+    try { Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); }
+    catch { /* optional */ }
 
     Console.OutputEncoding = Encoding.UTF8;
 
@@ -34,14 +31,24 @@ try
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=blog.db";
     builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
 
+    // ---- Identity: lockout + stronger passwords ----
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
             options.Password.RequireDigit = true;
             options.Password.RequireLowercase = true;
-            options.Password.RequireUppercase = false;
-            options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequiredLength = 6;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireNonAlphanumeric = true;
+            options.Password.RequiredLength = 10;
+            options.Password.RequiredUniqueChars = 4;
             options.User.RequireUniqueEmail = true;
+            options.User.AllowedUserNameCharacters =
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+
+            options.Lockout.AllowedForNewUsers = true;
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+
+            options.SignIn.RequireConfirmedAccount = false;
         })
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
@@ -50,11 +57,76 @@ try
     {
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
+        options.Cookie.Name = "__Host-BlogAuth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.IsEssential = true;
     });
 
-    // ---- HTTP: Brotli + Gzip (smaller payloads → lower bandwidth, faster TTFB on text) ----
+    builder.Services.AddAntiforgery(options =>
+    {
+        options.HeaderName = "X-CSRF-TOKEN";
+        options.Cookie.Name = "__Host-BlogCSRF";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+    });
+
+    // ---- Rate limiting (per-IP partitions) ----
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        options.OnRejected = async (ctx, token) =>
+        {
+            ctx.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+            await ctx.HttpContext.Response.WriteAsync("Too many requests. Please slow down.", token);
+        };
+
+        options.AddPolicy("global", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 120,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                }));
+
+        options.AddPolicy("login", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: "login:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 8,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                }));
+
+        options.AddPolicy("upload", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: "upload:" + (httpContext.User.Identity?.Name
+                    ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                }));
+
+        options.AddPolicy("comment", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: "comment:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 6,
+                    Window = TimeSpan.FromMinutes(5),
+                    QueueLimit = 0
+                }));
+    });
+
     builder.Services.AddResponseCompression(options =>
     {
         options.EnableForHttps = true;
@@ -79,27 +151,30 @@ try
     builder.Services.AddScoped<AiContentService>();
     builder.Services.AddScoped<BrokenLinkService>();
 
-    builder.Services.AddControllersWithViews();
+    builder.Services.AddControllersWithViews(options =>
+    {
+        options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    });
 
     builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
     {
-        options.MultipartBodyLengthLimit = 500L * 1024 * 1024;
-        options.ValueLengthLimit = int.MaxValue;
+        options.MultipartBodyLengthLimit = SafeUpload.MaxVideoBytes;
+        options.ValueLengthLimit = 1024 * 1024; // 1 MB form fields
         options.MemoryBufferThreshold = 64 * 1024;
     });
 
-    // ---- Kestrel: throughput + safety knobs ----
     builder.WebHost.ConfigureKestrel(options =>
     {
         options.AddServerHeader = false;
-        options.Limits.MaxRequestBodySize = 500L * 1024 * 1024;
-        options.Limits.MaxConcurrentConnections = 1000;
-        options.Limits.MaxConcurrentUpgradedConnections = 100;
+        options.Limits.MaxRequestBodySize = SafeUpload.MaxVideoBytes;
+        options.Limits.MaxConcurrentConnections = 500;
+        options.Limits.MaxConcurrentUpgradedConnections = 50;
         options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
-        options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
-        options.Limits.Http2.MaxStreamsPerConnection = 100;
-        options.Limits.Http2.KeepAlivePingTimeout = TimeSpan.FromSeconds(30);
-        options.Limits.MinRequestBodyDataRate = null; // large media uploads over slow links
+        options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(20);
+        options.Limits.MaxRequestHeadersTotalSize = 32 * 1024;
+        options.Limits.MaxRequestLineSize = 8 * 1024;
+        options.Limits.Http2.MaxStreamsPerConnection = 50;
+        options.Limits.MinRequestBodyDataRate = null;
         options.Limits.MinResponseDataRate = null;
     });
 
@@ -146,18 +221,26 @@ try
     if (!app.Environment.IsDevelopment())
     {
         app.UseExceptionHandler("/Home/Error");
-        if (forceHttps) app.UseHsts();
+        app.UseHsts();
     }
 
-    if (forceHttps) app.UseHttpsRedirection();
+    if (forceHttps || !app.Environment.IsDevelopment())
+        app.UseHttpsRedirection();
 
-    // Compression must run early so static files + MVC responses are compressed.
+    app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseResponseCompression();
-
     app.UseMiddleware<RequestLoggingMiddleware>();
 
     app.Use(async (ctx, next) =>
     {
+        // Block TRACE / TRACK (XST)
+        if (HttpMethods.IsTrace(ctx.Request.Method) ||
+            string.Equals(ctx.Request.Method, "TRACK", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+            return;
+        }
+
         ctx.Response.OnStarting(() =>
         {
             var ct = ctx.Response.ContentType;
@@ -178,35 +261,40 @@ try
     {
         OnPrepareResponse = ctx =>
         {
-            // Versioned assets (asp-append-version) can be cached aggressively.
             var headers = ctx.Context.Response.Headers;
-            headers[HeaderNames.CacheControl] = "public,max-age=604800,immutable"; // 7 days
+            headers[HeaderNames.CacheControl] = "public,max-age=604800,immutable";
+            headers["X-Content-Type-Options"] = "nosniff";
         }
     };
     app.UseStaticFiles(staticCache);
 
     app.UseRouting();
+    app.UseRateLimiter();
 
     app.UseMiddleware<RedirectMiddleware>();
 
     app.UseAuthentication();
     app.UseAuthorization();
 
+    // Apply global limiter to all endpoints; named policies stack on top where attributes set them.
     app.MapControllerRoute(
-        name: "post-details",
-        pattern: "post/{slug}",
-        defaults: new { controller = "Posts", action = "Details" });
+            name: "post-details",
+            pattern: "post/{slug}",
+            defaults: new { controller = "Posts", action = "Details" })
+        .RequireRateLimiting("global");
 
     app.MapControllerRoute(
-        name: "author-profile",
-        pattern: "author/{userName}",
-        defaults: new { controller = "Account", action = "PublicProfile" });
+            name: "author-profile",
+            pattern: "author/{userName}",
+            defaults: new { controller = "Account", action = "PublicProfile" })
+        .RequireRateLimiting("global");
 
     app.MapControllerRoute(
-        name: "default",
-        pattern: "{controller=Home}/{action=Index}/{id?}");
+            name: "default",
+            pattern: "{controller=Home}/{action=Index}/{id?}")
+        .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening (compression + Kestrel limits active)");
+    Log.Information("BlogApp listening (security hardening + rate limits active)");
     app.Run();
 }
 catch (Exception ex)
