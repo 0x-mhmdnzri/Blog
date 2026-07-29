@@ -1,0 +1,40 @@
+@model BlogApp.Models.ViewModels.CreateAuthorViewModel
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "ایجاد نویسنده";
+}
+
+<div class="card-surface p-4" style="max-width:480px;">
+    <form asp-action="CreateAuthor" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+        <div class="mb-3">
+            <label class="form-label" asp-for="UserName">نام کاربری</label>
+            <input class="form-control ltr-field" asp-for="UserName" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="Email">ایمیل</label>
+            <input class="form-control ltr-field" asp-for="Email" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="DisplayName">نام نمایشی</label>
+            <input class="form-control" asp-for="DisplayName" dir="auto" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="Bio">بیو (اختیاری)</label>
+            <textarea class="form-control" asp-for="Bio" rows="2" dir="auto"></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="Password">رمز عبور</label>
+            <input class="form-control ltr-field" asp-for="Password" type="password" />
+        </div>
+        <div class="mb-4">
+            <label class="form-label" asp-for="ConfirmPassword">تکرار رمز عبور</label>
+            <input class="form-control ltr-field" asp-for="ConfirmPassword" type="password" />
+        </div>
+
+        <button type="submit" class="btn btn-accent">ایجاد نویسنده</button>
+        <a class="btn btn-ghost" asp-action="Authors">انصراف</a>
+    </form>
+</div>

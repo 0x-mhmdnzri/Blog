@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = Model.Title;
     var readingMinutes = Math.Max(1, Model.ContentMarkdown.Split(' ').Length / 220);
+    var canEdit = ViewBag.CanEdit as bool? ?? false;
 }
 
 @section Head {
@@ -10,7 +11,7 @@
 }
 
 <article class="container py-5" style="max-width: 780px;">
-    @if (User.Identity?.IsAuthenticated == true)
+    @if (canEdit)
     {
         <div class="d-flex gap-2 mb-4">
             <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">ویرایش نوشته</a>
@@ -29,7 +30,26 @@
 
     <h1 class="mb-3" dir="auto">@Model.Title</h1>
 
-    <div class="post-meta-line mb-4 d-flex flex-wrap gap-3">
+    <div class="post-meta-line mb-4 d-flex flex-wrap gap-3 align-items-center">
+        @if (Model.Author != null)
+        {
+            <a asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@Model.Author.UserName"
+               class="d-inline-flex align-items-center gap-2 text-decoration-none" style="color:inherit;">
+                @if (Model.Author.ProfileImage is { Length: > 0 })
+                {
+                    <img src="@Url.Action("ProfileImage", "Account", new { userId = Model.Author.Id })"
+                         class="rounded-circle" style="width:28px;height:28px;object-fit:cover;" alt="" />
+                }
+                else
+                {
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                          style="width:28px;height:28px;background:var(--surface-2);font-size:.75rem;">
+                        @Model.Author.DisplayName.FirstOrDefault()
+                    </span>
+                }
+                <span dir="auto">@Model.Author.DisplayName</span>
+            </a>
+        }
         <span><span class="accent">$</span> انتشار در
             <time class="ltr-field" datetime="@(Model.PublishedAtUtc?.ToString("o"))">@Model.PublishedAtUtc?.ToString("yyyy-MM-dd")</time>
         </span>

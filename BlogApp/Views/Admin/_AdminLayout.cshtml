@@ -1,14 +1,25 @@
 @inject BlogApp.Data.ApplicationDbContext Db
+@using BlogApp.Models
+@using BlogApp.Services
 @{
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-    var currentStatus = ViewBag.CurrentStatus as string;
     bool IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
+    bool IsController(string c) => string.Equals(currentController, c, StringComparison.OrdinalIgnoreCase);
     var isPostsSection = (currentController == "Admin" && currentAction == "Posts")
         || (currentController == "Posts" && (currentAction == "Create" || currentAction == "Edit"));
     var isDashboard = currentController == "Admin" && currentAction == "Index";
-    var pendingCount = ViewBag.PendingCount as int?
-        ?? await Db.Comments.CountAsync(c => c.Status == BlogApp.Models.CommentStatus.Pending);
+    var isProfile = currentController == "Account" && (currentAction == "Profile");
+    var isAuthors = currentController == "Account" && (currentAction == "Authors" || currentAction == "CreateAuthor");
+    var isSuperAdmin = AuthorAccess.IsSuperAdmin(User);
+
+    var userId = AuthorAccess.UserId(User);
+    int pendingCount;
+    if (AuthorAccess.CanModerateAllComments(User))
+        pendingCount = ViewBag.PendingCount as int? ?? await Db.Comments.CountAsync(c => c.Status == CommentStatus.Pending);
+    else
+        pendingCount = ViewBag.PendingCount as int?
+            ?? await Db.Comments.CountAsync(c => c.Status == CommentStatus.Pending && c.Post.AuthorId == userId);
 }
 <!DOCTYPE html>
 <html lang="fa" dir="rtl" data-bs-theme="dark">
@@ -55,6 +66,17 @@
                     <span class="soon-tag">دمو</span>
                 </a>
 
+                <div class="admin-nav-group-label">حساب</div>
+                <a class="admin-nav-link @(isProfile ? "active" : "")" asp-controller="Account" asp-action="Profile">
+                    <span>پروفایل من</span>
+                </a>
+                @if (isSuperAdmin)
+                {
+                    <a class="admin-nav-link @(isAuthors ? "active" : "")" asp-controller="Account" asp-action="Authors">
+                        <span>نویسندگان</span>
+                    </a>
+                }
+
                 <div class="admin-nav-group-label">سیستم</div>
                 <a class="admin-nav-link @(IsActive("Settings") ? "active" : "")" asp-controller="Admin" asp-action="Settings">
                     <span>تنظیمات</span>
@@ -93,9 +115,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
     <script>
-        // One shared SSE connection per admin tab. Individual pages (like the dashboard)
-        // listen for 'admin-sse-message' on window to react to specific event types without
-        // opening their own connection.
         (function () {
             const indicator = document.getElementById('liveIndicator');
             const pendingBadge = document.getElementById('pendingBadge');

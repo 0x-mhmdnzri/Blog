@@ -1,0 +1,44 @@
+@model BlogApp.Models.ViewModels.PublicAuthorProfileViewModel
+@{
+    ViewData["Title"] = Model.DisplayName;
+}
+
+<div class="container py-5" style="max-width:720px;">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        @{
+            // Resolve user id for image via username lookup is done server-side; use a dedicated route if needed.
+            // For simplicity we link image by a helper that accepts userName — use Account/ProfileImage by looking up.
+        }
+        <div>
+            <h1 class="h3 mb-1" dir="auto">@Model.DisplayName</h1>
+            <p class="text-muted-dark small mb-0 ltr-field">@@@Model.UserName</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Bio))
+    {
+        <p class="text-muted-dark mb-4" dir="auto">@Model.Bio</p>
+    }
+
+    <h2 class="h6 text-muted-dark mb-3">نوشته‌های منتشرشده</h2>
+
+    @if (!Model.Posts.Any())
+    {
+        <p class="text-muted-dark small">هنوز نوشته‌ای منتشر نشده است.</p>
+    }
+
+    @foreach (var p in Model.Posts)
+    {
+        <a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug" class="card-surface p-3 mb-3 d-block text-decoration-none">
+            <h3 class="h6 mb-1" dir="auto" style="color:var(--text);">@p.Title</h3>
+            @if (!string.IsNullOrWhiteSpace(p.Summary))
+            {
+                <p class="small text-muted-dark mb-1" dir="auto">@p.Summary</p>
+            }
+            <span class="small text-muted-dark">
+                <time class="ltr-field">@p.PublishedAtUtc?.ToString("yyyy-MM-dd")</time>
+                · <span class="ltr-field">@p.ViewCount</span> بازدید
+            </span>
+        </a>
+    }
+</div>
