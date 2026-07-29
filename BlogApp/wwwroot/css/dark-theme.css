@@ -1,6 +1,6 @@
 /* =========================================================================
-   Dark Pro — site chrome RTL/Persian. Content uses dir=auto:
-   English → LTR + left, Persian → RTL + right. Code always LTR.
+   Dark Pro — chrome RTL/Persian. Post body is an isolated island:
+   each block has explicit dir=ltr|rtl from script detection.
    ========================================================================= */
 
 :root {
@@ -31,7 +31,6 @@
 
 html {
   direction: rtl;
-  text-align: right;
 }
 
 html, body {
@@ -46,7 +45,6 @@ body {
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   direction: rtl;
-  text-align: right;
 }
 
 ::selection { background: var(--accent-soft); color: var(--accent); }
@@ -61,22 +59,19 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text);
 }
 
-/* Default chrome right-aligned; user content with dir=auto follows script */
-p, li, label, .form-label, td, th {
-  text-align: right;
+/* ---- Direction utilities (highest priority for content) ---- */
+[dir="ltr"] {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate;
 }
-
-/* ---- auto-direction for mixed language content ---- */
+[dir="rtl"] {
+  direction: rtl !important;
+  text-align: right !important;
+  unicode-bidi: isolate;
+}
 [dir="auto"] {
   unicode-bidi: plaintext;
-  text-align: start;
-}
-
-h1[dir="auto"],
-h2[dir="auto"],
-h3[dir="auto"],
-p[dir="auto"],
-.dir-auto {
   text-align: start;
 }
 
@@ -90,7 +85,7 @@ p[dir="auto"],
 }
 .ltr-field { font-family: var(--font-mono); }
 
-/* Code, pre, kbd — always LTR */
+/* Code always LTR */
 code, pre, kbd, samp,
 .readme-content code,
 .readme-content pre,
@@ -152,7 +147,6 @@ main.site-main { min-height: 70vh; }
   border-top: 1px solid var(--border-soft);
   color: var(--text-faint);
   font-size: 0.82rem;
-  text-align: right;
 }
 
 .btn-accent {
@@ -181,18 +175,12 @@ main.site-main { min-height: 70vh; }
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text);
-  text-align: right;
 }
 .form-control.ltr-field,
 .form-select.ltr-field,
 input[type="datetime-local"] {
   direction: ltr !important;
   text-align: left !important;
-}
-.form-control[dir="auto"],
-.form-select[dir="auto"],
-textarea[dir="auto"] {
-  text-align: start;
 }
 .form-control:focus, .form-select:focus {
   background: var(--surface-2);
@@ -201,7 +189,7 @@ textarea[dir="auto"] {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .form-control::placeholder { color: var(--text-faint); }
-label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 500; text-align: right; }
+label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 500; }
 
 .post-card {
   background: var(--surface);
@@ -209,7 +197,6 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   height: 100%;
-  text-align: right;
   transition: border-color 0.18s ease, transform 0.18s ease;
 }
 .post-card:hover { border-color: var(--accent-dim); transform: translateY(-2px); }
@@ -220,10 +207,6 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
 }
 .post-card h2 a { color: var(--text); }
 .post-card h2 a:hover { color: var(--accent); text-decoration: none; }
-.post-card h2[dir="auto"],
-.post-card p[dir="auto"] {
-  text-align: start;
-}
 
 .tag-pill {
   display: inline-block;
@@ -235,14 +218,13 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   padding: 0.15rem 0.6rem;
 }
 
-.hero { border-bottom: 1px solid var(--border-soft); text-align: right; }
+.hero { border-bottom: 1px solid var(--border-soft); }
 .hero .hero-prompt {
   font-family: var(--font-mono);
   color: var(--text-faint);
   font-size: 0.9rem;
   direction: ltr;
   unicode-bidi: isolate;
-  text-align: right;
 }
 .hero h1 { font-size: clamp(2rem, 4vw, 3rem); }
 
@@ -251,35 +233,75 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   font-size: 0.85rem;
   border-bottom: 1px dashed var(--border);
   padding-bottom: 0.75rem;
-  text-align: right;
 }
 .post-meta-line .accent { color: var(--accent); font-family: var(--font-mono); }
 
-/* Post body: follow dir=auto (English LTR/left, Persian RTL/right) */
+/* =========================================================================
+   POST BODY ISLAND — never inherit page text-align:right
+   ========================================================================= */
+.post-body-island,
 .readme-content {
   font-size: 1.05rem;
   color: #d7dbe4;
-  text-align: start;
-  /* do NOT force direction:rtl — dir="auto" on the element decides */
+  /* Neutral container: children own their direction */
+  direction: inherit;
+  text-align: initial;
+  unicode-bidi: isolate;
 }
-.readme-content[dir="auto"] {
-  unicode-bidi: plaintext;
+
+.readme-content > *,
+.readme-content .md-heading,
+.readme-content .md-p,
+.readme-content .md-li {
+  unicode-bidi: isolate;
 }
+
+/* Explicit blocks from MarkdownService */
+.readme-content [dir="ltr"],
+.readme-content h1[dir="ltr"],
+.readme-content h2[dir="ltr"],
+.readme-content h3[dir="ltr"],
+.readme-content h4[dir="ltr"],
+.readme-content p[dir="ltr"],
+.readme-content li[dir="ltr"],
+.readme-content td[dir="ltr"],
+.readme-content th[dir="ltr"] {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.readme-content [dir="rtl"],
+.readme-content h1[dir="rtl"],
+.readme-content h2[dir="rtl"],
+.readme-content h3[dir="rtl"],
+.readme-content h4[dir="rtl"],
+.readme-content p[dir="rtl"],
+.readme-content li[dir="rtl"],
+.readme-content td[dir="rtl"],
+.readme-content th[dir="rtl"] {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
 .readme-content h1,
 .readme-content h2,
-.readme-content h3 {
+.readme-content h3,
+.readme-content h4,
+.readme-content .md-heading {
   margin-top: 2.2em;
   margin-bottom: 0.7em;
   padding-bottom: 0.35em;
   border-bottom: 1px solid var(--border-soft);
-  text-align: start;
   scroll-margin-top: 5rem;
 }
 .readme-content h1:first-child,
-.readme-content h2:first-child { margin-top: 0; }
+.readme-content h2:first-child,
+.readme-content .post-toc + h1,
+.readme-content .post-toc + h2 {
+  margin-top: 0;
+}
 .readme-content p {
   margin-bottom: 1.1em;
-  text-align: start;
 }
 .readme-content img {
   max-width: 100%;
@@ -293,20 +315,65 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   padding: 0.8rem 1.2rem;
   border-radius: var(--radius);
   color: var(--text-muted);
-  text-align: start;
 }
 
-.readme-content table {
+/* ---- Table of contents ---- */
+.post-toc {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  margin: 0 0 2rem;
+}
+.post-toc .toc-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  direction: rtl !important;
+  text-align: right !important;
+}
+.post-toc .toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.post-toc .toc-item {
+  margin: 0.35rem 0;
+  padding-inline-start: 0.85rem;
+  position: relative;
+}
+.post-toc .toc-item::before {
+  content: "•";
+  position: absolute;
+  inset-inline-start: 0;
+  color: var(--text-faint);
+}
+.post-toc .toc-item[dir="ltr"] {
+  direction: ltr !important;
+  text-align: left !important;
+}
+.post-toc .toc-item[dir="rtl"] {
+  direction: rtl !important;
+  text-align: right !important;
+}
+.post-toc a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.post-toc a:hover { color: var(--accent); }
+
+/* ---- Tables ---- */
+.readme-content table.md-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.94rem;
-  /* table follows parent direction from dir=auto */
+  margin: 1.2em 0;
 }
 .readme-content th,
 .readme-content td {
   border: 1px solid var(--border);
   padding: 0.5rem 0.8rem;
-  text-align: start;
 }
 .readme-content th { background: var(--surface-2); }
 .readme-content hr { border-color: var(--border); }
@@ -424,10 +491,6 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   padding: 1.5rem;
   overflow-y: auto;
   max-height: 600px;
-  text-align: start;
-}
-.editor-preview-pane .readme-content {
-  text-align: start;
 }
 
 .upload-dropzone {
@@ -446,7 +509,6 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
-  text-align: right;
 }
 .badge-category {
   background: var(--accent-soft);
@@ -456,9 +518,13 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   font-size: 0.75rem;
 }
 
-/* Post article: title follows language */
-.post-article h1[dir="auto"] {
-  text-align: start;
+.post-title[dir="ltr"] {
+  direction: ltr !important;
+  text-align: left !important;
+}
+.post-title[dir="rtl"] {
+  direction: rtl !important;
+  text-align: right !important;
 }
 
 @media (max-width: 991.98px) {
