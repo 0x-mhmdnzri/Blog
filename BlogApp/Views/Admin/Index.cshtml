@@ -51,7 +51,6 @@
     </div>
 </div>
 
-<!-- KPI row -->
 <div class="row g-3 mb-3">
     <div class="col-6 col-lg-3">
         <div class="kpi-card">
@@ -123,7 +122,7 @@
     <div class="col-lg-8">
         <div class="chart-card">
             <div class="chart-title">روند بازدید</div>
-            <div class="chart-subtitle">تعداد بازدید واقعی خوانندگان در @Model.RangeDays روز اخیر</div>
+            <div class="chart-subtitle">تعداد بازدید واقعی خوانندگان در @Model.RangeDays روز اخیر · به‌روز‌رسانی زنده</div>
             <div class="chart-canvas-wrap" style="height:260px;">
                 <canvas id="viewsChart"></canvas>
             </div>
@@ -168,14 +167,11 @@
 
 @if (!Model.TopPosts.Any())
 {
-    <div class="admin-empty mb-4">
+    <div class="admin-empty mb-4" id="topPostsEmpty">
         <h2>هنوز داده‌ای برای نمایش نیست</h2>
         <p class="mb-0">وقتی نوشته‌ها بازدید بگیرند، رتبه‌بندی همین‌جا نمایش داده می‌شود.</p>
     </div>
-}
-else
-{
-    <table class="admin-table mb-4">
+    <table class="admin-table mb-4 d-none" id="topPostsTable">
         <thead>
             <tr>
                 <th>نوشته</th>
@@ -183,20 +179,33 @@ else
                 <th>بازدید در بازه</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="topPostsBody"></tbody>
+    </table>
+}
+else
+{
+    <table class="admin-table mb-4" id="topPostsTable">
+        <thead>
+            <tr>
+                <th>نوشته</th>
+                <th style="width:40%;">بازدید کل</th>
+                <th>بازدید در بازه</th>
+            </tr>
+        </thead>
+        <tbody id="topPostsBody">
             @foreach (var p in Model.TopPosts)
             {
-                <tr>
+                <tr data-slug="@p.Slug">
                     <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <div class="leader-bar-track" style="max-width:220px;">
-                                <div class="leader-bar-fill" style="width:@((int)(p.Views * 100.0 / maxLeaderViews))%;"></div>
+                                <div class="leader-bar-fill" data-leader-fill style="width:@((int)(p.Views * 100.0 / maxLeaderViews))%;"></div>
                             </div>
-                            <span class="ltr-field">@p.Views</span>
+                            <span class="ltr-field" data-total-views>@p.Views</span>
                         </div>
                     </td>
-                    <td><span class="ltr-field">@p.RangeViews</span></td>
+                    <td><span class="ltr-field" data-range-views>@p.RangeViews</span></td>
                 </tr>
             }
         </tbody>
@@ -260,14 +269,106 @@ else
             onerror="this.dataset.failed='1'"></script>
     <script>
         (function () {
+            // —— Live SSE updates for counters + charts (always registered) ——
             const currentUserId = @Html.Raw(JsonSerializer.Serialize(currentUserId, jsonOptions));
-            const seeAllAnalytics = @Html.Raw(seeAllAnalytics ? "true" : "false");
+            const seeAllAnalytics = @(seeAllAnalytics ? "true" : "false");
 
+            let viewsChart = null;
+            let commentStatusChart = null;
+
+            function bump(elId, delta) {
+                const el = document.getElementById(elId);
+                if (!el) return;
+                const current = parseInt(String(el.textContent).replace(/[^\d-]/g, ''), 10) || 0;
+                el.textContent = current + delta;
+                el.classList.add('kpi-flash');
+                setTimeout(() => el.classList.remove('kpi-flash'), 900);
+            }
+
+            function isRelevantView(data) {
+                if (seeAllAnalytics) return true;
+                return !!(data.authorId && data.authorId === currentUserId);
+            }
+
+            function bumpViewsChart() {
+                if (!viewsChart) return;
+                const values = viewsChart.data.datasets[0].data;
+                const last = values.length - 1;
+                if (last < 0) return;
+                values[last] = (Number(values[last]) || 0) + 1;
+                viewsChart.update(); // animated so the line visibly moves
+            }
+
+            function bumpTopPost(data) {
+                const slug = data.postSlug;
+                if (!slug) return;
+                const row = document.querySelector('#topPostsBody tr[data-slug="' + CSS.escape(slug) + '"]');
+                if (!row) return;
+                const totalEl = row.querySelector('[data-total-views]');
+                const rangeEl = row.querySelector('[data-range-views]');
+                if (totalEl) {
+                    const n = (parseInt(totalEl.textContent, 10) || 0) + 1;
+                    totalEl.textContent = n;
+                }
+                if (rangeEl) {
+                    const n = (parseInt(rangeEl.textContent, 10) || 0) + 1;
+                    rangeEl.textContent = n;
+                }
+            }
+
+            // Must register BEFORE any early return so KPIs still live-update without Chart.js.
+            window.addEventListener('admin-sse-message', function (e) {
+                const data = e.detail;
+                if (!data || !data.type) return;
+
+                if (data.type === 'view' && isRelevantView(data)) {
+                    bump('kpiViewsToday', 1);
+                    bump('kpiViewsRange', 1);
+                    bump('kpiViewsTotal', 1);
+                    bumpViewsChart();
+                    bumpTopPost(data);
+                }
+
+                if (data.type === 'comment') {
+                    if (data.status === 'pending') {
+                        bump('kpiPending', 1);
+                        if (commentStatusChart) {
+                            commentStatusChart.data.datasets[0].data[1]++;
+                            commentStatusChart.update();
+                        }
+                    } else if (data.status === 'approved') {
+                        bump('kpiApproved', 1);
+                        bump('kpiPending', -1);
+                        if (commentStatusChart) {
+                            commentStatusChart.data.datasets[0].data[0]++;
+                            commentStatusChart.data.datasets[0].data[1] = Math.max(0, commentStatusChart.data.datasets[0].data[1] - 1);
+                            commentStatusChart.update();
+                        }
+                    } else if (data.status === 'rejected') {
+                        bump('kpiRejected', 1);
+                        bump('kpiPending', -1);
+                        if (commentStatusChart) {
+                            commentStatusChart.data.datasets[0].data[2]++;
+                            commentStatusChart.data.datasets[0].data[1] = Math.max(0, commentStatusChart.data.datasets[0].data[1] - 1);
+                            commentStatusChart.update();
+                        }
+                    }
+
+                    const pendingEl = document.getElementById('kpiPending');
+                    const pendingCard = document.getElementById('kpiPendingCard');
+                    if (pendingEl && pendingCard) {
+                        const stillPending = parseInt(pendingEl.textContent, 10) > 0;
+                        pendingCard.classList.toggle('kpi-danger', stillPending);
+                        pendingCard.classList.toggle('kpi-good', !stillPending);
+                    }
+                }
+            });
+
+            // —— Charts (optional; SSE above still works if this fails) ——
             if (typeof Chart === 'undefined') {
-                console.error('Chart.js failed to load — charts on this page will not render.');
-                document.querySelectorAll('.chart-canvas-wrap').forEach(el => {
-                    el.innerHTML = '<div class="admin-empty" style="padding:1rem;">' +
-                        '<p class="mb-0">بارگذاری کتابخانه نمودار ناموفق بود.</p></div>';
+                console.error('Chart.js failed to load — KPI counters still update via SSE.');
+                document.querySelectorAll('.chart-canvas-wrap').forEach(function (el) {
+                    el.innerHTML = '<div class="admin-empty" style="padding:1rem;"><p class="mb-0">بارگذاری کتابخانه نمودار ناموفق بود.</p></div>';
                 });
                 return;
             }
@@ -283,165 +384,107 @@ else
 
             Chart.defaults.color = textMuted;
             Chart.defaults.borderColor = borderSoft;
-            Chart.defaults.font.family = "Vazirmatn, sans-serif";
+            Chart.defaults.font.family = 'Vazirmatn, sans-serif';
 
             function safeChart(label, factory) {
                 try { return factory(); }
                 catch (err) { console.error('Chart failed to render: ' + label, err); return null; }
             }
 
-            safeChart('viewsChart', () => new Chart(document.getElementById('viewsChart'), {
-                type: 'line',
-                data: {
-                    labels: @Html.Raw(viewsByDayLabels),
-                    datasets: [{
-                        label: 'بازدید',
-                        data: @Html.Raw(viewsByDayValues),
-                        borderColor: accent,
-                        backgroundColor: 'rgba(227,179,65,0.12)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 0,
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                    }
-                }
-            }));
-
-            safeChart('commentStatusChart', () => new Chart(document.getElementById('commentStatusChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['تأییدشده', 'در انتظار', 'ردشده'],
-                    datasets: [{
-                        data: @Html.Raw(commentStatusValues),
-                        backgroundColor: [good, accent, danger],
-                        borderColor: borderSoft,
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '65%',
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } }
-                }
-            }));
-
-            safeChart('postsByMonthChart', () => new Chart(document.getElementById('postsByMonthChart'), {
-                type: 'bar',
-                data: {
-                    labels: @Html.Raw(postsByMonthLabels),
-                    datasets: [{
-                        label: 'نوشته‌ها',
-                        data: @Html.Raw(postsByMonthValues),
-                        backgroundColor: info,
-                        borderRadius: 4,
-                        maxBarThickness: 40
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { beginAtZero: true, ticks: { precision: 0 } }
-                    }
-                }
-            }));
-
-            safeChart('categoryChart', () => new Chart(document.getElementById('categoryChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: @Html.Raw(categoryLabels),
-                    datasets: [{
-                        data: @Html.Raw(categoryValues),
-                        backgroundColor: [accent, info, purple, good, danger, '#f2789f'],
-                        borderColor: borderSoft,
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '60%',
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } }
-                }
-            }));
-
-            const viewsChart = Chart.getChart('viewsChart');
-            const commentStatusChart = Chart.getChart('commentStatusChart');
-
-            function bump(elId, delta) {
-                const el = document.getElementById(elId);
-                if (!el) return;
-                const current = parseInt(el.textContent.replace(/[^\d-]/g, ''), 10) || 0;
-                el.textContent = current + delta;
-                el.classList.add('kpi-flash');
-                setTimeout(() => el.classList.remove('kpi-flash'), 900);
-            }
-
-            function isRelevantView(data) {
-                if (seeAllAnalytics) return true;
-                return data.authorId && data.authorId === currentUserId;
-            }
-
-            window.addEventListener('admin-sse-message', (e) => {
-                const data = e.detail;
-
-                if (data.type === 'view' && isRelevantView(data)) {
-                    bump('kpiViewsToday', 1);
-                    bump('kpiViewsRange', 1);
-                    bump('kpiViewsTotal', 1);
-
-                    if (viewsChart) {
-                        const values = viewsChart.data.datasets[0].data;
-                        values[values.length - 1] = (values[values.length - 1] || 0) + 1;
-                        viewsChart.update('none');
-                    }
-                }
-
-                if (data.type === 'comment') {
-                    if (data.status === 'pending') {
-                        bump('kpiPending', 1);
-                        if (commentStatusChart) {
-                            commentStatusChart.data.datasets[0].data[1]++;
-                            commentStatusChart.update('none');
-                        }
-                    } else if (data.status === 'approved') {
-                        bump('kpiApproved', 1);
-                        bump('kpiPending', -1);
-                        if (commentStatusChart) {
-                            commentStatusChart.data.datasets[0].data[0]++;
-                            commentStatusChart.data.datasets[0].data[1] = Math.max(0, commentStatusChart.data.datasets[0].data[1] - 1);
-                            commentStatusChart.update('none');
-                        }
-                    } else if (data.status === 'rejected') {
-                        bump('kpiRejected', 1);
-                        bump('kpiPending', -1);
-                        if (commentStatusChart) {
-                            commentStatusChart.data.datasets[0].data[2]++;
-                            commentStatusChart.data.datasets[0].data[1] = Math.max(0, commentStatusChart.data.datasets[0].data[1] - 1);
-                            commentStatusChart.update('none');
+            viewsChart = safeChart('viewsChart', function () {
+                return new Chart(document.getElementById('viewsChart'), {
+                    type: 'line',
+                    data: {
+                        labels: @Html.Raw(viewsByDayLabels),
+                        datasets: [{
+                            label: 'بازدید',
+                            data: @Html.Raw(viewsByDayValues),
+                            borderColor: accent,
+                            backgroundColor: 'rgba(227,179,65,0.12)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 2,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 400 },
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+                            y: { beginAtZero: true, ticks: { precision: 0 } }
                         }
                     }
+                });
+            });
 
-                    const pendingEl = document.getElementById('kpiPending');
-                    const pendingCard = document.getElementById('kpiPendingCard');
-                    if (pendingEl && pendingCard) {
-                        const stillPending = parseInt(pendingEl.textContent, 10) > 0;
-                        pendingCard.classList.toggle('kpi-danger', stillPending);
-                        pendingCard.classList.toggle('kpi-good', !stillPending);
+            commentStatusChart = safeChart('commentStatusChart', function () {
+                return new Chart(document.getElementById('commentStatusChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['تأییدشده', 'در انتظار', 'ردشده'],
+                        datasets: [{
+                            data: @Html.Raw(commentStatusValues),
+                            backgroundColor: [good, accent, danger],
+                            borderColor: borderSoft,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '65%',
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } }
                     }
-                }
+                });
+            });
+
+            safeChart('postsByMonthChart', function () {
+                return new Chart(document.getElementById('postsByMonthChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: @Html.Raw(postsByMonthLabels),
+                        datasets: [{
+                            label: 'نوشته‌ها',
+                            data: @Html.Raw(postsByMonthValues),
+                            backgroundColor: info,
+                            borderRadius: 4,
+                            maxBarThickness: 40
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { beginAtZero: true, ticks: { precision: 0 } }
+                        }
+                    }
+                });
+            });
+
+            safeChart('categoryChart', function () {
+                return new Chart(document.getElementById('categoryChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: @Html.Raw(categoryLabels),
+                        datasets: [{
+                            data: @Html.Raw(categoryValues),
+                            backgroundColor: [accent, info, purple, good, danger, '#f2789f'],
+                            borderColor: borderSoft,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '60%',
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } }
+                    }
+                });
             });
         })();
     </script>
