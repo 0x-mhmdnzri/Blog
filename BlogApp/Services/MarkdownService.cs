@@ -86,7 +86,7 @@ public class MarkdownService
             var level = m.Groups[1].Value.Length;
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text)) continue;
-            var slug = SlugifyHeading(text);
+            var slug =SlugifyHeading(text);
             while (prevLevel > level) { sb.Append("</ul></li>"); prevLevel--; }
             if (prevLevel == level)
             {
@@ -125,11 +125,16 @@ public class MarkdownService
         return html;
     }
 
+    /// <summary>
+    /// Keep letters/digits (incl. Persian \u0600-\u06FF) and hyphens for anchor ids.
+    /// Unicode escapes must live in a non-verbatim string — @"\u0600" is literal text.
+    /// </summary>
     private static string SlugifyHeading(string text)
     {
         var s = text.ToLowerInvariant().Trim();
         s = Regex.Replace(s, @"\s+", "-");
-        s = Regex.Replace(s, @"[^\w\u0600-\u06FF\-]", "");
+        // Non-verbatim so \u0600-\u06FF expand to real Arabic/Persian code points.
+        s = Regex.Replace(s, "[^\\w\u0600-\u06FF\\-]", "");
         return s.Length > 80 ? s[..80] : s;
     }
 }
