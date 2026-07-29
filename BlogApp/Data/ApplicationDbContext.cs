@@ -24,6 +24,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TopicCollection> TopicCollections => Set<TopicCollection>();
     public DbSet<TopicCollectionItem> TopicCollectionItems => Set<TopicCollectionItem>();
     public DbSet<PostBookmark> PostBookmarks => Set<PostBookmark>();
+    public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+    public DbSet<AuthorFollow> AuthorFollows => Set<AuthorFollow>();
+    public DbSet<OutboundMessage> OutboundMessages => Set<OutboundMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,18 +37,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             e.HasIndex(p => p.Slug).IsUnique();
             e.Property(p => p.ContentMarkdown).HasColumnType("TEXT");
-            e.HasOne(p => p.CoverMediaAsset)
-                .WithMany()
-                .HasForeignKey(p => p.CoverMediaAssetId)
-                .OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(p => p.Category)
-                .WithMany(c => c.Posts)
-                .HasForeignKey(p => p.CategoryId)
-                .OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(p => p.Author)
-                .WithMany(u => u.Posts)
-                .HasForeignKey(p => p.AuthorId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.CoverMediaAsset).WithMany().HasForeignKey(p => p.CoverMediaAssetId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Category).WithMany(c => c.Posts).HasForeignKey(p => p.CategoryId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Author).WithMany(u => u.Posts).HasForeignKey(p => p.AuthorId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(p => p.IsDeleted);
             e.HasIndex(p => p.IsPublished);
             e.HasIndex(p => p.ScheduledPublishAtUtc);
@@ -55,10 +50,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<Category>(e =>
         {
             e.HasIndex(c => c.Slug).IsUnique();
-            e.HasOne(c => c.Parent)
-                .WithMany(c => c.Children)
-                .HasForeignKey(c => c.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.Parent).WithMany(c => c.Children).HasForeignKey(c => c.ParentId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Tag>().HasIndex(t => t.Slug).IsUnique();
@@ -91,51 +83,33 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<MediaAsset>(e =>
         {
             e.Property(m => m.Content).HasColumnType("BLOB");
-            e.HasOne(m => m.Post)
-                .WithMany(p => p.Media)
-                .HasForeignKey(m => m.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.Post).WithMany(p => p.Media).HasForeignKey(m => m.PostId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Comment>(e =>
         {
-            e.HasOne(c => c.Post)
-                .WithMany(p => p.Comments)
-                .HasForeignKey(c => c.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Post).WithMany(p => p.Comments).HasForeignKey(c => c.PostId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(c => c.LikeCount);
         });
 
         modelBuilder.Entity<CommentLike>(e =>
         {
             e.HasKey(l => new { l.CommentId, l.UserId });
-            e.HasOne(l => l.Comment)
-                .WithMany(c => c.Likes)
-                .HasForeignKey(l => l.CommentId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(l => l.User)
-                .WithMany()
-                .HasForeignKey(l => l.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.Comment).WithMany(c => c.Likes).HasForeignKey(l => l.CommentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<PostView>(e =>
         {
             e.HasIndex(v => v.ViewedAtUtc);
             e.HasIndex(v => new { v.PostId, v.VisitorHash, v.ViewedAtUtc });
-            e.HasOne(v => v.Post)
-                .WithMany(p => p.Views)
-                .HasForeignKey(v => v.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(v => v.Post).WithMany(p => p.Views).HasForeignKey(v => v.PostId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<PostRevision>(e =>
         {
             e.Property(r => r.ContentMarkdown).HasColumnType("TEXT");
-            e.HasOne(r => r.Post)
-                .WithMany(p => p.Revisions)
-                .HasForeignKey(r => r.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Post).WithMany(p => p.Revisions).HasForeignKey(r => r.PostId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(r => r.PostId);
             e.HasIndex(r => r.CreatedAtUtc);
         });
@@ -148,26 +122,44 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<BrokenLinkReport>(e =>
         {
-            e.HasOne(r => r.Post)
-                .WithMany()
-                .HasForeignKey(r => r.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Post).WithMany().HasForeignKey(r => r.PostId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(r => r.PostId);
         });
 
         modelBuilder.Entity<PostBookmark>(e =>
         {
             e.HasKey(b => new { b.UserId, b.PostId });
-            e.HasOne(b => b.User)
-                .WithMany(u => u.Bookmarks)
-                .HasForeignKey(b => b.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(b => b.Post)
-                .WithMany()
-                .HasForeignKey(b => b.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(b => b.User).WithMany(u => u.Bookmarks).HasForeignKey(b => b.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(b => b.Post).WithMany().HasForeignKey(b => b.PostId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(b => b.UserId);
             e.HasIndex(b => b.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<AppNotification>(e =>
+        {
+            e.HasOne(n => n.User).WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(n => new { n.UserId, n.IsRead });
+            e.HasIndex(n => n.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<NotificationPreference>(e =>
+        {
+            e.HasKey(p => p.UserId);
+            e.HasOne(p => p.User).WithOne().HasForeignKey<NotificationPreference>(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AuthorFollow>(e =>
+        {
+            e.HasKey(f => new { f.FollowerUserId, f.AuthorUserId });
+            e.HasOne(f => f.Follower).WithMany().HasForeignKey(f => f.FollowerUserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(f => f.Author).WithMany().HasForeignKey(f => f.AuthorUserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OutboundMessage>(e =>
+        {
+            e.Property(m => m.Body).HasColumnType("TEXT");
+            e.HasIndex(m => m.IsSent);
+            e.HasIndex(m => m.CreatedAtUtc);
         });
 
         modelBuilder.Entity<ApplicationUser>(e =>
