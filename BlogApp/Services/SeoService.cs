@@ -1,34 +1,56 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using BlogApp.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BlogApp.Services;
 
 /// <summary>
-/// Centralizes SEO (search engines) and AEO (answer engines / AI crawlers) concerns:
-/// canonical URLs, Open Graph / Twitter Card values, and JSON-LD structured data
-/// (BlogPosting, BreadcrumbList, WebSite+SearchAction). Controllers build a small
-/// SeoMeta/JSON-LD payload and pass it to the view; the view only renders tags.
+/// Centralizes SEO metadata. Site name/description prefer DB SiteSettings when available,
+/// falling back to appsettings Seo section.
 /// </summary>
 public class SeoService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // keep URLs/quotes readable in the <script> tag
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = false
     };
 
     private readonly IConfiguration _config;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public SeoService(IConfiguration config) => _config = config;
+    public SeoService(IConfiguration config, IServiceScopeFactory scopeFactory)
+    {
+        _config = config;
+        _scopeFactory = scopeFactory;
+    }
 
-    public string SiteName => _config["Seo:SiteName"] ?? "Blog";
-    public string SiteDescription => _config["Seo:SiteDescription"] ?? string.Empty;
-    public string AuthorName => _config["Seo:AuthorName"] ?? SiteName;
-    public string TwitterHandle => _config["Seo:TwitterHandle"] ?? string.Empty;
+    public string SiteName => Resolve(SiteSettingKeys.SiteName, "Seo:SiteName") ?? "Blog";
+    public string SiteDescription => Resolve(SiteSettingKeys.SiteDescription, "Seo:SiteDescription") ?? string.Empty;
+    public string AuthorName => Resolve(SiteSettingKeys.AuthorName, "Seo:AuthorName") ?? SiteName;
+    public string TwitterHandle => Resolve(SiteSettingKeys.TwitterHandle, "Seo:TwitterHandle") ?? string.Empty;
 
-    /// <summary>WebSite + SearchAction schema for the homepage — helps answer engines and
-    /// search engines understand the site is searchable (sitelinks search box eligibility).</summary>
+    private string? Resolve(string dbKey, string configKey)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var site = scope.ServiceProvider.GetService<ISiteConfigService>();
+            if (site is not null)
+            {
+                var v = site.GetAsync(dbKey).GetAwaiter().GetResult();
+                if (!string.IsNullOrWhiteSpace(v)) return v;
+            }
+        }
+        catch
+        {
+            /* DB may not be ready during early bootstrap */
+        }
+
+        return _config[configKey];
+    }
+
     public string BuildWebsiteJsonLd(string baseUrl)
     {
         var schema = new Dictionary<string, object?>
@@ -47,7 +69,6 @@ public class SeoService
         return JsonSerializer.Serialize(schema, JsonOptions);
     }
 
-    /// <summary>BlogPosting schema for a post's Details page.</summary>
     public string BuildPostJsonLd(Post post, string canonicalUrl, string? imageUrl)
     {
         var schema = new Dictionary<string, object?>
@@ -80,8 +101,6 @@ public class SeoService
         return JsonSerializer.Serialize(schema, JsonOptions);
     }
 
-    /// <summary>BreadcrumbList schema — small AEO/SEO win, helps answer engines place the
-    /// page in site context (Home › Category › Post).</summary>
     public string BuildBreadcrumbJsonLd(params (string Name, string Url)[] items)
     {
         var listItems = items.Select((item, i) => new Dictionary<string, object?>

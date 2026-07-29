@@ -32,6 +32,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SearchQueryLog> SearchQueryLogs => Set<SearchQueryLog>();
     public DbSet<ReadingDurationLog> ReadingDurationLogs => Set<ReadingDurationLog>();
     public DbSet<HeatmapClick> HeatmapClicks => Set<HeatmapClick>();
+    public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
+    public DbSet<FeatureFlag> FeatureFlags => Set<FeatureFlag>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<ContentReport> ContentReports => Set<ContentReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -191,6 +195,31 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(m => m.Body).HasColumnType("TEXT");
             e.HasIndex(m => m.IsSent);
             e.HasIndex(m => m.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<SiteSetting>(e =>
+        {
+            e.HasKey(s => s.Key);
+            e.Property(s => s.Value).HasColumnType("TEXT");
+        });
+
+        modelBuilder.Entity<FeatureFlag>(e =>
+        {
+            e.HasKey(f => f.Key);
+        });
+
+        modelBuilder.Entity<AuditLog>(e =>
+        {
+            e.HasIndex(a => a.CreatedAtUtc);
+            e.HasIndex(a => a.Action);
+            e.Property(a => a.Details).HasColumnType("TEXT");
+        });
+
+        modelBuilder.Entity<ContentReport>(e =>
+        {
+            e.HasIndex(r => r.Status);
+            e.HasIndex(r => r.CreatedAtUtc);
+            e.Property(r => r.Details).HasColumnType("TEXT");
         });
 
         modelBuilder.Entity<ApplicationUser>(e =>
