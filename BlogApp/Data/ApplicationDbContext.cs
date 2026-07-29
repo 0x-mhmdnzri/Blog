@@ -18,6 +18,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PostRevision> PostRevisions => Set<PostRevision>();
     public DbSet<RedirectRule> RedirectRules => Set<RedirectRule>();
     public DbSet<BrokenLinkReport> BrokenLinkReports => Set<BrokenLinkReport>();
+    public DbSet<PostSeries> PostSeries => Set<PostSeries>();
+    public DbSet<SeriesPost> SeriesPosts => Set<SeriesPost>();
+    public DbSet<TopicCollection> TopicCollections => Set<TopicCollection>();
+    public DbSet<TopicCollectionItem> TopicCollectionItems => Set<TopicCollectionItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,7 +50,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(p => p.IsSticky);
         });
 
-        modelBuilder.Entity<Category>().HasIndex(c => c.Slug).IsUnique();
+        modelBuilder.Entity<Category>(e =>
+        {
+            e.HasIndex(c => c.Slug).IsUnique();
+            e.HasOne(c => c.Parent)
+                .WithMany(c => c.Children)
+                .HasForeignKey(c => c.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Tag>().HasIndex(t => t.Slug).IsUnique();
 
         modelBuilder.Entity<PostTag>(e =>
@@ -54,6 +66,30 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasKey(pt => new { pt.PostId, pt.TagId });
             e.HasOne(pt => pt.Post).WithMany(p => p.PostTags).HasForeignKey(pt => pt.PostId);
             e.HasOne(pt => pt.Tag).WithMany(t => t.PostTags).HasForeignKey(pt => pt.TagId);
+        });
+
+        modelBuilder.Entity<PostSeries>(e =>
+        {
+            e.HasIndex(s => s.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<SeriesPost>(e =>
+        {
+            e.HasKey(sp => new { sp.SeriesId, sp.PostId });
+            e.HasOne(sp => sp.Series).WithMany(s => s.Posts).HasForeignKey(sp => sp.SeriesId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(sp => sp.Post).WithMany(p => p.SeriesMemberships).HasForeignKey(sp => sp.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TopicCollection>(e =>
+        {
+            e.HasIndex(t => t.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<TopicCollectionItem>(e =>
+        {
+            e.HasOne(i => i.TopicCollection).WithMany(t => t.Items).HasForeignKey(i => i.TopicCollectionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(i => i.Category).WithMany().HasForeignKey(i => i.CategoryId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(i => i.Tag).WithMany().HasForeignKey(i => i.TagId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<MediaAsset>(e =>

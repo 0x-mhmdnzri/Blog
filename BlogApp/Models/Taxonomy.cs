@@ -12,6 +12,16 @@ public class Category
     [Required, MaxLength(90)]
     public string Slug { get; set; } = string.Empty;
 
+    [MaxLength(400)]
+    public string? Description { get; set; }
+
+    /// <summary>Parent category for nesting. Null = root.</summary>
+    public int? ParentId { get; set; }
+    public Category? Parent { get; set; }
+    public ICollection<Category> Children { get; set; } = new List<Category>();
+
+    public int DisplayOrder { get; set; }
+
     public ICollection<Post> Posts { get; set; } = new List<Post>();
 }
 
@@ -25,10 +35,12 @@ public class Tag
     [Required, MaxLength(70)]
     public string Slug { get; set; } = string.Empty;
 
+    [MaxLength(300)]
+    public string? Description { get; set; }
+
     public ICollection<PostTag> PostTags { get; set; } = new List<PostTag>();
 }
 
-/// <summary>Many-to-many join between Post and Tag.</summary>
 public class PostTag
 {
     public int PostId { get; set; }
@@ -36,6 +48,74 @@ public class PostTag
 
     public int TagId { get; set; }
     public Tag Tag { get; set; } = null!;
+}
+
+/// <summary>Ordered collection of posts (e.g. "ASP.NET series").</summary>
+public class PostSeries
+{
+    public int Id { get; set; }
+
+    [Required, MaxLength(120)]
+    public string Name { get; set; } = string.Empty;
+
+    [Required, MaxLength(140)]
+    public string Slug { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public ICollection<SeriesPost> Posts { get; set; } = new List<SeriesPost>();
+}
+
+public class SeriesPost
+{
+    public int SeriesId { get; set; }
+    public PostSeries Series { get; set; } = null!;
+
+    public int PostId { get; set; }
+    public Post Post { get; set; } = null!;
+
+    /// <summary>1-based order within the series.</summary>
+    public int SortOrder { get; set; }
+}
+
+/// <summary>Curated topic grouping categories and/or tags under one landing page.</summary>
+public class TopicCollection
+{
+    public int Id { get; set; }
+
+    [Required, MaxLength(120)]
+    public string Name { get; set; } = string.Empty;
+
+    [Required, MaxLength(140)]
+    public string Slug { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    public bool IsPublished { get; set; } = true;
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public ICollection<TopicCollectionItem> Items { get; set; } = new List<TopicCollectionItem>();
+}
+
+public class TopicCollectionItem
+{
+    public int Id { get; set; }
+
+    public int TopicCollectionId { get; set; }
+    public TopicCollection TopicCollection { get; set; } = null!;
+
+    public int? CategoryId { get; set; }
+    public Category? Category { get; set; }
+
+    public int? TagId { get; set; }
+    public Tag? Tag { get; set; }
+
+    public int SortOrder { get; set; }
 }
 
 public class Comment
