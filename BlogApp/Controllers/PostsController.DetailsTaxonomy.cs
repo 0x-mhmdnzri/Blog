@@ -1,17 +1,14 @@
 using BlogApp.Models;
 using BlogApp.Models.ViewModels;
-using BlogApp.Services;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
-/// <summary>Related posts + series context loaded for Details view.</summary>
 public partial class PostsController
 {
+    /// <summary>Related posts by shared tags + series navigation for the Details page.</summary>
     private async Task LoadTaxonomyContextAsync(Post post)
     {
-        // Related by shared tags (excluding self)
         var tagIds = post.PostTags.Select(pt => pt.TagId).ToList();
         List<RelatedPostItem> related;
         if (tagIds.Count == 0)
@@ -20,28 +17,46 @@ public partial class PostsController
         }
         else
         {
-            related = await _db.Posts
+            var candidates = await _db.Posts
                 .Where(p => !p.IsDeleted && p.IsPublished && p.Id != post.Id)
                 .Where(p => p.PostTags.Any(pt => tagIds.Contains(pt.TagId)))
-                .Select(p => new RelatedPostItem
+                .Select(p => new
                 {
-                    Title = p.Title,
-                    Slug = p.Slug,
-                    Summary = p.Summary,
-                    SharedTagCount = p.PostTags.Count(pt => tagIds.Contains(pt.TagId))
+                    p.Title,
+                    p.Slug,
+                    p.Summary,
+                    Shared = p.PostTags.Count(pt => tagIds.Contains(pt.TagId)),
+                    p.PublishedAtUtc
                 })
-                .OrderByDescending(p => p.SharedTagCount)
-                .ThenByDescending(p => p.Title)
+                .OrderByDescending(p => p.Shared)
+                .ThenByDescending(p => p.PublishedAtUtc)
                 .Take(6)
                 .ToListAsync();
+
+            related = candidates.Select(p => new RelatedPostItem
+            {
+                Title = p.Title,
+                Slug = p.Slug,
+                Summary = p.Summary,
+                SharedTagCount = p.Shared
+            }).ToList();
         }
         ViewBag.RelatedPosts = related;
 
-        // Series memberships
-        var series = await _db.SeriesPosts
+        var memberships = await _db.SeriesPosts
             .Where(sp => sp.PostId == post.Id)
-            .Include(sp => sp.Series).ThenInclude(s => s.Posts).ThenInclude(m => m.Post)
-            .Select(sp => sp.Series)
+            .Select(sp => sp.SeriesId)
+            .ToListAsync();
+
+        if (memberships.Count == 0)
+        {
+            ViewBag.SeriesList = new List<object>();
+            return;
+        }
+
+        var series = await _db.PostSeries
+            .Where(s => memberships.Contains(s.Id))
+            .Include(s => s.Posts).ThenInclude(m => m.Post)
             .ToListAsync();
 
         ViewBag.SeriesList = series.Select(s => new
@@ -49,9 +64,15 @@ public partial class PostsController
             s.Name,
             s.Slug,
             Posts = s.Posts
-                .Where(m => m.Post is { IsDeleted: false, IsPublished: true } || m.PostId == post.Id)
+                .Where(m => m.Post != null && (!m.Post.IsDeleted && m.Post.IsPublished || m.PostId == post.Id))
                 .OrderBy(m => m.SortOrder)
-                .Select(m => new { m.Post.Title, m.Post.Slug, m.SortOrder, IsCurrent = m.PostId == post.Id })
+                .Select(m => new
+                {
+                    m.Post.Title,
+                    m.Post.Slug,
+                    m.SortOrder,
+                    IsCurrent = m.PostId == post.Id
+                })
                 .ToList()
         }).ToList();
     }
