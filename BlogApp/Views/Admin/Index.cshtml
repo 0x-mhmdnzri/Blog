@@ -257,7 +257,7 @@ else
                                 break;
                         }
                     </td>
-                    <td><span class="ltr-field">@c.CreatedAtUtc.ToString("yyyy-MM-dd")</span></td>
+                    <td><span class="ltr-field">@PersianDate.DateTime(c.CreatedAtUtc)</span></td>
                 </tr>
             }
         </tbody>
@@ -269,7 +269,6 @@ else
             onerror="this.dataset.failed='1'"></script>
     <script>
         (function () {
-            // —— Live SSE updates for counters + charts (always registered) ——
             const currentUserId = @Html.Raw(JsonSerializer.Serialize(currentUserId, jsonOptions));
             const seeAllAnalytics = @(seeAllAnalytics ? "true" : "false");
 
@@ -296,7 +295,7 @@ else
                 const last = values.length - 1;
                 if (last < 0) return;
                 values[last] = (Number(values[last]) || 0) + 1;
-                viewsChart.update(); // animated so the line visibly moves
+                viewsChart.update();
             }
 
             function bumpTopPost(data) {
@@ -306,17 +305,10 @@ else
                 if (!row) return;
                 const totalEl = row.querySelector('[data-total-views]');
                 const rangeEl = row.querySelector('[data-range-views]');
-                if (totalEl) {
-                    const n = (parseInt(totalEl.textContent, 10) || 0) + 1;
-                    totalEl.textContent = n;
-                }
-                if (rangeEl) {
-                    const n = (parseInt(rangeEl.textContent, 10) || 0) + 1;
-                    rangeEl.textContent = n;
-                }
+                if (totalEl) totalEl.textContent = (parseInt(totalEl.textContent, 10) || 0) + 1;
+                if (rangeEl) rangeEl.textContent = (parseInt(rangeEl.textContent, 10) || 0) + 1;
             }
 
-            // Must register BEFORE any early return so KPIs still live-update without Chart.js.
             window.addEventListener('admin-sse-message', function (e) {
                 const data = e.detail;
                 if (!data || !data.type) return;
@@ -364,7 +356,6 @@ else
                 }
             });
 
-            // —— Charts (optional; SSE above still works if this fails) ——
             if (typeof Chart === 'undefined') {
                 console.error('Chart.js failed to load — KPI counters still update via SSE.');
                 document.querySelectorAll('.chart-canvas-wrap').forEach(function (el) {
@@ -436,7 +427,7 @@ else
                         responsive: true,
                         maintainAspectRatio: false,
                         cutout: '65%',
-                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } }
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } }
                     }
                 });
             });
