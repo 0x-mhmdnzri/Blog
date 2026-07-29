@@ -367,18 +367,26 @@ public class AdminController : Controller
         ]
     });
 
-    public IActionResult Settings() => View("ComingSoon", new ComingSoonViewModel
+    /// <summary>SuperAdmin → real settings; Authors see locked notice.</summary>
+    [HttpGet]
+    public IActionResult Settings()
     {
-        Title = "تنظیمات سایت",
-        Description = "پیکربندی عمومی، سئو و نمایه نویسنده از همین پنل.",
-        DemoFeatures =
-        [
-            "نام و توضیح سایت",
-            "آدرس پایه و توییتر",
-            "حالت نگهداری (Maintenance)",
-            "بنر اعلان سراسری"
-        ]
-    });
+        if (AuthorAccess.IsSuperAdmin(User))
+            return RedirectToAction("Index", "AdminSettings");
+
+        return View("ComingSoon", new ComingSoonViewModel
+        {
+            Title = "تنظیمات سایت",
+            Description = "پیکربندی عمومی فقط برای SuperAdmin در دسترس است.",
+            DemoFeatures =
+            [
+                "نام و توضیح سایت",
+                "حالت نگهداری",
+                "بنر اعلان سراسری",
+                "پرچم‌های ویژگی"
+            ]
+        });
+    }
 
     public IActionResult SeoTools() => View("ComingSoon", new ComingSoonViewModel
     {
