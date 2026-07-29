@@ -9,10 +9,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
-/// <summary>
-/// Multi-author admin panel. Authors see only their own posts/comments/analytics.
-/// SuperAdmin sees everything.
-/// </summary>
 [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
 public class AdminController : Controller
 {
@@ -111,9 +107,6 @@ public class AdminController : Controller
 
         var currentUser = await _userManager.GetUserAsync(User);
 
-        ViewBag.CurrentUserId = userId;
-        ViewBag.SeeAllAnalytics = seeAll;
-
         var vm = new AdminDashboardViewModel
         {
             TotalPosts = await postQuery.CountAsync(),
@@ -160,21 +153,6 @@ public class AdminController : Controller
         };
 
         return View(vm);
-    }
-
-    /// <summary>
-    /// Wipes all PostView rows and zeros every Post.ViewCount.
-    /// Use once after removing demo/seed traffic so the dashboard starts from zero.
-    /// SuperAdmin only.
-    /// </summary>
-    [HttpPost, ValidateAntiForgeryToken]
-    [Authorize(Roles = AppRoles.SuperAdmin)]
-    public async Task<IActionResult> ResetAnalytics()
-    {
-        await _db.PostViews.ExecuteDeleteAsync();
-        await _db.Posts.ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, 0));
-        TempData["AnalyticsReset"] = "آمار بازدید پاک شد. از این به بعد فقط بازدیدهای واقعی ثبت می‌شوند.";
-        return RedirectToAction(nameof(Index));
     }
 
     public async Task<IActionResult> Comments(string status = "pending")
@@ -283,13 +261,8 @@ public class AdminController : Controller
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, heartbeat.Token);
 
                 string? message = null;
-                try
-                {
-                    message = await reader.ReadAsync(linked.Token);
-                }
-                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-                {
-                }
+                try { message = await reader.ReadAsync(linked.Token); }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { }
 
                 if (cancellationToken.IsCancellationRequested) break;
 
@@ -301,13 +274,8 @@ public class AdminController : Controller
                 await Response.Body.FlushAsync(cancellationToken);
             }
         }
-        catch (OperationCanceledException)
-        {
-        }
-        finally
-        {
-            _broadcaster.Unsubscribe(id);
-        }
+        catch (OperationCanceledException) { }
+        finally { _broadcaster.Unsubscribe(id); }
     }
 
     public async Task<IActionResult> Posts()
@@ -328,9 +296,14 @@ public class AdminController : Controller
                 Slug = p.Slug,
                 CategoryName = p.Category != null ? p.Category.Name : null,
                 IsPublished = p.IsPublished,
+                IsFeatured = p.IsFeatured,
+                IsSticky = p.IsSticky,
+                IsDeleted = p.IsDeleted,
+                ScheduledPublishAtUtc = p.ScheduledPublishAtUtc,
                 CreatedAtUtc = p.CreatedAtUtc,
                 ViewCount = p.ViewCount,
                 CommentCount = p.Comments.Count,
+                ReadingTimeMinutes = p.ReadingTimeMinutes,
                 AuthorDisplayName = p.Author.DisplayName,
                 AuthorId = p.AuthorId
             })
