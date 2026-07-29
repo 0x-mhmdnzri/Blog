@@ -119,12 +119,24 @@ public static class SchemaBootstrap
             );
             """);
 
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "PostBookmarks" (
+                "UserId" TEXT NOT NULL,
+                "PostId" INTEGER NOT NULL,
+                "CreatedAtUtc" TEXT NOT NULL,
+                CONSTRAINT "PK_PostBookmarks" PRIMARY KEY ("UserId", "PostId"),
+                CONSTRAINT "FK_PostBookmarks_AspNetUsers_UserId"
+                    FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_PostBookmarks_Posts_PostId"
+                    FOREIGN KEY ("PostId") REFERENCES "Posts" ("Id") ON DELETE CASCADE
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_PostBookmarks_UserId\" ON \"PostBookmarks\" (\"UserId\");");
+
         logger?.LogInformation("Schema bootstrap complete");
     }
 
-    /// <summary>
-    /// Uses PRAGMA table_info so we never run ALTER when the column exists (avoids EF ERR noise).
-    /// </summary>
     private static async Task TryAddColumnAsync(ApplicationDbContext db, string table, string column, string sqlType)
     {
         if (await ColumnExistsAsync(db, table, column))
@@ -137,13 +149,11 @@ public static class SchemaBootstrap
         }
         catch (Exception)
         {
-            // Race or already-added by another process — safe to ignore.
         }
     }
 
     private static async Task<bool> ColumnExistsAsync(ApplicationDbContext db, string table, string column)
     {
-        // SQLite PRAGMA — table name is from our constant list only (not user input).
         await using var cmd = db.Database.GetDbConnection().CreateCommand();
         if (cmd.Connection!.State != System.Data.ConnectionState.Open)
             await cmd.Connection.OpenAsync();
@@ -152,7 +162,6 @@ public static class SchemaBootstrap
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            // column name is at ordinal 1
             if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
                 return true;
         }
