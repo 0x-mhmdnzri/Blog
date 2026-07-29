@@ -21,6 +21,15 @@
     var categoryValues = JsonSerializer.Serialize(Model.PostsByCategory.Select(c => c.Count), jsonOptions);
     var commentStatusValues = JsonSerializer.Serialize(new[] { Model.ApprovedComments, Model.PendingComments, Model.RejectedComments }, jsonOptions);
     var maxLeaderViews = Math.Max(1, Model.TopPosts.Any() ? Model.TopPosts.Max(p => p.Views) : 1);
+    var currentUserId = ViewBag.CurrentUserId as string ?? "";
+    var seeAllAnalytics = ViewBag.SeeAllAnalytics as bool? ?? false;
+}
+
+@if (TempData["AnalyticsReset"] != null)
+{
+    <div class="alert mb-3" style="background:rgba(158,203,140,.12);color:var(--good,#9ecb8c);border:1px solid rgba(158,203,140,.35);">
+        @TempData["AnalyticsReset"]
+    </div>
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -28,6 +37,17 @@
         <a class="admin-tab @(Model.RangeDays == 7 ? "active" : "")" asp-action="Index" asp-route-range="7">۷ روز اخیر</a>
         <a class="admin-tab @(Model.RangeDays == 30 ? "active" : "")" asp-action="Index" asp-route-range="30">۳۰ روز اخیر</a>
         <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Index" asp-route-range="90">۹۰ روز اخیر</a>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <a class="btn btn-accent btn-sm" asp-controller="Posts" asp-action="Create">نوشته جدید</a>
+        @if (Model.IsSuperAdmin)
+        {
+            <form asp-action="ResetAnalytics" method="post" class="d-inline"
+                  onsubmit="return confirm('همه آمار بازدید پاک شود؟ این کار قابل بازگشت نیست.');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-ghost btn-sm" title="پاک‌کردن بازدیدهای قدیمی/دمو">ریست آمار بازدید</button>
+            </form>
+        }
     </div>
 </div>
 
@@ -99,7 +119,6 @@
     </div>
 </div>
 
-<!-- Charts row 1 -->
 <div class="row g-3 mb-3">
     <div class="col-lg-8">
         <div class="chart-card">
@@ -121,7 +140,6 @@
     </div>
 </div>
 
-<!-- Charts row 2 -->
 <div class="row g-3 mb-4">
     <div class="col-lg-7">
         <div class="chart-card">
@@ -143,7 +161,6 @@
     </div>
 </div>
 
-<!-- Top posts leaderboard -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="h6 mb-0 text-muted-dark">پربازدیدترین نوشته‌ها</h2>
     <a class="btn btn-ghost btn-sm" asp-action="Posts">مشاهده همه نوشته‌ها</a>
@@ -186,7 +203,6 @@ else
     </table>
 }
 
-<!-- Recent comments -->
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="h6 mb-0 text-muted-dark">آخرین دیدگاه‌ها</h2>
     <a class="btn btn-ghost btn-sm" asp-action="Comments">مشاهده همه</a>
@@ -244,8 +260,11 @@ else
             onerror="this.dataset.failed='1'"></script>
     <script>
         (function () {
+            const currentUserId = @Html.Raw(JsonSerializer.Serialize(currentUserId, jsonOptions));
+            const seeAllAnalytics = @Html.Raw(seeAllAnalytics ? "true" : "false");
+
             if (typeof Chart === 'undefined') {
-                console.error('Chart.js failed to load — charts on this page will not render. Check network access to cdn.jsdelivr.net.');
+                console.error('Chart.js failed to load — charts on this page will not render.');
                 document.querySelectorAll('.chart-canvas-wrap').forEach(el => {
                     el.innerHTML = '<div class="admin-empty" style="padding:1rem;">' +
                         '<p class="mb-0">بارگذاری کتابخانه نمودار ناموفق بود.</p></div>';
@@ -266,8 +285,6 @@ else
             Chart.defaults.borderColor = borderSoft;
             Chart.defaults.font.family = "Vazirmatn, sans-serif";
 
-            // Each chart is created independently — one bad dataset/canvas shouldn't blank
-            // out the other three the way a single unguarded script used to.
             function safeChart(label, factory) {
                 try { return factory(); }
                 catch (err) { console.error('Chart failed to render: ' + label, err); return null; }
@@ -372,12 +389,15 @@ else
                 setTimeout(() => el.classList.remove('kpi-flash'), 900);
             }
 
-            // Live updates pushed from the server over the shared SSE connection opened in
-            // _AdminLayout.cshtml — no polling, no manual refresh needed.
+            function isRelevantView(data) {
+                if (seeAllAnalytics) return true;
+                return data.authorId && data.authorId === currentUserId;
+            }
+
             window.addEventListener('admin-sse-message', (e) => {
                 const data = e.detail;
 
-                if (data.type === 'view') {
+                if (data.type === 'view' && isRelevantView(data)) {
                     bump('kpiViewsToday', 1);
                     bump('kpiViewsRange', 1);
                     bump('kpiViewsTotal', 1);
