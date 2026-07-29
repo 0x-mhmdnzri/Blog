@@ -34,6 +34,25 @@ public class MarkdownService
             return $"\n\n[[VIDEO_EMBED_{mediaId}]]\n\n";
         });
         var html = Markdown.ToHtml(withVideos, _pipeline);
+
+        // Force LTR on fenced code blocks (English / source code signatures).
+        html = Regex.Replace(html, @"<pre>", "<pre class=\"md-code-block\" dir=\"ltr\">");
+        html = Regex.Replace(html, @"<code>", "<code dir=\"ltr\">");
+
+        // Tables: RTL shell; cells can auto-detect mixed English/Persian.
+        html = Regex.Replace(html, @"<table>", "<table class=\"md-table\" dir=\"rtl\">");
+        html = Regex.Replace(html, @"<td>", "<td dir=\"auto\">");
+        html = Regex.Replace(html, @"<th>", "<th dir=\"auto\">");
+
+        // Paragraphs: browser bidirectional algorithm for mixed scripts.
+        html = Regex.Replace(html, @"<p>", "<p dir=\"auto\">");
+
+        html = Regex.Replace(html, @"<p dir=\"auto\">\[\[VIDEO_EMBED_(\d+)\]\]</p>", m =>
+        {
+            var id = m.Groups[1].Value;
+            return $"<div class=\"post-video-embed\"><video controls preload=\"metadata\" src=\"/media/{id}\"></video></div>";
+        });
+        // Fallback if dir attribute missing on video placeholder
         html = Regex.Replace(html, @"<p>\[\[VIDEO_EMBED_(\d+)\]\]</p>", m =>
         {
             var id = m.Groups[1].Value;
@@ -65,26 +84,26 @@ public class MarkdownService
         if (matches.Count < 2) return string.Empty;
 
         var sb = new StringBuilder();
-        sb.Append($"<nav class=\"{cssClass}\" aria-label=\"TOC\">");
-        sb.Append("<p class=\"toc-title\">\u0641\u0647\u0631\u0633\u062A \u0645\u0637\u0627\u0644\u0628</p><ul>");
+        sb.Append($"<nav class=\"{cssClass}\" aria-label=\"فهرست مطالب\" dir=\"rtl\">");
+        sb.Append("<p class=\"toc-title\">فهرست مطالب</p><ul>");
         int prevLevel = 0;
         foreach (Match m in matches)
         {
             var level = m.Groups[1].Value.Length;
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text)) continue;
-            var slug = SlugifyHeading(text);
+            var slug =SlugifyHeading(text);
             while (prevLevel > level) { sb.Append("</ul></li>"); prevLevel--; }
             if (prevLevel == level)
             {
                 if (prevLevel > 0) sb.Append("</li>");
-                sb.Append($"<li><a href=\"#{slug}\">{text}</a>");
+                sb.Append($"<li><a href=\"#{slug}\" dir=\"auto\">{text}</a>");
             }
             else if (level > prevLevel)
             {
                 for (int i = prevLevel; i < level - 1; i++) sb.Append("<ul><li>");
                 if (prevLevel > 0) sb.Append("<ul>");
-                sb.Append($"<li><a href=\"#{slug}\">{text}</a>");
+                sb.Append($"<li><a href=\"#{slug}\" dir=\"auto\">{text}</a>");
             }
             prevLevel = level;
         }
@@ -102,7 +121,7 @@ public class MarkdownService
             var level = m.Groups[1].Value;
             var inner = m.Groups[2].Value;
             var plain = Regex.Replace(inner, "<.*?>", "").Trim();
-            return $"<h{level} id=\"{SlugifyHeading(plain)}\">{inner}</h{level}>";
+            return $"<h{level} id=\"{SlugifyHeading(plain)}\" dir=\"auto\">{inner}</h{level}>";
         }, RegexOptions.Singleline);
         if (includeToc)
         {

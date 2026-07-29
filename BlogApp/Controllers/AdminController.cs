@@ -107,6 +107,9 @@ public class AdminController : Controller
 
         var currentUser = await _userManager.GetUserAsync(User);
 
+        ViewBag.CurrentUserId = userId;
+        ViewBag.SeeAllAnalytics = seeAll;
+
         var vm = new AdminDashboardViewModel
         {
             TotalPosts = await postQuery.CountAsync(),
@@ -153,6 +156,16 @@ public class AdminController : Controller
         };
 
         return View(vm);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.SuperAdmin)]
+    public async Task<IActionResult> ResetAnalytics()
+    {
+        await _db.PostViews.ExecuteDeleteAsync();
+        await _db.Posts.ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, 0));
+        TempData["AnalyticsReset"] = "آمار بازدید پاک شد. از این به بعد فقط بازدیدهای واقعی ثبت می‌شوند.";
+        return RedirectToAction(nameof(Index));
     }
 
     public async Task<IActionResult> Comments(string status = "pending")
@@ -331,18 +344,65 @@ public class AdminController : Controller
     public IActionResult Media() => View("ComingSoon", new ComingSoonViewModel
     {
         Title = "رسانه‌ها",
-        Description = "کتابخانه رسانه برای مرور، جست‌وجو و مدیریت همه تصاویر و ویدیوهای آپلودشده در یک صفحه — به‌زودی اضافه می‌شود."
+        Description = "کتابخانه رسانه برای مرور و مدیریت تصاویر، ویدیو و فایل‌های آپلودشده.",
+        DemoFeatures =
+        [
+            "گالری شبکه‌ای با پیش‌نمایش",
+            "جست‌وجو بر اساس نام و نوع فایل",
+            "فشرده‌سازی تصویر و تبدیل WebP",
+            "حذف گروهی و جایگزینی در نوشته‌ها"
+        ]
     });
 
     public IActionResult CategoriesAdmin() => View("ComingSoon", new ComingSoonViewModel
     {
         Title = "دسته‌بندی‌ها و برچسب‌ها",
-        Description = "افزودن، ویرایش و حذف دسته‌بندی‌ها و برچسب‌ها بدون نیاز به دیتابیس — به‌زودی اضافه می‌شود."
+        Description = "مدیریت ساختار محتوا بدون دست‌کاری دیتابیس به‌صورت دستی.",
+        DemoFeatures =
+        [
+            "افزودن / ویرایش / حذف دسته",
+            "دسته‌های تو در تو",
+            "مدیریت برچسب‌ها و ادغام تکراری‌ها",
+            "شمارش نوشته‌های هر دسته"
+        ]
     });
 
     public IActionResult Settings() => View("ComingSoon", new ComingSoonViewModel
     {
-        Title = "تنظیمات",
-        Description = "تنظیمات نمایه نویسنده، شبکه‌های اجتماعی و پیکربندی سایت — به‌زودی اضافه می‌شود."
+        Title = "تنظیمات سایت",
+        Description = "پیکربندی عمومی، سئو و نمایه نویسنده از همین پنل.",
+        DemoFeatures =
+        [
+            "نام و توضیح سایت",
+            "آدرس پایه و توییتر",
+            "حالت نگهداری (Maintenance)",
+            "بنر اعلان سراسری"
+        ]
+    });
+
+    public IActionResult SeoTools() => View("ComingSoon", new ComingSoonViewModel
+    {
+        Title = "ابزارهای سئو",
+        Description = "نقشه سایت، ریدایرکت و تشخیص لینک شکسته از پنل مدیریت.",
+        DemoFeatures =
+        [
+            "مدیریت ریدایرکت ۳۰۱ / ۳۰۲",
+            "اسکن لینک‌های شکسته در نوشته‌ها",
+            "پیش‌نمایش متا و Open Graph",
+            "خروجی sitemap.xml زنده"
+        ]
+    });
+
+    public IActionResult Newsletter() => View("ComingSoon", new ComingSoonViewModel
+    {
+        Title = "خبرنامه",
+        Description = "عضویت خوانندگان و ارسال خلاصه هفتگی.",
+        DemoFeatures =
+        [
+            "فرم عضویت دو مرحله‌ای",
+            "بخش‌بندی مخاطبان",
+            "زمان‌بندی ارسال",
+            "آمار بازشدن ایمیل"
+        ]
     });
 }
