@@ -15,45 +15,49 @@ public class RedirectMiddleware
 
     public async Task InvokeAsync(HttpContext context, ApplicationDbContext db)
     {
-        // Only intercept GET/HEAD for public-looking paths
         if (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method))
         {
             var path = context.Request.Path.Value ?? "/";
             if (!path.StartsWith('/')) path = "/" + path;
 
-            // Skip admin/api noise
             if (!path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/Account", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/media/upload", StringComparison.OrdinalIgnoreCase))
             {
-                var rule = await db.RedirectRules
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(r => r.IsActive && r.FromPath == path);
-
-                if (rule is not null)
+                try
                 {
-                    // Fire-and-forget hit counter (best-effort)
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await using var scope = context.RequestServices.CreateAsyncScope();
-                            var scopedDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                            var tracked = await scopedDb.RedirectRules.FindAsync(rule.Id);
-                            if (tracked is not null)
-                            {
-                                tracked.HitCount++;
-                                tracked.LastHitAtUtc = DateTime.UtcNow;
-                                await scopedDb.SaveChangesAsync();
-                            }
-                        }
-                        catch { /* ignore */ }
-                    });
+                    var rule = await db.RedirectRules
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(r => r.IsActive && r.FromPath == path);
 
-                    var status = rule.StatusCode is 301 or 302 or 307 or 308 ? rule.StatusCode : 301;
-                    context.Response.StatusCode = status;
-                    context.Response.Headers.Location = rule.ToUrl;
-                    return;
+                    if (rule is not null)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await using var scope = context.RequestServices.CreateAsyncScope();
+                                var scopedDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                                var tracked = await scopedDb.RedirectRules.FindAsync(rule.Id);
+                                if (tracked is not null)
+                                {
+                                    tracked.HitCount++;
+                                    tracked.LastHitAtUtc = DateTime.UtcNow;
+                                    await scopedDb.SaveChangesAsync();
+                                }
+                            }
+                            catch { /* ignore */ }
+                        });
+
+                        var status = rule.StatusCode is 301 or 302 or 307 or 308 ? rule.StatusCode : 301;
+                        context.Response.StatusCode = status;
+                        context.Response.Headers.Location = rule.ToUrl;
+                        return;
+                    }
+                }
+                catch (Microsoft.Data.Sqlite.SqliteException)
+                {
+                    // Table missing on old DB — SchemaBootstrap should fix on next restart.
                 }
             }
         }

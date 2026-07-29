@@ -70,10 +70,12 @@ using (var scope = app.Services.CreateScope())
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
     db.Database.EnsureCreated();
+    // Patch existing SQLite files that were created before newer tables/columns
+    await SchemaBootstrap.EnsureAsync(db);
     await DbSeeder.SeedAsync(db, userManager, roleManager, config);
 }
 
-var forceHttps = builder.Configuration.GetValue("ForceHttps", true);
+var forceHttps = builder.Configuration.GetValue("ForceHttps", false);
 
 if (!app.Environment.IsDevelopment())
 {
@@ -85,7 +87,6 @@ if (forceHttps) app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// SEO redirects (301/302) before auth so public paths resolve correctly
 app.UseMiddleware<RedirectMiddleware>();
 
 app.UseAuthentication();
