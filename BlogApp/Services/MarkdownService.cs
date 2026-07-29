@@ -125,7 +125,7 @@ public class MarkdownService
         return html;
     }
 
-    private static stringSlugifyHeading(string text)
+    private static string SlugifyHeading(string text)
     {
         var s = text.ToLowerInvariant().Trim();
         s = Regex.Replace(s, @"\s+", "-");
