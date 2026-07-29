@@ -1,0 +1,68 @@
+/* Blur-up progressive media — soft until fully loaded */
+.media-blur-wrap {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius, 10px);
+  background: var(--surface-2, #171c27);
+  isolation: isolate;
+}
+
+.media-blur-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, transparent 40%, rgba(227, 179, 65, 0.06) 50%, transparent 60%);
+  background-size: 200% 100%;
+  opacity: 0.6;
+  animation: media-shimmer 1.4s ease-in-out infinite;
+  transition: opacity 0.35s ease;
+}
+
+.media-blur-wrap.is-ready::after {
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes media-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+img.media-blur,
+video.media-blur {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: blur(18px);
+  transform: scale(1.04);
+  opacity: 0.65;
+  transition:
+    filter 0.45s ease,
+    transform 0.45s ease,
+    opacity 0.45s ease;
+  will-change: filter, opacity;
+}
+
+img.media-blur.is-loaded,
+video.media-blur.is-loaded {
+  filter: none;
+  transform: none;
+  opacity: 1;
+  will-change: auto;
+}
+
+/* Prefer reduced motion: skip blur animation */
+@media (prefers-reduced-motion: reduce) {
+  img.media-blur,
+  video.media-blur {
+    filter: none;
+    transform: none;
+    opacity: 1;
+    transition: none;
+  }
+  .media-blur-wrap::after {
+    display: none;
+  }
+}

@@ -34,7 +34,6 @@ public class MarkdownService
     private static readonly Regex CodeHtmlRegex =
         new(@"<code(\s[^>]*)?>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    // <img src="..." alt="..." ... />  (self-closing or not)
     private static readonly Regex ImgHtmlRegex =
         new(@"<img\s+([^>]*?)\s*/?>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
@@ -91,7 +90,6 @@ public class MarkdownService
             return $"<{tag} dir=\"{dir}\">{inner}</{tag}>";
         });
 
-        // Blur-up images: lazy + media-blur class + wrapper
         html = ImgHtmlRegex.Replace(html, m =>
         {
             var attrs = m.Groups[1].Value;
@@ -151,7 +149,7 @@ public class MarkdownService
             var level = m.Groups[1].Value.Length;
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text)) continue;
-            var slug =SlugifyHeading(text);
+            var slug = SlugifyHeading(text);
             var dir = DetectDir(text);
             while (prevLevel > level) { sb.Append("</ul></li>"); prevLevel--; }
             if (prevLevel == level)
@@ -240,7 +238,7 @@ public class MarkdownService
     private static bool IsVideoPlaceholder(string plain) =>
         plain.StartsWith("[[VIDEO_EMBED_", StringComparison.Ordinal);
 
-    private static stringSlugifyHeading(string text)
+    private static string SlugifyHeading(string text)
     {
         var s = text.ToLowerInvariant().Trim();
         s = Regex.Replace(s, @"\s+", "-");
