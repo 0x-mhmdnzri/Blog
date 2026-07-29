@@ -26,7 +26,7 @@ public static class SafeUpload
 
         var rawName = Path.GetFileName(file.FileName ?? "upload");
         var ext = Path.GetExtension(rawName);
-        if (string.IsNullOrEmpty(ext) || ext.Contains('..', StringComparison.Ordinal))
+        if (string.IsNullOrEmpty(ext) || ext.Contains("..", StringComparison.Ordinal))
             return Fail("پسوند فایل نامعتبر است.");
 
         // Read a header sample without loading the entire body twice when possible.
