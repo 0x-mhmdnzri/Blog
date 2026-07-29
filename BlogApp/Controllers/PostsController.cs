@@ -2,6 +2,7 @@ using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
+using BlogApp.Services.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -16,6 +17,7 @@ public partial class PostsController : Controller
     private readonly SeoService _seo;
     private readonly AnalyticsBroadcaster _broadcaster;
     private readonly AiContentService _ai;
+    private readonly INotificationService _notify;
     private readonly ILogger<PostsController> _logger;
 
     public PostsController(
@@ -24,6 +26,7 @@ public partial class PostsController : Controller
         SeoService seo,
         AnalyticsBroadcaster broadcaster,
         AiContentService ai,
+        INotificationService notify,
         ILogger<PostsController> logger)
     {
         _db = db;
@@ -31,6 +34,7 @@ public partial class PostsController : Controller
         _seo = seo;
         _broadcaster = broadcaster;
         _ai = ai;
+        _notify = notify;
         _logger = logger;
     }
 
@@ -262,8 +266,8 @@ public partial class PostsController : Controller
         authorName = new string(authorName.Where(c => !char.IsControl(c)).ToArray());
         body = new string(body.Where(c => c is '\n' or '\r' or '\t' || !char.IsControl(c)).ToArray());
 
-        var postExists = await _db.Posts.AnyAsync(p => p.Id == postId && p.IsPublished && !p.IsDeleted);
-        if (!postExists)
+        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId && p.IsPublished && !p.IsDeleted);
+        if (post is null)
             return NotFound();
 
         var comment = new Comment
@@ -276,17 +280,26 @@ public partial class PostsController : Controller
         _db.Comments.Add(comment);
         await _db.SaveChangesAsync();
         TempData["CommentSubmitted"] = "ممنون — دیدگاه شما در انتظار بررسی است.";
-        var info = await _db.Posts.Where(p => p.Id == postId).Select(p => new { p.Title, p.AuthorId, p.Slug }).FirstOrDefaultAsync();
+
+        try
+        {
+            await _notify.NotifyNewCommentAsync(post, comment);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Notify new comment failed PostId={PostId}", postId);
+        }
+
         _broadcaster.Publish(new
         {
             type = "comment",
             status = "pending",
             postId,
-            postTitle = info?.Title,
-            authorId = info?.AuthorId,
+            postTitle = post.Title,
+            authorId = post.AuthorId,
             authorName = comment.AuthorName
         });
 
-        return RedirectToAction(nameof(Details), new { slug = info?.Slug });
+        return RedirectToAction(nameof(Details), new { slug = post.Slug });
     }
 }
