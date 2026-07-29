@@ -4,6 +4,8 @@
     var readingMinutes = ViewBag.ReadingTimeMinutes as int? ?? Math.Max(1, Model.ReadingTimeMinutes);
     var canEdit = ViewBag.CanEdit as bool? ?? false;
     var published = Model.PublishedAtUtc ?? Model.CreatedAtUtc;
+    var related = ViewBag.RelatedPosts as List<RelatedPostItem> ?? new();
+    var seriesList = ViewBag.SeriesList as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 }
 
 @section Head {
@@ -35,7 +37,8 @@
 
     @if (Model.Category != null)
     {
-        <span class="badge-category mb-3 d-inline-block" dir="auto">@Model.Category.Name</span>
+        <a class="badge-category mb-3 d-inline-block" dir="auto"
+           asp-controller="Home" asp-action="Index" asp-route-category="@Model.Category.Slug">@Model.Category.Name</a>
     }
 
     <h1 class="mb-3" dir="auto">@Model.Title</h1>
@@ -59,6 +62,31 @@
         <span><span class="ltr-field">@Model.ViewCount</span> بازدید</span>
     </div>
 
+    @foreach (var s in seriesList)
+    {
+        <div class="card-surface p-3 mb-4">
+            <div class="small text-muted-dark mb-2">
+                بخشی از سری:
+                <a href="/series/@s.Slug" dir="auto">@s.Name</a>
+            </div>
+            <ol class="mb-0" style="padding-right:1.2rem;">
+                @foreach (var sp in s.Posts)
+                {
+                    <li class="mb-1" style="@(sp.IsCurrent ? "font-weight:700;color:var(--accent);" : "")">
+                        @if (sp.IsCurrent)
+                        {
+                            <span dir="auto">@sp.Title</span>
+                        }
+                        else
+                        {
+                            <a asp-controller="Posts" asp-action="Details" asp-route-slug="@sp.Slug" dir="auto">@sp.Title</a>
+                        }
+                    </li>
+                }
+            </ol>
+        </div>
+    }
+
     <div class="readme-content" dir="auto">
         @Html.Raw(ViewBag.RenderedHtml)
     </div>
@@ -71,6 +99,28 @@
                 <a class="tag-pill" dir="auto" asp-controller="Home" asp-action="Index" asp-route-tag="@pt.Tag.Slug">#@pt.Tag.Name</a>
             }
         </div>
+    }
+
+    @if (related.Any())
+    {
+        <section class="mt-5 pt-4" style="border-top:1px solid var(--border-soft);">
+            <h2 class="h6 text-muted-dark mb-3">نوشته‌های مرتبط</h2>
+            <div class="row g-3">
+                @foreach (var r in related)
+                {
+                    <div class="col-md-6">
+                        <div class="card-surface p-3 h-100">
+                            <a asp-controller="Posts" asp-action="Details" asp-route-slug="@r.Slug"
+                               dir="auto" style="font-weight:600;color:var(--text);">@r.Title</a>
+                            @if (!string.IsNullOrEmpty(r.Summary))
+                            {
+                                <p class="text-muted-dark small mb-0 mt-1" dir="auto">@(r.Summary.Length > 120 ? r.Summary[..120] + "…" : r.Summary)</p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
     }
 
     <section class="mt-5 pt-4 comments-section" style="border-top:1px solid var(--border-soft);">
