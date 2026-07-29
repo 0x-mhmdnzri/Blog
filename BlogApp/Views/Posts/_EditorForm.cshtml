@@ -9,14 +9,14 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-8">
-        <label class="form-label">\u0639\u0646\u0648\u0627\u0646</label>
+        <label class="form-label">عنوان</label>
         <input asp-for="Title" class="form-control" dir="auto" />
         <span asp-validation-for="Title" class="text-danger small"></span>
     </div>
     <div class="col-md-4">
-        <label class="form-label">\u062F\u0633\u062A\u0647\u200C\u0628\u0646\u062F\u06CC</label>
+        <label class="form-label">دسته‌بندی</label>
         <select asp-for="CategoryId" class="form-select">
-            <option value="">\u2014</option>
+            <option value="">—</option>
             @foreach (var c in Model.AvailableCategories)
             {
                 <option value="@c.Id">@c.Name</option>
@@ -27,14 +27,14 @@
 
 <div class="row g-3 mb-3">
     <div class="col-md-8">
-        <label class="form-label">\u062E\u0644\u0627\u0635\u0647</label>
+        <label class="form-label">خلاصه</label>
         <div class="input-group">
             <input asp-for="Summary" class="form-control" dir="auto" maxlength="400" id="summary-input" />
             <button type="button" class="btn btn-ghost" id="btn-ai-summarize">AI</button>
         </div>
     </div>
     <div class="col-md-4">
-        <label class="form-label">\u0628\u0631\u0686\u0633\u0628\u200C\u0647\u0627</label>
+        <label class="form-label">برچسب‌ها</label>
         <div class="input-group">
             <input asp-for="TagsCsv" class="form-control ltr-field" id="tags-input" />
             <button type="button" class="btn btn-ghost" id="btn-ai-assist">AI</button>
@@ -46,38 +46,38 @@
     <div class="col-md-3">
         <div class="form-check form-switch">
             <input asp-for="IsPublished" class="form-check-input" type="checkbox" />
-            <label asp-for="IsPublished" class="form-check-label">\u0645\u0646\u062A\u0634\u0631</label>
+            <label asp-for="IsPublished" class="form-check-label">منتشر</label>
         </div>
     </div>
     <div class="col-md-3">
         <div class="form-check form-switch">
             <input asp-for="IsFeatured" class="form-check-input" type="checkbox" />
-            <label asp-for="IsFeatured" class="form-check-label">\u0648\u06CC\u0698\u0647</label>
+            <label asp-for="IsFeatured" class="form-check-label">ویژه</label>
         </div>
     </div>
     <div class="col-md-3">
         <div class="form-check form-switch">
             <input asp-for="IsSticky" class="form-check-input" type="checkbox" />
-            <label asp-for="IsSticky" class="form-check-label">Sticky</label>
+            <label asp-for="IsSticky" class="form-check-label">چسبان</label>
         </div>
     </div>
     <div class="col-md-3">
-        <span class="text-muted-dark small">\u0645\u0637\u0627\u0644\u0639\u0647: <strong id="reading-time-display">@(Model.ReadingTimeMinutes > 0 ? Model.ReadingTimeMinutes : "\u2014")</strong> min</span>
+        <span class="text-muted-dark small">مطالعه: <strong id="reading-time-display">@(Model.ReadingTimeMinutes > 0 ? Model.ReadingTimeMinutes : "—")</strong> دقیقه</span>
     </div>
 </div>
 
 <div class="row g-3 mb-4">
     <div class="col-md-6">
-        <label class="form-label">\u0627\u0646\u062A\u0634\u0627\u0631 \u0632\u0645\u0627\u0646\u200C\u0628\u0646\u062F\u06CC (UTC)</label>
+        <label class="form-label">انتشار زمان‌بندی‌شده (UTC)</label>
         <input asp-for="ScheduledPublishAtUtc" type="datetime-local" class="form-control ltr-field" />
     </div>
     <div class="col-md-6">
-        <label class="form-label">\u0627\u0646\u0642\u0636\u0627 (UTC)</label>
+        <label class="form-label">انقضا (UTC)</label>
         <input asp-for="ExpiresAtUtc" type="datetime-local" class="form-control ltr-field" />
     </div>
 </div>
 
-<label class="form-label">Markdown</label>
+<label class="form-label">محتوا (مارک‌داون)</label>
 <div class="editor-shell mb-2">
     <div class="editor-toolbar">
         <button type="button" data-md-action="h2">H2</button>
@@ -87,7 +87,7 @@
         <button type="button" id="btn-ai-grammar">AI Grammar</button>
         @if (Model.Id > 0)
         {
-            <button type="button" id="btn-autosave" class="btn-ghost">Auto-save</button>
+            <button type="button" id="btn-autosave" class="btn-ghost">ذخیره خودکار</button>
         }
     </div>
     <div class="row g-0">
@@ -105,24 +105,30 @@
 </div>
 
 <div id="ai-hints" class="alert mb-3 d-none" style="background:rgba(99,140,229,.1);border:1px solid rgba(99,140,229,.3);"></div>
-<div id="dropzone" class="upload-dropzone mb-4">Drop image/video or click</div>
+<div id="dropzone" class="upload-dropzone mb-4">تصویر یا ویدیو را اینجا رها کنید یا کلیک کنید</div>
 <input type="file" id="file-input" accept="image/*,video/*" class="d-none" />
 
 @if (Model.Revisions?.Any() == true)
 {
     <div class="mb-4">
-        <h5 class="text-muted-dark">Revisions</h5>
+        <h5 class="text-muted-dark">تاریخچه نسخه‌ها</h5>
         <ul class="list-group list-group-flush">
             @foreach (var r in Model.Revisions)
             {
                 <li class="list-group-item d-flex justify-content-between align-items-center" style="background:transparent;border-color:var(--border);">
-                    <span><strong>@r.Title</strong> <small class="text-muted">@r.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</small>
-                    @if (!string.IsNullOrEmpty(r.Note)) { <span class="badge bg-secondary">@r.Note</span> }</span>
+                    <span>
+                        <strong dir="auto">@r.Title</strong>
+                        <small class="text-muted ltr-field">@r.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</small>
+                        @if (!string.IsNullOrEmpty(r.Note))
+                        {
+                            <span class="badge bg-secondary">@r.Note</span>
+                        }
+                    </span>
                     <form asp-action="RestoreRevision" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="postId" value="@Model.Id" />
                         <input type="hidden" name="revisionId" value="@r.Id" />
-                        <button type="submit" class="btn btn-sm btn-ghost">Restore</button>
+                        <button type="submit" class="btn btn-sm btn-ghost">بازگردانی</button>
                     </form>
                 </li>
             }
@@ -131,14 +137,14 @@
 }
 
 <div class="d-flex gap-2 flex-wrap">
-    <button type="submit" class="btn btn-accent">Save</button>
+    <button type="submit" class="btn btn-accent">ذخیره</button>
     @if (Model.Id > 0)
     {
         <form asp-action="Duplicate" method="post" class="d-inline">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" value="@Model.Id" />
-            <button type="submit" class="btn btn-ghost">Duplicate</button>
+            <button type="submit" class="btn btn-ghost">کپی</button>
         </form>
     }
-    <a asp-controller="Admin" asp-action="Posts" class="btn btn-ghost">Cancel</a>
+    <a asp-controller="Admin" asp-action="Posts" class="btn btn-ghost">انصراف</a>
 </div>
