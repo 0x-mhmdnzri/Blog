@@ -9,6 +9,13 @@
     var postUrl = Url.Action("Details", "Posts", new { slug = Model.Slug })!;
     var canBookmark = User.Identity?.IsAuthenticated == true
         && (User.IsInRole(AppRoles.Reader) || User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
+    var canLike = canBookmark;
+    var commentSort = (ViewBag.CommentSort as string) ?? "relevant";
+    var likedIds = ViewBag.LikedCommentIds as HashSet<int> ?? new HashSet<int>();
+
+    IEnumerable<Comment> orderedComments = commentSort == "latest"
+        ? Model.Comments.OrderByDescending(c => c.CreatedAtUtc)
+        : Model.Comments.OrderByDescending(c => c.LikeCount).ThenByDescending(c => c.CreatedAtUtc);
 }
 
 @section Head {
@@ -51,7 +58,6 @@
     <div class="d-flex justify-content-between align-items-start gap-3 mb-3 flex-wrap">
         <h1 class="post-title mb-0" dir="@titleDir">@Model.Title</h1>
 
-        @* Bookmark: guest → login with returnUrl; signed-in → toggle *@
         @if (canBookmark)
         {
             <form asp-controller="Bookmarks" asp-action="Toggle" method="post" class="d-inline">
@@ -59,8 +65,7 @@
                 <input type="hidden" name="postId" value="@Model.Id" />
                 <input type="hidden" name="returnUrl" value="@postUrl" />
                 <button type="submit" class="btn btn-ghost btn-sm bookmark-btn @(isBookmarked ? "bookmarked" : "")"
-                        title="@(isBookmarked ? "برداشتن نشان" : "نشان‌گذاری")"
-                        aria-label="@(isBookmarked ? "برداشتن نشان" : "نشان‌گذاری")">
+                        title="@(isBookmarked ? "برداشتن نشان" : "نشان‌گذاری")">
                     @(isBookmarked ? "★ نشان‌شده" : "☆ نشان")
                 </button>
             </form>
@@ -70,9 +75,7 @@
             <a class="btn btn-ghost btn-sm bookmark-btn"
                asp-controller="Account" asp-action="Login"
                asp-route-returnUrl="@postUrl"
-               title="برای نشان‌گذاری وارد شوید">
-                ☆ نشان
-            </a>
+               title="برای نشان‌گذاری وارد شوید">☆ نشان</a>
         }
     </div>
 
@@ -110,21 +113,59 @@
     }
 
     <section class="mt-5 pt-4 comments-section" style="border-top:1px solid var(--border-soft);">
-        <h2 class="h6 text-muted-dark mb-3">دیدگاه‌ها</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h2 class="h6 text-muted-dark mb-0">دیدگاه‌ها <span class="ltr-field">(@Model.Comments.Count)</span></h2>
+            <form method="get" asp-action="Details" asp-route-slug="@Model.Slug" class="d-flex align-items-center gap-2">
+                <label class="small text-muted-dark mb-0" for="commentSort">مرتب‌سازی</label>
+                <select class="form-select form-select-sm" id="commentSort" name="sort" style="width:auto;min-width:9rem;"
+                        onchange="this.form.submit()">
+                    <option value="relevant" selected="@(commentSort == "relevant")">مرتبط (پسندها)</option>
+                    <option value="latest" selected="@(commentSort == "latest")">جدیدترین</option>
+                </select>
+            </form>
+        </div>
+
         @if (TempData["CommentSubmitted"] != null)
         {
             <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["CommentSubmitted"]</div>
         }
-        @foreach (var c in Model.Comments.OrderByDescending(c => c.CreatedAtUtc))
+
+        @foreach (var c in orderedComments)
         {
+            var liked = likedIds.Contains(c.Id);
             <div class="card-surface p-3 mb-3">
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between align-items-start gap-2">
                     <strong dir="@MarkdownService.DetectDir(c.AuthorName)" style="font-size:.9rem;">@c.AuthorName</strong>
                     <span class="ltr-field small" style="color:var(--text-faint);">@PersianDate.DateTime(c.CreatedAtUtc)</span>
                 </div>
-                <p class="mb-0 mt-2 text-muted-dark" dir="@MarkdownService.DetectDir(c.Body)">@c.Body</p>
+                <p class="mb-2 mt-2 text-muted-dark" dir="@MarkdownService.DetectDir(c.Body)">@c.Body</p>
+                <div class="d-flex align-items-center gap-2">
+                    @if (canLike)
+                    {
+                        <form asp-controller="Comments" asp-action="ToggleLike" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="commentId" value="@c.Id" />
+                            <input type="hidden" name="returnUrl" value="@(postUrl + "?sort=" + commentSort)" />
+                            <button type="submit" class="btn btn-ghost btn-sm py-0 px-2"
+                                    title="@(liked ? "برداشتن پسند" : "پسندیدن")">
+                                @(liked ? "♥" : "♡")
+                                <span class="ltr-field">@c.LikeCount</span>
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a class="btn btn-ghost btn-sm py-0 px-2"
+                           asp-controller="Account" asp-action="Login"
+                           asp-route-returnUrl="@(postUrl + "?sort=" + commentSort)"
+                           title="برای پسندیدن وارد شوید">
+                            ♡ <span class="ltr-field">@c.LikeCount</span>
+                        </a>
+                    }
+                </div>
             </div>
         }
+
         <form asp-action="AddComment" method="post" class="card-surface p-3 mt-3">
             @Html.AntiForgeryToken()
             <input type="hidden" name="postId" value="@Model.Id" />

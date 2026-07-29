@@ -134,6 +134,21 @@ public static class SchemaBootstrap
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_PostBookmarks_UserId\" ON \"PostBookmarks\" (\"UserId\");");
 
+        await TryAddColumnAsync(db, "Comments", "LikeCount", "INTEGER NOT NULL DEFAULT 0");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "CommentLikes" (
+                "CommentId" INTEGER NOT NULL,
+                "UserId" TEXT NOT NULL,
+                "CreatedAtUtc" TEXT NOT NULL,
+                CONSTRAINT "PK_CommentLikes" PRIMARY KEY ("CommentId", "UserId"),
+                CONSTRAINT "FK_CommentLikes_Comments_CommentId"
+                    FOREIGN KEY ("CommentId") REFERENCES "Comments" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_CommentLikes_AspNetUsers_UserId"
+                    FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE
+            );
+            """);
+
         logger?.LogInformation("Schema bootstrap complete");
     }
 
