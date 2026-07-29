@@ -10,8 +10,13 @@ namespace BlogApp.Middleware;
 public class RedirectMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<RedirectMiddleware> _logger;
 
-    public RedirectMiddleware(RequestDelegate next) => _next = next;
+    public RedirectMiddleware(RequestDelegate next, ILogger<RedirectMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
 
     public async Task InvokeAsync(HttpContext context, ApplicationDbContext db)
     {
@@ -32,6 +37,10 @@ public class RedirectMiddleware
 
                     if (rule is not null)
                     {
+                        _logger.LogInformation(
+                            "SEO redirect From={FromPath} To={ToUrl} Status={StatusCode} RuleId={RuleId}",
+                            rule.FromPath, rule.ToUrl, rule.StatusCode, rule.Id);
+
                         _ = Task.Run(async () =>
                         {
                             try
@@ -46,7 +55,10 @@ public class RedirectMiddleware
                                     await scopedDb.SaveChangesAsync();
                                 }
                             }
-                            catch { /* ignore */ }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to increment redirect HitCount RuleId={RuleId}", rule.Id);
+                            }
                         });
 
                         var status = rule.StatusCode is 301 or 302 or 307 or 308 ? rule.StatusCode : 301;
@@ -55,9 +67,9 @@ public class RedirectMiddleware
                         return;
                     }
                 }
-                catch (Microsoft.Data.Sqlite.SqliteException)
+                catch (Microsoft.Data.Sqlite.SqliteException ex)
                 {
-                    // Table missing on old DB — SchemaBootstrap should fix on next restart.
+                    _logger.LogDebug(ex, "RedirectRules table missing — run SchemaBootstrap");
                 }
             }
         }

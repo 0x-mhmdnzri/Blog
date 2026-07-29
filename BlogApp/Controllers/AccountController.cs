@@ -14,15 +14,18 @@ public class AccountController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ApplicationDbContext _db;
+    private readonly ILogger<AccountController> _logger;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        ApplicationDbContext db)
+        ApplicationDbContext db,
+        ILogger<AccountController> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _db = db;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -43,10 +46,17 @@ public class AccountController : Controller
             var result = await _signInManager.PasswordSignInAsync(user, password, isPersistent: true, lockoutOnFailure: false);
             if (result.Succeeded)
             {
+                _logger.LogInformation("Login succeeded UserId={UserId} UserName={UserName}", user.Id, user.UserName);
                 return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
                     ? Redirect(returnUrl)
                     : RedirectToAction("Index", "Admin");
             }
+
+            _logger.LogWarning("Login failed bad password UserName={UserName}", username);
+        }
+        else
+        {
+            _logger.LogWarning("Login failed unknown user UserName={UserName}", username);
         }
 
         ModelState.AddModelError(string.Empty, "نام کاربری یا رمز عبور نادرست است.");
@@ -57,14 +67,19 @@ public class AccountController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
+        var name = User.Identity?.Name;
         await _signInManager.SignOutAsync();
+        _logger.LogInformation("Logout UserName={UserName}", name);
         return RedirectToAction("Index", "Home");
     }
 
     [HttpGet]
-    public IActionResult AccessDenied() => View();
+    public IActionResult AccessDenied()
+    {
+        _logger.LogWarning("Access denied User={User} Path={Path}", User.Identity?.Name, Request.Path.Value);
+        return View();
+    }
 
-    /// <summary>Public author profile page (display name, bio, avatar, published posts).</summary>
     [HttpGet]
     public async Task<IActionResult> PublicProfile(string userName)
     {
@@ -95,7 +110,6 @@ public class AccountController : Controller
         return View(vm);
     }
 
-    /// <summary>Serve profile image bytes.</summary>
     [HttpGet]
     public async Task<IActionResult> ProfileImage(string userId)
     {
@@ -105,8 +119,6 @@ public class AccountController : Controller
 
         return File(user.ProfileImage, user.ProfileImageContentType ?? "image/png");
     }
-
-    // ---- Admin: own profile edit ----
 
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
     [HttpGet]
@@ -174,17 +186,16 @@ public class AccountController : Controller
             foreach (var err in result.Errors)
                 ModelState.AddModelError(string.Empty, err.Description);
             vm.HasProfileImage = user.ProfileImage is { Length: > 0 };
+            _logger.LogWarning("Profile update failed UserId={UserId}", user.Id);
             return View(vm);
         }
 
-        // Refresh sign-in so DisplayName claim / principal is current if used
         await _signInManager.RefreshSignInAsync(user);
+        _logger.LogInformation("Profile updated UserId={UserId}", user.Id);
 
         TempData["ProfileSaved"] = "پروفایل با موفقیت ذخیره شد.";
         return RedirectToAction(nameof(Profile));
     }
-
-    // ---- SuperAdmin only: create authors ----
 
     [Authorize(Roles = AppRoles.SuperAdmin)]
     [HttpGet]
@@ -210,10 +221,12 @@ public class AccountController : Controller
         {
             foreach (var err in result.Errors)
                 ModelState.AddModelError(string.Empty, err.Description);
+            _logger.LogWarning("CreateAuthor failed UserName={UserName}", vm.UserName);
             return View(vm);
         }
 
         await _userManager.AddToRoleAsync(user, AppRoles.Author);
+        _logger.LogInformation("Author created UserId={UserId} UserName={UserName}", user.Id, user.UserName);
 
         TempData["AuthorCreated"] = $"نویسنده «{user.DisplayName}» ایجاد شد.";
         return RedirectToAction(nameof(Authors));

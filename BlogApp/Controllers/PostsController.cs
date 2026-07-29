@@ -15,10 +15,22 @@ public partial class PostsController : Controller
     private readonly SeoService _seo;
     private readonly AnalyticsBroadcaster _broadcaster;
     private readonly AiContentService _ai;
+    private readonly ILogger<PostsController> _logger;
 
-    public PostsController(ApplicationDbContext db, MarkdownService markdown, SeoService seo, AnalyticsBroadcaster broadcaster, AiContentService ai)
+    public PostsController(
+        ApplicationDbContext db,
+        MarkdownService markdown,
+        SeoService seo,
+        AnalyticsBroadcaster broadcaster,
+        AiContentService ai,
+        ILogger<PostsController> logger)
     {
-        _db = db; _markdown = markdown; _seo = seo; _broadcaster = broadcaster; _ai = ai;
+        _db = db;
+        _markdown = markdown;
+        _seo = seo;
+        _broadcaster = broadcaster;
+        _ai = ai;
+        _logger = logger;
     }
 
     [HttpGet("post/{slug}")]
@@ -29,17 +41,23 @@ public partial class PostsController : Controller
             .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
             .Include(p => p.Comments.Where(c => c.Status == CommentStatus.Approved))
             .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted);
-        if (post is null || (!post.IsPublished && !User.Identity!.IsAuthenticated)) return NotFound();
+        if (post is null || (!post.IsPublished && !User.Identity!.IsAuthenticated))
+        {
+            _logger.LogDebug("Post not found or unpublished Slug={Slug}", slug);
+            return NotFound();
+        }
         if (!post.IsPublished && !AuthorAccess.OwnsPost(User, post)) return NotFound();
-        if (post.ExpiresAtUtc.HasValue && post.ExpiresAtUtc <= DateTime.UtcNow && !AuthorAccess.OwnsPost(User, post)) return NotFound();
+        if (post.ExpiresAtUtc.HasValue && post.ExpiresAtUtc <= DateTime.UtcNow && !AuthorAccess.OwnsPost(User, post))
+        {
+            _logger.LogInformation("Expired post blocked Slug={Slug} PostId={PostId}", slug, post.Id);
+            return NotFound();
+        }
 
-        // Staff preview must never inflate public analytics.
         var isStaffPreview = User.Identity?.IsAuthenticated == true
             && (User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
 
         if (!isStaffPreview)
         {
-            // Fingerprint = SHA-256(IP | User-Agent). Same mixture within the window = one view.
             var visitorHash = VisitorIdentity.ComputeHash(HttpContext);
             var windowStart = DateTime.UtcNow - VisitorIdentity.DedupeWindow;
 
@@ -60,7 +78,10 @@ public partial class PostsController : Controller
                 _db.PostViews.Add(pv);
                 await _db.SaveChangesAsync();
 
-                // Push to every open admin dashboard over SSE — counters + chart update live.
+                _logger.LogInformation(
+                    "Post view counted PostId={PostId} Slug={Slug} TotalViews={TotalViews} VisitorHash={VisitorHash}",
+                    post.Id, post.Slug, post.ViewCount, visitorHash);
+
                 _broadcaster.Publish(new
                 {
                     type = "view",
@@ -72,6 +93,16 @@ public partial class PostsController : Controller
                     totalViews = post.ViewCount
                 });
             }
+            else
+            {
+                _logger.LogDebug(
+                    "Duplicate view skipped PostId={PostId} VisitorHash={VisitorHash}",
+                    post.Id, visitorHash);
+            }
+        }
+        else
+        {
+            _logger.LogDebug("Staff preview — view not counted PostId={PostId}", post.Id);
         }
 
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -98,7 +129,12 @@ public partial class PostsController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PostEditViewModel vm)
     {
-        if (!ModelState.IsValid) { vm.AvailableCategories = await GetCategoryOptionsAsync(); return View(vm); }
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Post create validation failed User={User}", User.Identity?.Name);
+            vm.AvailableCategories = await GetCategoryOptionsAsync();
+            return View(vm);
+        }
         var authorId = AuthorAccess.UserId(User)!;
         var post = new Post
         {
@@ -116,6 +152,9 @@ public partial class PostsController : Controller
         _db.Posts.Add(post);
         await _db.SaveChangesAsync();
         await SaveRevisionAsync(post, authorId, "initial");
+        _logger.LogInformation(
+            "Post created PostId={PostId} Slug={Slug} Published={Published} AuthorId={AuthorId}",
+            post.Id, post.Slug, post.IsPublished, authorId);
         return RedirectToAction(nameof(Details), new { slug = post.Slug });
     }
 
@@ -126,7 +165,11 @@ public partial class PostsController : Controller
             .Include(p => p.Revisions.OrderByDescending(r => r.CreatedAtUtc).Take(20))
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
         if (post is null) return NotFound();
-        if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
+        if (!AuthorAccess.OwnsPost(User, post))
+        {
+            _logger.LogWarning("Edit forbidden PostId={PostId} User={User}", id, User.Identity?.Name);
+            return Forbid();
+        }
         return View(new PostEditViewModel
         {
             Id = post.Id, Title = post.Title, Summary = post.Summary, ContentMarkdown = post.ContentMarkdown,
@@ -144,8 +187,17 @@ public partial class PostsController : Controller
     {
         var post = await _db.Posts.Include(p => p.PostTags).FirstOrDefaultAsync(p => p.Id == vm.Id && !p.IsDeleted);
         if (post is null) return NotFound();
-        if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
-        if (!ModelState.IsValid) { vm.AvailableCategories = await GetCategoryOptionsAsync(); return View(vm); }
+        if (!AuthorAccess.OwnsPost(User, post))
+        {
+            _logger.LogWarning("Edit save forbidden PostId={PostId} User={User}", vm.Id, User.Identity?.Name);
+            return Forbid();
+        }
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("Post edit validation failed PostId={PostId}", vm.Id);
+            vm.AvailableCategories = await GetCategoryOptionsAsync();
+            return View(vm);
+        }
         var authorId = AuthorAccess.UserId(User)!;
         var wasPublished = post.IsPublished;
         var changed = post.ContentMarkdown != vm.ContentMarkdown || post.Title != vm.Title;
@@ -169,6 +221,9 @@ public partial class PostsController : Controller
         await ApplyTagsAsync(post, vm.TagsCsv);
         await _db.SaveChangesAsync();
         if (changed) await SaveRevisionAsync(post, authorId, "after-edit");
+        _logger.LogInformation(
+            "Post updated PostId={PostId} Slug={Slug} Published={Published} ContentChanged={Changed}",
+            post.Id, post.Slug, post.IsPublished, changed);
         return RedirectToAction(nameof(Details), new { slug = post.Slug });
     }
 
@@ -187,7 +242,14 @@ public partial class PostsController : Controller
             await _db.SaveChangesAsync();
             TempData["CommentSubmitted"] = "ممنون — دیدگاه شما در انتظار بررسی است.";
             var info = await _db.Posts.Where(p => p.Id == postId).Select(p => new { p.Title, p.AuthorId }).FirstOrDefaultAsync();
+            _logger.LogInformation(
+                "Comment submitted PostId={PostId} CommentId={CommentId} AuthorName={AuthorName}",
+                postId, comment.Id, comment.AuthorName);
             _broadcaster.Publish(new { type = "comment", status = "pending", postId, postTitle = info?.Title, authorId = info?.AuthorId, authorName = comment.AuthorName });
+        }
+        else
+        {
+            _logger.LogWarning("Comment rejected empty fields PostId={PostId}", postId);
         }
         var slug = await _db.Posts.Where(p => p.Id == postId).Select(p => p.Slug).FirstOrDefaultAsync();
         return RedirectToAction(nameof(Details), new { slug });

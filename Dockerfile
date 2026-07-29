@@ -5,14 +5,14 @@
 # Everything the app needs (posts, media as bytes, comments) lives in one
 # SQLite file; the only thing that needs to persist across container restarts
 # is /app/data, mounted as a volume in docker-compose.yml.
+# Structured JSON logs go to stdout (ELK via Docker logging driver / Filebeat)
+# and optionally to /app/logs when that path is mounted.
 # ============================================================================
 
 # ---- Build stage ------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Restore first (separate layer) so `docker build` can cache it between builds
-# as long as the .csproj hasn't changed.
 COPY BlogApp/BlogApp.csproj BlogApp/
 RUN dotnet restore BlogApp/BlogApp.csproj
 
@@ -24,15 +24,13 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# curl is only for the container HEALTHCHECK below.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Run as a non-root user.
 RUN groupadd -g 1654 appgroup \
     && useradd -u 1654 -g appgroup -m appuser \
-    && mkdir -p /app/data \
+    && mkdir -p /app/data /app/logs \
     && chown -R appuser:appgroup /app
 
 ENV ASPNETCORE_HTTP_PORTS=8080 \
@@ -42,7 +40,7 @@ ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_EnableDiagnostics=0
 
 EXPOSE 8080
-VOLUME ["/app/data"]
+VOLUME ["/app/data", "/app/logs"]
 
 COPY --from=build --chown=appuser:appgroup /app/publish .
 
