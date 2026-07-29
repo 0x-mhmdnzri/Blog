@@ -21,12 +21,19 @@ public class HomeController : Controller
     {
         const int pageSize = 8;
         var isAuthor = User.Identity?.IsAuthenticated == true;
+        var now = DateTime.UtcNow;
 
         var query = _db.Posts
-            .Where(p => p.IsPublished || isAuthor) // the author can see their own drafts too
+            .Where(p => !p.IsDeleted)
+            .Where(p => p.IsPublished
+                        || isAuthor
+                        || (p.ScheduledPublishAtUtc != null && p.ScheduledPublishAtUtc <= now))
+            .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now || isAuthor)
             .Include(p => p.Category)
             .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
-            .OrderByDescending(p => p.IsPublished ? p.PublishedAtUtc : p.CreatedAtUtc)
+            .OrderByDescending(p => p.IsSticky)
+            .ThenByDescending(p => p.IsFeatured)
+            .ThenByDescending(p => p.IsPublished ? p.PublishedAtUtc : p.CreatedAtUtc)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(category))
@@ -50,6 +57,9 @@ public class HomeController : Controller
                 PublishedAtUtc = p.PublishedAtUtc,
                 CoverMediaAssetId = p.CoverMediaAssetId,
                 IsPublished = p.IsPublished,
+                IsFeatured = p.IsFeatured,
+                IsSticky = p.IsSticky,
+                ReadingTimeMinutes = p.ReadingTimeMinutes,
                 Tags = p.PostTags.Select(pt => pt.Tag.Name).ToList()
             })
             .ToListAsync();
