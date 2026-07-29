@@ -1,4 +1,5 @@
 using BlogApp.Data;
+using BlogApp.Middleware;
 using BlogApp.Models;
 using BlogApp.Services;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -34,6 +35,7 @@ builder.Services.AddSingleton<MarkdownService>();
 builder.Services.AddSingleton<SeoService>();
 builder.Services.AddSingleton<AnalyticsBroadcaster>();
 builder.Services.AddScoped<AiContentService>();
+builder.Services.AddScoped<BrokenLinkService>();
 
 builder.Services.AddControllersWithViews();
 
@@ -82,6 +84,9 @@ if (!app.Environment.IsDevelopment())
 if (forceHttps) app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+// SEO redirects (301/302) before auth so public paths resolve correctly
+app.UseMiddleware<RedirectMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

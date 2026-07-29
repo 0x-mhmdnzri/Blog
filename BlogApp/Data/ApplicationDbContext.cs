@@ -16,6 +16,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
     public DbSet<PostView> PostViews => Set<PostView>();
     public DbSet<PostRevision> PostRevisions => Set<PostRevision>();
+    public DbSet<RedirectRule> RedirectRules => Set<RedirectRule>();
+    public DbSet<BrokenLinkReport> BrokenLinkReports => Set<BrokenLinkReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -88,6 +90,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(r => r.PostId);
             e.HasIndex(r => r.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<RedirectRule>(e =>
+        {
+            e.HasIndex(r => r.FromPath);
+            e.HasIndex(r => r.IsActive);
+        });
+
+        modelBuilder.Entity<BrokenLinkReport>(e =>
+        {
+            e.HasOne(r => r.Post)
+                .WithMany()
+                .HasForeignKey(r => r.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => r.PostId);
         });
 
         modelBuilder.Entity<ApplicationUser>(e =>
