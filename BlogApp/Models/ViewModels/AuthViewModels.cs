@@ -42,7 +42,6 @@ public class CreateAuthorViewModel
     public string ConfirmPassword { get; set; } = string.Empty;
 }
 
-/// <summary>Public self-registration → Reader role only.</summary>
 public class RegisterReaderViewModel
 {
     [Required(ErrorMessage = "نام کاربری الزامی است"), MaxLength(50)]
@@ -83,17 +82,19 @@ public class AuthorListItem
 
 public class PublicAuthorProfileViewModel
 {
+    public string UserId { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string? Bio { get; set; }
     public bool HasProfileImage { get; set; }
+    public bool IsFollowing { get; set; }
+    public bool CanFollow { get; set; }
     public List<AuthorPostItem> Posts { get; set; } = new();
 }
 
 public class AuthorPostItem
 {
     public string Title { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string? Summary { get; set; }
     public DateTime? PublishedAtUtc { get; set; }

@@ -4,15 +4,27 @@
 }
 
 <div class="container py-5" style="max-width:720px;">
-    <div class="d-flex align-items-center gap-3 mb-4">
-        @{
-            // Resolve user id for image via username lookup is done server-side; use a dedicated route if needed.
-            // For simplicity we link image by a helper that accepts userName — use Account/ProfileImage by looking up.
-        }
+    <div class="d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap">
         <div>
             <h1 class="h3 mb-1" dir="auto">@Model.DisplayName</h1>
             <p class="text-muted-dark small mb-0 ltr-field">@@@Model.UserName</p>
         </div>
+        @if (Model.CanFollow)
+        {
+            <form asp-controller="Follow" asp-action="Toggle" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="authorUserId" value="@Model.UserId" />
+                <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                <button type="submit" class="btn @(Model.IsFollowing ? "btn-ghost" : "btn-accent") btn-sm">
+                    @(Model.IsFollowing ? "لغو دنبال" : "دنبال کردن")
+                </button>
+            </form>
+        }
+        else if (User.Identity?.IsAuthenticated != true)
+        {
+            <a class="btn btn-ghost btn-sm" asp-controller="Account" asp-action="Login"
+               asp-route-returnUrl="@Context.Request.Path">ورود برای دنبال کردن</a>
+        }
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.Bio))
