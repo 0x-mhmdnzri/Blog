@@ -1,0 +1,96 @@
+@model List<AdminUserListItem>
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "مدیریت کاربران";
+    var q = ViewBag.Query as string;
+    var role = ViewBag.RoleFilter as string;
+}
+
+@if (TempData["Saved"] != null)
+{
+    <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="card-surface p-3 mb-3 small" style="border-color:var(--danger,#e5637a);">@TempData["Error"]</div>
+}
+
+<form method="get" class="d-flex flex-wrap gap-2 mb-3 align-items-end">
+    <div>
+        <label class="form-label small mb-1">جست‌وجو</label>
+        <input class="form-control form-control-sm" name="q" value="@q" dir="auto" placeholder="نام، ایمیل…" style="min-width:160px;" />
+    </div>
+    <div>
+        <label class="form-label small mb-1">نقش</label>
+        <select class="form-select form-select-sm" name="role" style="min-width:120px;">
+            <option value="">همه</option>
+            <option value="@AppRoles.Reader" selected="@(role == AppRoles.Reader)">Reader</option>
+            <option value="@AppRoles.Author" selected="@(role == AppRoles.Author)">Author</option>
+            <option value="@AppRoles.SuperAdmin" selected="@(role == AppRoles.SuperAdmin)">SuperAdmin</option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-ghost btn-sm">فیلتر</button>
+</form>
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>کاربر</th>
+            <th>نقش‌ها</th>
+            <th>نوشته‌ها</th>
+            <th>ثبت‌نام</th>
+            <th>وضعیت</th>
+            <th>عملیات</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var u in Model)
+    {
+        <tr>
+            <td>
+                <div dir="auto"><strong>@u.DisplayName</strong></div>
+                <div class="small ltr-field text-muted-dark">@u.UserName · @u.Email</div>
+            </td>
+            <td class="ltr-field small">@string.Join(", ", u.Roles)</td>
+            <td class="ltr-field">@u.PostCount</td>
+            <td class="ltr-field">@PersianDate.Date(u.CreatedAtUtc)</td>
+            <td>
+                @if (u.IsLockedOut)
+                {
+                    <span class="status-pill rejected">قفل</span>
+                }
+                else
+                {
+                    <span class="status-pill approved">فعال</span>
+                }
+            </td>
+            <td>
+                <div class="d-flex flex-wrap gap-1 align-items-center">
+                    <form asp-action="SetRole" method="post" class="d-inline-flex gap-1 align-items-center">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="userId" value="@u.Id" />
+                        <select name="role" class="form-select form-select-sm" style="width:auto;">
+                            <option value="@AppRoles.Reader">Reader</option>
+                            <option value="@AppRoles.Author">Author</option>
+                            <option value="@AppRoles.SuperAdmin">SuperAdmin</option>
+                        </select>
+                        <button type="submit" class="icon-btn">نقش</button>
+                    </form>
+                    <form asp-action="ToggleLock" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="userId" value="@u.Id" />
+                        <button type="submit" class="icon-btn @(u.IsLockedOut ? "approve" : "reject")">
+                            @(u.IsLockedOut ? "باز کردن" : "قفل")
+                        </button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@if (Model.Count == 0)
+{
+    <div class="admin-empty"><p>کاربری یافت نشد.</p></div>
+}

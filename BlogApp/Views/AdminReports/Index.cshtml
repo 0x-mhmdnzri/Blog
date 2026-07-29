@@ -1,0 +1,84 @@
+@model List<ContentReport>
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "گزارش‌های محتوا";
+    var current = ViewBag.CurrentStatus as string ?? "open";
+}
+
+<div class="admin-tabs">
+    <a class="admin-tab @(current == "open" ? "active" : "")" asp-action="Index" asp-route-status="open">باز (@ViewBag.OpenCount)</a>
+    <a class="admin-tab @(current == "resolved" ? "active" : "")" asp-action="Index" asp-route-status="resolved">حل‌شده (@ViewBag.ResolvedCount)</a>
+    <a class="admin-tab @(current == "dismissed" ? "active" : "")" asp-action="Index" asp-route-status="dismissed">ردشده (@ViewBag.DismissedCount)</a>
+    <a class="admin-tab @(current == "all" ? "active" : "")" asp-action="Index" asp-route-status="all">همه</a>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="admin-empty"><p>گزارشی در این وضعیت نیست.</p></div>
+}
+else
+{
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>هدف</th>
+                <th>دلیل</th>
+                <th>گزارش‌دهنده</th>
+                <th>تاریخ</th>
+                <th>وضعیت</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td>
+                    <span class="small text-muted-dark">@(r.TargetType == ContentReportTarget.Post ? "نوشته" : "دیدگاه") #@r.TargetId</span>
+                    <div dir="auto">@(r.TargetTitle ?? "—")</div>
+                    @if (!string.IsNullOrEmpty(r.Details))
+                    {
+                        <div class="small text-muted-dark" dir="auto">@r.Details</div>
+                    }
+                </td>
+                <td dir="auto">@r.Reason</td>
+                <td dir="auto">@(r.ReporterName ?? "مهمان")</td>
+                <td class="ltr-field">@PersianDate.DateTime(r.CreatedAtUtc)</td>
+                <td>
+                    @switch (r.Status)
+                    {
+                        case ContentReportStatus.Resolved:
+                            <span class="status-pill approved">حل‌شده</span>
+                            break;
+                        case ContentReportStatus.Dismissed:
+                            <span class="status-pill rejected">ردشده</span>
+                            break;
+                        default:
+                            <span class="status-pill pending">باز</span>
+                            break;
+                    }
+                </td>
+                <td>
+                    @if (r.Status == ContentReportStatus.Open)
+                    {
+                        <div class="d-flex gap-1">
+                            <form asp-action="Resolve" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <input type="hidden" name="returnStatus" value="@current" />
+                                <button type="submit" class="icon-btn approve">حل</button>
+                            </form>
+                            <form asp-action="Dismiss" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <input type="hidden" name="returnStatus" value="@current" />
+                                <button type="submit" class="icon-btn reject">رد</button>
+                            </form>
+                        </div>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
