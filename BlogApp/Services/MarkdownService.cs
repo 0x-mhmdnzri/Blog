@@ -13,7 +13,6 @@ public class MarkdownService
     private static readonly Regex HeadingRegex =
         new(@"^(#{1,6})\s+(.+)$", RegexOptions.Compiled | RegexOptions.Multiline);
 
-    // Match <h1>…</h1> or <h2 id="x" class="y">…</h2> (Markdig AutoIdentifier)
     private static readonly Regex HeadingHtmlRegex =
         new(@"<h([1-6])(\s[^>]*)?>(.*?)</h\1>", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
@@ -34,6 +33,10 @@ public class MarkdownService
 
     private static readonly Regex CodeHtmlRegex =
         new(@"<code(\s[^>]*)?>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // <img src="..." alt="..." ... />  (self-closing or not)
+    private static readonly Regex ImgHtmlRegex =
+        new(@"<img\s+([^>]*?)\s*/?>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
     private readonly MarkdownPipeline _pipeline;
 
@@ -58,22 +61,19 @@ public class MarkdownService
         });
         var html = Markdown.ToHtml(withVideos, _pipeline);
 
-        // Code always LTR
         html = PreHtmlRegex.Replace(html, "<pre class=\"md-code-block\" dir=\"ltr\">");
         html = CodeHtmlRegex.Replace(html, "<code dir=\"ltr\">");
 
-        // Paragraphs: explicit ltr/rtl from first strong character
         html = ParagraphHtmlRegex.Replace(html, m =>
         {
             var inner = m.Groups[2].Value;
             var plain = StripTags(inner);
             if (IsVideoPlaceholder(plain))
-                return m.Value; // handled below
+                return m.Value;
             var dir = DetectDir(plain);
             return $"<p dir=\"{dir}\" class=\"md-p\">{inner}</p>";
         });
 
-        // List items (TOC + content lists)
         html = ListItemHtmlRegex.Replace(html, m =>
         {
             var inner = m.Groups[2].Value;
@@ -82,7 +82,6 @@ public class MarkdownService
             return $"<li dir=\"{dir}\" class=\"md-li\">{inner}</li>";
         });
 
-        // Tables: neutral shell; cells by script
         html = TableHtmlRegex.Replace(html, "<table class=\"md-table\">");
         html = CellHtmlRegex.Replace(html, m =>
         {
@@ -92,26 +91,34 @@ public class MarkdownService
             return $"<{tag} dir=\"{dir}\">{inner}</{tag}>";
         });
 
-        // Video embeds
+        // Blur-up images: lazy + media-blur class + wrapper
+        html = ImgHtmlRegex.Replace(html, m =>
+        {
+            var attrs = m.Groups[1].Value;
+            if (attrs.Contains("media-blur", StringComparison.OrdinalIgnoreCase))
+                return m.Value;
+            attrs = Regex.Replace(attrs, @"\s*loading\s*=\s*[""'][^""']*[""']", "", RegexOptions.IgnoreCase);
+            attrs = Regex.Replace(attrs, @"\s*decoding\s*=\s*[""'][^""']*[""']", "", RegexOptions.IgnoreCase);
+            attrs = Regex.Replace(attrs, @"\s*class\s*=\s*[""']([^""']*)[""']", " class=\"$1 media-blur\"", RegexOptions.IgnoreCase);
+            if (!attrs.Contains("class=", StringComparison.OrdinalIgnoreCase))
+                attrs += " class=\"media-blur\"";
+            return $"<span class=\"media-blur-wrap\"><img {attrs} loading=\"lazy\" decoding=\"async\" /></span>";
+        });
+
         html = Regex.Replace(
             html,
             @"<p dir=\"(?:ltr|rtl|auto)\" class=\"md-p\">\[\[VIDEO_EMBED_(\d+)\]\]</p>",
-            m =>
-            {
-                var id = m.Groups[1].Value;
-                return $"<div class=\"post-video-embed\"><video controls preload=\"metadata\" src=\"/media/{id}\"></video></div>";
-            });
+            m => VideoEmbedHtml(m.Groups[1].Value));
         html = Regex.Replace(
             html,
             @"<p>\[\[VIDEO_EMBED_(\d+)\]\]</p>",
-            m =>
-            {
-                var id = m.Groups[1].Value;
-                return $"<div class=\"post-video-embed\"><video controls preload=\"metadata\" src=\"/media/{id}\"></video></div>";
-            });
+            m => VideoEmbedHtml(m.Groups[1].Value));
 
         return html;
     }
+
+    private static string VideoEmbedHtml(string id) =>
+        $"<div class=\"post-video-embed media-blur-wrap\"><video class=\"media-blur\" controls preload=\"metadata\" playsinline src=\"/media/{id}\"></video></div>";
 
     public string ToPlainText(string markdown, int maxLength = 200)
     {
@@ -136,7 +143,6 @@ public class MarkdownService
         if (matches.Count < 2) return string.Empty;
 
         var sb = new StringBuilder();
-        // Shell is RTL (Persian title); each link gets its own dir.
         sb.Append($"<nav class=\"{cssClass}\" aria-label=\"فهرست مطالب\">");
         sb.Append("<p class=\"toc-title\" dir=\"rtl\">فهرست مطالب</p><ul class=\"toc-list\">");
         int prevLevel = 0;
@@ -145,7 +151,7 @@ public class MarkdownService
             var level = m.Groups[1].Value.Length;
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text)) continue;
-            var slug = SlugifyHeading(text);
+            var slug =SlugifyHeading(text);
             var dir = DetectDir(text);
             while (prevLevel > level) { sb.Append("</ul></li>"); prevLevel--; }
             if (prevLevel == level)
@@ -171,7 +177,6 @@ public class MarkdownService
         if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
         var html = RenderToHtml(markdown);
 
-        // Headings — keep existing attrs (id from Markdig), force dir from text
         html = HeadingHtmlRegex.Replace(html, m =>
         {
             var level = m.Groups[1].Value;
@@ -180,7 +185,6 @@ public class MarkdownService
             var plain = StripTags(inner).Trim();
             var dir = DetectDir(plain);
             var id = SlugifyHeading(plain);
-            // Drop any existing id; we set a stable one
             attrs = Regex.Replace(attrs, @"\s*id\s*=\s*[""'][^""']*[""']", "", RegexOptions.IgnoreCase);
             attrs = Regex.Replace(attrs, @"\s*dir\s*=\s*[""'][^""']*[""']", "", RegexOptions.IgnoreCase);
             return $"<h{level} id=\"{id}\" dir=\"{dir}\" class=\"md-heading\"{attrs}>{inner}</h{level}>";
@@ -194,9 +198,6 @@ public class MarkdownService
         return html;
     }
 
-    /// <summary>
-    /// First strong bidirectional character wins. Persian/Arabic → rtl, Latin → ltr.
-    /// </summary>
     public static string DetectDir(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return "auto";
@@ -206,7 +207,6 @@ public class MarkdownService
             if (Rune.IsWhiteSpace(rune) || Rune.IsDigit(rune) || IsNeutral(c))
                 continue;
 
-            // Arabic, Persian, presentation forms
             if (c is (>= 0x0600 and <= 0x06FF)
                 or (>= 0x0750 and <= 0x077F)
                 or (>= 0x08A0 and <= 0x08FF)
@@ -240,7 +240,7 @@ public class MarkdownService
     private static bool IsVideoPlaceholder(string plain) =>
         plain.StartsWith("[[VIDEO_EMBED_", StringComparison.Ordinal);
 
-    private static string SlugifyHeading(string text)
+    private static stringSlugifyHeading(string text)
     {
         var s = text.ToLowerInvariant().Trim();
         s = Regex.Replace(s, @"\s+", "-");
