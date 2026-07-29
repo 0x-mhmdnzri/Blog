@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- EF Core + SQLite (swap for Microsoft.EntityFrameworkCore.SqlServer if you prefer full SQL Server) -->
+    <!-- EF Core + SQLite -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.8">
       <PrivateAssets>all</PrivateAssets>
@@ -19,11 +19,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
 
-    <!-- Markdown -> HTML rendering, GitHub-flavored (readme-style), with advanced extensions -->
-    <PackageReference Include="Markdig" Version="0.37.0" />
+    <!-- ASP.NET Core Identity (roles + claims RBAC) -->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.8" />
 
-    <!-- Cookie-based auth for the admin/editor area -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.2.0" />
+    <!-- Markdown -> HTML rendering -->
+    <PackageReference Include="Markdig" Version="0.37.0" />
   </ItemGroup>
 
 </Project>

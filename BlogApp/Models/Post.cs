@@ -17,16 +17,19 @@ public class Post
     public string? Summary { get; set; }
 
     /// <summary>
-    /// The raw README-style Markdown the author writes: headings, paragraphs, fenced code blocks
-    /// with language tags, images (![]()), video embeds via the custom {{video:mediaId}} token,
-    /// tables, block quotes, task lists, etc. This is the single source of truth — stored in full,
-    /// with no length limit (TEXT column), and re-rendered to HTML on read via MarkdownService.
+    /// The raw README-style Markdown the author writes. Stored in full (TEXT column),
+    /// re-rendered to HTML on read via MarkdownService.
     /// </summary>
     public string ContentMarkdown { get; set; } = string.Empty;
 
     /// <summary>Optional cover image, stored as a MediaAsset.</summary>
     public int? CoverMediaAssetId { get; set; }
     public MediaAsset? CoverMediaAsset { get; set; }
+
+    /// <summary>Owning author (Identity user). Null only for legacy rows before multi-author.</summary>
+    [Required]
+    public string AuthorId { get; set; } = string.Empty;
+    public ApplicationUser Author { get; set; } = null!;
 
     public bool IsPublished { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
@@ -41,18 +44,14 @@ public class Post
     public ICollection<PostTag> PostTags { get; set; } = new List<PostTag>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
 
-    /// <summary>Every image/video/file referenced from ContentMarkdown, so nothing orphans in the DB.</summary>
+    /// <summary>Every image/video/file referenced from ContentMarkdown.</summary>
     public ICollection<MediaAsset> Media { get; set; } = new List<MediaAsset>();
 
-    /// <summary>Per-visit log (real reader traffic only) backing the analytics dashboard's
-    /// time-series charts. ViewCount above stays a fast all-time counter; this is what
-    /// makes "views over time" and "top posts this week" possible.</summary>
+    /// <summary>Per-visit log backing analytics time-series charts.</summary>
     public ICollection<PostView> Views { get; set; } = new List<PostView>();
 }
 
-/// <summary>One row per de-duplicated page view. No raw IP/User-Agent is stored — only a
-/// one-way hash (see VisitorIdentity.ComputeHash), just enough to tell "the same visitor
-/// reloading" apart from "a new visitor" for a short window.</summary>
+/// <summary>One row per de-duplicated page view.</summary>
 public class PostView
 {
     public int Id { get; set; }

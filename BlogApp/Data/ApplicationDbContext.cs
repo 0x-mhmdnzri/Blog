@@ -1,9 +1,10 @@
 using BlogApp.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Data;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
@@ -17,10 +18,12 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<Post>(e =>
         {
             e.HasIndex(p => p.Slug).IsUnique();
-            e.Property(p => p.ContentMarkdown).HasColumnType("TEXT"); // unlimited length
+            e.Property(p => p.ContentMarkdown).HasColumnType("TEXT");
             e.HasOne(p => p.CoverMediaAsset)
                 .WithMany()
                 .HasForeignKey(p => p.CoverMediaAssetId)
@@ -29,6 +32,10 @@ public class ApplicationDbContext : DbContext
                 .WithMany(c => c.Posts)
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Author)
+                .WithMany(u => u.Posts)
+                .HasForeignKey(p => p.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Category>().HasIndex(c => c.Slug).IsUnique();
@@ -59,11 +66,16 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<PostView>(e =>
         {
             e.HasIndex(v => v.ViewedAtUtc);
-            e.HasIndex(v => new { v.PostId, v.VisitorHash, v.ViewedAtUtc }); // powers the dedup check
+            e.HasIndex(v => new { v.PostId, v.VisitorHash, v.ViewedAtUtc });
             e.HasOne(v => v.Post)
                 .WithMany(p => p.Views)
                 .HasForeignKey(v => v.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ApplicationUser>(e =>
+        {
+            e.Property(u => u.ProfileImage).HasColumnType("BLOB");
         });
     }
 }
