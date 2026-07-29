@@ -23,7 +23,7 @@
     <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
 }
 
-<article class="container py-5 post-article" style="max-width:780px;">
+<article class="container py-5 post-article" style="max-width:780px;" data-analytics-post-id="@Model.Id">
     @if (TempData["BookmarkMsg"] != null)
     {
         <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["BookmarkMsg"]</div>
@@ -179,3 +179,7 @@
         </form>
     </section>
 </article>
+
+@section Scripts {
+    <script src="~/js/analytics-beacon.js" asp-append-version="true"></script>
+}
