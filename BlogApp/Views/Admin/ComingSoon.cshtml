@@ -5,16 +5,16 @@
     var features = Model.DemoFeatures ?? new List<string>();
 }
 
-<div class="admin-empty text-end" style="text-align:right;">
-    <div class="mb-3" style="font-size:2rem;opacity:.5;">◇</div>
-    <h2 class="mb-2">@Model.Title</h2>
-    <p class="text-muted-dark mb-4" style="max-width:520px;margin-inline:auto;">@Model.Description</p>
+<div class="admin-empty" style="text-align:right;">
+    <div class="mb-3" style="font-size:2rem;opacity:.45;">◇</div>
+    <h2 class="mb-2" style="text-align:right;">@Model.Title</h2>
+    <p class="text-muted-dark mb-4" style="max-width:520px;text-align:right;">@Model.Description</p>
 
     @if (features.Count > 0)
     {
-        <div class="card-surface p-4 text-start mx-auto" style="max-width:480px;text-align:right !important;">
-            <div class="eyebrow mb-2 text-muted-dark">ویژگی‌های برنامه‌ریزی‌شده (دمو)</div>
-            <ul class="mb-0" style="padding-inline-start:1.2rem;text-align:right;">
+        <div class="card-surface p-4" style="max-width:480px;text-align:right;">
+            <div class="mb-3" style="font-size:0.8rem;color:var(--text-faint);">ویژگی‌های برنامه‌ریزی‌شده (دمو)</div>
+            <ul class="mb-0" style="padding-right:1.25rem;padding-left:0;list-style-position:inside;text-align:right;">
                 @foreach (var f in features)
                 {
                     <li class="mb-2 text-muted-dark">@f</li>
@@ -23,7 +23,7 @@
         </div>
     }
 
-    <p class="mt-4 mb-0 small text-muted-dark">
-        این بخش به‌زودی فعال می‌شود — فعلاً فقط پیش‌نمایش منوی کناری است.
+    <p class="mt-4 mb-0 small text-muted-dark" style="text-align:right;">
+        این بخش به‌زودی فعال می‌شود — فعلاً پیش‌نمایش منوی کناری است.
     </p>
 </div>
