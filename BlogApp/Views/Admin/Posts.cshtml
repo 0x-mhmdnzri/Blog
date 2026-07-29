@@ -5,7 +5,14 @@
     var showAuthor = ViewBag.ShowAuthorColumn as bool? ?? false;
 }
 
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div class="admin-tabs mb-0">
+        <span class="admin-tab active">همه</span>
+        <span class="admin-tab">منتشرشده</span>
+        <span class="admin-tab">پیش‌نویس</span>
+        <span class="admin-tab">زمان‌بندی‌شده</span>
+        <span class="admin-tab">حذف‌شده</span>
+    </div>
     <a class="btn btn-accent btn-sm" asp-controller="Posts" asp-action="Create">نوشته جدید</a>
 </div>
 
@@ -18,58 +25,103 @@
 }
 else
 {
-    <table class="admin-table">
-        <thead>
-            <tr>
-                <th>عنوان</th>
-                @if (showAuthor)
-                {
-                    <th>نویسنده</th>
-                }
-                <th>دسته‌بندی</th>
-                <th>وضعیت</th>
-                <th>بازدید</th>
-                <th>دیدگاه‌ها</th>
-                <th>تاریخ ایجاد</th>
-                <th>عملیات</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var p in Model)
-            {
+    <div class="admin-table-wrap">
+        <table class="admin-table">
+            <thead>
                 <tr>
-                    <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
+                    <th>عنوان</th>
                     @if (showAuthor)
                     {
-                        <td dir="auto">@p.AuthorDisplayName</td>
+                        <th>نویسنده</th>
                     }
-                    <td dir="auto">@(p.CategoryName ?? "—")</td>
-                    <td>
-                        @if (p.IsPublished)
-                        {
-                            <span class="status-pill published">منتشرشده</span>
-                        }
-                        else
-                        {
-                            <span class="status-pill draft">پیش‌نویس</span>
-                        }
-                    </td>
-                    <td><span class="ltr-field">@p.ViewCount</span></td>
-                    <td><span class="ltr-field">@p.CommentCount</span></td>
-                    <td><span class="ltr-field">@p.CreatedAtUtc.ToString("yyyy/MM/dd")</span></td>
-                    <td>
-                        <div class="d-flex gap-1 flex-wrap">
-                            <a class="icon-btn" asp-controller="Posts" asp-action="Edit" asp-route-id="@p.Id">ویرایش</a>
-                            <form asp-action="TogglePublish" asp-route-id="@p.Id" method="post">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="icon-btn @(p.IsPublished ? "reject" : "approve")">
-                                    @(p.IsPublished ? "لغو انتشار" : "انتشار")
-                                </button>
-                            </form>
-                        </div>
-                    </td>
+                    <th>دسته‌بندی</th>
+                    <th>وضعیت</th>
+                    <th>ویژگی‌ها</th>
+                    <th>بازدید</th>
+                    <th>دیدگاه‌ها</th>
+                    <th>تاریخ</th>
+                    <th>عملیات</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr style="@(p.IsDeleted ? "opacity:.55;" : null)">
+                        <td dir="auto">
+                            <a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a>
+                        </td>
+                        @if (showAuthor)
+                        {
+                            <td dir="auto">@p.AuthorDisplayName</td>
+                        }
+                        <td dir="auto">@(p.CategoryName ?? "—")</td>
+                        <td>
+                            @if (p.IsDeleted)
+                            {
+                                <span class="status-pill rejected">حذف‌شده</span>
+                            }
+                            else if (p.ScheduledPublishAtUtc.HasValue && !p.IsPublished)
+                            {
+                                <span class="status-pill scheduled">زمان‌بندی</span>
+                            }
+                            else if (p.IsPublished)
+                            {
+                                <span class="status-pill published">منتشرشده</span>
+                            }
+                            else
+                            {
+                                <span class="status-pill draft">پیش‌نویس</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                @if (p.IsFeatured)
+                                {
+                                    <span class="status-pill featured">ویژه</span>
+                                }
+                                @if (p.IsSticky)
+                                {
+                                    <span class="status-pill sticky">چسبان</span>
+                                }
+                                @if (!p.IsFeatured && !p.IsSticky)
+                                {
+                                    <span class="text-muted-dark small">—</span>
+                                }
+                            </div>
+                        </td>
+                        <td><span class="ltr-field">@p.ViewCount</span></td>
+                        <td><span class="ltr-field">@p.CommentCount</span></td>
+                        <td><span class="ltr-field">@p.CreatedAtUtc.ToString("yyyy/MM/dd")</span></td>
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                @if (!p.IsDeleted)
+                                {
+                                    <a class="icon-btn" asp-controller="Posts" asp-action="Edit" asp-route-id="@p.Id">ویرایش</a>
+                                    <form asp-controller="Posts" asp-action="Duplicate" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@p.Id" />
+                                        <button type="submit" class="icon-btn">کپی</button>
+                                    </form>
+                                    <form asp-controller="Posts" asp-action="Delete" method="post"
+                                          onsubmit="return confirm('انتقال به سطل زباله؟');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@p.Id" />
+                                        <button type="submit" class="icon-btn reject">حذف</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-controller="Posts" asp-action="Restore" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@p.Id" />
+                                        <button type="submit" class="icon-btn approve">بازگردانی</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }

@@ -1,6 +1,5 @@
 /* =========================================================================
-   Dark Pro — restored from 93cb53c, kept with Content Management logic.
-   Palette: near-black cool ink background, warm amber signal accent.
+   Dark Pro — full RTL / Persian. LTR only for code, tables of code, signatures.
    ========================================================================= */
 
 :root {
@@ -17,16 +16,22 @@
   --accent-dim: #b8903a;
   --accent-soft: rgba(227, 179, 65, 0.12);
   --danger: #e5637a;
+  --success: #9ecb8c;
   --radius-sm: 6px;
   --radius: 10px;
   --radius-lg: 16px;
-  --font-display: "Vazirmatn", "Space Grotesk", sans-serif;
-  --font-body: "Vazirmatn", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Vazirmatn", Tahoma, sans-serif;
+  --font-body: "Vazirmatn", Tahoma, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   --shadow-soft: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
 }
 
 * { box-sizing: border-box; }
+
+html {
+  direction: rtl;
+  text-align: right;
+}
 
 html, body {
   background: var(--bg);
@@ -39,6 +44,8 @@ body {
   font-size: 16px;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
+  direction: rtl;
+  text-align: right;
 }
 
 ::selection { background: var(--accent-soft); color: var(--accent); }
@@ -51,19 +58,39 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
+  text-align: right;
 }
 
-.ltr-signature, .ltr-field {
-  direction: ltr;
+p, li, label, .form-label, td, th {
+  text-align: right;
+}
+
+/* English / terminal signatures — always LTR */
+.ltr-signature,
+.ltr-field {
+  direction: ltr !important;
   unicode-bidi: isolate;
   display: inline-block;
+  text-align: left !important;
 }
 .ltr-field { font-family: var(--font-mono); }
 
-code, pre, kbd, samp {
-  direction: ltr;
+/* Code, pre, kbd — always LTR (readme + editor + everywhere) */
+code, pre, kbd, samp,
+.readme-content code,
+.readme-content pre,
+.readme-content pre code {
+  direction: ltr !important;
   unicode-bidi: embed;
-  text-align: left;
+  text-align: left !important;
+  font-family: var(--font-mono);
+}
+
+/* Markdown source editor is technical — LTR */
+#markdown-input {
+  direction: ltr !important;
+  text-align: left !important;
+  font-family: var(--font-mono);
 }
 
 [dir="auto"] { unicode-bidi: plaintext; }
@@ -85,6 +112,8 @@ code, pre, kbd, samp {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 .brand .brand-cursor {
   display: inline-block;
@@ -110,8 +139,8 @@ main.site-main { min-height: 70vh; }
 .site-footer {
   border-top: 1px solid var(--border-soft);
   color: var(--text-faint);
-  font-family: var(--font-mono);
   font-size: 0.82rem;
+  text-align: right;
 }
 
 .btn-accent {
@@ -140,6 +169,13 @@ main.site-main { min-height: 70vh; }
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text);
+  text-align: right;
+}
+.form-control.ltr-field,
+.form-select.ltr-field,
+input[type="datetime-local"] {
+  direction: ltr !important;
+  text-align: left !important;
 }
 .form-control:focus, .form-select:focus {
   background: var(--surface-2);
@@ -148,7 +184,7 @@ main.site-main { min-height: 70vh; }
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .form-control::placeholder { color: var(--text-faint); }
-label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 500; }
+label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 500; text-align: right; }
 
 .post-card {
   background: var(--surface);
@@ -156,22 +192,20 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   height: 100%;
+  text-align: right;
   transition: border-color 0.18s ease, transform 0.18s ease;
 }
 .post-card:hover { border-color: var(--accent-dim); transform: translateY(-2px); }
 .post-card .eyebrow {
-  font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
 }
 .post-card h2 a { color: var(--text); }
 .post-card h2 a:hover { color: var(--accent); text-decoration: none; }
 
 .tag-pill {
   display: inline-block;
-  font-family: var(--font-mono);
   font-size: 0.74rem;
   color: var(--text-muted);
   background: var(--surface-2);
@@ -180,7 +214,7 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   padding: 0.15rem 0.6rem;
 }
 
-.hero { border-bottom: 1px solid var(--border-soft); }
+.hero { border-bottom: 1px solid var(--border-soft); text-align: right; }
 .hero .hero-prompt {
   font-family: var(--font-mono);
   color: var(--text-faint);
@@ -192,23 +226,30 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
 .hero h1 { font-size: clamp(2rem, 4vw, 3rem); }
 
 .post-meta-line {
-  font-family: var(--font-mono);
   color: var(--text-faint);
   font-size: 0.85rem;
   border-bottom: 1px dashed var(--border);
   padding-bottom: 0.75rem;
+  text-align: right;
 }
-.post-meta-line .accent { color: var(--accent); }
+.post-meta-line .accent { color: var(--accent); font-family: var(--font-mono); }
 
-.readme-content { font-size: 1.05rem; color: #d7dbe4; }
+.readme-content {
+  font-size: 1.05rem;
+  color: #d7dbe4;
+  text-align: right;
+  direction: rtl;
+}
 .readme-content h1, .readme-content h2, .readme-content h3 {
   margin-top: 2.2em;
   margin-bottom: 0.7em;
   padding-bottom: 0.35em;
   border-bottom: 1px solid var(--border-soft);
+  text-align: right;
+  scroll-margin-top: 5rem;
 }
 .readme-content h1:first-child, .readme-content h2:first-child { margin-top: 0; }
-.readme-content p { margin-bottom: 1.1em; }
+.readme-content p { margin-bottom: 1.1em; text-align: right; }
 .readme-content img {
   max-width: 100%;
   border-radius: var(--radius);
@@ -216,29 +257,38 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
 }
 .readme-content blockquote {
   border-right: 3px solid var(--accent);
+  border-left: none;
   background: var(--surface);
   padding: 0.8rem 1.2rem;
   border-radius: var(--radius) 0 0 var(--radius);
   color: var(--text-muted);
+  text-align: right;
 }
-.readme-content table { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+
+/* Tables in readme: structure RTL-friendly headers, cell text can use dir=auto */
+.readme-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94rem;
+  direction: rtl;
+}
 .readme-content th, .readme-content td {
   border: 1px solid var(--border);
   padding: 0.5rem 0.8rem;
+  text-align: right;
 }
 .readme-content th { background: var(--surface-2); text-align: right; }
 .readme-content hr { border-color: var(--border); }
+
 .readme-content code {
-  font-family: var(--font-mono);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 0.1em 0.4em;
   font-size: 0.88em;
   color: var(--accent);
-  direction: ltr;
-  unicode-bidi: embed;
 }
+
 .readme-content pre {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -248,6 +298,8 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   overflow: hidden;
   box-shadow: var(--shadow-soft);
   position: relative;
+  direction: ltr !important;
+  text-align: left !important;
 }
 .readme-content pre code {
   display: block;
@@ -259,9 +311,6 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   font-size: 0.88rem;
   line-height: 1.6;
   border-radius: 0;
-  direction: ltr;
-  text-align: left;
-  unicode-bidi: embed;
 }
 .readme-content pre::before {
   content: "";
@@ -280,6 +329,7 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   letter-spacing: 3px;
   font-size: 0.5rem;
   color: var(--text-faint);
+  direction: ltr;
 }
 
 .hljs-keyword, .hljs-selector-tag, .hljs-literal { color: #e3b341; }
@@ -309,6 +359,7 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
+  direction: rtl;
 }
 .editor-toolbar button {
   background: transparent;
@@ -319,11 +370,11 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   font-size: 0.78rem;
   padding: 0.3rem 0.6rem;
   cursor: pointer;
+  direction: ltr;
 }
 .editor-toolbar button:hover { color: var(--text); border-color: var(--text-faint); }
 
 #markdown-input {
-  font-family: var(--font-mono);
   font-size: 0.92rem;
   background: var(--surface);
   color: var(--text);
@@ -338,10 +389,13 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
 
 .editor-preview-pane {
   background: var(--bg);
-  border-right: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-right: none;
   padding: 1.5rem;
   overflow-y: auto;
   max-height: 600px;
+  direction: rtl;
+  text-align: right;
 }
 
 .upload-dropzone {
@@ -351,18 +405,30 @@ label, .form-label { color: var(--text-muted); font-size: 0.88rem; font-weight: 
   text-align: center;
   color: var(--text-faint);
   font-size: 0.85rem;
-  font-family: var(--font-mono);
   cursor: pointer;
 }
 .upload-dropzone:hover { border-color: var(--accent-dim); color: var(--text-muted); }
 
 .text-muted-dark { color: var(--text-muted) !important; }
-.card-surface { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); }
+.card-surface {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  text-align: right;
+}
 .badge-category {
-  font-family: var(--font-mono);
   background: var(--accent-soft);
   color: var(--accent);
   border-radius: 999px;
   padding: 0.25rem 0.7rem;
   font-size: 0.75rem;
+}
+
+@media (max-width: 991.98px) {
+  .editor-preview-pane {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: 320px;
+  }
+  #markdown-input { min-height: 280px; }
 }
