@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using BlogApp.Models;
 
 namespace BlogApp.Models.ViewModels;
 
@@ -41,6 +42,16 @@ public class PostEditViewModel
 
     public int ReadingTimeMinutes { get; set; }
 
+    [Display(Name = "زبان")]
+    [MaxLength(8)]
+    public string LanguageCode { get; set; } = AppCultures.Default;
+
+    public TranslationStatus TranslationStatus { get; set; } = TranslationStatus.Original;
+
+    public int? TranslationGroupId { get; set; }
+
+    public List<PostTranslationLink> SiblingTranslations { get; set; } = new();
+
     public List<CategoryOption> AvailableCategories { get; set; } = new();
 
     public List<PostRevisionItem> Revisions { get; set; } = new();
@@ -74,5 +85,6 @@ public class PostListItemViewModel
     public bool IsSticky { get; set; }
     public bool IsDeleted { get; set; }
     public int ReadingTimeMinutes { get; set; }
+    public string LanguageCode { get; set; } = AppCultures.Default;
     public List<string> Tags { get; set; } = new();
 }

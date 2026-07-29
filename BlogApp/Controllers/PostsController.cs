@@ -20,6 +20,7 @@ public partial class PostsController : Controller
     private readonly AiContentService _ai;
     private readonly INotificationService _notify;
     private readonly IAnalyticsTracker _analytics;
+    private readonly ICultureService _culture;
     private readonly ILogger<PostsController> _logger;
 
     public PostsController(
@@ -30,6 +31,7 @@ public partial class PostsController : Controller
         AiContentService ai,
         INotificationService notify,
         IAnalyticsTracker analytics,
+        ICultureService culture,
         ILogger<PostsController> logger)
     {
         _db = db;
@@ -39,6 +41,7 @@ public partial class PostsController : Controller
         _ai = ai;
         _notify = notify;
         _analytics = analytics;
+        _culture = culture;
         _logger = logger;
     }
 
@@ -53,14 +56,32 @@ public partial class PostsController : Controller
             : "relevant";
 
         await ApplyScheduledAndExpirationAsync();
+        var lang = _culture.CurrentCode;
+
         var post = await _db.Posts.Include(p => p.Category).Include(p => p.Author)
             .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
             .Include(p => p.Comments.Where(c => c.Status == CommentStatus.Approved))
-            .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted);
-        if (post is null || (!post.IsPublished && !User.Identity!.IsAuthenticated))
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.LanguageCode == lang && !p.IsDeleted);
+
+        // Fallback: try any language if exact culture miss (then redirect to that culture URL)
+        if (post is null)
+        {
+            var any = await _db.Posts.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted);
+            if (any is not null)
+                return Redirect($"/{any.LanguageCode}/post/{any.Slug}");
+            return NotFound();
+        }
+
+        if (!post.IsPublished && !User.Identity!.IsAuthenticated)
             return NotFound();
         if (!post.IsPublished && !AuthorAccess.OwnsPost(User, post)) return NotFound();
         if (post.ExpiresAtUtc.HasValue && post.ExpiresAtUtc <= DateTime.UtcNow && !AuthorAccess.OwnsPost(User, post))
+            return NotFound();
+
+        // Draft translations not public
+        if (!AuthorAccess.OwnsPost(User, post)
+            && post.TranslationStatus is TranslationStatus.Draft or TranslationStatus.ReadyForReview)
             return NotFound();
 
         var isStaffPreview = User.Identity?.IsAuthenticated == true
@@ -86,7 +107,7 @@ public partial class PostsController : Controller
         }
 
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
-        var canonicalUrl = $"{baseUrl}/post/{post.Slug}";
+        var canonicalUrl = $"{baseUrl}/{post.LanguageCode}/post/{post.Slug}";
         string? imageUrl = post.CoverMediaAssetId is int cid ? $"{baseUrl}/media/{cid}" : null;
         ViewData["Title"] = post.Title;
         ViewData["Description"] = post.Summary;
@@ -95,8 +116,8 @@ public partial class PostsController : Controller
         ViewData["OgImage"] = imageUrl;
         ViewBag.PostJsonLd = _seo.BuildPostJsonLd(post, canonicalUrl, imageUrl);
         ViewBag.BreadcrumbJsonLd = _seo.BuildBreadcrumbJsonLd(
-            ("Home", baseUrl + "/"),
-            post.Category != null ? (post.Category.Name, $"{baseUrl}/?category={post.Category.Slug}") : ("Posts", baseUrl + "/"),
+            ("Home", baseUrl + "/" + post.LanguageCode + "/"),
+            post.Category != null ? (post.Category.Name, $"{baseUrl}/{post.LanguageCode}/?category={post.Category.Slug}") : ("Posts", baseUrl + "/" + post.LanguageCode + "/"),
             (post.Title, canonicalUrl));
         ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(post.ContentMarkdown, true);
         ViewBag.ReadingTimeMinutes = post.ReadingTimeMinutes > 0
@@ -104,6 +125,16 @@ public partial class PostsController : Controller
             : _markdown.EstimateReadingTimeMinutes(post.ContentMarkdown);
         ViewBag.CanEdit = AuthorAccess.OwnsPost(User, post);
         ViewBag.CommentSort = commentSort;
+
+        var translations = await _culture.GetTranslationLinksAsync(post.Id);
+        ViewBag.Translations = translations;
+        ViewBag.HreflangLinks = translations
+            .Where(t => t.IsPublished || AuthorAccess.OwnsPost(User, post))
+            .Select(t => new
+            {
+                Lang = t.LanguageCode,
+                Href = $"{baseUrl}/{t.LanguageCode}/post/{t.Slug}"
+            }).ToList();
 
         var uid = AuthorAccess.UserId(User);
         ViewBag.IsBookmarked = uid != null
@@ -130,8 +161,16 @@ public partial class PostsController : Controller
     }
 
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
-    public async Task<IActionResult> Create() =>
-        View(new PostEditViewModel { AvailableCategories = await GetCategoryOptionsAsync() });
+    public async Task<IActionResult> Create()
+    {
+        var vm = new PostEditViewModel
+        {
+            AvailableCategories = await GetCategoryOptionsAsync(),
+            LanguageCode = _culture.CurrentCode,
+            TranslationStatus = TranslationStatus.Original
+        };
+        return View(vm);
+    }
 
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
     [HttpPost, ValidateAntiForgeryToken]
@@ -143,11 +182,12 @@ public partial class PostsController : Controller
             return View(vm);
         }
         var authorId = AuthorAccess.UserId(User)!;
+        var lang = AppCultures.Normalize(vm.LanguageCode);
         var post = new Post
         {
             Title = vm.Title,
             AuthorId = authorId,
-            Slug = await MakeUniqueSlugAsync(SlugHelper.Slugify(vm.Title)),
+            Slug = await MakeUniqueSlugAsync(SlugHelper.Slugify(vm.Title), lang),
             Summary = string.IsNullOrWhiteSpace(vm.Summary) ? _ai.Summarize(vm.ContentMarkdown) : vm.Summary,
             ContentMarkdown = vm.ContentMarkdown,
             CategoryId = vm.CategoryId,
@@ -158,13 +198,17 @@ public partial class PostsController : Controller
             IsFeatured = vm.IsFeatured,
             IsSticky = vm.IsSticky,
             ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown),
-            PublishedAtUtc = (vm.IsPublished && !vm.ScheduledPublishAtUtc.HasValue) ? DateTime.UtcNow : null
+            PublishedAtUtc = (vm.IsPublished && !vm.ScheduledPublishAtUtc.HasValue) ? DateTime.UtcNow : null,
+            LanguageCode = lang,
+            TranslationStatus = TranslationStatus.Original
         };
         await ApplyTagsAsync(post, vm.TagsCsv);
         _db.Posts.Add(post);
         await _db.SaveChangesAsync();
+        post.TranslationGroupId = post.Id;
+        await _db.SaveChangesAsync();
         await SaveRevisionAsync(post, authorId, "initial");
-        return RedirectToAction(nameof(Details), new { slug = post.Slug });
+        return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
     }
 
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
@@ -190,6 +234,10 @@ public partial class PostsController : Controller
             IsSticky = post.IsSticky,
             CoverMediaAssetId = post.CoverMediaAssetId,
             ReadingTimeMinutes = post.ReadingTimeMinutes,
+            LanguageCode = post.LanguageCode,
+            TranslationStatus = post.TranslationStatus,
+            TranslationGroupId = post.TranslationGroupId ?? post.Id,
+            SiblingTranslations = await _culture.GetTranslationLinksAsync(post.Id),
             AvailableCategories = await GetCategoryOptionsAsync(),
             Revisions = post.Revisions.Select(r => new PostRevisionItem
             {
@@ -208,6 +256,7 @@ public partial class PostsController : Controller
         if (!ModelState.IsValid)
         {
             vm.AvailableCategories = await GetCategoryOptionsAsync();
+            vm.SiblingTranslations = await _culture.GetTranslationLinksAsync(post.Id);
             return View(vm);
         }
         var authorId = AuthorAccess.UserId(User)!;
@@ -224,6 +273,8 @@ public partial class PostsController : Controller
         post.ExpiresAtUtc = vm.ExpiresAtUtc;
         post.ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown);
         post.UpdatedAtUtc = DateTime.UtcNow;
+        post.TranslationStatus = vm.TranslationStatus;
+        // Language of an existing post is fixed (create a translation draft for other langs)
         if (vm.ScheduledPublishAtUtc.HasValue && vm.ScheduledPublishAtUtc > DateTime.UtcNow)
         {
             post.IsPublished = false;
@@ -239,7 +290,36 @@ public partial class PostsController : Controller
         await ApplyTagsAsync(post, vm.TagsCsv);
         await _db.SaveChangesAsync();
         if (changed) await SaveRevisionAsync(post, authorId, "after-edit");
-        return RedirectToAction(nameof(Details), new { slug = post.Slug });
+        return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
+    }
+
+    /// <summary>Translation workflow: create a draft in another language linked to this post.</summary>
+    [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateTranslation(int id, string targetLanguage)
+    {
+        var source = await _db.Posts.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+        if (source is null) return NotFound();
+        if (!AuthorAccess.OwnsPost(User, source)) return Forbid();
+
+        if (!AppCultures.IsSupported(targetLanguage))
+        {
+            TempData["Error"] = "زبان پشتیبانی نمی‌شود.";
+            return RedirectToAction(nameof(Edit), new { id });
+        }
+
+        try
+        {
+            var draft = await _culture.CreateTranslationDraftAsync(source, targetLanguage, AuthorAccess.UserId(User)!);
+            TempData["Saved"] = $"پیش‌نویس ترجمه ({AppCultures.Find(targetLanguage)?.NativeName}) ساخته شد.";
+            return RedirectToAction(nameof(Edit), new { id = draft.Id });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "CreateTranslation failed PostId={Id} Lang={Lang}", id, targetLanguage);
+            TempData["Error"] = ex.Message;
+            return RedirectToAction(nameof(Edit), new { id });
+        }
     }
 
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
@@ -257,8 +337,8 @@ public partial class PostsController : Controller
         if (authorName.Length is < 2 or > 80 || body.Length is < 2 or > 2000)
         {
             TempData["CommentSubmitted"] = "نام یا متن دیدگاه معتبر نیست.";
-            var badSlug = await _db.Posts.Where(p => p.Id == postId).Select(p => p.Slug).FirstOrDefaultAsync();
-            return RedirectToAction(nameof(Details), new { slug = badSlug });
+            var bad = await _db.Posts.Where(p => p.Id == postId).Select(p => new { p.Slug, p.LanguageCode }).FirstOrDefaultAsync();
+            return bad is null ? NotFound() : Redirect($"/{bad.LanguageCode}/post/{bad.Slug}");
         }
 
         authorName = new string(authorName.Where(c => !char.IsControl(c)).ToArray());
@@ -298,6 +378,6 @@ public partial class PostsController : Controller
             authorName = comment.AuthorName
         });
 
-        return RedirectToAction(nameof(Details), new { slug = post.Slug });
+        return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
     }
 }

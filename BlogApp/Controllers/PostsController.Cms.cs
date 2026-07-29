@@ -67,11 +67,12 @@ public partial class PostsController
             .Select(c => new CategoryOption { Id = c.Id, Name = c.Name })
             .ToListAsync();
 
-    private async Task<string> MakeUniqueSlugAsync(string baseSlug)
+    private async Task<string> MakeUniqueSlugAsync(string baseSlug, string? languageCode = null)
     {
+        var lang = AppCultures.Normalize(languageCode ?? _culture.CurrentCode);
         var slug = baseSlug;
         var i = 2;
-        while (await _db.Posts.AnyAsync(p => p.Slug == slug))
+        while (await _db.Posts.AnyAsync(p => p.Slug == slug && p.LanguageCode == lang && !p.IsDeleted))
             slug = $"{baseSlug}-{i++}";
         return slug;
     }
