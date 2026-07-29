@@ -2,6 +2,7 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "نوشته‌ها";
+    var showAuthor = ViewBag.ShowAuthorColumn as bool? ?? false;
 }
 
 <div class="d-flex justify-content-end mb-3">
@@ -21,6 +22,10 @@ else
         <thead>
             <tr>
                 <th>عنوان</th>
+                @if (showAuthor)
+                {
+                    <th>نویسنده</th>
+                }
                 <th>دسته‌بندی</th>
                 <th>وضعیت</th>
                 <th>بازدید</th>
@@ -34,6 +39,10 @@ else
             {
                 <tr>
                     <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
+                    @if (showAuthor)
+                    {
+                        <td dir="auto">@p.AuthorDisplayName</td>
+                    }
                     <td dir="auto">@(p.CategoryName ?? "—")</td>
                     <td>
                         @if (p.IsPublished)
