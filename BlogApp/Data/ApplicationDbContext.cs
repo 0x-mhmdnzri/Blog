@@ -13,6 +13,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<PostTag> PostTags => Set<PostTag>();
     public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
     public DbSet<PostView> PostViews => Set<PostView>();
     public DbSet<PostRevision> PostRevisions => Set<PostRevision>();
@@ -69,10 +70,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasOne(pt => pt.Tag).WithMany(t => t.PostTags).HasForeignKey(pt => pt.TagId);
         });
 
-        modelBuilder.Entity<PostSeries>(e =>
-        {
-            e.HasIndex(s => s.Slug).IsUnique();
-        });
+        modelBuilder.Entity<PostSeries>(e => e.HasIndex(s => s.Slug).IsUnique());
 
         modelBuilder.Entity<SeriesPost>(e =>
         {
@@ -81,10 +79,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasOne(sp => sp.Post).WithMany(p => p.SeriesMemberships).HasForeignKey(sp => sp.PostId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<TopicCollection>(e =>
-        {
-            e.HasIndex(t => t.Slug).IsUnique();
-        });
+        modelBuilder.Entity<TopicCollection>(e => e.HasIndex(t => t.Slug).IsUnique());
 
         modelBuilder.Entity<TopicCollectionItem>(e =>
         {
@@ -102,11 +97,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<Comment>()
-            .HasOne(c => c.Post)
-            .WithMany(p => p.Comments)
-            .HasForeignKey(c => c.PostId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Comment>(e =>
+        {
+            e.HasOne(c => c.Post)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(c => c.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(c => c.LikeCount);
+        });
+
+        modelBuilder.Entity<CommentLike>(e =>
+        {
+            e.HasKey(l => new { l.CommentId, l.UserId });
+            e.HasOne(l => l.Comment)
+                .WithMany(c => c.Likes)
+                .HasForeignKey(l => l.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.User)
+                .WithMany()
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<PostView>(e =>
         {
