@@ -11,57 +11,101 @@
     </div>
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <p class="text-muted-dark mb-0 small">مدیریت نویسندگان وبلاگ (فقط سوپر ادمین)</p>
     <a class="btn btn-accent btn-sm" asp-action="CreateAuthor">+ نویسنده جدید</a>
 </div>
 
-<div class="card-surface">
-    <table class="table table-dark table-hover mb-0 align-middle">
-        <thead>
-            <tr>
-                <th></th>
-                <th>نام نمایشی</th>
-                <th>نام کاربری</th>
-                <th>ایمیل</th>
-                <th>نقش</th>
-                <th>تعداد نوشته</th>
-            </tr>
-        </thead>
-        <tbody>
+@if (Model == null || !Model.Any())
+{
+    <div class="admin-empty">
+        <h2>نویسنده‌ای یافت نشد</h2>
+        <p class="mb-0">اولین نویسنده را اضافه کنید.</p>
+    </div>
+}
+else
+{
+    <div class="admin-table-wrap authors-table-desktop">
+        <table class="admin-table authors-table">
+            <thead>
+                <tr>
+                    <th class="avatar-cell"></th>
+                    <th>نام نمایشی</th>
+                    <th>نام کاربری</th>
+                    <th>ایمیل</th>
+                    <th>نقش</th>
+                    <th>تعداد نوشته</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var a in Model)
+            {
+                <tr>
+                    <td class="avatar-cell">
+                        @if (a.HasProfileImage)
+                        {
+                            <img src="@Url.Action("ProfileImage", "Account", new { userId = a.Id })"
+                                 class="avatar" alt="" width="36" height="36" />
+                        }
+                        else
+                        {
+                            <span class="avatar-fallback" aria-hidden="true">
+                                @(string.IsNullOrEmpty(a.DisplayName) ? "?" : a.DisplayName.Trim()[0].ToString())
+                            </span>
+                        }
+                    </td>
+                    <td class="name-cell" dir="auto" title="@a.DisplayName">@a.DisplayName</td>
+                    <td><span class="ltr-field">@a.UserName</span></td>
+                    <td class="email-cell" title="@a.Email"><span class="ltr-field">@a.Email</span></td>
+                    <td>
+                        @if (a.IsSuperAdmin)
+                        {
+                            <span class="role-badge super">SuperAdmin</span>
+                        }
+                        else
+                        {
+                            <span class="role-badge author">Author</span>
+                        }
+                    </td>
+                    <td><span class="ltr-field">@a.PostCount</span></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="authors-cards">
         @foreach (var a in Model)
         {
-            <tr>
-                <td style="width:48px;">
-                    @if (a.HasProfileImage)
-                    {
-                        <img src="@Url.Action("ProfileImage", "Account", new { userId = a.Id })"
-                             class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" alt="" />
-                    }
-                    else
-                    {
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center"
-                             style="width:36px;height:36px;background:var(--surface-2);font-size:.85rem;">
-                            @a.DisplayName.FirstOrDefault()
-                        </div>
-                    }
-                </td>
-                <td dir="auto">@a.DisplayName</td>
-                <td class="ltr-field">@a.UserName</td>
-                <td class="ltr-field small">@a.Email</td>
-                <td>
-                    @if (a.IsSuperAdmin)
-                    {
-                        <span class="badge bg-warning text-dark">SuperAdmin</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">Author</span>
-                    }
-                </td>
-                <td class="ltr-field">@a.PostCount</td>
-            </tr>
+            <div class="author-card">
+                @if (a.HasProfileImage)
+                {
+                    <img src="@Url.Action("ProfileImage", "Account", new { userId = a.Id })"
+                         class="avatar" alt="" width="40" height="40" style="width:40px;height:40px;" />
+                }
+                else
+                {
+                    <span class="avatar-fallback" style="width:40px;height:40px;" aria-hidden="true">
+                        @(string.IsNullOrEmpty(a.DisplayName) ? "?" : a.DisplayName.Trim()[0].ToString())
+                    </span>
+                }
+                <div class="meta">
+                    <div class="title" dir="auto">@a.DisplayName</div>
+                    <div class="sub ltr-field">@a.UserName</div>
+                    <div class="sub ltr-field">@a.Email</div>
+                    <div class="row-bits">
+                        @if (a.IsSuperAdmin)
+                        {
+                            <span class="role-badge super">SuperAdmin</span>
+                        }
+                        else
+                        {
+                            <span class="role-badge author">Author</span>
+                        }
+                        <span class="ltr-field small">@a.PostCount نوشته</span>
+                    </div>
+                </div>
+            </div>
         }
-        </tbody>
-    </table>
-</div>
+    </div>
+}
