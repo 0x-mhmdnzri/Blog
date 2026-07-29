@@ -11,6 +11,7 @@
     var isProfile = currentController == "Account" && (currentAction == "Profile");
     var isAuthors = currentController == "Account" && (currentAction == "Authors" || currentAction == "CreateAuthor");
     var isTaxonomy = currentController == "Taxonomy";
+    var isAnalytics = currentController == "AdminAnalytics";
     var isSuperAdmin = AuthorAccess.IsSuperAdmin(User);
 
     var userId = AuthorAccess.UserId(User);
@@ -67,6 +68,9 @@
                 </a>
 
                 <div class="admin-nav-group-label">رشد و سئو</div>
+                <a class="admin-nav-link @(isAnalytics ? "active" : "")" asp-controller="AdminAnalytics" asp-action="Index">
+                    <span>آمار و تحلیل</span>
+                </a>
                 <a class="admin-nav-link @(IsActive("SeoTools") ? "active" : "")" asp-controller="Admin" asp-action="SeoTools">
                     <span>ابزارهای سئو</span>
                     <span class="soon-tag">دمو</span>
