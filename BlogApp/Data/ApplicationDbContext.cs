@@ -28,6 +28,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<AuthorFollow> AuthorFollows => Set<AuthorFollow>();
     public DbSet<OutboundMessage> OutboundMessages => Set<OutboundMessage>();
+    public DbSet<AnalyticsSession> AnalyticsSessions => Set<AnalyticsSession>();
+    public DbSet<SearchQueryLog> SearchQueryLogs => Set<SearchQueryLog>();
+    public DbSet<ReadingDurationLog> ReadingDurationLogs => Set<ReadingDurationLog>();
+    public DbSet<HeatmapClick> HeatmapClicks => Set<HeatmapClick>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,7 +107,34 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             e.HasIndex(v => v.ViewedAtUtc);
             e.HasIndex(v => new { v.PostId, v.VisitorHash, v.ViewedAtUtc });
+            e.HasIndex(v => v.TrafficSource);
+            e.HasIndex(v => v.DeviceType);
+            e.HasIndex(v => v.CountryCode);
             e.HasOne(v => v.Post).WithMany(p => p.Views).HasForeignKey(v => v.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AnalyticsSession>(e =>
+        {
+            e.HasIndex(s => s.SessionKey).IsUnique();
+            e.HasIndex(s => s.StartedAtUtc);
+        });
+
+        modelBuilder.Entity<SearchQueryLog>(e =>
+        {
+            e.HasIndex(s => s.SearchedAtUtc);
+            e.HasIndex(s => s.Query);
+        });
+
+        modelBuilder.Entity<ReadingDurationLog>(e =>
+        {
+            e.HasOne(r => r.Post).WithMany().HasForeignKey(r => r.PostId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => r.LoggedAtUtc);
+        });
+
+        modelBuilder.Entity<HeatmapClick>(e =>
+        {
+            e.HasOne(h => h.Post).WithMany().HasForeignKey(h => h.PostId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(h => h.PostId);
         });
 
         modelBuilder.Entity<PostRevision>(e =>
