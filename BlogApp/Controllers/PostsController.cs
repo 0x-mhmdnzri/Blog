@@ -33,24 +33,39 @@ public partial class PostsController : Controller
         if (!post.IsPublished && !AuthorAccess.OwnsPost(User, post)) return NotFound();
         if (post.ExpiresAtUtc.HasValue && post.ExpiresAtUtc <= DateTime.UtcNow && !AuthorAccess.OwnsPost(User, post)) return NotFound();
 
-        // Real public traffic only: never count the author/admin previewing their own post.
+        // Staff preview must never inflate public analytics.
         var isStaffPreview = User.Identity?.IsAuthenticated == true
             && (User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
 
         if (!isStaffPreview)
         {
+            // Fingerprint = SHA-256(IP | User-Agent). Same mixture within the window = one view.
             var visitorHash = VisitorIdentity.ComputeHash(HttpContext);
-            var window = DateTime.UtcNow.AddMinutes(-30);
-            if (!await _db.PostViews.AnyAsync(v => v.PostId == post.Id && v.VisitorHash == visitorHash && v.ViewedAtUtc >= window))
+            var windowStart = DateTime.UtcNow - VisitorIdentity.DedupeWindow;
+
+            var alreadyCounted = await _db.PostViews.AnyAsync(v =>
+                v.PostId == post.Id
+                && v.VisitorHash == visitorHash
+                && v.ViewedAtUtc >= windowStart);
+
+            if (!alreadyCounted)
             {
                 post.ViewCount++;
-                var pv = new PostView { PostId = post.Id, ViewedAtUtc = DateTime.UtcNow, VisitorHash = visitorHash };
+                var pv = new PostView
+                {
+                    PostId = post.Id,
+                    ViewedAtUtc = DateTime.UtcNow,
+                    VisitorHash = visitorHash
+                };
                 _db.PostViews.Add(pv);
                 await _db.SaveChangesAsync();
+
+                // Push to every open admin dashboard over SSE — counters + chart update live.
                 _broadcaster.Publish(new
                 {
                     type = "view",
                     postId = post.Id,
+                    postSlug = post.Slug,
                     postTitle = post.Title,
                     authorId = post.AuthorId,
                     viewedAtUtc = pv.ViewedAtUtc,
