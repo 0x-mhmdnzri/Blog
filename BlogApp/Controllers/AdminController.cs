@@ -41,7 +41,6 @@ public class AdminController : Controller
         var rangeStart = today.AddDays(-(range - 1));
         var previousRangeStart = rangeStart.AddDays(-range);
 
-        // Scope posts to current author unless SuperAdmin
         var postQuery = _db.Posts.AsQueryable();
         if (!seeAll)
             postQuery = postQuery.Where(p => p.AuthorId == userId);
@@ -106,12 +105,14 @@ public class AdminController : Controller
             RangeViews = currentRangeViews.Count(v => v.PostId == p.Id)
         }).ToList();
 
-        // Comments scoped to own posts
         var commentQuery = _db.Comments.AsQueryable();
         if (!seeAll)
             commentQuery = commentQuery.Where(c => myPostIds.Contains(c.PostId));
 
         var currentUser = await _userManager.GetUserAsync(User);
+
+        ViewBag.CurrentUserId = userId;
+        ViewBag.SeeAllAnalytics = seeAll;
 
         var vm = new AdminDashboardViewModel
         {
@@ -161,6 +162,21 @@ public class AdminController : Controller
         return View(vm);
     }
 
+    /// <summary>
+    /// Wipes all PostView rows and zeros every Post.ViewCount.
+    /// Use once after removing demo/seed traffic so the dashboard starts from zero.
+    /// SuperAdmin only.
+    /// </summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.SuperAdmin)]
+    public async Task<IActionResult> ResetAnalytics()
+    {
+        await _db.PostViews.ExecuteDeleteAsync();
+        await _db.Posts.ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, 0));
+        TempData["AnalyticsReset"] = "آمار بازدید پاک شد. از این به بعد فقط بازدیدهای واقعی ثبت می‌شوند.";
+        return RedirectToAction(nameof(Index));
+    }
+
     public async Task<IActionResult> Comments(string status = "pending")
     {
         var userId = AuthorAccess.UserId(User)!;
@@ -193,7 +209,6 @@ public class AdminController : Controller
             })
             .ToListAsync();
 
-        // Badge counts also scoped
         var baseComments = _db.Comments.AsQueryable();
         if (!seeAll)
             baseComments = baseComments.Where(c => c.Post.AuthorId == userId);
