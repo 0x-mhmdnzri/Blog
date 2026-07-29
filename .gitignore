@@ -8,6 +8,12 @@ obj/
 *.db-shm
 *.db-wal
 
+## Serilog rolling JSON (ELK ship target)
+logs/
+*.json
+!**/appsettings*.json
+!**/Properties/**/*.json
+
 ## IDE
 .vs/
 .vscode/
