@@ -24,6 +24,9 @@
 
     <!-- Markdown -> HTML rendering -->
     <PackageReference Include="Markdig" Version="0.37.0" />
+
+    <!-- Code-page encodings (Windows-1256 etc.) for console / legacy IO -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

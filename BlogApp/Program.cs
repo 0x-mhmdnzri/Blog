@@ -7,8 +7,14 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-// Ensure process-wide UTF-8 for console / file defaults
-Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+try
+{
+    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+}
+catch
+{
+    // Optional: package missing in some publish layouts — UTF-8 still works as default.
+}
 Console.OutputEncoding = Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,10 +48,8 @@ builder.Services.AddSingleton<AnalyticsBroadcaster>();
 builder.Services.AddScoped<AiContentService>();
 builder.Services.AddScoped<BrokenLinkService>();
 
-builder.Services.AddControllersWithViews()
-    .AddViewOptions(o => { /* keep default */ });
+builder.Services.AddControllersWithViews();
 
-// Force UTF-8 for all HTML / JSON responses
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 500L * 1024 * 1024;
@@ -91,7 +95,6 @@ if (!app.Environment.IsDevelopment())
 
 if (forceHttps) app.UseHttpsRedirection();
 
-// Always declare UTF-8 charset on text responses
 app.Use(async (ctx, next) =>
 {
     ctx.Response.OnStarting(() =>

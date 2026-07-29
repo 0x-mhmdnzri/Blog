@@ -35,16 +35,11 @@ public class MarkdownService
         });
         var html = Markdown.ToHtml(withVideos, _pipeline);
 
-        // Force LTR on fenced code blocks (English / source code signatures).
         html = Regex.Replace(html, @"<pre>", "<pre class=\"md-code-block\" dir=\"ltr\">");
         html = Regex.Replace(html, @"<code>", "<code dir=\"ltr\">");
-
-        // Tables: RTL shell; cells can auto-detect mixed English/Persian.
         html = Regex.Replace(html, @"<table>", "<table class=\"md-table\" dir=\"rtl\">");
         html = Regex.Replace(html, @"<td>", "<td dir=\"auto\">");
         html = Regex.Replace(html, @"<th>", "<th dir=\"auto\">");
-
-        // Paragraphs: browser bidirectional algorithm for mixed scripts.
         html = Regex.Replace(html, @"<p>", "<p dir=\"auto\">");
 
         html = Regex.Replace(html, @"<p dir=\"auto\">\[\[VIDEO_EMBED_(\d+)\]\]</p>", m =>
@@ -52,7 +47,6 @@ public class MarkdownService
             var id = m.Groups[1].Value;
             return $"<div class=\"post-video-embed\"><video controls preload=\"metadata\" src=\"/media/{id}\"></video></div>";
         });
-        // Fallback if dir attribute missing on video placeholder
         html = Regex.Replace(html, @"<p>\[\[VIDEO_EMBED_(\d+)\]\]</p>", m =>
         {
             var id = m.Groups[1].Value;
