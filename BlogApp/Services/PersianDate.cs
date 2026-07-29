@@ -26,7 +26,7 @@ public static class PersianDate
     {
         var kind = utc.Kind == DateTimeKind.Local
             ? utc.ToUniversalTime()
-            : DateTime.SpecifyKind(utc, DateTimeKind.Utc);
+            : System.DateTime.SpecifyKind(utc, DateTimeKind.Utc);
         return TimeZoneInfo.ConvertTimeFromUtc(kind, Tehran);
     }
 
@@ -50,7 +50,7 @@ public static class PersianDate
         if (utc is null) return string.Empty;
         var u = utc.Value.Kind == DateTimeKind.Utc
             ? utc.Value
-            : DateTime.SpecifyKind(utc.Value, DateTimeKind.Utc);
+            : System.DateTime.SpecifyKind(utc.Value, DateTimeKind.Utc);
         return u.ToString("o", CultureInfo.InvariantCulture);
     }
 

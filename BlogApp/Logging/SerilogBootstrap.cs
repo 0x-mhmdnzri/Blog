@@ -50,15 +50,15 @@ public static class SerilogBootstrap
                 {
                     a.Console(new CompactJsonFormatter());
                 }
-            })
-            // Rolling JSON files — ship with Filebeat / fluent-bit into Elasticsearch.
-            .WriteTo.Async(a => a.File(
-                new CompactJsonFormatter(),
-                path: Path.Combine(logsDir, "blog-.json"),
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 14,
-                shared: true,
-                buffered: true,
-                flushToDiskInterval: TimeSpan.FromSeconds(2)));
+            });
+        // Rolling JSON files — ship with Filebeat / fluent-bit into Elasticsearch.
+        // .WriteTo.Async(a => a.File(
+        //     new CompactJsonFormatter(),
+        //     path: Path.Combine(logsDir, "blog-.json"),
+        //     rollingInterval: RollingInterval.Day,
+        //     retainedFileCountLimit: 14,
+        //     shared: true,
+        //     buffered: true,
+        //     flushToDiskInterval: TimeSpan.FromSeconds(2)));
     }
 }
