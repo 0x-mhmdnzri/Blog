@@ -46,11 +46,14 @@ public sealed class MaintenanceMiddleware
 
         var message = await config.GetAsync(SiteSettingKeys.MaintenanceMessage)
                       ?? "سایت موقتاً در حال نگهداری است.";
+        var safeMessage = System.Net.WebUtility.HtmlEncode(message);
 
         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         context.Response.Headers["Retry-After"] = "3600";
         context.Response.ContentType = "text/html; charset=utf-8";
-        await context.Response.WriteAsync($"""
+
+        // Plain string (no $""") so CSS { } braces do not trigger CS9006.
+        const string htmlTemplate = """
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -58,22 +61,24 @@ public sealed class MaintenanceMiddleware
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نگهداری سایت</title>
 <style>
-body{{font-family:Vazirmatn,Tahoma,sans-serif;background:#0b0e14;color:#e6e8ee;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:1.5rem;text-align:center}}
-.box{{max-width:420px}}
-h1{{font-size:1.4rem;margin-bottom:.75rem}}
-p{{color:#9aa3b5;line-height:1.7}}
-a{{color:#e3b341}}
+body{font-family:Vazirmatn,Tahoma,sans-serif;background:#0b0e14;color:#e6e8ee;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:1.5rem;text-align:center}
+.box{max-width:420px}
+h1{font-size:1.4rem;margin-bottom:.75rem}
+p{color:#9aa3b5;line-height:1.7}
+a{color:#e3b341}
 </style>
 </head>
 <body>
 <div class="box">
 <h1>سایت در حال نگهداری است</h1>
-<p>{System.Net.WebUtility.HtmlEncode(message)}</p>
+<p>__MESSAGE__</p>
 <p style="margin-top:1.5rem;font-size:.85rem"><a href="/Account/Login">ورود مدیر</a></p>
 </div>
 </body>
 </html>
-""");
+""";
+
+        await context.Response.WriteAsync(htmlTemplate.Replace("__MESSAGE__", safeMessage));
     }
 
     private static bool IsExempt(string path)
