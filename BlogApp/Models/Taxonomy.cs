@@ -10,7 +10,7 @@ public class Category
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(90)]
-    public string Slug { get; set; } = string.Empty;
+    public stringSlug { get; set; } = string.Empty;
 
     [MaxLength(400)]
     public string? Description { get; set; }
@@ -57,7 +57,7 @@ public class PostSeries
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(140)]
-    public string Slug { get; set; } = string.Empty;
+    public stringSlug { get; set; } = string.Empty;
 
     [MaxLength(500)]
     public string? Description { get; set; }
@@ -86,7 +86,7 @@ public class TopicCollection
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(140)]
-    public string Slug { get; set; } = string.Empty;
+    public stringSlug { get; set; } = string.Empty;
 
     [MaxLength(500)]
     public string? Description { get; set; }
@@ -131,7 +131,6 @@ public class Comment
 
     public CommentStatus Status { get; set; } = CommentStatus.Pending;
 
-    /// <summary>Denormalized like count for “relevant” sort.</summary>
     public int LikeCount { get; set; }
 
     public ICollection<CommentLike> Likes { get; set; } = new List<CommentLike>();
