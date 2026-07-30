@@ -1,0 +1,46 @@
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = T["ana.heatmap_list_title"];
+}
+
+<p class="text-muted-dark small mb-3">@T["ana.heatmap_list_sub"]</p>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <a class="btn btn-ghost btn-sm" asp-action="Index">@T["ana.back_analytics"]</a>
+</div>
+
+<div class="admin-table-wrap">
+    <table id="heatmapPostsTable" class="admin-table display nowrap" style="width:100%">
+        <thead>
+            <tr>
+                <th>@T["col.index"]</th>
+                <th>@T["col.title"]</th>
+                <th>@T["col.views"]</th>
+                <th>@T["ana.col_clicks"]</th>
+                <th>@T["col.date"]</th>
+                <th>@T["col.actions"]</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    if (typeof BlogDT === 'undefined') return;
+    BlogDT.init('#heatmapPostsTable', {
+        ajax: { url: '@Url.Action("HeatmapsData")', type: 'GET' },
+        columns: [
+            { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
+            { data: 1 },
+            { data: 2, className: 'ltr-field' },
+            { data: 3, className: 'ltr-field' },
+            { data: 4, className: 'ltr-field' },
+            { data: 5, orderable: false, searchable: false }
+        ],
+        order: [[2, 'desc']],
+        columnDefs: [{ orderable: false, targets: [0, 5] }]
+    });
+})();
+</script>
+}
