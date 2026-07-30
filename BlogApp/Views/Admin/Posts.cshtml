@@ -1,4 +1,3 @@
-@model List<AdminPostListItem>
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "نوشته‌ها";
@@ -8,120 +7,60 @@
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div class="admin-tabs mb-0">
         <span class="admin-tab active">همه</span>
-        <span class="admin-tab">منتشرشده</span>
-        <span class="admin-tab">پیش‌نویس</span>
-        <span class="admin-tab">زمان‌بندی‌شده</span>
-        <span class="admin-tab">حذف‌شده</span>
     </div>
     <a class="btn btn-accent btn-sm" asp-controller="Posts" asp-action="Create">نوشته جدید</a>
 </div>
 
-@if (!Model.Any())
-{
-    <div class="admin-empty">
-        <h2>هنوز نوشته‌ای ثبت نشده</h2>
-        <p class="mb-0">اولین نوشته خود را بنویسید تا اینجا نمایش داده شود.</p>
-    </div>
-}
-else
-{
-    <div class="admin-table-wrap">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>عنوان</th>
-                    @if (showAuthor)
-                    {
-                        <th>نویسنده</th>
-                    }
-                    <th>دسته‌بندی</th>
-                    <th>وضعیت</th>
-                    <th>ویژگی‌ها</th>
-                    <th>بازدید</th>
-                    <th>دیدگاه‌ها</th>
-                    <th>تاریخ</th>
-                    <th>عملیات</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var p in Model)
+@Html.AntiForgeryToken()
+
+<div class="admin-table-wrap">
+    <table id="postsTable" class="admin-table display nowrap" style="width:100%">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>عنوان</th>
+                @if (showAuthor)
                 {
-                    <tr style="@(p.IsDeleted ? "opacity:.55;" : null)">
-                        <td dir="auto">
-                            <a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a>
-                        </td>
-                        @if (showAuthor)
-                        {
-                            <td dir="auto">@p.AuthorDisplayName</td>
-                        }
-                        <td dir="auto">@(p.CategoryName ?? "—")</td>
-                        <td>
-                            @if (p.IsDeleted)
-                            {
-                                <span class="status-pill rejected">حذف‌شده</span>
-                            }
-                            else if (p.ScheduledPublishAtUtc.HasValue && !p.IsPublished)
-                            {
-                                <span class="status-pill scheduled">زمان‌بندی</span>
-                            }
-                            else if (p.IsPublished)
-                            {
-                                <span class="status-pill published">منتشرشده</span>
-                            }
-                            else
-                            {
-                                <span class="status-pill draft">پیش‌نویس</span>
-                            }
-                        </td>
-                        <td>
-                            <div class="d-flex gap-1 flex-wrap">
-                                @if (p.IsFeatured)
-                                {
-                                    <span class="status-pill featured">ویژه</span>
-                                }
-                                @if (p.IsSticky)
-                                {
-                                    <span class="status-pill sticky">چسبان</span>
-                                }
-                                @if (!p.IsFeatured && !p.IsSticky)
-                                {
-                                    <span class="text-muted-dark small">—</span>
-                                }
-                            </div>
-                        </td>
-                        <td><span class="ltr-field">@p.ViewCount</span></td>
-                        <td><span class="ltr-field">@p.CommentCount</span></td>
-                        <td><span class="ltr-field">@PersianDate.Date(p.CreatedAtUtc)</span></td>
-                        <td>
-                            <div class="d-flex gap-1 flex-wrap">
-                                @if (!p.IsDeleted)
-                                {
-                                    <a class="icon-btn" asp-controller="Posts" asp-action="Edit" asp-route-id="@p.Id">ویرایش</a>
-                                    <form asp-controller="Posts" asp-action="Duplicate" method="post">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@p.Id" />
-                                        <button type="submit" class="icon-btn">کپی</button>
-                                    </form>
-                                    <form asp-controller="Posts" asp-action="Delete" method="post"
-                                          onsubmit="return confirm('انتقال به سطل زباله؟');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@p.Id" />
-                                        <button type="submit" class="icon-btn reject">حذف</button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <form asp-controller="Posts" asp-action="Restore" method="post">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@p.Id" />
-                                        <button type="submit" class="icon-btn approve">بازگردانی</button>
-                                    </form>
-                                }
-                            </div>
-                        </td>
-                    </tr>
+                    <th>نویسنده</th>
                 }
-            </tbody>
-        </table>
-    </div>
+                <th>دسته‌بندی</th>
+                <th>وضعیت</th>
+                <th>ویژگی‌ها</th>
+                <th>بازدید</th>
+                <th>دیدگاه‌ها</th>
+                <th>تاریخ</th>
+                <th>عملیات</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var showAuthor = @(showAuthor ? "true" : "false");
+    var columns = [
+        { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
+        { data: 1 },
+    ];
+    if (showAuthor) columns.push({ data: 2 });
+    var offset = showAuthor ? 1 : 0;
+    columns.push(
+        { data: 2 + offset },
+        { data: 3 + offset, orderable: true },
+        { data: 4 + offset, orderable: false, searchable: false },
+        { data: 5 + offset, className: 'ltr-field' },
+        { data: 6 + offset, className: 'ltr-field' },
+        { data: 7 + offset, className: 'ltr-field' },
+        { data: 8 + offset, orderable: false, searchable: false }
+    );
+    var dateCol = 7 + offset;
+    BlogDT.init('#postsTable', {
+        ajax: { url: '@Url.Action("PostsData", "Admin")', type: 'GET' },
+        columns: columns,
+        order: [[dateCol, 'desc']],
+        columnDefs: [{ orderable: false, targets: [0, columns.length - 1] }]
+    });
+})();
+</script>
 }
