@@ -83,7 +83,6 @@ try
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-    // API key (PAT) authentication scheme alongside cookies
     builder.Services.AddAuthentication()
         .AddScheme<ApiKeyAuthOptions, ApiKeyAuthHandler>(ApiKeyDefaults.Scheme, _ => { });
 
@@ -109,7 +108,6 @@ try
         options.Cookie.SameSite = SameSiteMode.Strict;
     });
 
-    // FluentValidation (free OSS)
     builder.Services.AddValidatorsFromAssemblyContaining<ApiCommentCreateValidator>();
 
     builder.Services.AddRateLimiter(options =>
@@ -122,7 +120,6 @@ try
             await ctx.HttpContext.Response.WriteAsync(
                 "{\"error\":\"rate_limited\",\"detail\":\"Too many requests\"}", token);
 
-            // Auto abuse detection → strike / ban API key
             try
             {
                 var keyClaim = ctx.HttpContext.User.FindFirst("api_key_id")?.Value;
@@ -132,10 +129,7 @@ try
                     await ApiKeyAbuseService.RegisterRateLimitStrikeAsync(db, apiKeyId, "rate_limit_429");
                 }
             }
-            catch
-            {
-                /* never fail the 429 response */
-            }
+            catch { /* never fail the 429 response */ }
         };
 
         options.AddPolicy("global", httpContext =>
@@ -370,16 +364,16 @@ try
     app.UseMiddleware<CultureMiddleware>();
 
     app.UseRouting();
-    app.UseRateLimiter();
 
     app.UseMiddleware<RedirectMiddleware>();
 
+    // Auth BEFORE rate limiter so api_key_id is available for partition + auto-ban
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
 
     app.UseMiddleware<MaintenanceMiddleware>();
 
-    // Attribute-routed API + feed controllers
     app.MapControllers().RequireRateLimiting("global");
 
     app.MapControllerRoute(
