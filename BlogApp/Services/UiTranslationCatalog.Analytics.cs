@@ -4,7 +4,6 @@ public static partial class UiTranslationCatalog
 {
     public static readonly (string Key, string Group, string Fa, string En, string Ar)[] Analytics =
     {
-        // Sidebar label override intent: deep analytics (not ops dashboard)
         ("admin.nav.analytics", "admin", "تحلیل‌ها", "Analytics", "التحليلات"),
 
         ("ana.title", "ana", "تحلیل‌ها", "Analytics", "التحليلات"),
@@ -13,6 +12,8 @@ public static partial class UiTranslationCatalog
             "Visitor behavior: traffic sources, devices, geo, search & heatmaps — separate from the ops dashboard.",
             "سلوك الزوار: مصادر الزيارات والأجهزة والجغرافيا والبحث والخرائط الحرارية."),
         ("ana.back_ops", "ana", "داشبورد عملیاتی", "Ops dashboard", "لوحة التشغيل"),
+        ("ana.back_analytics", "ana", "بازگشت به تحلیل‌ها", "Back to analytics", "العودة إلى التحليلات"),
+        ("ana.back_heatmap_list", "ana", "لیست نوشته‌ها", "Back to post list", "قائمة المقالات"),
 
         ("ana.kpi_views", "ana", "بازدید بازه", "Range views", "مشاهدات الفترة"),
         ("ana.in_range", "ana", "در بازه انتخاب‌شده", "In selected range", "في الفترة المحددة"),
@@ -44,6 +45,16 @@ public static partial class UiTranslationCatalog
         ("ana.search_kw", "ana", "کلمات جست‌وجو", "Search keywords", "كلمات البحث"),
         ("ana.heatmap", "ana", "نقشه حرارتی کلیک", "Click heatmap", "خريطة النقرات"),
         ("ana.heatmap_sub", "ana", "نقاط نسبی روی بدنه نوشته", "Relative points on post body", "نقاط نسبية على جسم المقال"),
+        ("ana.heatmap_cta_sub", "ana", "برای هر نوشته نقشه جداگانه ببینید", "Open a post to view its heatmap", "افتح مقالاً لعرض خريطته"),
+        ("ana.heatmap_list_title", "ana", "نقشه‌های حرارتی نوشته‌ها", "Post heatmaps", "خرائط حرارية للمقالات"),
+        ("ana.heatmap_list_sub", "ana", "یک نوشته را انتخاب کنید تا نقشه کلیک آن را ببینید.", "Pick a post to open its click heatmap.", "اختر مقالاً لفتح خريطة النقرات."),
+        ("ana.heatmap_open_list", "ana", "مشاهده نقشه‌های حرارتی", "View heatmaps", "عرض الخرائط الحرارية"),
+        ("ana.heatmap_open", "ana", "نقشه حرارتی", "Heatmap", "الخريطة"),
+        ("ana.heatmap_cells", "ana", "ناحیه فعال", "hot zones", "مناطق نشطة"),
+        ("ana.heatmap_hotspots", "ana", "داغ‌ترین نقاط", "Hottest cells", "أكثر الخلايا سخونة"),
+        ("ana.btn_open_post", "ana", "مشاهده نوشته", "Open post", "فتح المقال"),
+        ("ana.range_all", "ana", "همه زمان‌ها", "All time", "كل الأوقات"),
+        ("ana.col_clicks", "ana", "کلیک‌ها", "Clicks", "النقرات"),
 
         ("ana.col_all_time", "ana", "کل", "All-time", "الإجمالي"),
         ("ana.col_range", "ana", "بازه", "Range", "الفترة"),
