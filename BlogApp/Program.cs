@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Threading.RateLimiting;
+using BlogApp;
 using BlogApp.Data;
 using BlogApp.Logging;
 using BlogApp.Middleware;
@@ -45,8 +46,6 @@ try
             sqlite.CommandTimeout(cmdTimeout);
         });
 
-        // Read-heavy: no tracking by default (Identity attaches when needed).
-        // Lazy-loading proxies stay OFF (never call UseLazyLoadingProxies).
         options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         options.EnableSensitiveDataLogging(false);
         options.EnableDetailedErrors(builder.Environment.IsDevelopment());
@@ -57,6 +56,9 @@ try
 
     builder.Services.AddMemoryCache();
     builder.Services.AddHttpContextAccessor();
+
+    // Performance: Response/Output cache, Redis/memory distributed cache, jobs, CDN, image pipeline
+    builder.Services.AddBlogPerformance(builder.Configuration);
 
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
@@ -198,6 +200,7 @@ try
     builder.Services.AddScoped<ICultureService, CultureService>();
     builder.Services.AddScoped<IUiTranslator, UiTranslatorService>();
     builder.Services.AddScoped<IMembershipService, MembershipService>();
+    builder.Services.AddScoped<MentionsService>();
 
     builder.Services.AddControllersWithViews(options =>
     {
@@ -319,6 +322,9 @@ try
     };
     app.UseStaticFiles(staticCache);
 
+    // Response + Output caching (after static files)
+    app.UseBlogPerformance(builder.Configuration);
+
     app.UseMiddleware<CultureMiddleware>();
 
     app.UseRouting();
@@ -348,7 +354,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening (notifications SSE + Channel bus active)");
+    Log.Information("BlogApp listening (notifications SSE + Channel bus + background jobs active)");
     app.Run();
 }
 catch (Exception ex)

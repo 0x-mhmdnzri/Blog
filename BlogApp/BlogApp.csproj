@@ -26,6 +26,9 @@
     <!-- Notification bus (optional at runtime — Channel fallback when host empty) -->
     <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
 
+    <!-- Performance: optional Redis distributed cache -->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
+
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
