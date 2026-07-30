@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = T["home.title"];
     var categories = ViewBag.Categories as List<Category> ?? new();
-    var page = ViewBag.Page as int? ?? 1;
+    var currentPage = ViewBag.Page as int? ?? 1;
     var totalPages = ViewBag.TotalPages as int? ?? 1;
     var sort = ViewBag.Sort as string;
     var featured = ViewBag.Featured as bool?;
@@ -72,7 +72,7 @@
         </div>
     }
 
-    <div class="row g-4" id="posts-grid" data-page="@page" data-total-pages="@totalPages">
+    <div class="row g-4" id="posts-grid" data-page="@currentPage" data-total-pages="@totalPages">
         <partial name="_PostCards" model="Model" />
     </div>
 
