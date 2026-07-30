@@ -1,0 +1,262 @@
+@model MediaLibraryViewModel
+@inject BlogApp.Services.IUiTranslator T
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = T["admin.nav.media"];
+
+    string FmtBytes(long b)
+    {
+        if (b < 1024) return $"{b} B";
+        if (b < 1024 * 1024) return $"{b / 1024.0:0.#} KB";
+        return $"{b / (1024.0 * 1024):0.##} MB";
+    }
+}
+
+@if (TempData["MediaOk"] is string ok)
+{
+    <div class="wizard-alert success mb-3">@ok</div>
+}
+@if (TempData["MediaErr"] is string err)
+{
+    <div class="wizard-alert danger mb-3">@err</div>
+}
+
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["media.kpi_total"]</div><div class="kpi-value ltr-field">@Model.TotalCount</div></div></div>
+    <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["media.kpi_images"]</div><div class="kpi-value ltr-field">@Model.ImageCount</div></div></div>
+    <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["media.kpi_videos"]</div><div class="kpi-value ltr-field">@Model.VideoCount</div></div></div>
+    <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["media.kpi_size"]</div><div class="kpi-value ltr-field" style="font-size:1.1rem;">@FmtBytes(Model.TotalBytes)</div></div></div>
+</div>
+
+<div class="chart-card chart-card-tight mb-3">
+    <div class="chart-title mb-2">@T["media.upload"]</div>
+    <form asp-action="MediaUpload" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
+        @Html.AntiForgeryToken()
+        <div class="flex-grow-1" style="min-width:200px;">
+            <label class="form-label small">@T["media.file"]</label>
+            <input type="file" name="file" class="form-control form-control-sm" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg" required />
+            <div class="form-text">@T["media.upload_hint"]</div>
+        </div>
+        <button type="submit" class="btn btn-accent btn-sm">@T["media.upload_btn"]</button>
+    </form>
+</div>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="admin-tabs mb-0">
+        <a class="admin-tab @(string.IsNullOrEmpty(Model.FilterKind) ? "active" : "")" asp-action="Media">@T["media.all"]</a>
+        <a class="admin-tab @(Model.FilterKind == "Image" ? "active" : "")" asp-action="Media" asp-route-kind="Image">@T["media.images"]</a>
+        <a class="admin-tab @(Model.FilterKind == "Video" ? "active" : "")" asp-action="Media" asp-route-kind="Video">@T["media.videos"]</a>
+    </div>
+    <form method="get" asp-action="Media" class="d-flex gap-2">
+        @if (!string.IsNullOrEmpty(Model.FilterKind))
+        {
+            <input type="hidden" name="kind" value="@Model.FilterKind" />
+        }
+        <input type="search" name="q" value="@Model.Search" class="form-control form-control-sm" placeholder="@T["media.search"]" style="min-width:160px;" />
+        <button type="submit" class="btn btn-ghost btn-sm">@T["dt.search"]</button>
+    </form>
+</div>
+
+<form asp-action="MediaBulkDelete" method="post" id="mediaBulkForm" onsubmit="return confirm('@T["media.confirm_bulk"]');">
+    @Html.AntiForgeryToken()
+    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <div class="small text-muted-dark">@T["media.grid_hint"]</div>
+        <button type="submit" class="btn btn-ghost btn-sm" id="bulkDeleteBtn" disabled>@T["media.bulk_delete"]</button>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p class="text-muted-dark small">@T["media.empty"]</p>
+    }
+    else
+    {
+        <div class="media-grid">
+            @foreach (var m in Model.Items)
+            {
+                <div class="media-card" data-id="@m.Id">
+                    <label class="media-check">
+                        <input type="checkbox" name="ids" value="@m.Id" class="media-cb" />
+                    </label>
+                    <div class="media-preview">
+                        @if (m.Kind == BlogApp.Models.MediaKind.Image)
+                        {
+                            <img src="@m.Url" alt="@m.FileName" loading="lazy" />
+                        }
+                        else if (m.Kind == BlogApp.Models.MediaKind.Video)
+                        {
+                            <video src="@m.Url" muted preload="metadata"></video>
+                            <span class="media-badge">VIDEO</span>
+                        }
+                        else
+                        {
+                            <div class="media-file-icon">FILE</div>
+                        }
+                    </div>
+                    <div class="media-meta">
+                        <div class="media-name" title="@m.FileName">@m.FileName</div>
+                        <div class="media-sub ltr-field">@m.SizeLabel · #@m.Id</div>
+                        <div class="media-actions">
+                            <button type="button" class="icon-btn" data-copy="@m.Url" title="URL">URL</button>
+                            <button type="button" class="icon-btn" data-md="@(m.Kind == BlogApp.Models.MediaKind.Image ? $"![img]({m.Url})" : m.Kind == BlogApp.Models.MediaKind.Video ? $"{{{{video:{m.Id}}}}}" : $"[{m.FileName}]({m.Url})")">MD</button>
+                            <button type="button" class="icon-btn" data-usage="@m.Id">@T["media.usage"]</button>
+                            <button type="submit" class="icon-btn reject"
+                                    formaction="@Url.Action("MediaDelete")" formmethod="post"
+                                    name="id" value="@m.Id"
+                                    onclick="return confirm('@T["msg.confirm_delete"]');">@T["btn.delete"]</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</form>
+
+<div class="modal fade" id="usageModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--surface);border:1px solid var(--border-soft);color:var(--text);">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">@T["media.usage_title"]</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="usageBody">
+                <p class="text-muted-dark small mb-0">…</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+.media-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.media-check {
+  position: absolute;
+  top: 0.4rem;
+  inset-inline-start: 0.4rem;
+  z-index: 2;
+  background: rgba(0,0,0,.45);
+  border-radius: 6px;
+  padding: 0.15rem 0.3rem;
+}
+.media-preview {
+  aspect-ratio: 1;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.media-preview img,
+.media-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.media-badge {
+  position: absolute;
+  bottom: 0.35rem;
+  inset-inline-end: 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+.media-file-icon {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.media-meta { padding: 0.55rem 0.65rem 0.7rem; }
+.media-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.media-sub { font-size: 0.68rem; color: var(--text-faint); margin-top: 0.15rem; }
+.media-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.45rem;
+}
+.media-actions .icon-btn { font-size: 0.68rem; padding: 0.15rem 0.4rem; }
+</style>
+
+@section Scripts {
+<script>
+(function () {
+  var cbs = document.querySelectorAll('.media-cb');
+  var bulkBtn = document.getElementById('bulkDeleteBtn');
+  function syncBulk() {
+    var n = document.querySelectorAll('.media-cb:checked').length;
+    if (bulkBtn) bulkBtn.disabled = n === 0;
+  }
+  cbs.forEach(function (c) { c.addEventListener('change', syncBulk); });
+
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var t = btn.getAttribute('data-copy');
+      if (navigator.clipboard) navigator.clipboard.writeText(t);
+      else {
+        var i = document.createElement('input'); i.value = t; document.body.appendChild(i); i.select(); document.execCommand('copy'); i.remove();
+      }
+      btn.textContent = '✓';
+      setTimeout(function () { btn.textContent = 'URL'; }, 900);
+    });
+  });
+
+  document.querySelectorAll('[data-md]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var t = btn.getAttribute('data-md');
+      if (navigator.clipboard) navigator.clipboard.writeText(t);
+      btn.textContent = '✓';
+      setTimeout(function () { btn.textContent = 'MD'; }, 900);
+    });
+  });
+
+  var usageModal = document.getElementById('usageModal');
+  var usageBody = document.getElementById('usageBody');
+  document.querySelectorAll('[data-usage]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-usage');
+      usageBody.innerHTML = '<p class="text-muted-dark small">…</p>';
+      fetch('/Admin/MediaUsage?id=' + id)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.usages || !data.usages.length) {
+            usageBody.innerHTML = '<p class="text-muted-dark small mb-0">@T["media.usage_none"]</p>';
+          } else {
+            var html = '<ul class="mb-0" style="padding-inline-start:1.1rem;">';
+            data.usages.forEach(function (u) {
+              html += '<li class="mb-1"><a href="' + (u.editUrl || '#') + '">' + (u.Title || u.title) + '</a>'
+                + (u.isCover ? ' <span class="soon-tag">cover</span>' : '') + '</li>';
+            });
+            html += '</ul>';
+            usageBody.innerHTML = html;
+          }
+          if (window.bootstrap) new bootstrap.Modal(usageModal).show();
+        })
+        .catch(function () {
+          usageBody.innerHTML = '<p class="text-muted-dark small">—</p>';
+        });
+    });
+  });
+})();
+</script>
+}
