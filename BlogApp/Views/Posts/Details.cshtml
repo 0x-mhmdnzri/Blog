@@ -1,4 +1,5 @@
 @model Post
+@inject BlogApp.Services.IUiTranslator T
 @{
     ViewData["Title"] = Model.Title;
     var readingMinutes = ViewBag.ReadingTimeMinutes as int? ?? Math.Max(1, Model.ReadingTimeMinutes);
@@ -12,6 +13,9 @@
     var canLike = canBookmark;
     var commentSort = (ViewBag.CommentSort as string) ?? "relevant";
     var likedIds = ViewBag.LikedCommentIds as HashSet<int> ?? new HashSet<int>();
+    var premiumLocked = ViewBag.PremiumLocked as bool? ?? false;
+    var isSponsored = ViewBag.IsSponsoredPost as bool? ?? Model.IsSponsored;
+    var sponsoredLabel = (ViewBag.SponsoredLabel as string) ?? Model.SponsoredLabel;
 
     IEnumerable<Comment> orderedComments = commentSort == "latest"
         ? Model.Comments.OrderByDescending(c => c.CreatedAtUtc)
@@ -51,8 +55,15 @@
         </div>
     }
 
-    @if (Model.IsFeatured) { <span class="badge-category mb-2 d-inline-block">ویژه</span> }
-    @if (Model.IsSticky) { <span class="status-pill sticky mb-2 d-inline-block">چسبان</span> }
+    <div class="d-flex flex-wrap gap-2 mb-2">
+        @if (Model.IsFeatured) { <span class="badge-category">ویژه</span> }
+        @if (Model.IsSticky) { <span class="status-pill sticky">چسبان</span> }
+        @if (Model.IsPremium) { <span class="status-pill featured">@T["mon.premium_badge"]</span> }
+        @if (isSponsored)
+        {
+            <span class="status-pill scheduled">@(string.IsNullOrWhiteSpace(sponsoredLabel) ? T["mon.sponsored_default"] : sponsoredLabel)</span>
+        }
+    </div>
 
     @if (Model.Category != null)
     {
@@ -136,6 +147,15 @@
     <div class="readme-content post-body-island">
         @Html.Raw(ViewBag.RenderedHtml)
     </div>
+
+    @if (premiumLocked)
+    {
+        <div class="card-surface p-4 mt-4 text-center">
+            <p class="mb-3">@T["mon.premium_locked"]</p>
+            <a class="btn btn-accent btn-sm" asp-controller="Monetization" asp-action="Membership">@T["mon.premium_cta"]</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="Monetization" asp-action="Donate">@T["mon.donate_title"]</a>
+        </div>
+    }
 
     @if (Model.PostTags.Any())
     {
