@@ -1,93 +1,387 @@
-/* DataTables — dark admin skin */
+/* =========================================================================
+   DataTables — single modular skin for all admin tables
+   Uses design tokens from dark-theme.css only (no hard-coded interrupt colors).
+   Edit THIS file to change every server-side table UI.
+   ========================================================================= */
 
-.dataTables_wrapper {
+/* ---- Wrapper shell ---- */
+.admin-table-wrap {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.admin-table-wrap .dataTables_wrapper {
   color: var(--text-muted);
   font-size: 0.9rem;
+  padding: 0;
 }
 
-.dataTables_wrapper .dataTables_length,
-.dataTables_wrapper .dataTables_filter,
-.dataTables_wrapper .dataTables_info,
-.dataTables_wrapper .dataTables_paginate {
-  margin-bottom: 0.75rem;
-  color: var(--text-muted);
-}
-
-.dataTables_wrapper .dataTables_filter input,
-.dataTables_wrapper .dataTables_length select {
+/* ---- Top toolbar: length + search ---- */
+.admin-table-wrap .dataTables_wrapper > .row:first-child,
+.admin-table-wrap .dataTables_wrapper .dt-layout-row:first-child,
+.admin-table-wrap .dataTables_wrapper .top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--border-soft);
   background: var(--surface-2);
+  margin: 0 !important;
+}
+
+.admin-table-wrap .dataTables_length,
+.admin-table-wrap .dataTables_filter {
+  margin: 0;
+  float: none !important;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.admin-table-wrap .dataTables_length label,
+.admin-table-wrap .dataTables_filter label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.admin-table-wrap .dataTables_filter input,
+.admin-table-wrap .dataTables_length select {
+  background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: var(--radius-sm, 6px);
-  padding: 0.35rem 0.6rem;
-  margin-inline: 0.35rem;
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.86rem;
+  line-height: 1.3;
+  margin: 0 !important;
+  min-height: 2.1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.dataTables_wrapper .dataTables_filter input:focus,
-.dataTables_wrapper .dataTables_length select:focus {
+.admin-table-wrap .dataTables_filter input {
+  min-width: 11rem;
+  max-width: 16rem;
+}
+
+.admin-table-wrap .dataTables_length select {
+  min-width: 4.2rem;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.admin-table-wrap .dataTables_filter input:focus,
+.admin-table-wrap .dataTables_length select:focus {
   outline: none;
   border-color: var(--accent-dim);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.dataTables_wrapper .dataTables_paginate .paginate_button {
-  background: var(--surface) !important;
-  border: 1px solid var(--border-soft) !important;
-  color: var(--text-muted) !important;
-  border-radius: var(--radius-sm, 6px) !important;
-  padding: 0.3rem 0.7rem !important;
-  margin: 0 0.15rem !important;
-}
-.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-  background: var(--surface-2) !important;
-  color: var(--text) !important;
-  border-color: var(--text-faint) !important;
-}
-.dataTables_wrapper .dataTables_paginate .paginate_button.current {
-  background: var(--accent-soft) !important;
-  color: var(--accent) !important;
-  border-color: var(--accent-dim) !important;
-}
-.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
-  opacity: 0.4;
-  cursor: default !important;
+.admin-table-wrap .dataTables_filter input::placeholder {
+  color: var(--text-faint);
 }
 
-.dataTables_wrapper .dataTables_processing {
-  background: var(--surface) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text) !important;
-  border-radius: var(--radius, 10px);
-  box-shadow: var(--shadow-soft);
+/* ---- Table itself ---- */
+.admin-table-wrap table.dataTable {
+  width: 100% !important;
+  margin: 0 !important;
+  border-collapse: collapse;
+  border: none !important;
+  background: transparent;
 }
 
-table.dataTable.admin-table thead th {
+.admin-table-wrap table.dataTable thead th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  text-align: start;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border) !important;
+  border-top: none !important;
+  white-space: nowrap;
+  vertical-align: middle;
   cursor: pointer;
   user-select: none;
   position: relative;
 }
-table.dataTable.admin-table thead th.sorting_disabled {
+
+.admin-table-wrap table.dataTable thead th.sorting_disabled {
   cursor: default;
 }
-table.dataTable.admin-table thead th.sorting:after,
-table.dataTable.admin-table thead th.sorting_asc:after,
-table.dataTable.admin-table thead th.sorting_desc:after {
-  opacity: 0.55;
-  font-size: 0.7em;
-  margin-inline-start: 0.35rem;
-}
-table.dataTable.admin-table thead th.sorting_asc:after { content: "▲"; }
-table.dataTable.admin-table thead th.sorting_desc:after { content: "▼"; }
-table.dataTable.admin-table thead th.sorting:after { content: "↕"; }
 
-table.dataTable.no-footer {
+/* Kill default DataTables sort icons (arrows look noisy) */
+.admin-table-wrap table.dataTable thead th.sorting:before,
+.admin-table-wrap table.dataTable thead th.sorting:after,
+.admin-table-wrap table.dataTable thead th.sorting_asc:before,
+.admin-table-wrap table.dataTable thead th.sorting_asc:after,
+.admin-table-wrap table.dataTable thead th.sorting_desc:before,
+.admin-table-wrap table.dataTable thead th.sorting_desc:after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Clean custom sort marker */
+.admin-table-wrap table.dataTable thead th.sorting:after,
+.admin-table-wrap table.dataTable thead th.sorting_asc:after,
+.admin-table-wrap table.dataTable thead th.sorting_desc:after {
+  display: inline !important;
+  content: "" !important;
+  margin-inline-start: 0.4rem;
+  font-size: 0.65rem;
+  opacity: 0.45;
+  vertical-align: middle;
+}
+.admin-table-wrap table.dataTable thead th.sorting:after { content: "↕" !important; }
+.admin-table-wrap table.dataTable thead th.sorting_asc:after {
+  content: "▲" !important;
+  opacity: 0.9;
+  color: var(--accent);
+}
+.admin-table-wrap table.dataTable thead th.sorting_desc:after {
+  content: "▼" !important;
+  opacity: 0.9;
+  color: var(--accent);
+}
+
+.admin-table-wrap table.dataTable thead th:hover {
+  color: var(--text);
+}
+
+.admin-table-wrap table.dataTable tbody td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border-soft) !important;
+  border-top: none !important;
+  font-size: 0.88rem;
+  vertical-align: middle;
+  text-align: start;
+  color: var(--text);
+  background: transparent !important;
+}
+
+.admin-table-wrap table.dataTable tbody tr:last-child td {
   border-bottom: none !important;
 }
 
-.dataTables_wrapper .row {
+.admin-table-wrap table.dataTable tbody tr:hover td {
+  background: var(--surface-2) !important;
+}
+
+.admin-table-wrap table.dataTable.no-footer {
+  border-bottom: none !important;
+}
+
+.admin-table-wrap table.dataTable.stripe tbody tr.odd,
+.admin-table-wrap table.dataTable.display tbody tr.odd {
+  background: transparent;
+}
+.admin-table-wrap table.dataTable.hover tbody tr:hover,
+.admin-table-wrap table.dataTable.display tbody tr:hover {
+  background: var(--surface-2) !important;
+}
+
+/* ---- Bottom bar: info + pagination ---- */
+.admin-table-wrap .dataTables_wrapper > .row:last-child,
+.admin-table-wrap .dataTables_wrapper .dt-layout-row:last-child,
+.admin-table-wrap .dataTables_wrapper .bottom {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1.1rem;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface-2);
+  margin: 0 !important;
+}
+
+.admin-table-wrap .dataTables_info {
+  float: none !important;
+  padding: 0 !important;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.admin-table-wrap .dataTables_paginate {
+  float: none !important;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+/* Pagination buttons — kill Bootstrap primary blue */
+.admin-table-wrap .dataTables_paginate .paginate_button,
+.admin-table-wrap .dataTables_paginate .page-item .page-link,
+.admin-table-wrap .dataTables_paginate a.page-link {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 0.35rem 0.75rem !important;
+  margin: 0 !important;
+  min-width: 2.1rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.3;
+  box-shadow: none !important;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.admin-table-wrap .dataTables_paginate .paginate_button:hover:not(.disabled),
+.admin-table-wrap .dataTables_paginate .page-item:not(.disabled):not(.active) .page-link:hover {
+  background: var(--surface-3) !important;
+  color: var(--text) !important;
+  border-color: var(--text-faint) !important;
+}
+
+.admin-table-wrap .dataTables_paginate .paginate_button.current,
+.admin-table-wrap .dataTables_paginate .page-item.active .page-link {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  border-color: var(--accent-dim) !important;
+  font-weight: 600;
+}
+
+.admin-table-wrap .dataTables_paginate .paginate_button.disabled,
+.admin-table-wrap .dataTables_paginate .page-item.disabled .page-link {
+  opacity: 0.35;
+  cursor: default !important;
+  pointer-events: none;
+  background: var(--surface) !important;
+  color: var(--text-faint) !important;
+}
+
+/* Bootstrap 5 DataTables uses ul.pagination */
+.admin-table-wrap .dataTables_paginate ul.pagination {
+  margin: 0;
+  gap: 0.3rem;
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-table-wrap .dataTables_paginate ul.pagination .page-item {
+  margin: 0;
+}
+
+/* ---- Processing overlay ---- */
+.admin-table-wrap .dataTables_processing {
+  background: rgba(18, 22, 31, 0.92) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-soft);
+  padding: 0.85rem 1.4rem !important;
+  font-size: 0.88rem;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%);
+  margin: 0 !important;
+}
+
+/* ---- Action cell buttons inside rows ---- */
+.admin-table-wrap .icon-btn,
+.admin-table-wrap td form {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.admin-table-wrap td form {
+  margin: 0;
+  display: inline;
+}
+
+.admin-table-wrap .icon-btn + .icon-btn,
+.admin-table-wrap td form + form,
+.admin-table-wrap td form + .icon-btn,
+.admin-table-wrap td .icon-btn + form {
+  margin-inline-start: 0.25rem;
+}
+
+/* Status pills already defined in admin-rtl.css — ensure contrast in cells */
+.admin-table-wrap .status-pill {
+  font-size: 0.72rem;
+}
+
+/* Index / # column tighter */
+.admin-table-wrap table.dataTable tbody td:first-child,
+.admin-table-wrap table.dataTable thead th:first-child {
+  width: 3rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Empty / zero records */
+.admin-table-wrap table.dataTable tbody td.dataTables_empty {
+  text-align: center !important;
+  padding: 2.5rem 1rem !important;
+  color: var(--text-faint);
+  font-size: 0.9rem;
+}
+
+/* ---- Responsive: stack toolbar on narrow screens ---- */
+@media (max-width: 575.98px) {
+  .admin-table-wrap .dataTables_wrapper > .row:first-child,
+  .admin-table-wrap .dataTables_wrapper > .row:last-child {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-table-wrap .dataTables_filter input {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .admin-table-wrap .dataTables_length,
+  .admin-table-wrap .dataTables_filter {
+    width: 100%;
+  }
+
+  .admin-table-wrap .dataTables_length label,
+  .admin-table-wrap .dataTables_filter label {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .admin-table-wrap table.dataTable thead th,
+  .admin-table-wrap table.dataTable tbody td {
+    padding: 0.65rem 0.7rem;
+    font-size: 0.82rem;
+  }
+
+  .admin-table-wrap .dataTables_paginate {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* ---- Kill any remaining Bootstrap primary / blue bleed ---- */
+.admin-table-wrap .page-link {
+  color: var(--text-muted) !important;
+}
+.admin-table-wrap .page-item.active .page-link {
+  background-color: var(--accent-soft) !important;
+  border-color: var(--accent-dim) !important;
+  color: var(--accent) !important;
+}
+.admin-table-wrap .page-link:focus {
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
 }
