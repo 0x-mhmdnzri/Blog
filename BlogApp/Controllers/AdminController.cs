@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BlogApp.Controllers;
 
 [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
-public class AdminController : Controller
+public partial class AdminController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly AnalyticsBroadcaster _broadcaster;
@@ -168,51 +168,6 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    public async Task<IActionResult> Comments(string status = "pending")
-    {
-        var userId = AuthorAccess.UserId(User)!;
-        var seeAll = AuthorAccess.CanModerateAllComments(User);
-
-        var query = _db.Comments.Include(c => c.Post).AsQueryable();
-        if (!seeAll)
-            query = query.Where(c => c.Post.AuthorId == userId);
-
-        query = status switch
-        {
-            "approved" => query.Where(c => c.Status == CommentStatus.Approved),
-            "rejected" => query.Where(c => c.Status == CommentStatus.Rejected),
-            "all" => query,
-            _ => query.Where(c => c.Status == CommentStatus.Pending)
-        };
-
-        var items = await query
-            .OrderByDescending(c => c.CreatedAtUtc)
-            .Select(c => new AdminCommentListItem
-            {
-                Id = c.Id,
-                AuthorName = c.AuthorName,
-                Body = c.Body,
-                CreatedAtUtc = c.CreatedAtUtc,
-                Status = c.Status,
-                PostId = c.PostId,
-                PostTitle = c.Post.Title,
-                PostSlug = c.Post.Slug
-            })
-            .ToListAsync();
-
-        var baseComments = _db.Comments.AsQueryable();
-        if (!seeAll)
-            baseComments = baseComments.Where(c => c.Post.AuthorId == userId);
-
-        ViewBag.CurrentStatus = status;
-        ViewBag.PendingCount = await baseComments.CountAsync(c => c.Status == CommentStatus.Pending);
-        ViewBag.ApprovedCount = await baseComments.CountAsync(c => c.Status == CommentStatus.Approved);
-        ViewBag.RejectedCount = await baseComments.CountAsync(c => c.Status == CommentStatus.Rejected);
-        ViewBag.AllCount = await baseComments.CountAsync();
-
-        return View(items);
-    }
-
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveComment(int id, string? returnStatus)
     {
@@ -291,41 +246,6 @@ public class AdminController : Controller
         finally { _broadcaster.Unsubscribe(id); }
     }
 
-    public async Task<IActionResult> Posts()
-    {
-        var userId = AuthorAccess.UserId(User)!;
-        var seeAll = AuthorAccess.CanManageAllPosts(User);
-
-        var query = _db.Posts.Include(p => p.Category).Include(p => p.Author).AsQueryable();
-        if (!seeAll)
-            query = query.Where(p => p.AuthorId == userId);
-
-        var items = await query
-            .OrderByDescending(p => p.CreatedAtUtc)
-            .Select(p => new AdminPostListItem
-            {
-                Id = p.Id,
-                Title = p.Title,
-                Slug = p.Slug,
-                CategoryName = p.Category != null ? p.Category.Name : null,
-                IsPublished = p.IsPublished,
-                IsFeatured = p.IsFeatured,
-                IsSticky = p.IsSticky,
-                IsDeleted = p.IsDeleted,
-                ScheduledPublishAtUtc = p.ScheduledPublishAtUtc,
-                CreatedAtUtc = p.CreatedAtUtc,
-                ViewCount = p.ViewCount,
-                CommentCount = p.Comments.Count,
-                ReadingTimeMinutes = p.ReadingTimeMinutes,
-                AuthorDisplayName = p.Author.DisplayName,
-                AuthorId = p.AuthorId
-            })
-            .ToListAsync();
-
-        ViewBag.ShowAuthorColumn = seeAll;
-        return View(items);
-    }
-
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> TogglePublish(int id)
     {
@@ -367,7 +287,6 @@ public class AdminController : Controller
         ]
     });
 
-    /// <summary>SuperAdmin → real settings; Authors see locked notice.</summary>
     [HttpGet]
     public IActionResult Settings()
     {
