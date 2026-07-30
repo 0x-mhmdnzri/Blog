@@ -2,56 +2,123 @@
 @using System.Text.Json
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "آمار و تحلیل";
+    ViewData["Title"] = T["ana.title"];
     var json = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+    string FmtSeconds(double s)
+    {
+        if (s <= 0) return "—";
+        if (s < 60) return $"{s:0}s";
+        return $"{(int)(s / 60)}m {(int)(s % 60)}s";
+    }
 }
+
+<p class="text-muted-dark small mb-3">@T["ana.subtitle"]</p>
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div class="range-tabs">
-        <a class="admin-tab @(Model.RangeDays == 7 ? "active" : "")" asp-action="Index" asp-route-range="7">۷ روز</a>
-        <a class="admin-tab @(Model.RangeDays == 30 ? "active" : "")" asp-action="Index" asp-route-range="30">۳۰ روز</a>
-        <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Index" asp-route-range="90">۹۰ روز</a>
+        <a class="admin-tab @(Model.RangeDays == 7 ? "active" : "")" asp-action="Index" asp-route-range="7" asp-route-heatmapPostId="@Model.HeatmapPostId">@T["dash.range_7"]</a>
+        <a class="admin-tab @(Model.RangeDays == 30 ? "active" : "")" asp-action="Index" asp-route-range="30" asp-route-heatmapPostId="@Model.HeatmapPostId">@T["dash.range_30"]</a>
+        <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Index" asp-route-range="90" asp-route-heatmapPostId="@Model.HeatmapPostId">@T["dash.range_90"]</a>
+    </div>
+    <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="Index">@T["ana.back_ops"]</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-label">@T["ana.kpi_views"]</div>
+            <div class="kpi-value ltr-field">@Model.TotalViews</div>
+            <div class="kpi-sub">@T["ana.in_range"]</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-label">@T["ana.kpi_unique"]</div>
+            <div class="kpi-value ltr-field">@Model.UniqueVisitors</div>
+            <div class="kpi-sub">@T["ana.kpi_vpv"]: <span class="ltr-field">@Model.ViewsPerVisitor</span></div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card @(Model.BounceRatePercent > 60 ? "kpi-danger" : "")">
+            <div class="kpi-label">@T["ana.kpi_bounce"]</div>
+            <div class="kpi-value ltr-field">@Model.BounceRatePercent%</div>
+            <div class="kpi-sub">@Model.SessionCount @T["ana.sessions"]</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-good">
+            <div class="kpi-label">@T["ana.kpi_read"]</div>
+            <div class="kpi-value ltr-field" style="font-size:1.35rem;">@FmtSeconds(Model.AvgReadingSeconds)</div>
+            <div class="kpi-sub">@T["ana.kpi_returning"]: <span class="ltr-field">@Model.ReturningVisitorPercent%</span></div>
+        </div>
     </div>
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-label">بازدید</div><div class="kpi-value ltr-field">@Model.TotalViews</div></div></div>
-    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-label">بازدیدکننده یکتا</div><div class="kpi-value ltr-field">@Model.UniqueVisitors</div></div></div>
-    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-label">نرخ پرش</div><div class="kpi-value ltr-field">@Model.BounceRatePercent٪</div></div></div>
-    <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-label">میانگین مطالعه (ثانیه)</div><div class="kpi-value ltr-field">@Model.AvgReadingSeconds</div></div></div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card"><div class="kpi-label">@T["ana.kpi_searches"]</div><div class="kpi-value ltr-field" style="font-size:1.25rem;">@Model.SearchQueryCount</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card"><div class="kpi-label">@T["ana.kpi_heatmap_clicks"]</div><div class="kpi-value ltr-field" style="font-size:1.25rem;">@Model.HeatmapClickCount</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card"><div class="kpi-label">@T["ana.kpi_sources"]</div><div class="kpi-value ltr-field" style="font-size:1.25rem;">@Model.TrafficSources.Count</div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card"><div class="kpi-label">@T["ana.kpi_countries"]</div><div class="kpi-value ltr-field" style="font-size:1.25rem;">@Model.Countries.Count</div></div>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">
     <div class="col-lg-8">
         <div class="chart-card">
-            <div class="chart-title">روند بازدید</div>
-            <div class="chart-canvas-wrap" style="height:240px;"><canvas id="viewsChart"></canvas></div>
+            <div class="chart-title">@T["ana.chart_views"]</div>
+            <div class="chart-subtitle">@T["ana.chart_views_sub"]</div>
+            <div class="chart-canvas-wrap" style="height:250px;"><canvas id="viewsChart"></canvas></div>
         </div>
     </div>
     <div class="col-lg-4">
         <div class="chart-card">
-            <div class="chart-title">منابع ترافیک</div>
-            <div class="chart-canvas-wrap" style="height:240px;"><canvas id="sourceChart"></canvas></div>
+            <div class="chart-title">@T["ana.chart_sources"]</div>
+            <div class="chart-subtitle">@T["ana.chart_sources_sub"]</div>
+            <div class="chart-canvas-wrap" style="height:250px;"><canvas id="sourceChart"></canvas></div>
         </div>
     </div>
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-12">
         <div class="chart-card">
-            <div class="chart-title">دستگاه</div>
+            <div class="chart-title">@T["ana.chart_hours"]</div>
+            <div class="chart-subtitle">@T["ana.chart_hours_sub"]</div>
+            <div class="chart-canvas-wrap" style="height:200px;"><canvas id="hourChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="chart-card">
+            <div class="chart-title">@T["ana.chart_device"]</div>
             <div class="chart-canvas-wrap" style="height:200px;"><canvas id="deviceChart"></canvas></div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="chart-card">
-            <div class="chart-title">مرورگر</div>
+            <div class="chart-title">@T["ana.chart_browser"]</div>
             <div class="chart-canvas-wrap" style="height:200px;"><canvas id="browserChart"></canvas></div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="chart-card">
-            <div class="chart-title">جغرافیا (کشور)</div>
+            <div class="chart-title">@T["ana.chart_os"]</div>
+            <div class="chart-canvas-wrap" style="height:200px;"><canvas id="osChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="chart-card">
+            <div class="chart-title">@T["ana.chart_geo"]</div>
             <div class="chart-canvas-wrap" style="height:200px;"><canvas id="geoChart"></canvas></div>
         </div>
     </div>
@@ -59,87 +126,127 @@
 
 <div class="row g-3 mb-4">
     <div class="col-lg-6">
-        <h2 class="h6 text-muted-dark mb-2">پربازدیدترین</h2>
-        <table class="admin-table">
-            <thead><tr><th>نوشته</th><th>کل</th><th>بازه</th></tr></thead>
-            <tbody>
-            @foreach (var p in Model.PopularPosts)
-            {
-                <tr>
-                    <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
-                    <td class="ltr-field">@p.Views</td>
-                    <td class="ltr-field">@p.RangeViews</td>
-                </tr>
-            }
-            </tbody>
-        </table>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h6 mb-0 text-muted-dark">@T["ana.popular"]</h2>
+        </div>
+        @if (Model.PopularPosts.Count == 0)
+        {
+            <div class="admin-empty"><p class="mb-0">@T["ana.empty_posts"]</p></div>
+        }
+        else
+        {
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead><tr><th>@T["col.title"]</th><th>@T["ana.col_all_time"]</th><th>@T["ana.col_range"]</th></tr></thead>
+                    <tbody>
+                    @foreach (var p in Model.PopularPosts)
+                    {
+                        <tr>
+                            <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
+                            <td class="ltr-field">@p.Views</td>
+                            <td class="ltr-field">@p.RangeViews</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
     <div class="col-lg-6">
-        <h2 class="h6 text-muted-dark mb-2">پرطرفدار (۳ روز اخیر)</h2>
-        <table class="admin-table">
-            <thead><tr><th>نوشته</th><th>بازدید اخیر</th></tr></thead>
-            <tbody>
-            @foreach (var p in Model.TrendingPosts)
-            {
-                <tr>
-                    <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
-                    <td class="ltr-field">@p.RangeViews</td>
-                </tr>
-            }
-            </tbody>
-        </table>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h6 mb-0 text-muted-dark">@T["ana.trending"]</h2>
+        </div>
+        @if (Model.TrendingPosts.Count == 0)
+        {
+            <div class="admin-empty"><p class="mb-0">@T["ana.empty_trending"]</p></div>
+        }
+        else
+        {
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead><tr><th>@T["col.title"]</th><th>@T["ana.col_recent"]</th></tr></thead>
+                    <tbody>
+                    @foreach (var p in Model.TrendingPosts)
+                    {
+                        <tr>
+                            <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
+                            <td class="ltr-field">@p.RangeViews</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </div>
 
 <div class="row g-3 mb-4">
     <div class="col-lg-6">
-        <h2 class="h6 text-muted-dark mb-2">ارجاع‌دهنده‌ها</h2>
-        <table class="admin-table">
-            <thead><tr><th>میزبان</th><th>تعداد</th></tr></thead>
-            <tbody>
-            @foreach (var r in Model.Referrers)
-            {
-                <tr><td class="ltr-field">@r.Name</td><td class="ltr-field">@r.Count</td></tr>
-            }
-            </tbody>
-        </table>
+        <h2 class="h6 text-muted-dark mb-2">@T["ana.referrers"]</h2>
+        @if (Model.Referrers.Count == 0)
+        {
+            <div class="admin-empty"><p class="mb-0">@T["ana.empty_referrers"]</p></div>
+        }
+        else
+        {
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead><tr><th>@T["ana.col_host"]</th><th>@T["ana.col_count"]</th></tr></thead>
+                    <tbody>
+                    @foreach (var r in Model.Referrers)
+                    {
+                        <tr><td class="ltr-field">@r.Name</td><td class="ltr-field">@r.Count</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
     <div class="col-lg-6">
-        <h2 class="h6 text-muted-dark mb-2">کلمات جست‌وجو</h2>
-        <table class="admin-table">
-            <thead><tr><th>عبارت</th><th>تعداد</th></tr></thead>
-            <tbody>
-            @foreach (var s in Model.SearchKeywords)
-            {
-                <tr><td dir="auto">@s.Name</td><td class="ltr-field">@s.Count</td></tr>
-            }
-            </tbody>
-        </table>
+        <h2 class="h6 text-muted-dark mb-2">@T["ana.search_kw"]</h2>
+        @if (Model.SearchKeywords.Count == 0)
+        {
+            <div class="admin-empty"><p class="mb-0">@T["ana.empty_search"]</p></div>
+        }
+        else
+        {
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead><tr><th>@T["ana.col_query"]</th><th>@T["ana.col_count"]</th></tr></thead>
+                    <tbody>
+                    @foreach (var s in Model.SearchKeywords)
+                    {
+                        <tr><td dir="auto">@s.Name</td><td class="ltr-field">@s.Count</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </div>
 
 <div class="chart-card mb-4">
     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-        <div class="chart-title mb-0">نقشه حرارتی کلیک</div>
+        <div>
+            <div class="chart-title mb-0">@T["ana.heatmap"]</div>
+            <div class="chart-subtitle mb-0">@T["ana.heatmap_sub"]</div>
+        </div>
         <form method="get" class="d-flex gap-2 align-items-center">
             <input type="hidden" name="range" value="@Model.RangeDays" />
-            <select name="heatmapPostId" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width:240px;">
+            <select name="heatmapPostId" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width:260px;">
+                @if (Model.HeatmapPostOptions.Count == 0)
+                {
+                    <option value="">@T["ana.no_posts"]</option>
+                }
                 @foreach (var o in Model.HeatmapPostOptions)
                 {
-                    if (Model.HeatmapPostId == o.Id)
-                    {
-                        <option value="@o.Id" selected>@o.Title</option>
-                    }
-                    else
-                    {
-                        <option value="@o.Id">@o.Title</option>
-                    }
+                    <option value="@o.Id" selected="@(Model.HeatmapPostId == o.Id)">@o.Title</option>
                 }
             </select>
         </form>
     </div>
-    <div class="chart-subtitle">@Model.HeatmapPostTitle — نقاط نسبی روی بدنه نوشته</div>
-    <div id="heatmapBox" style="position:relative;height:280px;background:var(--surface-2);border-radius:8px;overflow:hidden;">
+    <div class="chart-subtitle">@(Model.HeatmapPostTitle ?? "—") · @Model.HeatmapClickCount @T["ana.clicks"]</div>
+    <div id="heatmapBox" style="position:relative;height:280px;background:var(--surface-2);border-radius:8px;overflow:hidden;border:1px solid var(--border-soft);">
         @foreach (var h in Model.Heatmap)
         {
             var op = Math.Min(0.85, 0.15 + h.Count * 0.12);
@@ -147,7 +254,7 @@
         }
         @if (Model.Heatmap.Count == 0)
         {
-            <div class="admin-empty" style="padding:2rem;">هنوز کلیکی ثبت نشده — روی نوشته‌ها کلیک کنید.</div>
+            <div class="admin-empty" style="padding:2rem;border:none;background:transparent;"><p class="mb-0">@T["ana.empty_heatmap"]</p></div>
         }
     </div>
 </div>
@@ -157,32 +264,82 @@
 <script>
 (function () {
     if (typeof Chart === 'undefined') return;
-    const muted = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim();
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    const styles = getComputedStyle(document.documentElement);
+    const muted = styles.getPropertyValue('--text-muted').trim();
+    const accent = styles.getPropertyValue('--accent').trim();
+    const border = styles.getPropertyValue('--border-soft').trim();
     Chart.defaults.color = muted;
+    Chart.defaults.borderColor = border;
     Chart.defaults.font.family = 'Vazirmatn, sans-serif';
+    const palette = [accent, '#6fb3d2', '#c9a0f2', '#9ecb8c', '#e5637a', '#f2789f', '#e3b341', '#8b93a7'];
 
     function doughnut(id, labels, data) {
         const el = document.getElementById(id);
         if (!el) return;
+        if (!labels || !labels.length) {
+            el.parentElement.innerHTML = '<div class="admin-empty" style="padding:1.5rem;border:none;"><p class="mb-0 small">—</p></div>';
+            return;
+        }
         new Chart(el, {
             type: 'doughnut',
-            data: { labels, datasets: [{ data, backgroundColor: [accent,'#6fb3d2','#c9a0f2','#9ecb8c','#e5637a','#f2789f'] }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } } }
+            data: { labels, datasets: [{ data, backgroundColor: palette, borderWidth: 0 }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } } }
+            }
         });
     }
 
+    const dayLabels = @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Label), json));
+    const dayValues = @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Value), json));
     new Chart(document.getElementById('viewsChart'), {
         type: 'line',
         data: {
-            labels: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Label), json)),
-            datasets: [{ data: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Value), json)), borderColor: accent, fill: true, tension: 0.3, backgroundColor: 'rgba(227,179,65,.12)' }]
+            labels: dayLabels,
+            datasets: [{
+                data: dayValues,
+                borderColor: accent,
+                backgroundColor: 'rgba(227,179,65,.12)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+                borderWidth: 2
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+        }
+    });
+
+    const hourLabels = @Html.Raw(JsonSerializer.Serialize(Model.ViewsByHour.Select(p => p.Label), json));
+    const hourValues = @Html.Raw(JsonSerializer.Serialize(Model.ViewsByHour.Select(p => p.Value), json));
+    new Chart(document.getElementById('hourChart'), {
+        type: 'bar',
+        data: {
+            labels: hourLabels,
+            datasets: [{
+                data: hourValues,
+                backgroundColor: 'rgba(111,179,210,0.55)',
+                borderRadius: 3,
+                maxBarThickness: 18
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
         }
     });
 
@@ -195,6 +352,9 @@
     doughnut('browserChart',
         @Html.Raw(JsonSerializer.Serialize(Model.Browsers.Select(x => x.Name), json)),
         @Html.Raw(JsonSerializer.Serialize(Model.Browsers.Select(x => x.Count), json)));
+    doughnut('osChart',
+        @Html.Raw(JsonSerializer.Serialize(Model.OperatingSystems.Select(x => x.Name), json)),
+        @Html.Raw(JsonSerializer.Serialize(Model.OperatingSystems.Select(x => x.Count), json)));
     doughnut('geoChart',
         @Html.Raw(JsonSerializer.Serialize(Model.Countries.Select(x => x.Name), json)),
         @Html.Raw(JsonSerializer.Serialize(Model.Countries.Select(x => x.Count), json)));
