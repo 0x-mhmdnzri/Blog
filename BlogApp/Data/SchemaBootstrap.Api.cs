@@ -6,6 +6,7 @@ public static partial class SchemaBootstrap
 {
     public static async Task EnsureApiTablesAsync(ApplicationDbContext db)
     {
+        // Full CREATE includes approval columns for fresh DBs
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "ApiKeys" (
                 "Id" INTEGER NOT NULL CONSTRAINT "PK_ApiKeys" PRIMARY KEY AUTOINCREMENT,
@@ -24,6 +25,10 @@ public static partial class SchemaBootstrap
                 "RequestCount" INTEGER NOT NULL,
                 "AbuseStrikeCount" INTEGER NOT NULL,
                 "LastAbuseAtUtc" TEXT NULL,
+                "ApprovalStatus" INTEGER NOT NULL DEFAULT 0,
+                "ApprovedAtUtc" TEXT NULL,
+                "ApprovedByUserId" TEXT NULL,
+                "RejectionReason" TEXT NULL,
                 CONSTRAINT "FK_ApiKeys_AspNetUsers_UserId"
                     FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE
             );
@@ -33,20 +38,28 @@ public static partial class SchemaBootstrap
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_ApiKeys_UserId\" ON \"ApiKeys\" (\"UserId\");");
 
-        // Approval workflow columns (idempotent for existing DBs)
-        await TryAlterAsync(db, "ALTER TABLE \"ApiKeys\" ADD COLUMN \"ApprovalStatus\" INTEGER NOT NULL DEFAULT 0;");
-        await TryAlterAsync(db, "ALTER TABLE \"ApiKeys\" ADD COLUMN \"ApprovedAtUtc\" TEXT NULL;");
-        await TryAlterAsync(db, "ALTER TABLE \"ApiKeys\" ADD COLUMN \"ApprovedByUserId\" TEXT NULL;");
-        await TryAlterAsync(db, "ALTER TABLE \"ApiKeys\" ADD COLUMN \"RejectionReason\" TEXT NULL;");
-        // Existing keys created before approval feature → treat as approved
-        await db.Database.ExecuteSqlRawAsync("""
-            UPDATE "ApiKeys"
-            SET "ApprovalStatus" = 1,
-                "ApprovedAtUtc" = COALESCE("ApprovedAtUtc", "CreatedAtUtc")
-            WHERE "ApprovalStatus" = 0
-              AND "IsActive" = 1
-              AND "RequestCount" > 0;
-            """);
+        // Existing DBs created before approval: add missing columns only (no ERR log spam)
+        await TryAddColumnAsync(db, "ApiKeys", "ApprovalStatus", "INTEGER NOT NULL DEFAULT 0");
+        await TryAddColumnAsync(db, "ApiKeys", "ApprovedAtUtc", "TEXT NULL");
+        await TryAddColumnAsync(db, "ApiKeys", "ApprovedByUserId", "TEXT NULL");
+        await TryAddColumnAsync(db, "ApiKeys", "RejectionReason", "TEXT NULL");
+
+        // Keys that already served traffic before approval workflow → mark approved
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync("""
+                UPDATE "ApiKeys"
+                SET "ApprovalStatus" = 1,
+                    "ApprovedAtUtc" = COALESCE("ApprovedAtUtc", "CreatedAtUtc")
+                WHERE "ApprovalStatus" = 0
+                  AND "IsActive" = 1
+                  AND "RequestCount" > 0;
+                """);
+        }
+        catch
+        {
+            /* column race on first boot — safe to ignore */
+        }
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "WebhookSubscriptions" (
@@ -92,11 +105,5 @@ public static partial class SchemaBootstrap
             "CREATE INDEX IF NOT EXISTS \"IX_ApiRequestLogs_UserId\" ON \"ApiRequestLogs\" (\"UserId\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_ApiRequestLogs_ApiKeyId\" ON \"ApiRequestLogs\" (\"ApiKeyId\");");
-    }
-
-    private static async Task TryAlterAsync(ApplicationDbContext db, string sql)
-    {
-        try { await db.Database.ExecuteSqlRawAsync(sql); }
-        catch { /* column may already exist */ }
     }
 }
