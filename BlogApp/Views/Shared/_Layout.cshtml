@@ -96,6 +96,7 @@
     <link rel="stylesheet" href="~/css/media-blur.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ux.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/persona.css" asp-append-version="true" />
     <style>
         .site-announce { padding: .65rem 1rem; text-align: center; font-size: .9rem; border-bottom: 1px solid var(--border-soft, #1e2430); }
         .site-announce.info { background: rgba(111,179,210,.12); color: #b8d4e8; }
@@ -122,7 +123,7 @@
         <nav class="navbar navbar-expand-md py-3">
             <div class="container">
                 <a class="navbar-brand brand" href="/@lang/">
-                    <span class="brand-cursor"></span> <span class="ltr-signature">dark_pro / blog</span>
+                    <span class="brand-cursor"></span> <span class="ltr-signature">m.nazari</span>
                 </a>
                 <button class="navbar-toggler border-0 text-light" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
                     <span class="navbar-toggler-icon"></span>
@@ -130,10 +131,25 @@
                 <div class="collapse navbar-collapse" id="navMain">
                     <ul class="navbar-nav ms-auto align-items-md-center gap-1">
                         <li class="nav-item">
-                            <a class="nav-link site-nav-link" href="/@lang/">@T["nav.posts"]</a>
+                            <a class="nav-link site-nav-link" href="/@lang/">خانه</a>
                         </li>
                         <li class="nav-item">
-                            <button type="button" class="btn btn-ghost btn-sm nav-link site-nav-link" data-search-open title="جست‌وجو (Ctrl+K)">⌕ جست‌وجو</button>
+                            <a class="nav-link site-nav-link" asp-controller="Pages" asp-action="About">درباره</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link" asp-controller="Pages" asp-action="Services">خدمات</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link" asp-controller="Pages" asp-action="Projects">پروژه‌ها</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link" href="/@lang/#blog-feed">وبلاگ</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link" asp-controller="Pages" asp-action="Contact">تماس</a>
+                        </li>
+                        <li class="nav-item">
+                            <button type="button" class="btn btn-ghost btn-sm nav-link site-nav-link" data-search-open title="جست‌وجو (Ctrl+K)">⌕</button>
                         </li>
                         @if (isReader)
                         {
@@ -141,9 +157,6 @@
                                 <a class="nav-link site-nav-link" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
                             </li>
                         }
-                        <li class="nav-item">
-                            <a class="nav-link site-nav-link" asp-controller="Home" asp-action="History">سابقه</a>
-                        </li>
                         @if (isStaff)
                         {
                             <li class="nav-item">
@@ -177,9 +190,6 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="btn btn-ghost btn-sm" asp-controller="Account" asp-action="Register">@T["nav.register"]</a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="btn btn-ghost btn-sm ms-md-2" asp-controller="Account" asp-action="Login">@T["nav.login"]</a>
                             </li>
                         }
@@ -194,9 +204,21 @@
     </main>
 
     <footer class="site-footer py-4 mt-5">
-        <div class="container d-flex justify-content-between flex-wrap gap-2">
-            <span>&copy; @DateTime.UtcNow.Year — ASP.NET Core MVC</span>
-            <span class="ltr-field">@culture.NativeName · @culture.Code</span>
+        <div class="container">
+            <div class="d-flex justify-content-between flex-wrap gap-3 align-items-start">
+                <div>
+                    <div class="mb-1"><strong>محمد نظری</strong> — Senior .NET Backend Engineer</div>
+                    <div class="small text-muted-dark">&copy; @DateTime.UtcNow.Year · Tehran</div>
+                </div>
+                <div class="d-flex flex-wrap gap-3 small">
+                    <a asp-controller="Pages" asp-action="About">درباره</a>
+                    <a asp-controller="Pages" asp-action="Services">خدمات</a>
+                    <a asp-controller="Pages" asp-action="Projects">پروژه‌ها</a>
+                    <a href="/@lang/#blog-feed">وبلاگ</a>
+                    <a asp-controller="Pages" asp-action="Contact">تماس</a>
+                </div>
+                <span class="ltr-field small">@culture.NativeName · @culture.Code</span>
+            </div>
         </div>
     </footer>
 
