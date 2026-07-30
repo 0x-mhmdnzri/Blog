@@ -1,5 +1,9 @@
 namespace BlogApp.Models.ViewModels;
 
+/// <summary>
+/// Deep visitor / behavior analytics (AdminAnalytics).
+/// Distinct from AdminDashboardViewModel which is operational CMS health.
+/// </summary>
 public class AnalyticsDashboardViewModel
 {
     public int RangeDays { get; set; }
@@ -8,10 +12,22 @@ public class AnalyticsDashboardViewModel
     public double BounceRatePercent { get; set; }
     public double AvgReadingSeconds { get; set; }
 
+    /// <summary>Views per unique visitor in range.</summary>
+    public double ViewsPerVisitor { get; set; }
+
+    /// <summary>Share of range views that are returning visitors (seen before range).</summary>
+    public double ReturningVisitorPercent { get; set; }
+
+    public int SessionCount { get; set; }
+    public int HeatmapClickCount { get; set; }
+    public int SearchQueryCount { get; set; }
+
     public List<ChartPoint> ViewsByDay { get; set; } = new();
+    public List<ChartPoint> ViewsByHour { get; set; } = new();
     public List<NamedCount> TrafficSources { get; set; } = new();
     public List<NamedCount> Devices { get; set; } = new();
     public List<NamedCount> Browsers { get; set; } = new();
+    public List<NamedCount> OperatingSystems { get; set; } = new();
     public List<NamedCount> Countries { get; set; } = new();
     public List<NamedCount> Referrers { get; set; } = new();
     public List<NamedCount> SearchKeywords { get; set; } = new();
