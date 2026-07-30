@@ -107,6 +107,13 @@ public class PublicAuthorProfileViewModel
     public bool HasProfileImage { get; set; }
     public bool IsFollowing { get; set; }
     public bool CanFollow { get; set; }
+    public bool IsOwnProfile { get; set; }
+    public bool IsAuthor { get; set; }
+    public bool IsSuperAdmin { get; set; }
+    public DateTime JoinedAtUtc { get; set; }
+    public int FollowerCount { get; set; }
+    public int PostCount { get; set; }
+    public long TotalViews { get; set; }
     public List<AuthorPostItem> Posts { get; set; } = new();
 }
 
@@ -117,4 +124,7 @@ public class AuthorPostItem
     public string? Summary { get; set; }
     public DateTime? PublishedAtUtc { get; set; }
     public int ViewCount { get; set; }
+    public int ReadingTimeMinutes { get; set; }
+    public string? CategoryName { get; set; }
+    public string? CoverUrl { get; set; }
 }
