@@ -33,10 +33,7 @@ public class Post
     public DateTime? DeletedAtUtc { get; set; }
     public int ReadingTimeMinutes { get; set; }
 
-    /// <summary>Requires active paid membership to read full content.</summary>
     public bool IsPremium { get; set; }
-
-    /// <summary>Shows sponsored content label on the public post.</summary>
     public bool IsSponsored { get; set; }
 
     [MaxLength(120)]
@@ -47,6 +44,9 @@ public class Post
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public int ViewCount { get; set; }
+
+    /// <summary>Denormalized count of PostLikes rows.</summary>
+    public int LikeCount { get; set; }
 
     public int? CategoryId { get; set; }
     public Category? Category { get; set; }

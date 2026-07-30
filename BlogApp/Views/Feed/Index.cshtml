@@ -1,0 +1,65 @@
+@model List<UserActivity>
+@{
+    ViewData["Title"] = "فعالیت‌ها";
+    var actors = ViewBag.Actors as Dictionary<string, string> ?? new();
+    var page = ViewBag.Page as int? ?? 1;
+    var totalPages = ViewBag.TotalPages as int? ?? 1;
+
+    string Label(UserActivity a) => a.Kind switch
+    {
+        ActivityKind.PostLiked => "پسندید",
+        ActivityKind.PostReaction => $"واکنش {a.Meta}",
+        ActivityKind.AuthorFollowed => "دنبال کرد",
+        ActivityKind.CategoryFollowed => "دسته را دنبال کرد",
+        ActivityKind.PostBookmarked => "نشان‌گذاری کرد",
+        ActivityKind.CommentPosted => "دیدگاه نوشت",
+        ActivityKind.Mention => "منشن کرد",
+        ActivityKind.PostPublished => "منتشر کرد",
+        _ => a.Kind.ToString()
+    };
+}
+
+<div class="container py-5" style="max-width:720px;">
+    <h1 class="h4 mb-4" dir="auto">فید فعالیت</h1>
+    <p class="text-muted-dark small mb-4" dir="auto">فعالیت‌های شما، نویسندگانی که دنبال می‌کنید، و منشن‌ها.</p>
+
+    @if (!Model.Any())
+    {
+        <div class="card-surface p-4 text-center text-muted-dark" dir="auto">هنوز فعالیتی نیست. نویسنده‌ها و دسته‌ها را دنبال کنید.</div>
+    }
+
+    @foreach (var a in Model)
+    {
+        var name = actors.GetValueOrDefault(a.ActorUserId, "?");
+        <div class="card-surface p-3 mb-2 d-flex justify-content-between gap-3 flex-wrap">
+            <div>
+                <strong dir="auto">@name</strong>
+                <span class="text-muted-dark small"> @Label(a)</span>
+                @if (!string.IsNullOrEmpty(a.Title))
+                {
+                    <div class="mt-1" dir="auto">
+                        @if (!string.IsNullOrEmpty(a.LinkUrl))
+                        {
+                            <a href="@a.LinkUrl">@a.Title</a>
+                        }
+                        else
+                        {
+                            @a.Title
+                        }
+                    </div>
+                }
+            </div>
+            <span class="small text-muted-dark ltr-field">@a.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</span>
+        </div>
+    }
+
+    @if (totalPages > 1)
+    {
+        <nav class="mt-4 d-flex gap-2 justify-content-center">
+            @for (int p = 1; p <= totalPages; p++)
+            {
+                <a class="btn btn-ghost btn-sm ltr-field" asp-action="Index" asp-route-page="@p">@p</a>
+            }
+        </nav>
+    }
+</div>

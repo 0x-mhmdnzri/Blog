@@ -1,0 +1,120 @@
+@{
+    var postId = (int)ViewBag.SocialPostId;
+    var slug = (string)ViewBag.SocialSlug;
+    var likeCount = (int)(ViewBag.SocialLikeCount ?? 0);
+    var liked = (bool)(ViewBag.SocialLiked ?? false);
+    var myReaction = ViewBag.SocialMyReaction as ReactionKind?;
+    var reactionCounts = ViewBag.SocialReactionCounts as Dictionary<ReactionKind, int> ?? new();
+    var followingAuthor = (bool)(ViewBag.SocialFollowingAuthor ?? false);
+    var authorId = ViewBag.SocialAuthorId as string;
+    var followingCategory = (bool)(ViewBag.SocialFollowingCategory ?? false);
+    var categoryId = ViewBag.SocialCategoryId as int?;
+    var canSocial = User.Identity?.IsAuthenticated == true
+        && (User.IsInRole(AppRoles.Reader) || User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+    var shareUrl = $"{Context.Request.Scheme}://{Context.Request.Host}{Url.Action("Details", "Posts", new { slug })}";
+    var shareText = ViewBag.SocialTitle as string ?? "";
+
+    string RCount(ReactionKind k) => reactionCounts.TryGetValue(k, out var n) ? n.ToString() : "0";
+}
+
+<div class="social-bar card-surface p-3 my-4">
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+        @if (canSocial)
+        {
+            <form asp-controller="Social" asp-action="ToggleLike" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="postId" value="@postId" />
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <button type="submit" class="btn btn-ghost btn-sm social-like @(liked ? "is-on" : "")">
+                    @(liked ? "♥" : "♡") <span class="ltr-field">@likeCount</span>
+                </button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-ghost btn-sm" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl">
+                ♡ <span class="ltr-field">@likeCount</span>
+            </a>
+        }
+
+        @foreach (ReactionKind kind in Enum.GetValues<ReactionKind>())
+        {
+            var emoji = kind switch
+            {
+                ReactionKind.Like => "👍",
+                ReactionKind.Love => "❤️",
+                ReactionKind.Clap => "👏",
+                ReactionKind.Insight => "💡",
+                ReactionKind.Funny => "😄",
+                _ => "·"
+            };
+            if (canSocial)
+            {
+                <form asp-controller="Social" asp-action="React" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@postId" />
+                    <input type="hidden" name="kind" value="@kind" />
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <button type="submit" class="btn btn-ghost btn-sm reaction-btn @(myReaction == kind ? "is-on" : "")" title="@kind">
+                        @emoji <span class="ltr-field">@RCount(kind)</span>
+                    </button>
+                </form>
+            }
+            else
+            {
+                <span class="btn btn-ghost btn-sm disabled opacity-75">@emoji <span class="ltr-field">@RCount(kind)</span></span>
+            }
+        }
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="small text-muted-dark">اشتراک:</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-share-copy data-url="@shareUrl">کپی لینک</button>
+        <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener"
+           href="https://twitter.com/intent/tweet?url=@Uri.EscapeDataString(shareUrl)&text=@Uri.EscapeDataString(shareText)">X</a>
+        <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener"
+           href="https://www.linkedin.com/sharing/share-offsite/?url=@Uri.EscapeDataString(shareUrl)">LinkedIn</a>
+        <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener"
+           href="https://t.me/share/url?url=@Uri.EscapeDataString(shareUrl)&text=@Uri.EscapeDataString(shareText)">Telegram</a>
+
+        @if (canSocial && !string.IsNullOrEmpty(authorId))
+        {
+            <form asp-controller="Follow" asp-action="Toggle" method="post" class="d-inline ms-auto">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="authorUserId" value="@authorId" />
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <button type="submit" class="btn @(followingAuthor ? "btn-ghost" : "btn-accent") btn-sm">
+                    @(followingAuthor ? "لغو دنبال نویسنده" : "دنبال نویسنده")
+                </button>
+            </form>
+        }
+        @if (canSocial && categoryId is int cid)
+        {
+            <form asp-controller="Follow" asp-action="ToggleCategory" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="categoryId" value="@cid" />
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <button type="submit" class="btn btn-ghost btn-sm">
+                    @(followingCategory ? "لغو دنبال دسته" : "دنبال دسته")
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+<script>
+(function () {
+  document.querySelectorAll('[data-share-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var u = btn.getAttribute('data-url');
+      if (navigator.clipboard && u) {
+        navigator.clipboard.writeText(u).then(function () {
+          btn.textContent = 'کپی شد';
+          setTimeout(function () { btn.textContent = 'کپی لینک'; }, 1500);
+        });
+      }
+    });
+  });
+})();
+</script>
