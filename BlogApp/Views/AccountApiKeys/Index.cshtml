@@ -40,9 +40,24 @@
 .pak-table-wrap { max-height:240px; overflow:auto; border:1px solid var(--border-soft); border-radius:10px; }
 .pak-table-wrap table { margin:0; width:100%; font-size:.8rem; }
 .pak-table-wrap th { position:sticky; top:0; background:var(--surface); font-size:.72rem; }
-.pak-range { display:flex; gap:.35rem; flex-wrap:wrap; }
+.pak-range { display:flex; gap:.35rem; flex-wrap:wrap; align-items:center; }
 .pak-range a { font-size:.78rem; padding:.3rem .65rem; border-radius:8px; border:1px solid var(--border-soft); text-decoration:none; color:var(--text); }
 .pak-range a.active { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 12%,transparent); }
+.pak-copy {
+  width:2rem; height:2rem; border-radius:8px; border:1px solid var(--border-soft);
+  background:var(--surface); color:var(--text); cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; padding:0;
+}
+.pak-copy:hover { border-color:var(--accent); color:var(--accent); }
+.pak-copy.ok { border-color:#9ecb8c; color:#9ecb8c; }
+.pak-copy svg { width:1rem; height:1rem; }
+.pak-toast {
+  position:fixed; bottom:1.25rem; left:50%; transform:translateX(-50%);
+  background:var(--surface); border:1px solid var(--border-soft); color:var(--text);
+  padding:.55rem 1rem; border-radius:999px; font-size:.85rem; z-index:10050;
+  box-shadow:0 8px 24px rgba(0,0,0,.2); display:none;
+}
+.pak-keys-head { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
 </style>
 
 <div class="@(useAdmin ? "" : "container py-4") pak">
@@ -50,7 +65,7 @@
         <div>
             <h1>کلیدهای API من</h1>
             <p>
-                درخواست PAT، وضعیت تأیید، و <strong>مانیتور درخواست‌های خودتان</strong>.
+                با آیکن کلیپبورد هر زمان توکن را کپی کنید. چند کلید دارید؟ خروجی CSV بگیرید.
                 راهنما: <a href="/developers">/developers</a>
             </p>
         </div>
@@ -72,9 +87,14 @@
     @if (!string.IsNullOrEmpty(newToken))
     {
         <div class="pak-token">
-            <div class="small text-muted-dark mb-1">توکن (فقط همین‌بار):</div>
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                <div class="small text-muted-dark">توکن جدید</div>
+                <button type="button" class="pak-copy" data-copy-text="@newToken" title="کپی توکن">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                </button>
+            </div>
             <code class="ltr-field">@newToken</code>
-            <div class="small mt-2" style="color:#e3b341;">تا تأیید سوپرادمین قابل استفاده نیست.</div>
+            <div class="small mt-2" style="color:#e3b341;">تا تأیید سوپرادمین قابل استفاده نیست — بعداً هم از لیست زیر کپی کنید.</div>
         </div>
     }
 
@@ -173,6 +193,17 @@
         </div>
     </form>
 
+    <div class="pak-keys-head">
+        <strong style="font-size:.9rem;">کلیدهای شما (@list.Count)</strong>
+        @if (list.Count > 0)
+        {
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-ghost btn-sm" asp-action="ExportCsv" asp-route-includeTokens="true" title="خروجی با توکن‌ها">خروجی CSV (+ توکن)</a>
+                <a class="btn btn-ghost btn-sm" asp-action="ExportCsv" asp-route-includeTokens="false" title="فقط متادیتا">CSV بدون توکن</a>
+            </div>
+        }
+    </div>
+
     @if (list.Count == 0)
     {
         <div class="pak-card text-center text-muted-dark small">هنوز کلیدی ندارید.</div>
@@ -187,7 +218,7 @@
                 : k.IsUsable ? "approved" : "";
             <article class="pak-card @stateClass">
                 <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
-                    <div>
+                    <div class="flex-grow-1" style="min-width:0;">
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                             <strong>@k.Name</strong>
                             @if (k.IsBanned) { <span class="pak-pill no">بن</span> }
@@ -196,6 +227,16 @@
                             else if (!k.IsActive) { <span class="pak-pill off">باطل</span> }
                             else { <span class="pak-pill ok">تأیید و فعال</span> }
                             <code class="ltr-field small">@k.KeyPrefix…</code>
+                            @if (k.CanRevealToken)
+                            {
+                                <button type="button" class="pak-copy" data-reveal-id="@k.Id" title="کپی توکن کامل">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="small text-muted-dark" title="کلید قدیمی — توکن ذخیره نشده">بدون کپی</span>
+                            }
                         </div>
                         <div class="small text-muted-dark ltr-field">scopes: @k.Scopes · lifetime req: @k.RequestCount</div>
                     </div>
@@ -220,29 +261,87 @@
     }
 </div>
 
+<div class="pak-toast" id="pakToast" role="status"></div>
+
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
 (function () {
-  if (typeof Chart === 'undefined') return;
-  var el = document.getElementById('selfApiChart');
-  if (!el) return;
-  var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e3b341';
-  new Chart(el, {
-    type: 'line',
-    data: {
-      labels: @Html.Raw(JsonSerializer.Serialize(u.RequestsByDay.Select(p => p.Label), json)),
-      datasets: [{
-        data: @Html.Raw(JsonSerializer.Serialize(u.RequestsByDay.Select(p => p.Value), json)),
-        borderColor: accent, backgroundColor: 'rgba(227,179,65,.12)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 4 } } }
-    }
+  function toast(msg) {
+    var el = document.getElementById('pakToast');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.style.display = 'none'; }, 1800);
+  }
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      return navigator.clipboard.writeText(t);
+    var i = document.createElement('textarea');
+    i.value = t; document.body.appendChild(i); i.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    i.remove();
+    return Promise.resolve();
+  }
+
+  document.querySelectorAll('[data-copy-text]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var t = btn.getAttribute('data-copy-text') || '';
+      copyText(t).then(function () {
+        btn.classList.add('ok');
+        toast('کپی شد');
+        setTimeout(function () { btn.classList.remove('ok'); }, 1200);
+      });
+    });
   });
+
+  document.querySelectorAll('[data-reveal-id]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-reveal-id');
+      btn.disabled = true;
+      fetch('/AccountApiKeys/Reveal?id=' + encodeURIComponent(id), { credentials: 'same-origin' })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          btn.disabled = false;
+          if (!res.ok || !res.j.token) {
+            toast((res.j && res.j.detail) || 'توکن در دسترس نیست');
+            return;
+          }
+          return copyText(res.j.token).then(function () {
+            btn.classList.add('ok');
+            toast('توکن کپی شد');
+            setTimeout(function () { btn.classList.remove('ok'); }, 1200);
+          });
+        })
+        .catch(function () {
+          btn.disabled = false;
+          toast('خطا در دریافت توکن');
+        });
+    });
+  });
+
+  if (typeof Chart !== 'undefined') {
+    var el = document.getElementById('selfApiChart');
+    if (el) {
+      var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#e3b341';
+      new Chart(el, {
+        type: 'line',
+        data: {
+          labels: @Html.Raw(JsonSerializer.Serialize(u.RequestsByDay.Select(p => p.Label), json)),
+          datasets: [{
+            data: @Html.Raw(JsonSerializer.Serialize(u.RequestsByDay.Select(p => p.Value), json)),
+            borderColor: accent, backgroundColor: 'rgba(227,179,65,.12)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 4 } } }
+        }
+      });
+    }
+  }
 })();
 </script>
 }
