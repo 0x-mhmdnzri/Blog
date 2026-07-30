@@ -38,6 +38,12 @@ public class PostEditViewModel
     [Display(Name = "نوشته چسبان")]
     public bool IsSticky { get; set; }
 
+    public bool IsPremium { get; set; }
+    public bool IsSponsored { get; set; }
+
+    [MaxLength(120)]
+    public string? SponsoredLabel { get; set; }
+
     public int? CoverMediaAssetId { get; set; }
 
     public int ReadingTimeMinutes { get; set; }
@@ -84,6 +90,7 @@ public class PostListItemViewModel
     public bool IsFeatured { get; set; }
     public bool IsSticky { get; set; }
     public bool IsDeleted { get; set; }
+    public bool IsPremium { get; set; }
     public int ReadingTimeMinutes { get; set; }
     public string LanguageCode { get; set; } = AppCultures.Default;
     public List<string> Tags { get; set; } = new();
