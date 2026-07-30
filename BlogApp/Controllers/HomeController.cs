@@ -47,7 +47,6 @@ public class HomeController : Controller
         var now = DateTime.UtcNow;
         var lang = _culture.CurrentCode;
 
-        // Fast path: default home feed (no filters) — compiled queries + lean columns only.
         var useCompiled = string.IsNullOrWhiteSpace(category)
             && string.IsNullOrWhiteSpace(tag)
             && string.IsNullOrWhiteSpace(q)
@@ -64,11 +63,8 @@ public class HomeController : Controller
         {
             var skip = (page - 1) * pageSize;
             var countTask = CompiledQueries.HomeRecentCount(_db, lang, now);
-            var postsEnum = CompiledQueries.HomeRecentPage(_db, lang, now, skip, pageSize);
-            var catEnum = CompiledQueries.CategoriesOrdered(_db);
-
-            var postsTask = ToListAsync(postsEnum);
-            var catsTask = ToListAsync(catEnum);
+            var postsTask = ToListAsync(CompiledQueries.HomeRecentPage(_db, lang, now, skip, pageSize));
+            var catsTask = CompiledQueries.CategoriesOrderedAsync(_db);
 
             await Task.WhenAll(countTask, postsTask, catsTask);
 
@@ -105,7 +101,6 @@ public class HomeController : Controller
             {
                 var term = q.Trim();
                 if (term.Length > 100) term = term[..100];
-                // Avoid scanning ContentMarkdown on busy index — title/summary/tags only.
                 query = query.Where(p =>
                     p.Title.Contains(term) ||
                     (p.Summary != null && p.Summary.Contains(term)) ||
@@ -141,7 +136,7 @@ public class HomeController : Controller
 
             var totalTask = projected.CountAsync();
             var postsTask = projected.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            var catsTask = ToListAsync(CompiledQueries.CategoriesOrdered(_db));
+            var catsTask = CompiledQueries.CategoriesOrderedAsync(_db);
 
             await Task.WhenAll(totalTask, postsTask, catsTask);
 

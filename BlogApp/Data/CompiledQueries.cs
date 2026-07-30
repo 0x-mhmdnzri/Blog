@@ -48,7 +48,7 @@ public static class CompiledQueries
                 {
                     Id = p.Id,
                     Title = p.Title,
-                    !Slugs = p.Slug,
+                    Slug = p.Slug,
                     Summary = p.Summary,
                     CategoryName = p.Category != null ? p.Category.Name : null,
                     PublishedAtUtc = p.PublishedAtUtc,
