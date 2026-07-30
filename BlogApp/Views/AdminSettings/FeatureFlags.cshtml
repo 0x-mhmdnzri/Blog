@@ -1,7 +1,7 @@
 @model List<FeatureFlag>
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "پرچم‌های ویژگی";
+    ViewData["Title"] = T["page.flags"];
 }
 
 @if (TempData["Saved"] != null)
@@ -9,15 +9,15 @@
     <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
 }
 
-<p class="text-muted-dark mb-3">بدون redeploy ویژگی‌ها را روشن/خاموش کنید.</p>
+<p class="text-muted-dark mb-3">@T["flags.help"]</p>
 
 <table class="admin-table">
     <thead>
         <tr>
-            <th>ویژگی</th>
-            <th>کلید</th>
-            <th>وضعیت</th>
-            <th>آخرین تغییر</th>
+            <th>@T["col.feature"]</th>
+            <th>@T["col.key"]</th>
+            <th>@T["col.status"]</th>
+            <th>@T["col.updated"]</th>
             <th></th>
         </tr>
     </thead>
@@ -36,11 +36,11 @@
             <td>
                 @if (f.IsEnabled)
                 {
-                    <span class="status-pill approved">فعال</span>
+                    <span class="status-pill approved">@T["status.active"]</span>
                 }
                 else
                 {
-                    <span class="status-pill rejected">غیرفعال</span>
+                    <span class="status-pill rejected">@T["status.inactive"]</span>
                 }
             </td>
             <td class="ltr-field">@PersianDate.DateTime(f.UpdatedAtUtc)</td>
@@ -48,7 +48,7 @@
                 <form asp-action="ToggleFlag" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="key" value="@f.Key" />
-                    <button type="submit" class="icon-btn">@(f.IsEnabled ? "خاموش" : "روشن")</button>
+                    <button type="submit" class="icon-btn">@(f.IsEnabled ? T["btn.off"] : T["btn.on"])</button>
                 </form>
             </td>
         </tr>
