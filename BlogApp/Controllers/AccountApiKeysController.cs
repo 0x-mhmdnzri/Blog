@@ -3,6 +3,7 @@ using BlogApp.Api.Dtos;
 using BlogApp.Api.Validation;
 using BlogApp.Data;
 using BlogApp.Models;
+using BlogApp.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

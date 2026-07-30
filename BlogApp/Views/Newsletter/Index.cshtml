@@ -1,6 +1,7 @@
-@model NewsletterSubscribeForm
-@inject BlogApp.Services.IUiTranslator T
-@inject BlogApp.Services.ICultureService Culture
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@model BlogApp.Controllers.NewsletterSubscribeForm
+@inject IUiTranslator T
+@inject ICultureService Culture
 @{
     ViewData["Title"] = T["nl.title"];
 }
