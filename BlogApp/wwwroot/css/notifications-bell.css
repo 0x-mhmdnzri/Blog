@@ -44,18 +44,23 @@
   box-shadow: 0 0 0 2px var(--bg, #0b0e14);
 }
 
-.notif-dropdown {
+/* Hidden by default — Bootstrap toggles .show on open.
+   Never set display:flex here without .show or the menu stays always open. */
+.notif-dropdown.dropdown-menu {
   width: min(22rem, 92vw);
   max-height: 70vh;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
   background: var(--surface, #12161f) !important;
   border: 1px solid var(--border-soft, #1a1f2b) !important;
   border-radius: var(--radius, 10px) !important;
   box-shadow: var(--shadow-soft, 0 10px 30px -12px rgba(0,0,0,.6));
   padding: 0 !important;
   margin-top: 0.4rem !important;
+}
+
+.notif-dropdown.dropdown-menu.show {
+  display: flex !important;
+  flex-direction: column;
 }
 
 .notif-dropdown-head {
