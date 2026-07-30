@@ -44,6 +44,10 @@ public class FollowController : Controller
                 AuthorUserId = authorUserId,
                 CreatedAtUtc = DateTime.UtcNow
             });
+            ActivityWriter.Write(_db, followerId, ActivityKind.AuthorFollowed,
+                targetUserId: authorUserId,
+                title: author.DisplayName ?? author.UserName,
+                linkUrl: $"/author/{author.UserName}");
             await _db.SaveChangesAsync();
 
             var follower = await _users.GetUserAsync(User);
@@ -60,5 +64,38 @@ public class FollowController : Controller
             return Redirect(returnUrl);
 
         return RedirectToAction("PublicProfile", "Account", new { userName = author.UserName });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleCategory(int categoryId, string? returnUrl = null)
+    {
+        var userId = AuthorAccess.UserId(User)!;
+        var cat = await _db.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == categoryId);
+        if (cat is null) return NotFound();
+
+        var existing = await _db.CategoryFollows
+            .FirstOrDefaultAsync(f => f.CategoryId == categoryId && f.UserId == userId);
+
+        if (existing is null)
+        {
+            _db.CategoryFollows.Add(new CategoryFollow
+            {
+                CategoryId = categoryId,
+                UserId = userId,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+            ActivityWriter.Write(_db, userId, ActivityKind.CategoryFollowed,
+                categoryId: categoryId, title: cat.Name, linkUrl: $"/?category={cat.Slug}");
+        }
+        else
+        {
+            _db.CategoryFollows.Remove(existing);
+        }
+
+        await _db.SaveChangesAsync();
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+        return RedirectToAction("Index", "Home", new { category = cat.Slug });
     }
 }

@@ -22,7 +22,7 @@ public partial class MentionsService
         _notify = notify;
     }
 
-    public async Task ProcessCommentMentionsAsync(string body, string actorUserId, int postId, int? commentId)
+    public async Task ProcessCommentMentionsAsync(string body, string actorUserId, int postId, int? commentId, string? postSlug = null)
     {
         if (string.IsNullOrWhiteSpace(body)) return;
 
@@ -40,6 +40,8 @@ public partial class MentionsService
             .Select(u => new { u.Id, u.UserName })
             .ToListAsync();
 
+        var link = string.IsNullOrEmpty(postSlug) ? $"/post/{postId}" : $"/post/{postSlug}";
+
         foreach (var u in users)
         {
             if (u.Id == actorUserId) continue;
@@ -53,18 +55,13 @@ public partial class MentionsService
                 CreatedAtUtc = DateTime.UtcNow
             });
 
-            _db.UserActivities.Add(new UserActivity
-            {
-                ActorUserId = actorUserId,
-                Kind = ActivityKind.Mention,
-                PostId = postId,
-                TargetUserId = u.Id,
-                Title = $"از شما در یک دیدگاه نام برد",
-                LinkUrl = $"/post/{postId}",
-                CreatedAtUtc = DateTime.UtcNow
-            });
+            ActivityWriter.Write(_db, actorUserId, ActivityKind.Mention, postId: postId,
+                targetUserId: u.Id, title: "از شما در یک دیدگاه نام برد", linkUrl: link);
 
-            await _notify.NotifySystemAsync(u.Id, "منشن شدید", $"کاربری شما را با @{u.UserName} خطاب کرد.", $"/post/{postId}");
+            await _notify.NotifyAsync(u.Id, NotificationKind.System,
+                "منشن شدید",
+                $"کاربری شما را با @{u.UserName} خطاب کرد.",
+                link);
         }
 
         await _db.SaveChangesAsync();
