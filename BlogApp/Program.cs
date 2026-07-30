@@ -84,8 +84,9 @@ try
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         options.OnRejected = async (ctx, token) =>
         {
-            ctx.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
-            await ctx.HttpContext.Response.WriteAsync("Too many requests. Please slow down.", token);
+            ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            // Let StatusCodePages re-execute into /Home/Error
+            await Task.CompletedTask;
         };
 
         options.AddPolicy("global", httpContext =>
@@ -247,11 +248,12 @@ try
 
     var forceHttps = builder.Configuration.GetValue("ForceHttps", false);
 
+    // Custom error pages (always — also useful in Development)
+    app.UseExceptionHandler("/Home/Error?statusCode=500");
+    app.UseStatusCodePagesWithReExecute("/Home/Error", "?statusCode={0}");
+
     if (!app.Environment.IsDevelopment())
-    {
-        app.UseExceptionHandler("/Home/Error");
         app.UseHsts();
-    }
 
     if (forceHttps || !app.Environment.IsDevelopment())
         app.UseHttpsRedirection();
