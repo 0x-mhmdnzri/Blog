@@ -51,5 +51,31 @@ public static partial class SchemaBootstrap
             """);
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_WebhookSubscriptions_UserId\" ON \"WebhookSubscriptions\" (\"UserId\");");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "ApiRequestLogs" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_ApiRequestLogs" PRIMARY KEY AUTOINCREMENT,
+                "ApiKeyId" INTEGER NULL,
+                "UserId" TEXT NULL,
+                "UserName" TEXT NULL,
+                "KeyPrefix" TEXT NULL,
+                "Method" TEXT NOT NULL,
+                "Path" TEXT NOT NULL,
+                "Query" TEXT NULL,
+                "StatusCode" INTEGER NOT NULL,
+                "DurationMs" INTEGER NOT NULL,
+                "IpAddress" TEXT NULL,
+                "UserAgent" TEXT NULL,
+                "IsError" INTEGER NOT NULL,
+                "IsRateLimited" INTEGER NOT NULL,
+                "CreatedAtUtc" TEXT NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_ApiRequestLogs_CreatedAtUtc\" ON \"ApiRequestLogs\" (\"CreatedAtUtc\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_ApiRequestLogs_UserId\" ON \"ApiRequestLogs\" (\"UserId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_ApiRequestLogs_ApiKeyId\" ON \"ApiRequestLogs\" (\"ApiKeyId\");");
     }
 }

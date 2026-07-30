@@ -7,6 +7,7 @@ public partial class ApplicationDbContext
 {
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+    public DbSet<ApiRequestLog> ApiRequestLogs => Set<ApiRequestLog>();
 
     private void ConfigureApi(ModelBuilder modelBuilder)
     {
@@ -21,6 +22,15 @@ public partial class ApplicationDbContext
         {
             e.HasIndex(w => w.UserId);
             e.HasOne(w => w.ApiKey).WithMany().HasForeignKey(w => w.ApiKeyId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ApiRequestLog>(e =>
+        {
+            e.HasIndex(l => l.CreatedAtUtc);
+            e.HasIndex(l => l.UserId);
+            e.HasIndex(l => l.ApiKeyId);
+            e.HasIndex(l => l.StatusCode);
+            e.HasOne(l => l.ApiKey).WithMany().HasForeignKey(l => l.ApiKeyId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
