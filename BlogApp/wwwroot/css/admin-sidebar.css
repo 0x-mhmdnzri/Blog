@@ -16,7 +16,6 @@
   width: 260px;
 }
 
-/* Main content sits slightly above / in front of the rail */
 .admin-main {
   position: relative;
   z-index: 20;
@@ -118,7 +117,6 @@ html[dir="rtl"] .admin-main {
   display: inline-flex;
 }
 
-/* Collapsed: badge as dot on icon */
 .admin-sidebar.is-collapsed .admin-nav-link .badge-count {
   position: absolute;
   top: 0.35rem;
@@ -171,7 +169,6 @@ html[dir="rtl"] .admin-main {
   color: var(--danger);
 }
 
-/* ---- Topbar + breadcrumb ---- */
 .admin-topbar {
   display: flex;
   justify-content: space-between;
@@ -211,14 +208,43 @@ html[dir="rtl"] .admin-main {
   font-weight: 600;
 }
 
-/* Menu toggle: mobile only (Bootstrap d-md-none + safety) */
 @media (min-width: 768px) {
   .admin-menu-toggle {
     display: none !important;
   }
 }
 
-/* ---- Skeleton loading ---- */
+/* Full-page blur transition on nav */
+.admin-page-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 16, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+.admin-page-overlay.is-visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.admin-page-spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(227, 179, 65, 0.25);
+  border-top-color: var(--accent, #e3b341);
+  animation: admin-spin 0.7s linear infinite;
+}
+@keyframes admin-spin {
+  to { transform: rotate(360deg); }
+}
+
 .admin-content.is-loading {
   position: relative;
   min-height: 40vh;
