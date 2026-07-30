@@ -1,0 +1,7 @@
+Add near top of Index.cshtml body (after toolbar):
+
+@if (Model.Api is not null)
+{
+    ViewBag.RangeDays = Model.RangeDays;
+    <partial name="_ApiPanel" model="Model.Api" />
+}

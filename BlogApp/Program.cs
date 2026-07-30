@@ -373,6 +373,9 @@ try
     app.UseAuthorization();
     app.UseRateLimiter();
 
+    // Log every /api/* call (user, key, path, status, duration) for analytics
+    app.UseMiddleware<ApiRequestLoggingMiddleware>();
+
     app.UseMiddleware<MaintenanceMiddleware>();
 
     app.MapControllers().RequireRateLimiting("global");
@@ -394,7 +397,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening (API v1 + GraphQL + RSS/Atom + PAT keys active)");
+    Log.Information("BlogApp listening (API v1 + GraphQL + RSS/Atom + PAT keys + API analytics)");
     app.Run();
 }
 catch (Exception ex)
