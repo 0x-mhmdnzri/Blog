@@ -100,6 +100,7 @@ public partial class AdminController : Controller
         var topPosts = topPostsRaw.Select(p => new TopPostItem
         {
             Title = p.Title,
+            Id = p.Id,
             Slug = p.Slug,
             Views = p.ViewCount,
             RangeViews = currentRangeViews.Count(v => v.PostId == p.Id)
@@ -310,19 +311,6 @@ public partial class AdminController : Controller
             ]
         });
     }
-
-    public IActionResult SeoTools() => View("ComingSoon", new ComingSoonViewModel
-    {
-        Title = _t["admin.nav.seo"],
-        Description = "Sitemap, redirects and broken-link tools.",
-        DemoFeatures =
-        [
-            "301 / 302 redirect management",
-            "Broken link scan",
-            "Meta & Open Graph preview",
-            "Live sitemap.xml"
-        ]
-    });
 
     public IActionResult Newsletter() => View("ComingSoon", new ComingSoonViewModel
     {
