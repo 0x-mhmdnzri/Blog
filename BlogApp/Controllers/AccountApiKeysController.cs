@@ -2,6 +2,7 @@ using BlogApp.Api.Auth;
 using BlogApp.Api.Dtos;
 using BlogApp.Data;
 using BlogApp.Models;
+using BlogApp.Models.ViewModels;
 using BlogApp.Services;
 using BlogApp.Services.Messaging;
 using FluentValidation;
@@ -11,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
-/// <summary>User-facing PAT management — any authenticated reader/author can request keys; SuperAdmin approves.</summary>
+/// <summary>User-facing PAT management — any authenticated user can request keys; SuperAdmin approves.</summary>
 [Authorize]
 public class AccountApiKeysController : Controller
 {
@@ -30,15 +31,93 @@ public class AccountApiKeysController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int range = 30)
     {
+        if (range is not (7 or 30 or 90)) range = 30;
+
         ViewData["Title"] = "کلیدهای API";
+        // Use admin shell when user is staff so sidebar shows «کلیدهای API من»
+        var isStaff = AuthorAccess.IsSuperAdmin(User) || User.IsInRole(AppRoles.Author);
+        if (isStaff)
+            ViewData["UseAdminLayout"] = true;
+
         var userId = AuthorAccess.UserId(User)!;
         var keys = await _db.ApiKeys.AsNoTracking()
             .Where(k => k.UserId == userId)
             .OrderByDescending(k => k.CreatedAtUtc)
             .ToListAsync();
-        return View(keys);
+
+        var usage = await BuildSelfUsageAsync(userId, range);
+
+        return View(new AccountApiKeysPageModel
+        {
+            Keys = keys,
+            Usage = usage,
+            RangeDays = range
+        });
+    }
+
+    private async Task<ApiSelfUsage> BuildSelfUsageAsync(string userId, int range)
+    {
+        var today = DateTime.UtcNow.Date;
+        var rangeStart = today.AddDays(-(range - 1));
+
+        List<ApiRequestLog> logs;
+        try
+        {
+            logs = await _db.ApiRequestLogs.AsNoTracking()
+                .Where(l => l.UserId == userId && l.CreatedAtUtc >= rangeStart)
+                .OrderByDescending(l => l.CreatedAtUtc)
+                .Take(5_000)
+                .ToListAsync();
+        }
+        catch
+        {
+            logs = new List<ApiRequestLog>();
+        }
+
+        var byDay = new List<ChartPoint>();
+        for (var d = rangeStart; d <= today; d = d.AddDays(1))
+        {
+            byDay.Add(new ChartPoint
+            {
+                Label = d.ToString("MM-dd"),
+                Value = logs.Count(l => l.CreatedAtUtc.Date == d)
+            });
+        }
+
+        var endpoints = logs
+            .GroupBy(l => l.Method + " " + l.Path)
+            .Select(g => new ApiEndpointUsageRow
+            {
+                Method = g.First().Method,
+                Path = g.First().Path,
+                Count = g.Count(),
+                Errors = g.Count(x => x.IsError),
+                AvgMs = Math.Round(g.Average(x => x.DurationMs), 1)
+            })
+            .OrderByDescending(e => e.Count)
+            .Take(12)
+            .ToList();
+
+        return new ApiSelfUsage
+        {
+            TotalRequests = logs.Count,
+            ErrorCount = logs.Count(l => l.IsError),
+            RateLimitedCount = logs.Count(l => l.IsRateLimited),
+            AvgDurationMs = logs.Count == 0 ? 0 : Math.Round(logs.Average(l => l.DurationMs), 1),
+            RequestsByDay = byDay,
+            TopEndpoints = endpoints,
+            Recent = logs.Take(25).Select(l => new ApiRecentCall
+            {
+                Method = l.Method,
+                Path = l.Path,
+                StatusCode = l.StatusCode,
+                DurationMs = l.DurationMs,
+                CreatedAtUtc = l.CreatedAtUtc,
+                KeyPrefix = l.KeyPrefix
+            }).ToList()
+        };
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -81,7 +160,6 @@ public class AccountApiKeysController : Controller
         _db.ApiKeys.Add(key);
         await _db.SaveChangesAsync();
 
-        // Alert SuperAdmins that a new PAT needs review
         try
         {
             var supers = await _db.Users.AsNoTracking()
@@ -135,4 +213,32 @@ public class AccountApiKeysController : Controller
         TempData["Msg"] = "کلید حذف شد.";
         return RedirectToAction(nameof(Index));
     }
+}
+
+public class AccountApiKeysPageModel
+{
+    public List<ApiKey> Keys { get; set; } = new();
+    public ApiSelfUsage Usage { get; set; } = new();
+    public int RangeDays { get; set; } = 30;
+}
+
+public class ApiSelfUsage
+{
+    public int TotalRequests { get; set; }
+    public int ErrorCount { get; set; }
+    public int RateLimitedCount { get; set; }
+    public double AvgDurationMs { get; set; }
+    public List<ChartPoint> RequestsByDay { get; set; } = new();
+    public List<ApiEndpointUsageRow> TopEndpoints { get; set; } = new();
+    public List<ApiRecentCall> Recent { get; set; } = new();
+}
+
+public class ApiRecentCall
+{
+    public string Method { get; set; } = "";
+    public string Path { get; set; } = "";
+    public int StatusCode { get; set; }
+    public int DurationMs { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+    public string? KeyPrefix { get; set; }
 }
