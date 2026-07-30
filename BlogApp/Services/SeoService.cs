@@ -303,17 +303,6 @@ public class SeoService
     {
         baseUrl = baseUrl.TrimEnd('/');
         var name = string.IsNullOrWhiteSpace(user.DisplayName) ? user.UserName : user.DisplayName;
-        var sameAs = new List<string>();
-        if (!string.IsNullOrEmpty(user.WebsiteUrl)) sameAs.Add(user.WebsiteUrl!);
-        if (!string.IsNullOrEmpty(user.TwitterHandle))
-            sameAs.Add("https://twitter.com/" + user.TwitterHandle.TrimStart('@'));
-        if (!string.IsNullOrEmpty(user.GithubUsername))
-            sameAs.Add("https://github.com/" + user.GithubUsername);
-        if (!string.IsNullOrEmpty(user.LinkedInUrl)) sameAs.Add(user.LinkedInUrl!);
-        if (!string.IsNullOrEmpty(user.InstagramUsername))
-            sameAs.Add("https://instagram.com/" + user.InstagramUsername);
-        if (!string.IsNullOrEmpty(user.TelegramUsername))
-            sameAs.Add("https://t.me/" + user.TelegramUsername);
 
         var person = new Dictionary<string, object?>
         {
@@ -325,7 +314,6 @@ public class SeoService
             ["identifier"] = user.UserName
         };
         if (!string.IsNullOrEmpty(imageUrl)) person["image"] = imageUrl;
-        if (sameAs.Count > 0) person["sameAs"] = sameAs;
         if (postCount > 0)
             person["interactionStatistic"] = new Dictionary<string, object?>
             {
