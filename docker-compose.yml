@@ -1,7 +1,6 @@
 # =============================================================================
 # Dark Pro Blog — production-oriented Compose
 # Copy .env.example → .env and edit secrets before first up.
-# All runtime config comes from .env (no passwords hardcoded here).
 # =============================================================================
 
 name: dark-pro-blog
@@ -22,12 +21,14 @@ services:
     ports:
       - "${BLOG_HTTP_PORT:-8080}:8080"
     volumes:
-      # SQLite + media bytes (entire CMS state)
       - blog_data:/app/data
-      # Serilog rolling JSON (Filebeat / fluent-bit)
       - blog_logs:/app/logs
     networks:
       - blog_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+        required: false
     security_opt:
       - no-new-privileges:true
     read_only: false
@@ -54,11 +55,35 @@ services:
       retries: 3
       start_period: 25s
 
+  # Optional — leave RabbitMq__HostName empty in .env to use in-process Channel only
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: ${RABBITMQ_CONTAINER:-dark-pro-rabbitmq}
+    restart: unless-stopped
+    profiles: ["rabbitmq"]
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-blog}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-blog_change_me}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - blog_net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
 volumes:
   blog_data:
     name: ${VOLUME_DATA_NAME:-dark-pro-blog-data}
   blog_logs:
     name: ${VOLUME_LOGS_NAME:-dark-pro-blog-logs}
+  rabbitmq_data:
+    name: ${VOLUME_RABBIT_NAME:-dark-pro-rabbitmq-data}
 
 networks:
   blog_net:
