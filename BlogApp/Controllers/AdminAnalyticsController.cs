@@ -37,6 +37,10 @@ public class AdminAnalyticsController : Controller
             .Where(v => v.ViewedAtUtc >= rangeStart && myPostIds.Contains(v.PostId))
             .ToListAsync();
 
+        var rangeViewsByPost = views
+            .GroupBy(v => v.PostId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
         var viewsByDay = new List<ChartPoint>();
         for (var d = rangeStart; d <= today; d = d.AddDays(1))
         {
@@ -63,7 +67,6 @@ public class AdminAnalyticsController : Controller
                 .Take(12)
                 .ToList();
 
-        // Sessions scoped loosely: all sessions in range (site-level bounce)
         var sessions = await _db.AnalyticsSessions.AsNoTracking()
             .Where(s => s.StartedAtUtc >= rangeStart)
             .ToListAsync();
@@ -79,7 +82,6 @@ public class AdminAnalyticsController : Controller
         var unique = views.Select(v => v.VisitorHash).Where(h => !string.IsNullOrEmpty(h)).Distinct().Count();
         var viewsPerVisitor = unique == 0 ? 0 : Math.Round(views.Count * 1.0 / unique, 2);
 
-        // Returning = hashes that also appear in views before rangeStart
         var rangeHashes = views.Select(v => v.VisitorHash).Where(h => !string.IsNullOrEmpty(h)).Distinct().ToList();
         var returning = 0;
         if (rangeHashes.Count > 0)
@@ -115,17 +117,20 @@ public class AdminAnalyticsController : Controller
             });
         }
 
-        var popular = await postQuery.AsNoTracking()
+        // Load posts first (SQL-only), then attach range view counts in memory
+        var popularRows = await postQuery.AsNoTracking()
             .OrderByDescending(p => p.ViewCount)
             .Take(8)
-            .Select(p => new TopPostItem
-            {
-                Title = p.Title,
-                Slug = p.Slug,
-                Views = p.ViewCount,
-                RangeViews = views.Count(v => v.PostId == p.Id)
-            })
+            .Select(p => new { p.Id, p.Title, p.Slug, p.ViewCount })
             .ToListAsync();
+
+        var popular = popularRows.Select(p => new TopPostItem
+        {
+            Title = p.Title,
+            Slug = p.Slug,
+            Views = p.ViewCount,
+            RangeViews = rangeViewsByPost.GetValueOrDefault(p.Id)
+        }).ToList();
 
         var searchLogs = await _db.SearchQueryLogs.AsNoTracking()
             .Where(s => s.SearchedAtUtc >= rangeStart)
@@ -170,7 +175,7 @@ public class AdminAnalyticsController : Controller
                 .ToList();
         }
 
-        ViewData["Title"] = "Analytics"; // overridden by view T[]
+        ViewData["Title"] = "Analytics";
         return View(new AnalyticsDashboardViewModel
         {
             RangeDays = range,
