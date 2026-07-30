@@ -1,8 +1,10 @@
+using System.Text.Json;
 using BlogApp.Api.Auth;
 using BlogApp.Api.Dtos;
 using BlogApp.Api.Validation;
 using BlogApp.Data;
 using BlogApp.Models;
+using BlogApp.Services.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -19,21 +21,27 @@ public class PostsApiController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly IConfiguration _config;
+    private readonly IApiTopicBus _bus;
 
-    public PostsApiController(ApplicationDbContext db, IConfiguration config)
+    public PostsApiController(ApplicationDbContext db, IConfiguration config, IApiTopicBus bus)
     {
         _db = db;
         _config = config;
+        _bus = bus;
     }
 
+    /// <summary>
+    /// List posts — enqueued on topic bus and processed one-by-one (no miss under load).
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<PagedResultDto<ApiPostListItemDto>>> List(
+    public async Task<IActionResult> List(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? q = null,
         [FromQuery] string? lang = null,
         [FromQuery] string? tag = null,
-        [FromQuery] string? category = null)
+        [FromQuery] string? category = null,
+        CancellationToken ct = default)
     {
         if (!HasScope(ApiScopes.Read)) return Forbid();
 
@@ -52,42 +60,34 @@ public class PostsApiController : ControllerBase
         tag = string.IsNullOrWhiteSpace(tag) ? null : InputSanitizer.Clamp(tag, 80);
         category = string.IsNullOrWhiteSpace(category) ? null : InputSanitizer.Clamp(category, 80);
 
-        var now = DateTime.UtcNow;
-        var query = _db.Posts.AsNoTracking()
-            .Where(p => !p.IsDeleted && p.IsPublished)
-            .Where(p => p.LanguageCode == lang)
-            .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now)
-            .Where(p => p.TranslationStatus == TranslationStatus.Original
-                        || p.TranslationStatus == TranslationStatus.Approved);
+        int? keyId = null;
+        if (int.TryParse(User.FindFirst("api_key_id")?.Value, out var kid)) keyId = kid;
 
-        if (!string.IsNullOrEmpty(tag))
-            query = query.Where(p => p.PostTags.Any(pt => pt.Tag.Slug == tag));
-        if (!string.IsNullOrEmpty(category))
-            query = query.Where(p => p.Category != null && p.Category.Slug == category);
-        if (!string.IsNullOrEmpty(q))
-            query = query.Where(p => p.Title.Contains(q) || (p.Summary != null && p.Summary.Contains(q)));
+        var payload = JsonSerializer.Serialize(new Dictionary<string, string?>
+        {
+            ["page"] = page.ToString(),
+            ["pageSize"] = pageSize.ToString(),
+            ["q"] = q,
+            ["lang"] = lang,
+            ["tag"] = tag,
+            ["category"] = category
+        });
 
-        var total = await query.CountAsync();
-        var baseUrl = (_config["Seo:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}").TrimEnd('/');
+        var work = new ApiWorkRequest
+        {
+            Kind = "posts.list",
+            Method = "GET",
+            Path = "/api/v1/posts",
+            UserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
+            ApiKeyId = keyId,
+            PayloadJson = payload
+        };
 
-        var items = await query
-            .OrderByDescending(p => p.PublishedAtUtc)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new ApiPostListItemDto(
-                p.Id,
-                p.Title,
-                p.Slug,
-                p.Summary,
-                p.Category != null ? p.Category.Name : null,
-                p.PostTags.Select(pt => pt.Tag.Name).ToList(),
-                p.PublishedAtUtc,
-                p.ReadingTimeMinutes,
-                p.LanguageCode,
-                baseUrl + "/" + p.LanguageCode + "/post/" + p.Slug))
-            .ToListAsync();
+        var result = await _bus.EnqueueAndWaitAsync(work, ct: ct);
+        if (!result.Ok)
+            return StatusCode(result.StatusCode, new ApiErrorDto(result.Error ?? "work_failed"));
 
-        return Ok(new PagedResultDto<ApiPostListItemDto>(items, page, pageSize, total));
+        return Content(result.BodyJson ?? "{}", "application/json");
     }
 
     [HttpGet("{slug}")]

@@ -42,8 +42,7 @@ public sealed class CommentCreateWorkHandler : IApiWorkHandler
             AuthorName = author,
             Body = body!,
             Status = CommentStatus.Pending,
-            CreatedAtUtc = DateTime.UtcNow,
-            UserId = request.UserId
+            CreatedAtUtc = DateTime.UtcNow
         };
         _db.Comments.Add(comment);
         await _db.SaveChangesAsync(ct);
@@ -52,6 +51,10 @@ public sealed class CommentCreateWorkHandler : IApiWorkHandler
         {
             id = comment.Id,
             postId = comment.PostId,
+            authorName = comment.AuthorName,
+            body = comment.Body,
+            createdAtUtc = comment.CreatedAtUtc,
+            likeCount = comment.LikeCount,
             status = comment.Status.ToString(),
             message = "queued_and_saved"
         });
