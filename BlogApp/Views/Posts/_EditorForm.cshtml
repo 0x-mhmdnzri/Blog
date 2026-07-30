@@ -1,4 +1,5 @@
 @model PostEditViewModel
+@inject BlogApp.Services.IUiTranslator T
 
 @if (!ViewData.ModelState.IsValid)
 {
@@ -63,6 +64,25 @@
     </div>
     <div class="col-md-3">
         <span class="text-muted-dark small">مطالعه: <strong id="reading-time-display">@(Model.ReadingTimeMinutes > 0 ? Model.ReadingTimeMinutes : "—")</strong> دقیقه</span>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="form-check form-switch">
+            <input asp-for="IsPremium" class="form-check-input" type="checkbox" />
+            <label asp-for="IsPremium" class="form-check-label">@T["mon.field_premium"]</label>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-check form-switch">
+            <input asp-for="IsSponsored" class="form-check-input" type="checkbox" />
+            <label asp-for="IsSponsored" class="form-check-label">@T["mon.field_sponsored"]</label>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">@T["mon.field_sponsored_label"]</label>
+        <input asp-for="SponsoredLabel" class="form-control form-control-sm" dir="auto" maxlength="120" />
     </div>
 </div>
 
