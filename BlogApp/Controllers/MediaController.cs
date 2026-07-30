@@ -1,6 +1,7 @@
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Services;
+using BlogApp.Services.Performance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -14,11 +15,19 @@ public class MediaController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly ILogger<MediaController> _logger;
+    private readonly IBackgroundJobQueue _jobs;
+    private readonly ICdnUrlService _cdn;
 
-    public MediaController(ApplicationDbContext db, ILogger<MediaController> logger)
+    public MediaController(
+        ApplicationDbContext db,
+        ILogger<MediaController> logger,
+        IBackgroundJobQueue jobs,
+        ICdnUrlService cdn)
     {
         _db = db;
         _logger = logger;
+        _jobs = jobs;
+        _cdn = cdn;
     }
 
     [HttpGet("{id:int}")]
@@ -32,7 +41,6 @@ public class MediaController : Controller
 
         if (asset is null) return NotFound();
 
-        // Force safe disposition for non-inline types; never execute as script.
         var ct = string.IsNullOrWhiteSpace(asset.ContentType) ? "application/octet-stream" : asset.ContentType;
         if (ct.Contains("svg", StringComparison.OrdinalIgnoreCase)
             || ct.Contains("javascript", StringComparison.OrdinalIgnoreCase)
@@ -83,7 +91,6 @@ public class MediaController : Controller
         await file.CopyToAsync(ms);
         var bytes = ms.ToArray();
 
-        // Re-check magic after full read (header-only sample can miss polyglots at offset 0 only).
         if (bytes.Length >= 2 && bytes[0] == 0x4D && bytes[1] == 0x5A)
             return BadRequest(new { error = "نوع فایل اجرایی مجاز نیست." });
 
@@ -97,19 +104,25 @@ public class MediaController : Controller
             PostId = postId
         };
 
+        // Tracking required for insert
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
         _db.MediaAssets.Add(asset);
         await _db.SaveChangesAsync();
 
+        if (check.Kind == MediaKind.Image)
+            await _jobs.EnqueueImageOptimizeAsync(asset.Id);
+
+        var url = _cdn.MediaUrl(asset.Id);
         var markdownSnippet = check.Kind switch
         {
-            MediaKind.Image => $"![{Path.GetFileNameWithoutExtension(check.SafeFileName)}](/media/{asset.Id})",
+            MediaKind.Image => $"![{Path.GetFileNameWithoutExtension(check.SafeFileName)}]({url})",
             MediaKind.Video => $"{{{{video:{asset.Id}}}}}",
-            _ => $"[{check.SafeFileName}](/media/{asset.Id})"
+            _ => $"[{check.SafeFileName}]({url})"
         };
 
         _logger.LogInformation("Upload ok User={User} MediaId={Id} Kind={Kind} Bytes={Bytes}",
             User.Identity?.Name, asset.Id, check.Kind, asset.SizeBytes);
 
-        return Json(new { id = asset.Id, url = $"/media/{asset.Id}", kind = check.Kind.ToString(), markdownSnippet });
+        return Json(new { id = asset.Id, url, kind = check.Kind.ToString(), markdownSnippet });
     }
 }
