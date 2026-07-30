@@ -85,8 +85,6 @@
         .lang-switcher .dropdown-item { color: var(--text, #e8ecf4); font-size: .9rem; }
         .lang-switcher .dropdown-item:hover,
         .lang-switcher .dropdown-item.active { background: rgba(111,179,210,.15); color: #fff; }
-        html[dir="ltr"] body { font-family: "Space Grotesk", "Vazirmatn", system-ui, sans-serif; }
-        html[dir="rtl"] body { font-family: "Vazirmatn", system-ui, sans-serif; }
     </style>
 
     @await RenderSectionAsync("Head", required: false)
@@ -109,29 +107,21 @@
                 <div class="collapse navbar-collapse" id="navMain">
                     <ul class="navbar-nav ms-auto align-items-md-center gap-1">
                         <li class="nav-item">
-                            <a class="nav-link site-nav-link" href="/@lang/">
-                                @(lang == "en" ? "Posts" : lang == "ar" ? "المقالات" : "نوشته‌ها")
-                            </a>
+                            <a class="nav-link site-nav-link" href="/@lang/">@T["nav.posts"]</a>
                         </li>
                         @if (isReader)
                         {
                             <li class="nav-item">
-                                <a class="nav-link site-nav-link" asp-controller="Bookmarks" asp-action="Index">
-                                    @(lang == "en" ? "Bookmarks" : lang == "ar" ? "الإشارات" : "نشان‌ها")
-                                </a>
+                                <a class="nav-link site-nav-link" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link site-nav-link" asp-controller="Notifications" asp-action="Index">
-                                    @(lang == "en" ? "Notifications" : lang == "ar" ? "الإشعارات" : "اعلان‌ها")
-                                </a>
+                                <a class="nav-link site-nav-link" asp-controller="Notifications" asp-action="Index">@T["nav.notifications"]</a>
                             </li>
                         }
                         @if (isStaff)
                         {
                             <li class="nav-item">
-                                <a class="nav-link site-nav-link" asp-controller="Admin" asp-action="Index">
-                                    @(lang == "en" ? "Admin" : lang == "ar" ? "الإدارة" : "پنل مدیریت")
-                                </a>
+                                <a class="nav-link site-nav-link" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a>
                             </li>
                         }
                         <li class="nav-item">
@@ -142,23 +132,17 @@
                             <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-ghost btn-sm ms-md-2">
-                                        @(lang == "en" ? "Logout" : lang == "ar" ? "خروج" : "خروج")
-                                    </button>
+                                    <button type="submit" class="btn btn-ghost btn-sm ms-md-2">@T["nav.logout"]</button>
                                 </form>
                             </li>
                         }
                         else
                         {
                             <li class="nav-item">
-                                <a class="btn btn-ghost btn-sm" asp-controller="Account" asp-action="Register">
-                                    @(lang == "en" ? "Register" : lang == "ar" ? "تسجيل" : "ثبت‌نام")
-                                </a>
+                                <a class="btn btn-ghost btn-sm" asp-controller="Account" asp-action="Register">@T["nav.register"]</a>
                             </li>
                             <li class="nav-item">
-                                <a class="btn btn-ghost btn-sm ms-md-2" asp-controller="Account" asp-action="Login">
-                                    @(lang == "en" ? "Login" : lang == "ar" ? "دخول" : "ورود")
-                                </a>
+                                <a class="btn btn-ghost btn-sm ms-md-2" asp-controller="Account" asp-action="Login">@T["nav.login"]</a>
                             </li>
                         }
                     </ul>
