@@ -1,0 +1,159 @@
+/* Central datepicker — matches admin / site dark theme */
+.blog-dp-native {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.blog-dp-display {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238b93a7' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 0.75rem center;
+  padding-left: 2.25rem !important;
+}
+
+html[dir="rtl"] .blog-dp-display {
+  background-position: right 0.75rem center;
+  padding-left: 0.75rem !important;
+  padding-right: 2.25rem !important;
+}
+
+.blog-dp-popup {
+  position: absolute;
+  z-index: 1080;
+  width: 280px;
+  background: var(--surface, #12161f);
+  border: 1px solid var(--border-soft, #1e2430);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  padding: 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text, #e8ecf4);
+}
+
+.blog-dp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.blog-dp-title {
+  font-weight: 600;
+  text-align: center;
+  flex: 1;
+}
+
+.blog-dp-nav {
+  border: 0;
+  background: transparent;
+  color: var(--text, #e8ecf4);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.blog-dp-nav:hover {
+  background: rgba(111, 179, 210, 0.15);
+}
+
+.blog-dp-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 0.25rem;
+  text-align: center;
+  color: var(--muted, #8b93a7);
+  font-size: 0.75rem;
+}
+
+.blog-dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.blog-dp-day,
+.blog-dp-empty {
+  aspect-ratio: 1;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.blog-dp-day:hover {
+  background: rgba(111, 179, 210, 0.18);
+}
+.blog-dp-day.is-selected {
+  background: var(--accent, #6fb3d2);
+  color: #0b0e14;
+  font-weight: 600;
+}
+.blog-dp-empty {
+  pointer-events: none;
+}
+
+.blog-dp-time {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border-soft, #1e2430);
+}
+.blog-dp-time label {
+  font-size: 0.75rem;
+  color: var(--muted, #8b93a7);
+  margin: 0;
+}
+.blog-dp-hour,
+.blog-dp-min {
+  width: 3.2rem;
+  background: var(--bg, #0b0e14);
+  border: 1px solid var(--border-soft, #1e2430);
+  border-radius: 6px;
+  color: inherit;
+  padding: 0.25rem 0.35rem;
+  text-align: center;
+}
+
+.blog-dp-foot {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--border-soft, #1e2430);
+}
+.blog-dp-btn {
+  flex: 1;
+  border: 1px solid var(--border-soft, #1e2430);
+  background: transparent;
+  color: inherit;
+  border-radius: 8px;
+  padding: 0.35rem 0.4rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.blog-dp-btn:hover {
+  background: rgba(111, 179, 210, 0.12);
+}
+.blog-dp-btn.blog-dp-primary {
+  background: rgba(111, 179, 210, 0.2);
+  border-color: rgba(111, 179, 210, 0.35);
+}
+
+.blog-dp-popup.calendar-jalali .blog-dp-title,
+.blog-dp-popup.calendar-hijri .blog-dp-title {
+  font-family: Vazirmatn, Tahoma, sans-serif;
+}
