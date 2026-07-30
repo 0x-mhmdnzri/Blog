@@ -63,7 +63,6 @@ public partial class PostsController : Controller
             .Include(p => p.Comments.Where(c => c.Status == CommentStatus.Approved))
             .FirstOrDefaultAsync(p => p.Slug == slug && p.LanguageCode == lang && !p.IsDeleted);
 
-        // Fallback: try any language if exact culture miss (then redirect to that culture URL)
         if (post is null)
         {
             var any = await _db.Posts.AsNoTracking()
@@ -79,7 +78,6 @@ public partial class PostsController : Controller
         if (post.ExpiresAtUtc.HasValue && post.ExpiresAtUtc <= DateTime.UtcNow && !AuthorAccess.OwnsPost(User, post))
             return NotFound();
 
-        // Draft translations not public
         if (!AuthorAccess.OwnsPost(User, post)
             && post.TranslationStatus is TranslationStatus.Draft or TranslationStatus.ReadyForReview)
             return NotFound();
@@ -120,6 +118,7 @@ public partial class PostsController : Controller
             post.Category != null ? (post.Category.Name, $"{baseUrl}/{post.LanguageCode}/?category={post.Category.Slug}") : ("Posts", baseUrl + "/" + post.LanguageCode + "/"),
             (post.Title, canonicalUrl));
         ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(post.ContentMarkdown, true);
+        await ApplyPremiumGateAsync(post);
         ViewBag.ReadingTimeMinutes = post.ReadingTimeMinutes > 0
             ? post.ReadingTimeMinutes
             : _markdown.EstimateReadingTimeMinutes(post.ContentMarkdown);
@@ -197,6 +196,9 @@ public partial class PostsController : Controller
             ExpiresAtUtc = vm.ExpiresAtUtc,
             IsFeatured = vm.IsFeatured,
             IsSticky = vm.IsSticky,
+            IsPremium = vm.IsPremium,
+            IsSponsored = vm.IsSponsored,
+            SponsoredLabel = vm.SponsoredLabel?.Trim(),
             ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown),
             PublishedAtUtc = (vm.IsPublished && !vm.ScheduledPublishAtUtc.HasValue) ? DateTime.UtcNow : null,
             LanguageCode = lang,
@@ -232,6 +234,9 @@ public partial class PostsController : Controller
             ExpiresAtUtc = post.ExpiresAtUtc,
             IsFeatured = post.IsFeatured,
             IsSticky = post.IsSticky,
+            IsPremium = post.IsPremium,
+            IsSponsored = post.IsSponsored,
+            SponsoredLabel = post.SponsoredLabel,
             CoverMediaAssetId = post.CoverMediaAssetId,
             ReadingTimeMinutes = post.ReadingTimeMinutes,
             LanguageCode = post.LanguageCode,
@@ -270,11 +275,13 @@ public partial class PostsController : Controller
         post.CoverMediaAssetId = vm.CoverMediaAssetId;
         post.IsFeatured = vm.IsFeatured;
         post.IsSticky = vm.IsSticky;
+        post.IsPremium = vm.IsPremium;
+        post.IsSponsored = vm.IsSponsored;
+        post.SponsoredLabel = vm.SponsoredLabel?.Trim();
         post.ExpiresAtUtc = vm.ExpiresAtUtc;
         post.ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown);
         post.UpdatedAtUtc = DateTime.UtcNow;
         post.TranslationStatus = vm.TranslationStatus;
-        // Language of an existing post is fixed (create a translation draft for other langs)
         if (vm.ScheduledPublishAtUtc.HasValue && vm.ScheduledPublishAtUtc > DateTime.UtcNow)
         {
             post.IsPublished = false;
@@ -293,7 +300,6 @@ public partial class PostsController : Controller
         return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
     }
 
-    /// <summary>Translation workflow: create a draft in another language linked to this post.</summary>
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateTranslation(int id, string targetLanguage)
