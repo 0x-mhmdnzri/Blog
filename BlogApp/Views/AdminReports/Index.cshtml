@@ -1,4 +1,3 @@
-@model List<ContentReport>
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = "گزارش‌های محتوا";
@@ -12,73 +11,43 @@
     <a class="admin-tab @(current == "all" ? "active" : "")" asp-action="Index" asp-route-status="all">همه</a>
 </div>
 
-@if (Model.Count == 0)
-{
-    <div class="admin-empty"><p>گزارشی در این وضعیت نیست.</p></div>
-}
-else
-{
-    <table class="admin-table">
+@Html.AntiForgeryToken()
+
+<div class="admin-table-wrap">
+    <table id="reportsTable" class="admin-table display nowrap" style="width:100%">
         <thead>
             <tr>
+                <th>#</th>
                 <th>هدف</th>
                 <th>دلیل</th>
                 <th>گزارش‌دهنده</th>
                 <th>تاریخ</th>
                 <th>وضعیت</th>
-                <th></th>
+                <th>عملیات</th>
             </tr>
         </thead>
-        <tbody>
-        @foreach (var r in Model)
-        {
-            <tr>
-                <td>
-                    <span class="small text-muted-dark">@(r.TargetType == ContentReportTarget.Post ? "نوشته" : "دیدگاه") #@r.TargetId</span>
-                    <div dir="auto">@(r.TargetTitle ?? "—")</div>
-                    @if (!string.IsNullOrEmpty(r.Details))
-                    {
-                        <div class="small text-muted-dark" dir="auto">@r.Details</div>
-                    }
-                </td>
-                <td dir="auto">@r.Reason</td>
-                <td dir="auto">@(r.ReporterName ?? "مهمان")</td>
-                <td class="ltr-field">@PersianDate.DateTime(r.CreatedAtUtc)</td>
-                <td>
-                    @switch (r.Status)
-                    {
-                        case ContentReportStatus.Resolved:
-                            <span class="status-pill approved">حل‌شده</span>
-                            break;
-                        case ContentReportStatus.Dismissed:
-                            <span class="status-pill rejected">ردشده</span>
-                            break;
-                        default:
-                            <span class="status-pill pending">باز</span>
-                            break;
-                    }
-                </td>
-                <td>
-                    @if (r.Status == ContentReportStatus.Open)
-                    {
-                        <div class="d-flex gap-1">
-                            <form asp-action="Resolve" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@r.Id" />
-                                <input type="hidden" name="returnStatus" value="@current" />
-                                <button type="submit" class="icon-btn approve">حل</button>
-                            </form>
-                            <form asp-action="Dismiss" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@r.Id" />
-                                <input type="hidden" name="returnStatus" value="@current" />
-                                <button type="submit" class="icon-btn reject">رد</button>
-                            </form>
-                        </div>
-                    }
-                </td>
-            </tr>
-        }
-        </tbody>
     </table>
+</div>
+
+@section Scripts {
+<script>
+BlogDT.init('#reportsTable', {
+    ajax: {
+        url: '@Url.Action("Data", "AdminReports")',
+        type: 'GET',
+        data: function (d) { d.status = '@current'; }
+    },
+    columns: [
+        { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
+        { data: 1 },
+        { data: 2 },
+        { data: 3 },
+        { data: 4, className: 'ltr-field' },
+        { data: 5 },
+        { data: 6, orderable: false, searchable: false }
+    ],
+    order: [[4, 'desc']],
+    columnDefs: [{ orderable: false, targets: [0, 6] }]
+});
+</script>
 }
