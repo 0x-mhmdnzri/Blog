@@ -168,6 +168,7 @@ try
     builder.Services.AddScoped<ISiteConfigService, SiteConfigService>();
     builder.Services.AddScoped<IAuditService, AuditService>();
     builder.Services.AddScoped<ICultureService, CultureService>();
+    builder.Services.AddScoped<IUiTranslator, UiTranslatorService>();
 
     builder.Services.AddControllersWithViews(options =>
     {
@@ -220,6 +221,7 @@ try
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         var siteConfig = scope.ServiceProvider.GetRequiredService<ISiteConfigService>();
+        var uiT = scope.ServiceProvider.GetRequiredService<IUiTranslator>();
 
         try
         {
@@ -227,6 +229,7 @@ try
             await SchemaBootstrap.EnsureAsync(db);
             await DbSeeder.SeedAsync(db, userManager, roleManager, config);
             await siteConfig.EnsureDefaultsAsync();
+            await uiT.EnsureSeedAsync();
             Log.Information("Database ready Path={DbPath}", connectionString);
         }
         catch (Exception ex)
@@ -287,7 +290,7 @@ try
     };
     app.UseStaticFiles(staticCache);
 
-    // Culture before routing so path rewrite applies
+    // Culture before routing so path rewrite + cookie apply to every page (incl. admin)
     app.UseMiddleware<CultureMiddleware>();
 
     app.UseRouting();
@@ -298,7 +301,6 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    // After auth so SuperAdmin can bypass maintenance
     app.UseMiddleware<MaintenanceMiddleware>();
 
     app.MapControllerRoute(
@@ -318,7 +320,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening (i18n + security hardening active)");
+    Log.Information("BlogApp listening (i18n + UI translator + security hardening active)");
     app.Run();
 }
 catch (Exception ex)
