@@ -78,7 +78,7 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label small">@T["seo.twitter"]</label>
-                <input class="form-control ltr-field" name="TwitterHandle" value="@Model.Meta.TwitterHandle" placeholder="@handle" maxlength="80" @(isSuper ? null : "disabled") />
+                <input class="form-control ltr-field" name="TwitterHandle" value="@Model.Meta.TwitterHandle" placeholder="@@site" maxlength="80" @(isSuper ? null : "disabled") />
             </div>
             <div class="col-md-6">
                 <label class="form-label small">@T["seo.base_url"]</label>
@@ -86,7 +86,7 @@
             </div>
             <div class="col-12">
                 <label class="form-label small">@T["seo.robots_custom"]</label>
-                <textarea class="form-control ltr-field" name="RobotsTxt" rows="6" maxlength="4000" placeholder="User-agent: *&#10;Allow: /" @(isSuper ? null : "disabled")>@Model.Meta.RobotsTxt</textarea>
+                <textarea class="form-control ltr-field" name="RobotsTxt" rows="6" maxlength="4000" placeholder="User-agent: *" @(isSuper ? null : "disabled")>@Model.Meta.RobotsTxt</textarea>
                 <div class="form-text">@T["seo.robots_hint"]</div>
             </div>
         </div>
