@@ -21,6 +21,11 @@
     var fullTitle = pageTitle != null ? $"{pageTitle} · {panelTitle}" : panelTitle;
 
     var navItems = AdminNavCatalog.ForUser(User).ToList();
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var activeNav = navItems.FirstOrDefault(i => i.Matches(currentController, currentAction));
+
+    var crumbExtra = ViewData["Breadcrumb"] as string;
 
     var dtKeys = new[]
     {
@@ -92,15 +97,37 @@
         </aside>
 
         <main class="admin-main">
-            <header class="admin-topbar d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-ghost btn-sm" type="button" data-admin-toggle title="Menu">☰</button>
-                    <div>
-                        <div class="eyebrow mb-1">@panelTitle</div>
-                        <h1>@pageTitle</h1>
+            <header class="admin-topbar">
+                <div class="admin-topbar-start d-flex align-items-start gap-2">
+                    <button class="btn btn-ghost btn-sm admin-menu-toggle d-md-none" type="button" data-admin-toggle title="Menu">☰</button>
+                    <div class="admin-topbar-titles">
+                        <nav class="admin-breadcrumb" aria-label="breadcrumb">
+                            <a asp-controller="Admin" asp-action="Index" class="bc-link">@panelTitle</a>
+                            @if (activeNav?.GroupKey is string gk)
+                            {
+                                <span class="bc-sep" aria-hidden="true">/</span>
+                                <span class="bc-group">@T[gk]</span>
+                            }
+                            @if (activeNav != null)
+                            {
+                                <span class="bc-sep" aria-hidden="true">/</span>
+                                <a class="bc-link" asp-controller="@activeNav.Controller" asp-action="@activeNav.Action">@T[activeNav.LabelKey]</a>
+                            }
+                            else if (!string.IsNullOrEmpty(pageTitle))
+                            {
+                                <span class="bc-sep" aria-hidden="true">/</span>
+                                <span class="bc-current">@pageTitle</span>
+                            }
+                            @if (!string.IsNullOrEmpty(crumbExtra))
+                            {
+                                <span class="bc-sep" aria-hidden="true">/</span>
+                                <span class="bc-current">@crumbExtra</span>
+                            }
+                        </nav>
+                        <h1>@(pageTitle ?? panelTitle)</h1>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="admin-topbar-end d-flex align-items-center gap-3 flex-wrap">
                     <partial name="_NotificationBell" />
                     <partial name="_LanguageSwitcher" />
                     <span id="liveIndicator" class="live-indicator" title="@T["admin.live_title"]">
