@@ -22,9 +22,9 @@ public static class AppCultures
 
     public static readonly CultureDescriptor[] All =
     {
-        new("fa", "fa-IR", "فارسی", "Persian", isRtl: true),
-        new("en", "en-US", "English", "English", isRtl: false),
-        new("ar", "ar-SA", "العربية", "Arabic", isRtl: true)
+        new("fa", "fa-IR", "فارسی", "Persian",  true),
+        new("en", "en-US", "English", "English", false),
+        new("ar", "ar-SA", "العربية", "Arabic", true)
     };
 
     public static CultureDescriptor? Find(string? code)
