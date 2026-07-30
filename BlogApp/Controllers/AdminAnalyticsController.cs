@@ -238,7 +238,7 @@ public partial class AdminAnalyticsController : Controller
                 (4, false) => query.OrderByDescending(p => p.CreatedAtUtc),
                 _ => query.OrderByDescending(p => p.ViewCount)
             };
-            page = await query.Skip(req.Start).Take(req.Length).ToList();
+            page =  query.Skip(req.Start).Take(req.Length).ToList();
         }
 
         var openLabel = System.Net.WebUtility.HtmlEncode(_t["ana.heatmap_open"]);
