@@ -1,0 +1,154 @@
+@model BlogApp.Models.ViewModels.ApiAnalyticsPanel
+@using System.Text.Json
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "API Analytics";
+    var range = (int)(ViewBag.Range ?? 30);
+    var json = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h1 class="h5 mb-1">مانیتورینگ API</h1>
+        <p class="text-muted-dark small mb-0">درخواست‌ها به‌ازای کاربر / کلید / endpoint</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <div class="range-tabs mb-0">
+            <a class="admin-tab @(range == 7 ? "active" : "")" asp-action="Api" asp-route-range="7">۷ روز</a>
+            <a class="admin-tab @(range == 30 ? "active" : "")" asp-action="Api" asp-route-range="30">۳۰ روز</a>
+            <a class="admin-tab @(range == 90 ? "active" : "")" asp-action="Api" asp-route-range="90">۹۰ روز</a>
+        </div>
+        <a class="btn btn-ghost btn-sm" asp-controller="AdminApiKeys" asp-action="Index">مدیریت کلیدها</a>
+        <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-range="@range">آنالیتیکس کلی</a>
+    </div>
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card kpi-compact"><div class="kpi-label">درخواست</div><div class="kpi-value ltr-field">@Model.TotalRequests</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card kpi-compact"><div class="kpi-label">کاربر فعال API</div><div class="kpi-value ltr-field">@Model.UniqueUsers</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card kpi-compact"><div class="kpi-label">کلید فعال</div><div class="kpi-value ltr-field">@Model.ActiveKeys</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card kpi-compact @(Model.BannedKeys > 0 ? "kpi-danger" : "")"><div class="kpi-label">کلید بن</div><div class="kpi-value ltr-field">@Model.BannedKeys</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card kpi-compact @(Model.ErrorCount > 0 ? "kpi-danger" : "")"><div class="kpi-label">خطا</div><div class="kpi-value ltr-field">@Model.ErrorCount</div></div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card kpi-compact"><div class="kpi-label">میانگین ms</div><div class="kpi-value ltr-field">@Model.AvgDurationMs</div>
+            <div class="kpi-sub">۴۲۹: <span class="ltr-field">@Model.RateLimitedCount</span></div></div>
+    </div>
+</div>
+
+<div class="chart-card chart-card-tight mb-3">
+    <div class="chart-title">درخواست‌های API در بازه</div>
+    <div class="chart-canvas-wrap" style="height:180px;"><canvas id="apiDayChart"></canvas></div>
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-lg-7">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title mb-2">کاربران دارای API Key</div>
+            <div class="admin-table-wrap" style="border:none;max-height:420px;overflow:auto;">
+                <table class="admin-table" style="min-width:0;">
+                    <thead>
+                    <tr>
+                        <th>کاربر</th>
+                        <th class="ltr-field">Keys</th>
+                        <th class="ltr-field">Req (range)</th>
+                        <th class="ltr-field">Err / 429</th>
+                        <th class="ltr-field">Avg ms</th>
+                        <th class="ltr-field">Lifetime</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Users.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-muted-dark small">هنوز کاربری کلید نساخته.</td></tr>
+                    }
+                    @foreach (var u in Model.Users)
+                    {
+                        <tr>
+                            <td class="ltr-field">@u.UserName</td>
+                            <td class="ltr-field small">@u.ActiveKeys/@u.KeyCount @(u.BannedKeys > 0 ? $"(ban:{u.BannedKeys})" : "")</td>
+                            <td class="ltr-field">@u.RangeRequests</td>
+                            <td class="ltr-field">@u.RangeErrors / @u.RangeRateLimited</td>
+                            <td class="ltr-field">@u.AvgDurationMs</td>
+                            <td class="ltr-field small">@u.LifetimeRequests</td>
+                            <td class="text-end">
+                                <a class="btn btn-ghost btn-sm" asp-action="Api" asp-route-range="@range" asp-route-userId="@u.UserId">فیلتر</a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="chart-card chart-card-tight mb-2">
+            <div class="chart-title mb-2">Top endpoints</div>
+            <div class="admin-table-wrap" style="border:none;">
+                <table class="admin-table" style="min-width:0;">
+                    <thead><tr><th>Endpoint</th><th class="ltr-field">N</th><th class="ltr-field">Err</th><th class="ltr-field">ms</th></tr></thead>
+                    <tbody>
+                    @foreach (var e in Model.TopEndpoints)
+                    {
+                        <tr>
+                            <td class="ltr-field small">@e.Method @e.Path</td>
+                            <td class="ltr-field">@e.Count</td>
+                            <td class="ltr-field">@e.Errors</td>
+                            <td class="ltr-field">@e.AvgMs</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title mb-2">Status codes</div>
+            <div class="admin-table-wrap" style="border:none;">
+                <table class="admin-table" style="min-width:0;">
+                    <thead><tr><th class="ltr-field">Code</th><th class="ltr-field">Count</th></tr></thead>
+                    <tbody>
+                    @foreach (var s in Model.StatusCodes)
+                    {
+                        <tr><td class="ltr-field">@s.Name</td><td class="ltr-field">@s.Count</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    if (typeof Chart === 'undefined') return;
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    new Chart(document.getElementById('apiDayChart'), {
+        type: 'line',
+        data: {
+            labels: @Html.Raw(JsonSerializer.Serialize(Model.RequestsByDay.Select(p => p.Label), json)),
+            datasets: [{
+                data: @Html.Raw(JsonSerializer.Serialize(Model.RequestsByDay.Select(p => p.Value), json)),
+                borderColor: accent, backgroundColor: 'rgba(227,179,65,.12)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } }, y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+})();
+</script>
+}
