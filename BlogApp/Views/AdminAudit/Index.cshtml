@@ -1,11 +1,7 @@
-@model List<AuditLogItem>
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = "گزارش حسابرسی";
-    var actionFilter = ViewBag.ActionFilter as string;
     var topActions = ViewBag.TopActions as List<NamedCount> ?? new();
-    var currentPage = (int)(ViewBag.Page ?? 1);
-    var totalPages = (int)(ViewBag.TotalPages ?? 1);
 }
 
 <div class="row g-3 mb-4">
@@ -20,56 +16,37 @@
     }
 </div>
 
-<form method="get" class="d-flex gap-2 mb-3 align-items-end">
-    <div>
-        <label class="form-label small mb-1">فیلتر اکشن</label>
-        <input class="form-control form-control-sm ltr-field" name="actionFilter" value="@actionFilter" placeholder="settings. / user." />
-    </div>
-    <button type="submit" class="btn btn-ghost btn-sm">جست‌وجو</button>
-</form>
+<div class="admin-table-wrap">
+    <table id="auditTable" class="admin-table display nowrap" style="width:100%">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>زمان</th>
+                <th>کاربر</th>
+                <th>اکشن</th>
+                <th>موجودیت</th>
+                <th>جزئیات</th>
+                <th>IP</th>
+            </tr>
+        </thead>
+    </table>
+</div>
 
-<table class="admin-table">
-    <thead>
-        <tr>
-            <th>زمان</th>
-            <th>کاربر</th>
-            <th>اکشن</th>
-            <th>موجودیت</th>
-            <th>جزئیات</th>
-            <th>IP</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var log in Model)
-    {
-        <tr>
-            <td class="ltr-field small">@PersianDate.DateTime(log.CreatedAtUtc)</td>
-            <td class="ltr-field small">@(log.ActorUserName ?? "—")</td>
-            <td class="ltr-field small">@log.Action</td>
-            <td class="ltr-field small">@(log.EntityType)@(string.IsNullOrEmpty(log.EntityId) ? "" : "#" + log.EntityId)</td>
-            <td dir="auto" class="small" style="max-width:280px;">@(log.Details ?? "")</td>
-            <td class="ltr-field small">@(log.IpAddress ?? "")</td>
-        </tr>
-    }
-    </tbody>
-</table>
-
-@if (Model.Count == 0)
-{
-    <div class="admin-empty"><p>هنوز رویدادی ثبت نشده.</p></div>
-}
-
-@if (totalPages > 1)
-{
-    <div class="d-flex gap-2 mt-3">
-        @if (currentPage > 1)
-        {
-            <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-page="@(currentPage - 1)" asp-route-actionFilter="@actionFilter">قبلی</a>
-        }
-        <span class="small text-muted-dark align-self-center ltr-field">@currentPage / @totalPages</span>
-        @if (currentPage < totalPages)
-        {
-            <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-page="@(currentPage + 1)" asp-route-actionFilter="@actionFilter">بعدی</a>
-        }
-    </div>
+@section Scripts {
+<script>
+BlogDT.init('#auditTable', {
+    ajax: { url: '@Url.Action("Data", "AdminAudit")', type: 'GET' },
+    columns: [
+        { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
+        { data: 1, className: 'ltr-field small' },
+        { data: 2, className: 'ltr-field small' },
+        { data: 3, className: 'ltr-field small' },
+        { data: 4, className: 'ltr-field small' },
+        { data: 5, className: 'small' },
+        { data: 6, className: 'ltr-field small' }
+    ],
+    order: [[1, 'desc']],
+    columnDefs: [{ orderable: false, targets: [0] }]
+});
+</script>
 }
