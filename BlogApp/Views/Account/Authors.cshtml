@@ -1,7 +1,7 @@
 @model List<BlogApp.Models.ViewModels.AuthorListItem>
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "نویسندگان";
+    ViewData["Title"] = T["page.authors"];
 }
 
 @if (TempData["AuthorCreated"] != null)
@@ -12,15 +12,15 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <p class="text-muted-dark mb-0 small">مدیریت نویسندگان وبلاگ (فقط سوپر ادمین)</p>
-    <a class="btn btn-accent btn-sm" asp-action="CreateAuthor">+ نویسنده جدید</a>
+    <p class="text-muted-dark mb-0 small">@T["authors.subtitle"]</p>
+    <a class="btn btn-accent btn-sm" asp-action="CreateAuthor">+ @T["btn.new_author"]</a>
 </div>
 
 @if (Model == null || !Model.Any())
 {
     <div class="admin-empty">
-        <h2>نویسنده‌ای یافت نشد</h2>
-        <p class="mb-0">اولین نویسنده را اضافه کنید.</p>
+        <h2>@T["authors.empty_title"]</h2>
+        <p class="mb-0">@T["authors.empty_body"]</p>
     </div>
 }
 else
@@ -30,11 +30,11 @@ else
             <thead>
                 <tr>
                     <th class="avatar-cell"></th>
-                    <th>نام نمایشی</th>
-                    <th>نام کاربری</th>
-                    <th>ایمیل</th>
-                    <th>نقش</th>
-                    <th>تعداد نوشته</th>
+                    <th>@T["col.display_name"]</th>
+                    <th>@T["col.username"]</th>
+                    <th>@T["col.email"]</th>
+                    <th>@T["col.role"]</th>
+                    <th>@T["col.post_count"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -102,7 +102,7 @@ else
                         {
                             <span class="role-badge author">Author</span>
                         }
-                        <span class="ltr-field small">@a.PostCount نوشته</span>
+                        <span class="ltr-field small">@a.PostCount @T["authors.posts_suffix"]</span>
                     </div>
                 </div>
             </div>
