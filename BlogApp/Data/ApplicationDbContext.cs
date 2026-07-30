@@ -288,5 +288,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         OnModelCreatingSocial(modelBuilder);
         ConfigurePerformance(modelBuilder);
         ConfigureApi(modelBuilder);
+        ConfigureNewsletter(modelBuilder);
     }
 }
