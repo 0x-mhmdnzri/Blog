@@ -1,15 +1,16 @@
 @inject BlogApp.Data.ApplicationDbContext Db
+@inject BlogApp.Services.ICultureService Culture
+@inject BlogApp.Services.IUiTranslator T
 @using BlogApp.Models
 @using BlogApp.Services
 @{
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     bool IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
-    bool IsCtrl(string c) => string.Equals(currentController, c, StringComparison.OrdinalIgnoreCase);
     var isPostsSection = (currentController == "Admin" && currentAction == "Posts")
         || (currentController == "Posts" && (currentAction == "Create" || currentAction == "Edit"));
     var isDashboard = currentController == "Admin" && currentAction == "Index";
-    var isProfile = currentController == "Account" && (currentAction == "Profile");
+    var isProfile = currentController == "Account" && currentAction == "Profile";
     var isAuthors = currentController == "Account" && (currentAction == "Authors" || currentAction == "CreateAuthor");
     var isTaxonomy = currentController == "Taxonomy";
     var isAnalytics = currentController == "AdminAnalytics";
@@ -20,6 +21,10 @@
     var isModeration = currentController == "AdminModeration";
     var isSuperAdmin = AuthorAccess.IsSuperAdmin(User);
 
+    var culture = Culture.Current;
+    var lang = culture.Code;
+    var dir = culture.Direction;
+
     var userId = AuthorAccess.UserId(User);
     int pendingCount;
     if (AuthorAccess.CanModerateAllComments(User))
@@ -27,18 +32,22 @@
     else
         pendingCount = ViewBag.PendingCount as int?
             ?? await Db.Comments.CountAsync(c => c.Status == CommentStatus.Pending && c.Post.AuthorId == userId);
+
+    var panelTitle = T["admin.panel"];
+    var pageTitle = ViewData["Title"] as string;
+    var fullTitle = pageTitle != null ? $"{pageTitle} · {panelTitle}" : panelTitle;
 }
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-bs-theme="dark">
+<html lang="@lang" dir="@dir" data-bs-theme="dark" data-culture="@lang">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " · پنل مدیریت" : "پنل مدیریت")</title>
+    <title>@fullTitle</title>
     <meta name="robots" content="noindex, nofollow" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="@culture.BootstrapCss" rel="stylesheet">
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-rtl.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
@@ -48,91 +57,91 @@
         <aside class="admin-sidebar" id="adminSidebar">
             <div class="admin-brand">
                 <span class="brand-cursor"></span>
-                <span>پنل مدیریت وبلاگ</span>
+                <span>@T["admin.brand"]</span>
             </div>
 
             <nav class="admin-nav">
-                <div class="admin-nav-group-label">کلی</div>
+                <div class="admin-nav-group-label">@T["admin.group.general"]</div>
                 <a class="admin-nav-link @(isDashboard ? "active" : "")" asp-controller="Admin" asp-action="Index">
-                    <span>داشبورد</span>
+                    <span>@T["admin.nav.dashboard"]</span>
                 </a>
                 <a class="admin-nav-link @(isModeration ? "active" : "")" asp-controller="AdminModeration" asp-action="Index">
-                    <span>صف بررسی</span>
+                    <span>@T["admin.nav.moderation"]</span>
                 </a>
                 <a class="admin-nav-link @(isPostsSection ? "active" : "")" asp-controller="Admin" asp-action="Posts">
-                    <span>نوشته‌ها</span>
+                    <span>@T["admin.nav.posts"]</span>
                 </a>
                 <a class="admin-nav-link @(IsActive("Comments") ? "active" : "")" asp-controller="Admin" asp-action="Comments">
-                    <span>دیدگاه‌ها</span>
+                    <span>@T["admin.nav.comments"]</span>
                     <span class="badge-count" id="pendingBadge" style="@(pendingCount > 0 ? "" : "display:none;")">@pendingCount</span>
                 </a>
                 <a class="admin-nav-link @(isReports ? "active" : "")" asp-controller="AdminReports" asp-action="Index">
-                    <span>گزارش‌ها</span>
+                    <span>@T["admin.nav.reports"]</span>
                 </a>
 
-                <div class="admin-nav-group-label">محتوا</div>
+                <div class="admin-nav-group-label">@T["admin.group.content"]</div>
                 <a class="admin-nav-link @(IsActive("Media") ? "active" : "")" asp-controller="Admin" asp-action="Media">
-                    <span>رسانه‌ها</span>
-                    <span class="soon-tag">دمو</span>
+                    <span>@T["admin.nav.media"]</span>
+                    <span class="soon-tag">@T["admin.demo"]</span>
                 </a>
                 <a class="admin-nav-link @(isTaxonomy ? "active" : "")" asp-controller="Taxonomy" asp-action="Categories">
-                    <span>دسته‌ها و برچسب‌ها</span>
+                    <span>@T["admin.nav.taxonomy"]</span>
                 </a>
 
-                <div class="admin-nav-group-label">رشد و سئو</div>
+                <div class="admin-nav-group-label">@T["admin.group.growth"]</div>
                 <a class="admin-nav-link @(isAnalytics ? "active" : "")" asp-controller="AdminAnalytics" asp-action="Index">
-                    <span>آمار و تحلیل</span>
+                    <span>@T["admin.nav.analytics"]</span>
                 </a>
                 <a class="admin-nav-link @(IsActive("SeoTools") ? "active" : "")" asp-controller="Admin" asp-action="SeoTools">
-                    <span>ابزارهای سئو</span>
-                    <span class="soon-tag">دمو</span>
+                    <span>@T["admin.nav.seo"]</span>
+                    <span class="soon-tag">@T["admin.demo"]</span>
                 </a>
                 <a class="admin-nav-link @(IsActive("Newsletter") ? "active" : "")" asp-controller="Admin" asp-action="Newsletter">
-                    <span>خبرنامه</span>
-                    <span class="soon-tag">دمو</span>
+                    <span>@T["admin.nav.newsletter"]</span>
+                    <span class="soon-tag">@T["admin.demo"]</span>
                 </a>
 
-                <div class="admin-nav-group-label">حساب</div>
+                <div class="admin-nav-group-label">@T["admin.group.account"]</div>
                 <a class="admin-nav-link @(isProfile ? "active" : "")" asp-controller="Account" asp-action="Profile">
-                    <span>پروفایل من</span>
+                    <span>@T["admin.nav.profile"]</span>
                 </a>
                 @if (isSuperAdmin)
                 {
                     <a class="admin-nav-link @(isUsers ? "active" : "")" asp-controller="AdminUsers" asp-action="Index">
-                        <span>مدیریت کاربران</span>
+                        <span>@T["admin.nav.users"]</span>
                     </a>
                     <a class="admin-nav-link @(isAuthors ? "active" : "")" asp-controller="Account" asp-action="Authors">
-                        <span>نویسندگان</span>
+                        <span>@T["admin.nav.authors"]</span>
                     </a>
                 }
 
-                <div class="admin-nav-group-label">سیستم</div>
+                <div class="admin-nav-group-label">@T["admin.group.system"]</div>
                 @if (isSuperAdmin)
                 {
                     <a class="admin-nav-link @(isSettings && IsActive("Index") ? "active" : "")" asp-controller="AdminSettings" asp-action="Index">
-                        <span>تنظیمات سایت</span>
+                        <span>@T["admin.nav.settings"]</span>
                     </a>
                     <a class="admin-nav-link @(isSettings && IsActive("FeatureFlags") ? "active" : "")" asp-controller="AdminSettings" asp-action="FeatureFlags">
-                        <span>پرچم‌های ویژگی</span>
+                        <span>@T["admin.nav.flags"]</span>
                     </a>
                     <a class="admin-nav-link @(isAudit ? "active" : "")" asp-controller="AdminAudit" asp-action="Index">
-                        <span>حسابرسی</span>
+                        <span>@T["admin.nav.audit"]</span>
                     </a>
                 }
                 else
                 {
                     <a class="admin-nav-link" asp-controller="Admin" asp-action="Settings">
-                        <span>تنظیمات</span>
-                        <span class="soon-tag">فقط ادمین</span>
+                        <span>@T["admin.nav.settings"]</span>
+                        <span class="soon-tag">@T["admin.super_only"]</span>
                     </a>
                 }
             </nav>
 
             <div class="admin-sidebar-footer">
-                <a asp-controller="Home" asp-action="Index">‹ بازگشت به سایت</a>
+                <a asp-controller="Home" asp-action="Index">‹ @T["admin.back_to_site"]</a>
                 <form asp-controller="Account" asp-action="Logout" method="post">
                     @Html.AntiForgeryToken()
-                    <button type="submit">خروج از حساب</button>
+                    <button type="submit">@T["admin.logout"]</button>
                 </form>
             </div>
         </aside>
@@ -140,12 +149,13 @@
         <main class="admin-main">
             <header class="admin-topbar d-flex justify-content-between align-items-center">
                 <div>
-                    <div class="eyebrow mb-1">پنل مدیریت</div>
-                    <h1>@ViewData["Title"]</h1>
+                    <div class="eyebrow mb-1">@panelTitle</div>
+                    <h1>@pageTitle</h1>
                 </div>
-                <div class="d-flex align-items-center gap-3">
-                    <span id="liveIndicator" class="live-indicator" title="اتصال زنده به سرور">
-                        <span class="live-dot"></span> زنده
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <partial name="_LanguageSwitcher" />
+                    <span id="liveIndicator" class="live-indicator" title="@T["admin.live_title"]">
+                        <span class="live-dot"></span> @T["admin.live"]
                     </span>
                     <button class="btn btn-ghost btn-sm d-md-none" type="button" onclick="document.getElementById('adminSidebar').classList.toggle('open')">☰</button>
                 </div>
