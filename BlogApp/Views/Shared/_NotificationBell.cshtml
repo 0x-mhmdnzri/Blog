@@ -1,0 +1,31 @@
+@{
+    var isAuthed = User.Identity?.IsAuthenticated == true;
+}
+@if (isAuthed)
+{
+    <div class="notif-bell dropdown" id="notifBell">
+        <button class="notif-bell-btn" type="button" id="notifBellBtn"
+                data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                aria-expanded="false" aria-label="Notifications" title="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="notif-badge" id="notifBadge" hidden>0</span>
+        </button>
+        <div class="dropdown-menu notif-dropdown dropdown-menu-end" aria-labelledby="notifBellBtn">
+            <div class="notif-dropdown-head">
+                <strong>Notifications</strong>
+                <button type="button" class="notif-mark-all" id="notifMarkAll">Mark all read</button>
+            </div>
+            <div class="notif-list" id="notifList">
+                <div class="notif-empty text-muted-dark small p-3">Loading…</div>
+            </div>
+            <div class="notif-dropdown-foot">
+                <a asp-controller="Notifications" asp-action="Index">View all</a>
+                <a asp-controller="Notifications" asp-action="Preferences">Preferences</a>
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+    </div>
+}
