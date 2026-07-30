@@ -33,6 +33,15 @@ public class Post
     public DateTime? DeletedAtUtc { get; set; }
     public int ReadingTimeMinutes { get; set; }
 
+    /// <summary>Requires active paid membership to read full content.</summary>
+    public bool IsPremium { get; set; }
+
+    /// <summary>Shows sponsored content label on the public post.</summary>
+    public bool IsSponsored { get; set; }
+
+    [MaxLength(120)]
+    public string? SponsoredLabel { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? PublishedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
@@ -42,11 +51,9 @@ public class Post
     public int? CategoryId { get; set; }
     public Category? Category { get; set; }
 
-    /// <summary>ISO 639-1 language code (fa, en, ar).</summary>
     [Required, MaxLength(8)]
     public string LanguageCode { get; set; } = AppCultures.Default;
 
-    /// <summary>Shared id across language versions of the same article. Defaults to Id.</summary>
     public int? TranslationGroupId { get; set; }
 
     public TranslationStatus TranslationStatus { get; set; } = TranslationStatus.Original;
