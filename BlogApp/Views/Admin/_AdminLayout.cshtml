@@ -4,24 +4,6 @@
 @using BlogApp.Models
 @using BlogApp.Services
 @{
-    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
-    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-    bool IsActive(string action) => string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase);
-    var isPostsSection = (currentController == "Admin" && currentAction == "Posts")
-        || (currentController == "Posts" && (currentAction == "Create" || currentAction == "Edit"));
-    var isDashboard = currentController == "Admin" && currentAction == "Index";
-    var isProfile = currentController == "Account" && currentAction == "Profile";
-    var isAuthors = currentController == "Account" && (currentAction == "Authors" || currentAction == "CreateAuthor");
-    var isTaxonomy = currentController == "Taxonomy";
-    var isAnalytics = currentController == "AdminAnalytics";
-    var isSettings = currentController == "AdminSettings";
-    var isUsers = currentController == "AdminUsers";
-    var isAudit = currentController == "AdminAudit";
-    var isReports = currentController == "AdminReports";
-    var isModeration = currentController == "AdminModeration";
-    var isNotifAdmin = currentController == "AdminNotifications";
-    var isSuperAdmin = AuthorAccess.IsSuperAdmin(User);
-
     var culture = Culture.Current;
     var lang = culture.Code;
     var dir = culture.Direction;
@@ -37,6 +19,8 @@
     var panelTitle = T["admin.panel"];
     var pageTitle = ViewData["Title"] as string;
     var fullTitle = pageTitle != null ? $"{pageTitle} · {panelTitle}" : panelTitle;
+
+    var navItems = AdminNavCatalog.ForUser(User).ToList();
 
     var dtKeys = new[]
     {
@@ -65,108 +49,55 @@
     <link rel="stylesheet" href="~/css/datatables-admin.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
 </head>
-<body class="admin-body">
+<body class="admin-body sidebar-collapsed">
+    <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop"></div>
     <div class="admin-shell">
-        <aside class="admin-sidebar" id="adminSidebar">
+        <aside class="admin-sidebar is-collapsed" id="adminSidebar">
             <div class="admin-brand">
                 <span class="brand-cursor"></span>
-                <span>@T["admin.brand"]</span>
+                <span class="brand-text">@T["admin.brand"]</span>
+                <button type="button"
+                        class="sidebar-lock-btn"
+                        id="sidebarLockBtn"
+                        aria-pressed="false"
+                        data-title-lock="@T["admin.sidebar_lock"]"
+                        data-title-unlock="@T["admin.sidebar_unlock"]"
+                        title="@T["admin.sidebar_lock"]">
+                    <svg class="icon-lock" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+                    </svg>
+                </button>
             </div>
 
-            <nav class="admin-nav">
-                <div class="admin-nav-group-label">@T["admin.group.general"]</div>
-                <a class="admin-nav-link @(isDashboard ? "active" : "")" asp-controller="Admin" asp-action="Index">
-                    <span>@T["admin.nav.dashboard"]</span>
-                </a>
-                <a class="admin-nav-link @(isModeration ? "active" : "")" asp-controller="AdminModeration" asp-action="Index">
-                    <span>@T["admin.nav.moderation"]</span>
-                </a>
-                <a class="admin-nav-link @(isPostsSection ? "active" : "")" asp-controller="Admin" asp-action="Posts">
-                    <span>@T["admin.nav.posts"]</span>
-                </a>
-                <a class="admin-nav-link @(IsActive("Comments") ? "active" : "")" asp-controller="Admin" asp-action="Comments">
-                    <span>@T["admin.nav.comments"]</span>
-                    <span class="badge-count" id="pendingBadge" style="@(pendingCount > 0 ? "" : "display:none;")">@pendingCount</span>
-                </a>
-                <a class="admin-nav-link @(isReports ? "active" : "")" asp-controller="AdminReports" asp-action="Index">
-                    <span>@T["admin.nav.reports"]</span>
-                </a>
-                <a class="admin-nav-link @(isNotifAdmin ? "active" : "")" asp-controller="AdminNotifications" asp-action="Index">
-                    <span>@T["nav.notifications"]</span>
-                </a>
-
-                <div class="admin-nav-group-label">@T["admin.group.content"]</div>
-                <a class="admin-nav-link @(IsActive("Media") ? "active" : "")" asp-controller="Admin" asp-action="Media">
-                    <span>@T["admin.nav.media"]</span>
-                    <span class="soon-tag">@T["admin.demo"]</span>
-                </a>
-                <a class="admin-nav-link @(isTaxonomy ? "active" : "")" asp-controller="Taxonomy" asp-action="Categories">
-                    <span>@T["admin.nav.taxonomy"]</span>
-                </a>
-
-                <div class="admin-nav-group-label">@T["admin.group.growth"]</div>
-                <a class="admin-nav-link @(isAnalytics ? "active" : "")" asp-controller="AdminAnalytics" asp-action="Index">
-                    <span>@T["admin.nav.analytics"]</span>
-                </a>
-                <a class="admin-nav-link @(IsActive("SeoTools") ? "active" : "")" asp-controller="Admin" asp-action="SeoTools">
-                    <span>@T["admin.nav.seo"]</span>
-                    <span class="soon-tag">@T["admin.demo"]</span>
-                </a>
-                <a class="admin-nav-link @(IsActive("Newsletter") ? "active" : "")" asp-controller="Admin" asp-action="Newsletter">
-                    <span>@T["admin.nav.newsletter"]</span>
-                    <span class="soon-tag">@T["admin.demo"]</span>
-                </a>
-
-                <div class="admin-nav-group-label">@T["admin.group.account"]</div>
-                <a class="admin-nav-link @(isProfile ? "active" : "")" asp-controller="Account" asp-action="Profile">
-                    <span>@T["admin.nav.profile"]</span>
-                </a>
-                @if (isSuperAdmin)
-                {
-                    <a class="admin-nav-link @(isUsers ? "active" : "")" asp-controller="AdminUsers" asp-action="Index">
-                        <span>@T["admin.nav.users"]</span>
-                    </a>
-                    <a class="admin-nav-link @(isAuthors ? "active" : "")" asp-controller="Account" asp-action="Authors">
-                        <span>@T["admin.nav.authors"]</span>
-                    </a>
-                }
-
-                <div class="admin-nav-group-label">@T["admin.group.system"]</div>
-                @if (isSuperAdmin)
-                {
-                    <a class="admin-nav-link @(isSettings && IsActive("Index") ? "active" : "")" asp-controller="AdminSettings" asp-action="Index">
-                        <span>@T["admin.nav.settings"]</span>
-                    </a>
-                    <a class="admin-nav-link @(isSettings && IsActive("FeatureFlags") ? "active" : "")" asp-controller="AdminSettings" asp-action="FeatureFlags">
-                        <span>@T["admin.nav.flags"]</span>
-                    </a>
-                    <a class="admin-nav-link @(isAudit ? "active" : "")" asp-controller="AdminAudit" asp-action="Index">
-                        <span>@T["admin.nav.audit"]</span>
-                    </a>
-                }
-                else
-                {
-                    <a class="admin-nav-link" asp-controller="Admin" asp-action="Settings">
-                        <span>@T["admin.nav.settings"]</span>
-                        <span class="soon-tag">@T["admin.super_only"]</span>
-                    </a>
-                }
-            </nav>
+            <partial name="_AdminNav" model="(navItems, pendingCount)" />
 
             <div class="admin-sidebar-footer">
-                <a asp-controller="Home" asp-action="Index">‹ @T["admin.back_to_site"]</a>
+                <a asp-controller="Home" asp-action="Index" class="footer-link" title="@T["admin.back_to_site"]">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                    </span>
+                    <span class="nav-label">@T["admin.back_to_site"]</span>
+                </a>
                 <form asp-controller="Account" asp-action="Logout" method="post">
                     @Html.AntiForgeryToken()
-                    <button type="submit">@T["admin.logout"]</button>
+                    <button type="submit" class="footer-logout" title="@T["admin.logout"]">
+                        <span class="nav-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                        </span>
+                        <span class="nav-label">@T["admin.logout"]</span>
+                    </button>
                 </form>
             </div>
         </aside>
 
         <main class="admin-main">
             <header class="admin-topbar d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="eyebrow mb-1">@panelTitle</div>
-                    <h1>@pageTitle</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-ghost btn-sm" type="button" data-admin-toggle title="Menu">☰</button>
+                    <div>
+                        <div class="eyebrow mb-1">@panelTitle</div>
+                        <h1>@pageTitle</h1>
+                    </div>
                 </div>
                 <div class="d-flex align-items-center gap-3 flex-wrap">
                     <partial name="_NotificationBell" />
@@ -174,11 +105,10 @@
                     <span id="liveIndicator" class="live-indicator" title="@T["admin.live_title"]">
                         <span class="live-dot"></span> @T["admin.live"]
                     </span>
-                    <button class="btn btn-ghost btn-sm d-md-none" type="button" onclick="document.getElementById('adminSidebar').classList.toggle('open')">☰</button>
                 </div>
             </header>
 
-            <div class="admin-content">
+            <div class="admin-content is-loading">
                 @RenderBody()
             </div>
         </main>
@@ -198,6 +128,7 @@
     <script src="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.8/js/dataTables.bootstrap5.min.js"></script>
     <script src="~/js/datatables-server.js" asp-append-version="true"></script>
     <script src="~/js/notifications-bell.js" asp-append-version="true"></script>
+    <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
     <script>
         (function () {
             const indicator = document.getElementById('liveIndicator');
@@ -233,5 +164,9 @@
         })();
     </script>
     @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        // Drop content loading state once body scripts run
+        document.querySelector('.admin-content')?.classList.remove('is-loading');
+    </script>
 </body>
 </html>
