@@ -89,6 +89,7 @@
     </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="@culture.BootstrapCss" rel="stylesheet">
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
@@ -235,13 +236,18 @@
     <div id="toast-host" aria-live="polite"></div>
     <button type="button" id="back-to-top" class="back-to-top" aria-label="بازگشت به بالا">↑</button>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script>hljs.highlightAll();</script>
-    <script src="~/js/media-blur.js" asp-append-version="true"></script>
-    <script src="~/js/notifications-bell.js" asp-append-version="true"></script>
+    @* Non-blocking scripts: defer keeps HTML parse free; order preserved for dependents *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="~/js/media-blur.js" asp-append-version="true" defer></script>
+    <script src="~/js/notifications-bell.js" asp-append-version="true" defer></script>
     <script src="~/js/site.js" asp-append-version="true" defer></script>
     <script src="~/js/ux.js" asp-append-version="true" defer></script>
+    <script defer>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.hljs) hljs.highlightAll();
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

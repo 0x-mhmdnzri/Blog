@@ -14,9 +14,7 @@ public static class CompiledQueries
             db.Categories.AsNoTracking().OrderBy(c => c.Name));
 
     /// <summary>
-    /// Lean home-feed page: only list columns (never ContentMarkdown / large blobs).
-    /// Filters for language + published are applied by the caller via Where before Skip/Take is not possible
-    /// on open queries; this compiles the projection shape for the common recent-sort page.
+    /// Lean home-feed page: list columns only (never ContentMarkdown / large blobs).
     /// </summary>
     public static readonly Func<
         ApplicationDbContext,
@@ -70,5 +68,5 @@ public static class CompiledQueries
                 .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now)
                 .Where(p => p.TranslationStatus == TranslationStatus.Original
                             || p.TranslationStatus == TranslationStatus.Approved)
-                .CountAsync());
+                .Count());
 }
