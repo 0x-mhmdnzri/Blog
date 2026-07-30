@@ -54,6 +54,7 @@
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/datatables-admin.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/datepicker.css" asp-append-version="true" />
     <script>
       // Apply locked sidebar before paint to avoid width jump
       (function () {
@@ -179,6 +180,7 @@
     <script src="~/js/datatables-server.js" asp-append-version="true"></script>
     <script src="~/js/notifications-bell.js" asp-append-version="true"></script>
     <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
+    <script src="~/js/datepicker.js" asp-append-version="true"></script>
     <script>
         (function () {
             document.documentElement.classList.remove('sidebar-lock-pending');
@@ -218,6 +220,7 @@
     <script>
         document.querySelector('.admin-content')?.classList.remove('is-loading');
         document.getElementById('adminPageOverlay')?.classList.remove('is-visible');
+        if (window.BlogDatePicker) window.BlogDatePicker.init();
     </script>
 </body>
 </html>
