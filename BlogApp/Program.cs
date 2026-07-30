@@ -152,12 +152,18 @@ try
     builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
     builder.Services.Configure<PushOptions>(builder.Configuration.GetSection("Push"));
     builder.Services.Configure<DigestOptions>(builder.Configuration.GetSection("Digest"));
+    builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
 
     builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
     builder.Services.AddSingleton<ISmsSender, ConfigurableSmsSender>();
     builder.Services.AddSingleton<IPushSender, NoOpPushSender>();
+    builder.Services.AddSingleton<INotificationEventBus, NotificationEventBus>();
+    builder.Services.AddSingleton<NotificationHub>();
     builder.Services.AddScoped<INotificationService, NotificationService>();
+    builder.Services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
     builder.Services.AddHostedService<WeeklyDigestHostedService>();
+    builder.Services.AddHostedService<NotificationRealtimeHostedService>();
+    builder.Services.AddHostedService<NotificationSchedulerHostedService>();
 
     builder.Services.AddSingleton<MarkdownService>();
     builder.Services.AddSingleton<SeoService>();
@@ -187,7 +193,7 @@ try
         options.AddServerHeader = false;
         options.Limits.MaxRequestBodySize = SafeUpload.MaxVideoBytes;
         options.Limits.MaxConcurrentConnections = 500;
-        options.Limits.MaxConcurrentUpgradedConnections = 50;
+        options.Limits.MaxConcurrentUpgradedConnections = 100;
         options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
         options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(20);
         options.Limits.MaxRequestHeadersTotalSize = 32 * 1024;
@@ -290,7 +296,6 @@ try
     };
     app.UseStaticFiles(staticCache);
 
-    // Culture before routing so path rewrite + cookie apply to every page (incl. admin)
     app.UseMiddleware<CultureMiddleware>();
 
     app.UseRouting();
@@ -320,7 +325,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening (i18n + UI translator + security hardening active)");
+    Log.Information("BlogApp listening (notifications SSE + Channel bus active)");
     app.Run();
 }
 catch (Exception ex)
