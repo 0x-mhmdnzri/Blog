@@ -14,135 +14,141 @@
 
 @if (TempData["MediaOk"] is string ok)
 {
-    <div class="wizard-alert success mb-3">@ok</div>
+    <div class="wizard-alert success mb-3" role="status">@ok</div>
 }
 @if (TempData["MediaErr"] is string err)
 {
-    <div class="wizard-alert danger mb-3">@err</div>
+    <div class="wizard-alert danger mb-3" role="alert">@err</div>
 }
 
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["media.kpi_total"]</div><div class="kpi-value ltr-field">@Model.TotalCount</div></div></div>
     <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["media.kpi_images"]</div><div class="kpi-value ltr-field">@Model.ImageCount</div></div></div>
     <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["media.kpi_videos"]</div><div class="kpi-value ltr-field">@Model.VideoCount</div></div></div>
-    <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["media.kpi_size"]</div><div class="kpi-value ltr-field" style="font-size:1.1rem;">@FmtBytes(Model.TotalBytes)</div></div></div>
+    <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["media.kpi_size"]</div><div class="kpi-value ltr-field" style="font-size:1.05rem;">@FmtBytes(Model.TotalBytes)</div></div></div>
 </div>
 
-<div class="chart-card chart-card-tight mb-3">
-    <div class="chart-title mb-2">@T["media.upload"]</div>
-    <form asp-action="MediaUpload" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
+<div class="media-dropzone chart-card chart-card-tight mb-3" id="mediaDropzone">
+    <form asp-action="MediaUpload" method="post" enctype="multipart/form-data" id="mediaUploadForm">
         @Html.AntiForgeryToken()
-        <div class="flex-grow-1" style="min-width:200px;">
-            <label class="form-label small">@T["media.file"]</label>
-            <input type="file" name="file" class="form-control form-control-sm" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg" required />
-            <div class="form-text">@T["media.upload_hint"]</div>
+        <input type="file" name="file" id="mediaFileInput" class="d-none"
+               accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg" required />
+        <div class="media-drop-inner">
+            <div class="media-drop-icon" aria-hidden="true">⬆</div>
+            <div class="media-drop-title">@T["media.drop_title"]</div>
+            <p class="media-drop-hint mb-2">@T["media.upload_hint"]</p>
+            <button type="button" class="btn btn-accent btn-sm" id="mediaPickBtn">@T["media.pick_file"]</button>
+            <div class="media-upload-name ltr-field small mt-2" id="mediaPickedName" hidden></div>
+            <button type="submit" class="btn btn-ghost btn-sm mt-2" id="mediaUploadSubmit" hidden>@T["media.upload_btn"]</button>
         </div>
-        <button type="submit" class="btn btn-accent btn-sm">@T["media.upload_btn"]</button>
     </form>
 </div>
 
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div class="admin-tabs mb-0">
-        <a class="admin-tab @(string.IsNullOrEmpty(Model.FilterKind) ? "active" : "")" asp-action="Media">@T["media.all"]</a>
-        <a class="admin-tab @(Model.FilterKind == "Image" ? "active" : "")" asp-action="Media" asp-route-kind="Image">@T["media.images"]</a>
-        <a class="admin-tab @(Model.FilterKind == "Video" ? "active" : "")" asp-action="Media" asp-route-kind="Video">@T["media.videos"]</a>
+<div class="media-toolbar chart-card chart-card-tight mb-3">
+    <div class="media-toolbar-row">
+        <div class="admin-tabs mb-0 media-filters">
+            <a class="admin-tab @(string.IsNullOrEmpty(Model.FilterKind) ? "active" : "")" asp-action="Media">@T["media.all"] <span class="tab-count ltr-field">@Model.TotalCount</span></a>
+            <a class="admin-tab @(Model.FilterKind == "Image" ? "active" : "")" asp-action="Media" asp-route-kind="Image">@T["media.images"] <span class="tab-count ltr-field">@Model.ImageCount</span></a>
+            <a class="admin-tab @(Model.FilterKind == "Video" ? "active" : "")" asp-action="Media" asp-route-kind="Video">@T["media.videos"] <span class="tab-count ltr-field">@Model.VideoCount</span></a>
+        </div>
+        <form method="get" asp-action="Media" class="media-search-form" role="search">
+            @if (!string.IsNullOrEmpty(Model.FilterKind))
+            {
+                <input type="hidden" name="kind" value="@Model.FilterKind" />
+            }
+            <input type="search" name="q" value="@Model.Search" class="form-control form-control-sm media-search-input"
+                   placeholder="@T["media.search"]" autocomplete="off" id="mediaSearchInput" />
+            <button type="submit" class="btn btn-ghost btn-sm">@T["dt.search"]</button>
+        </form>
     </div>
-    <form method="get" asp-action="Media" class="d-flex gap-2">
-        @if (!string.IsNullOrEmpty(Model.FilterKind))
-        {
-            <input type="hidden" name="kind" value="@Model.FilterKind" />
-        }
-        <input type="search" name="q" value="@Model.Search" class="form-control form-control-sm" placeholder="@T["media.search"]" style="min-width:160px;" />
-        <button type="submit" class="btn btn-ghost btn-sm">@T["dt.search"]</button>
-    </form>
+    <div class="media-toolbar-row media-selection-bar" id="mediaSelectionBar">
+        <label class="media-select-all">
+            <input type="checkbox" id="mediaSelectAll" />
+            <span>@T["media.select_all"]</span>
+        </label>
+        <span class="media-sel-count small text-muted-dark" id="mediaSelCount">@T["media.selected_zero"]</span>
+        <div class="ms-auto d-flex gap-2">
+            <button type="button" class="btn btn-ghost btn-sm" id="mediaClearSel" disabled>@T["media.clear_sel"]</button>
+            <button type="submit" form="mediaBulkForm" class="btn btn-sm media-bulk-danger" id="bulkDeleteBtn" disabled>@T["media.bulk_delete"]</button>
+        </div>
+    </div>
 </div>
 
-<form asp-action="MediaBulkDelete" method="post" id="mediaBulkForm" onsubmit="return confirm('@T["media.confirm_bulk"]');">
+<form asp-action="MediaBulkDelete" method="post" id="mediaBulkForm"
+      onsubmit="return confirm('@T["media.confirm_bulk"]');">
     @Html.AntiForgeryToken()
-    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-        <div class="small text-muted-dark">@T["media.grid_hint"]</div>
-        <button type="submit" class="btn btn-ghost btn-sm" id="bulkDeleteBtn" disabled>@T["media.bulk_delete"]</button>
-    </div>
 
     @if (Model.Items.Count == 0)
     {
-        <p class="text-muted-dark small">@T["media.empty"]</p>
+        <div class="media-empty chart-card chart-card-tight text-center py-5">
+            <div class="media-empty-icon" aria-hidden="true">⬚</div>
+            <p class="mb-2 fw-semibold">@T["media.empty"]</p>
+            <p class="text-muted-dark small mb-3">@T["media.empty_hint"]</p>
+            <button type="button" class="btn btn-accent btn-sm" id="mediaEmptyPick">@T["media.pick_file"]</button>
+        </div>
     }
     else
     {
-        <div class="media-grid">
+        <div class="media-grid" id="mediaGrid">
             @foreach (var m in Model.Items)
             {
-                <div class="media-card" data-id="@m.Id">
+                var md = m.Kind == BlogApp.Models.MediaKind.Image
+                    ? $"![img]({m.Url})"
+                    : m.Kind == BlogApp.Models.MediaKind.Video
+                        ? $"{{{{video:{m.Id}}}}}"
+                        : $"[{m.FileName}]({m.Url})";
+                <article class="media-card" data-id="@m.Id" data-name="@m.FileName.ToLowerInvariant()" data-kind="@m.Kind">
                     <label class="media-check">
-                        <input type="checkbox" name="ids" value="@m.Id" class="media-cb" />
+                        <input type="checkbox" name="ids" value="@m.Id" class="media-cb" aria-label="@m.FileName" />
                     </label>
-                    <div class="media-preview">
+                    <button type="button" class="media-preview" data-lightbox="@m.Url" data-kind="@m.Kind" data-title="@m.FileName" title="@T["media.preview"]">
                         @if (m.Kind == BlogApp.Models.MediaKind.Image)
                         {
                             <img src="@m.Url" alt="@m.FileName" loading="lazy" />
                         }
                         else if (m.Kind == BlogApp.Models.MediaKind.Video)
                         {
-                            <video src="@m.Url" muted preload="metadata"></video>
+                            <video src="@m.Url" muted preload="metadata" playsinline></video>
                             <span class="media-badge">VIDEO</span>
                         }
                         else
                         {
                             <div class="media-file-icon">FILE</div>
                         }
-                    </div>
+                        <span class="media-preview-overlay"><span>◎</span></span>
+                    </button>
                     <div class="media-meta">
                         <div class="media-name" title="@m.FileName">@m.FileName</div>
                         <div class="media-sub ltr-field">@m.SizeLabel · #@m.Id</div>
                         <div class="media-actions">
-                            <button type="button" class="icon-btn" data-copy="@m.Url">URL</button>
-                            <button type="button" class="icon-btn" data-md="@(m.Kind == BlogApp.Models.MediaKind.Image ? $"![img]({m.Url})" : m.Kind == BlogApp.Models.MediaKind.Video ? $"{{{{video:{m.Id}}}}}" : $"[{m.FileName}]({m.Url})")">MD</button>
-                            <button type="button" class="icon-btn" data-usage="@m.Id">@T["media.usage"]</button>
+                            <button type="button" class="icon-btn" data-copy="@m.Url" title="@T["media.copy_url"]">URL</button>
+                            <button type="button" class="icon-btn" data-md="@md" title="@T["media.copy_md"]">MD</button>
+                            <button type="button" class="icon-btn" data-usage="@m.Id" title="@T["media.usage"]">@T["media.usage"]</button>
+                            <button type="submit" class="icon-btn reject" form="del-@m.Id" title="@T["btn.delete"]">@T["btn.delete"]</button>
                         </div>
                     </div>
-                </div>
+                </article>
             }
         </div>
+        <p class="small text-muted-dark mt-3 mb-0" id="mediaVisibleHint"></p>
     }
 </form>
 
-@* Single-delete forms outside bulk form *@
 @foreach (var m in Model.Items)
 {
-    <form asp-action="MediaDelete" method="post" class="d-none" id="del-@m.Id" onsubmit="return confirm('@T["msg.confirm_delete"]');">
+    <form asp-action="MediaDelete" method="post" class="d-none" id="del-@m.Id"
+          onsubmit="return confirm('@T["msg.confirm_delete"]');">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@m.Id" />
     </form>
 }
-@if (Model.Items.Count > 0)
-{
-    <div class="mt-2 small text-muted-dark">
-        @T["media.grid_hint"] —
-        @foreach (var m in Model.Items.Take(0)) { }
-        <span class="d-none" id="del-bind-hint"></span>
-    </div>
-    <script>
-      document.querySelectorAll('.media-card').forEach(function (card) {
-        var id = card.getAttribute('data-id');
-        var actions = card.querySelector('.media-actions');
-        if (!actions || !id) return;
-        var btn = document.createElement('button');
-        btn.type = 'submit';
-        btn.className = 'icon-btn reject';
-        btn.setAttribute('form', 'del-' + id);
-        btn.textContent = '@T["btn.delete"]';
-        actions.appendChild(btn);
-      });
-    </script>
-}
 
-<div class="modal fade" id="usageModal" tabindex="-1">
+<div class="modal fade" id="usageModal" tabindex="-1" aria-labelledby="usageModalTitle">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:var(--surface);border:1px solid var(--border-soft);color:var(--text);">
+        <div class="modal-content media-modal">
             <div class="modal-header border-0">
-                <h5 class="modal-title">@T["media.usage_title"]</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="usageModalTitle">@T["media.usage_title"]</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="usageBody">
                 <p class="text-muted-dark small mb-0">…</p>
@@ -151,104 +157,262 @@
     </div>
 </div>
 
+<div class="media-lightbox" id="mediaLightbox" hidden>
+    <button type="button" class="media-lb-close" id="mediaLbClose" aria-label="Close">×</button>
+    <div class="media-lb-body" id="mediaLbBody"></div>
+    <div class="media-lb-caption ltr-field" id="mediaLbCaption"></div>
+</div>
+
+<div class="media-toast" id="mediaToast" hidden role="status"></div>
+
 <style>
+.media-dropzone {
+  border: 1px dashed var(--border);
+  transition: border-color .2s, background .2s;
+  cursor: pointer;
+}
+.media-dropzone.is-dragover {
+  border-color: var(--accent);
+  background: rgba(227, 179, 65, 0.06);
+}
+.media-drop-inner { text-align: center; padding: 1.25rem 1rem; }
+.media-drop-icon { font-size: 1.5rem; opacity: .55; margin-bottom: .35rem; }
+.media-drop-title { font-weight: 600; font-size: .95rem; margin-bottom: .25rem; }
+.media-drop-hint { color: var(--text-faint); font-size: .78rem; }
+.media-toolbar { padding: .85rem 1rem; }
+.media-toolbar-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; justify-content: space-between;
+}
+.media-toolbar-row + .media-toolbar-row {
+  margin-top: .65rem; padding-top: .65rem; border-top: 1px solid var(--border-soft);
+}
+.media-search-form { display: flex; gap: .4rem; align-items: center; }
+.media-search-input { min-width: 160px; max-width: 240px; }
+.tab-count { opacity: .65; font-size: .72rem; margin-inline-start: .2rem; }
+.media-select-all {
+  display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; cursor: pointer; user-select: none;
+}
+.media-bulk-danger:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+.media-empty-icon { font-size: 2rem; opacity: .35; margin-bottom: .5rem; }
 .media-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: .85rem;
 }
 .media-card {
-  position: relative;
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  position: relative; background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+  transition: border-color .15s, box-shadow .15s;
 }
+.media-card:hover { border-color: var(--accent-dim); box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+.media-card.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.media-card.is-hidden { display: none; }
 .media-check {
-  position: absolute;
-  top: 0.4rem;
-  inset-inline-start: 0.4rem;
-  z-index: 2;
-  background: rgba(0,0,0,.45);
-  border-radius: 6px;
-  padding: 0.15rem 0.3rem;
+  position: absolute; top: .4rem; inset-inline-start: .4rem; z-index: 3;
+  background: rgba(0,0,0,.5); border-radius: 6px; padding: .12rem .28rem; margin: 0;
 }
 .media-preview {
-  aspect-ratio: 1;
-  background: var(--surface-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
+  aspect-ratio: 1; background: var(--surface-2); display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; border: 0; padding: 0; width: 100%; cursor: zoom-in;
 }
-.media-preview img,
-.media-preview video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.media-preview img, .media-preview video {
+  width: 100%; height: 100%; object-fit: cover; pointer-events: none;
 }
+.media-preview-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center;
+  justify-content: center; opacity: 0; transition: opacity .15s; color: #fff; font-size: 1.25rem;
+}
+.media-card:hover .media-preview-overlay { opacity: 1; }
 .media-badge {
-  position: absolute;
-  bottom: 0.35rem;
-  inset-inline-end: 0.35rem;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  position: absolute; bottom: .35rem; inset-inline-end: .35rem; font-size: .62rem; font-weight: 700;
+  background: rgba(0,0,0,.55); color: #fff; padding: .1rem .4rem; border-radius: 999px;
 }
-.media-file-icon {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-.media-meta { padding: 0.55rem 0.65rem 0.7rem; }
+.media-file-icon { font-size: .85rem; color: var(--text-muted); font-weight: 600; }
+.media-meta { padding: .55rem .65rem .7rem; }
 .media-name {
-  font-size: 0.78rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: .78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.media-sub { font-size: 0.68rem; color: var(--text-faint); margin-top: 0.15rem; }
-.media-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 0.45rem;
+.media-sub { font-size: .68rem; color: var(--text-faint); margin-top: .15rem; }
+.media-actions { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .45rem; }
+.media-actions .icon-btn { font-size: .68rem; padding: .18rem .45rem; }
+.media-modal { background: var(--surface); border: 1px solid var(--border-soft); color: var(--text); }
+.media-lightbox {
+  position: fixed; inset: 0; z-index: 10050; background: rgba(4, 6, 12, .82);
+  backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 2rem 1rem;
 }
-.media-actions .icon-btn { font-size: 0.68rem; padding: 0.15rem 0.4rem; }
+.media-lightbox[hidden] { display: none !important; }
+.media-lb-close {
+  position: absolute; top: 1rem; inset-inline-end: 1rem; border: 0; background: rgba(255,255,255,.1);
+  color: #fff; width: 2.25rem; height: 2.25rem; border-radius: 50%; font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+.media-lb-body { max-width: min(92vw, 960px); max-height: 78vh; }
+.media-lb-body img, .media-lb-body video {
+  max-width: 100%; max-height: 78vh; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.4);
+}
+.media-lb-caption { margin-top: .75rem; color: rgba(255,255,255,.75); font-size: .85rem; }
+.media-toast {
+  position: fixed; bottom: 1.25rem; inset-inline-start: 50%; transform: translateX(-50%);
+  z-index: 10060; background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: .55rem 1rem; border-radius: 999px; font-size: .85rem; box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  pointer-events: none;
+}
+html[dir="rtl"] .media-toast { transform: translateX(50%); }
+@media (max-width: 576px) {
+  .media-grid { grid-template-columns: repeat(2, 1fr); gap: .55rem; }
+  .media-search-input { min-width: 0; width: 100%; max-width: none; }
+  .media-search-form { width: 100%; }
+}
 </style>
 
 @section Scripts {
 <script>
 (function () {
-  var bulkBtn = document.getElementById('bulkDeleteBtn');
-  function syncBulk() {
-    var n = document.querySelectorAll('.media-cb:checked').length;
-    if (bulkBtn) bulkBtn.disabled = n === 0;
+  var T = {
+    selected: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["media.selected_n"])),
+    selectedZero: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["media.selected_zero"])),
+    copied: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["media.copied"]))
+  };
+
+  function toast(msg) {
+    var el = document.getElementById('mediaToast');
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.hidden = true; }, 1600);
   }
-  document.querySelectorAll('.media-cb').forEach(function (c) { c.addEventListener('change', syncBulk); });
+
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      return navigator.clipboard.writeText(t);
+    var i = document.createElement('input');
+    i.value = t; document.body.appendChild(i); i.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    i.remove();
+    return Promise.resolve();
+  }
+
+  var zone = document.getElementById('mediaDropzone');
+  var input = document.getElementById('mediaFileInput');
+  var pickBtn = document.getElementById('mediaPickBtn');
+  var emptyPick = document.getElementById('mediaEmptyPick');
+  var nameEl = document.getElementById('mediaPickedName');
+  var submitBtn = document.getElementById('mediaUploadSubmit');
+  var form = document.getElementById('mediaUploadForm');
+
+  function openPicker() { if (input) input.click(); }
+  if (pickBtn) pickBtn.addEventListener('click', function (e) { e.preventDefault(); openPicker(); });
+  if (emptyPick) emptyPick.addEventListener('click', openPicker);
+  if (zone) {
+    zone.addEventListener('click', function (e) {
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      openPicker();
+    });
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) {
+        e.preventDefault(); e.stopPropagation();
+        zone.classList.add('is-dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) {
+        e.preventDefault(); e.stopPropagation();
+        zone.classList.remove('is-dragover');
+      });
+    });
+    zone.addEventListener('drop', function (e) {
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length || !input) return;
+      input.files = files;
+      onFilePicked();
+      if (form) form.submit();
+    });
+  }
+  function onFilePicked() {
+    if (!input || !input.files || !input.files[0]) return;
+    if (nameEl) { nameEl.hidden = false; nameEl.textContent = input.files[0].name; }
+    if (submitBtn) submitBtn.hidden = false;
+  }
+  if (input) input.addEventListener('change', function () {
+    onFilePicked();
+    if (input.files && input.files[0] && form) form.submit();
+  });
+
+  var bulkBtn = document.getElementById('bulkDeleteBtn');
+  var clearBtn = document.getElementById('mediaClearSel');
+  var selectAll = document.getElementById('mediaSelectAll');
+  var countEl = document.getElementById('mediaSelCount');
+
+  function visibleCbs() {
+    return Array.prototype.slice.call(document.querySelectorAll('.media-card:not(.is-hidden) .media-cb'));
+  }
+  function syncSel() {
+    var all = visibleCbs();
+    var n = all.filter(function (c) { return c.checked; }).length;
+    if (bulkBtn) bulkBtn.disabled = n === 0;
+    if (clearBtn) clearBtn.disabled = n === 0;
+    if (countEl) countEl.textContent = n === 0 ? T.selectedZero : T.selected.replace('{0}', String(n));
+    if (selectAll && all.length) {
+      selectAll.checked = n === all.length;
+      selectAll.indeterminate = n > 0 && n < all.length;
+    }
+    document.querySelectorAll('.media-card').forEach(function (card) {
+      var cb = card.querySelector('.media-cb');
+      card.classList.toggle('is-selected', !!(cb && cb.checked));
+    });
+  }
+  document.querySelectorAll('.media-cb').forEach(function (c) { c.addEventListener('change', syncSel); });
+  if (selectAll) {
+    selectAll.addEventListener('change', function () {
+      visibleCbs().forEach(function (c) { c.checked = selectAll.checked; });
+      syncSel();
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function () {
+      document.querySelectorAll('.media-cb').forEach(function (c) { c.checked = false; });
+      if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
+      syncSel();
+    });
+  }
+  syncSel();
+
+  var searchInput = document.getElementById('mediaSearchInput');
+  var hint = document.getElementById('mediaVisibleHint');
+  function filterLocal() {
+    var q = (searchInput && searchInput.value || '').trim().toLowerCase();
+    var cards = document.querySelectorAll('.media-card');
+    var shown = 0;
+    cards.forEach(function (card) {
+      var name = card.getAttribute('data-name') || '';
+      var ok = !q || name.indexOf(q) !== -1;
+      card.classList.toggle('is-hidden', !ok);
+      if (ok) shown++;
+    });
+    if (hint && cards.length) hint.textContent = q ? (shown + ' / ' + cards.length) : '';
+    syncSel();
+  }
+  if (searchInput) searchInput.addEventListener('input', filterLocal);
 
   document.querySelectorAll('[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var t = btn.getAttribute('data-copy');
-      if (navigator.clipboard) navigator.clipboard.writeText(t);
-      btn.textContent = '✓';
-      setTimeout(function () { btn.textContent = 'URL'; }, 900);
+      copyText(btn.getAttribute('data-copy') || '').then(function () {
+        toast(T.copied);
+        var old = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(function () { btn.textContent = old; }, 900);
+      });
     });
   });
-
   document.querySelectorAll('[data-md]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var t = btn.getAttribute('data-md');
-      if (navigator.clipboard) navigator.clipboard.writeText(t);
-      btn.textContent = '✓';
-      setTimeout(function () { btn.textContent = 'MD'; }, 900);
+      copyText(btn.getAttribute('data-md') || '').then(function () {
+        toast(T.copied);
+        var old = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(function () { btn.textContent = old; }, 900);
+      });
     });
   });
 
@@ -278,11 +442,37 @@
           }
           if (window.bootstrap) new bootstrap.Modal(usageModal).show();
         })
-        .catch(function () {
-          usageBody.innerHTML = '<p class="text-muted-dark small">—</p>';
-        });
+        .catch(function () { usageBody.innerHTML = '<p class="text-muted-dark small">—</p>'; });
     });
   });
+
+  var lb = document.getElementById('mediaLightbox');
+  var lbBody = document.getElementById('mediaLbBody');
+  var lbCap = document.getElementById('mediaLbCaption');
+  var lbClose = document.getElementById('mediaLbClose');
+  function closeLb() {
+    if (!lb) return;
+    lb.hidden = true;
+    if (lbBody) lbBody.innerHTML = '';
+  }
+  document.querySelectorAll('[data-lightbox]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var url = btn.getAttribute('data-lightbox');
+      var kind = btn.getAttribute('data-kind');
+      var title = btn.getAttribute('data-title') || '';
+      if (!lb || !lbBody) return;
+      if (kind === 'Video') {
+        lbBody.innerHTML = '<video src="' + url + '" controls autoplay playsinline></video>';
+      } else {
+        lbBody.innerHTML = '<img src="' + url + '" alt="" />';
+      }
+      if (lbCap) lbCap.textContent = title + ' · ' + url;
+      lb.hidden = false;
+    });
+  });
+  if (lbClose) lbClose.addEventListener('click', closeLb);
+  if (lb) lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
 })();
 </script>
 }
