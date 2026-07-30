@@ -1,31 +1,41 @@
 using System.Text;
 using BlogApp.Data;
+using BlogApp.Models;
 using BlogApp.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
-/// <summary>Serves /robots.txt and /sitemap.xml — kept dynamic so the sitemap always
-/// reflects currently published posts without a separate build step.</summary>
 public class SeoController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly SeoService _seo;
-    private readonly IConfiguration _config;
+    private readonly ISiteConfigService _site;
 
-    public SeoController(ApplicationDbContext db, SeoService seo, IConfiguration config)
+    public SeoController(ApplicationDbContext db, SeoService seo, ISiteConfigService site)
     {
         _db = db;
         _seo = seo;
-        _config = config;
+        _site = site;
     }
 
-    private string BaseUrl => $"{Request.Scheme}://{Request.Host}";
+    private async Task<string> ResolveBaseUrlAsync()
+    {
+        var configured = await _site.GetAsync(SiteSettingKeys.BaseUrl);
+        if (!string.IsNullOrWhiteSpace(configured))
+            return configured.TrimEnd('/');
+        return $"{Request.Scheme}://{Request.Host}";
+    }
 
     [HttpGet("robots.txt")]
-    public IActionResult Robots()
+    public async Task<IActionResult> Robots()
     {
+        var custom = await _site.GetAsync("RobotsTxt");
+        if (!string.IsNullOrWhiteSpace(custom))
+            return Content(custom.Trim() + "\n", "text/plain");
+
+        var baseUrl = await ResolveBaseUrlAsync();
         var sb = new StringBuilder();
         sb.AppendLine("User-agent: *");
         sb.AppendLine("Allow: /");
@@ -33,39 +43,56 @@ public class SeoController : Controller
         sb.AppendLine("Disallow: /Posts/Edit");
         sb.AppendLine("Disallow: /Account/");
         sb.AppendLine("Disallow: /Admin/");
+        sb.AppendLine("Disallow: /AdminAnalytics/");
         sb.AppendLine("Disallow: /media/upload");
         sb.AppendLine();
-        sb.AppendLine($"Sitemap: {BaseUrl}/sitemap.xml");
+        sb.AppendLine($"Sitemap: {baseUrl}/sitemap.xml");
         return Content(sb.ToString(), "text/plain");
     }
 
     [HttpGet("sitemap.xml")]
     public async Task<IActionResult> Sitemap()
     {
+        var baseUrl = await ResolveBaseUrlAsync();
+        var now = DateTime.UtcNow;
+
         var posts = await _db.Posts
-            .Where(p => p.IsPublished)
-            .Select(p => new { p.Slug, p.UpdatedAtUtc })
+            .Where(p => p.IsPublished && !p.IsDeleted)
+            .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now)
+            .Where(p => p.TranslationStatus == TranslationStatus.Original
+                        || p.TranslationStatus == TranslationStatus.Approved)
+            .Select(p => new { p.Slug, p.UpdatedAtUtc, p.LanguageCode })
+            .ToListAsync();
+
+        var categories = await _db.Categories
+            .Select(c => new { c.Slug, c.Name })
             .ToListAsync();
 
         var sb = new StringBuilder();
         sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         sb.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
 
-        sb.AppendLine("  <url>");
-        sb.AppendLine($"    <loc>{BaseUrl}/</loc>");
-        sb.AppendLine("    <changefreq>daily</changefreq>");
-        sb.AppendLine("    <priority>1.0</priority>");
-        sb.AppendLine("  </url>");
-
-        foreach (var post in posts)
+        void Url(string loc, string? lastmod = null, string freq = "weekly", string priority = "0.7")
         {
             sb.AppendLine("  <url>");
-            sb.AppendLine($"    <loc>{BaseUrl}/post/{post.Slug}</loc>");
-            sb.AppendLine($"    <lastmod>{post.UpdatedAtUtc:yyyy-MM-dd}</lastmod>");
-            sb.AppendLine("    <changefreq>monthly</changefreq>");
-            sb.AppendLine("    <priority>0.8</priority>");
+            sb.AppendLine($"    <loc>{System.Security.SecurityElement.Escape(loc)}</loc>");
+            if (!string.IsNullOrEmpty(lastmod))
+                sb.AppendLine($"    <lastmod>{lastmod}</lastmod>");
+            sb.AppendLine($"    <changefreq>{freq}</changefreq>");
+            sb.AppendLine($"    <priority>{priority}</priority>");
             sb.AppendLine("  </url>");
         }
+
+        Url($"{baseUrl}/", freq: "daily", priority: "1.0");
+
+        foreach (var lang in new[] { "fa", "en", "ar" })
+            Url($"{baseUrl}/{lang}/", freq: "daily", priority: "0.9");
+
+        foreach (var post in posts)
+            Url($"{baseUrl}/post/{post.Slug}", post.UpdatedAtUtc.ToString("yyyy-MM-dd"), "monthly", "0.8");
+
+        foreach (var cat in categories)
+            Url($"{baseUrl}/?category={Uri.EscapeDataString(cat.Slug)}", freq: "weekly", priority: "0.5");
 
         sb.AppendLine("</urlset>");
         return Content(sb.ToString(), "application/xml");
