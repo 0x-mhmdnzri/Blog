@@ -1,6 +1,6 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "مدیریت کاربران";
+    ViewData["Title"] = T["page.users"];
 }
 
 @if (TempData["Saved"] != null)
@@ -18,13 +18,13 @@
     <table id="usersTable" class="admin-table display nowrap" style="width:100%">
         <thead>
             <tr>
-                <th>#</th>
-                <th>کاربر</th>
-                <th>نقش‌ها</th>
-                <th>نوشته‌ها</th>
-                <th>ثبت‌نام</th>
-                <th>وضعیت</th>
-                <th>عملیات</th>
+                <th>@T["col.index"]</th>
+                <th>@T["col.user"]</th>
+                <th>@T["col.roles"]</th>
+                <th>@T["col.posts"]</th>
+                <th>@T["col.registered"]</th>
+                <th>@T["col.status"]</th>
+                <th>@T["col.actions"]</th>
             </tr>
         </thead>
     </table>
