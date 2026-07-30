@@ -53,7 +53,12 @@ public class CommentsApiController : ControllerBase
         if (!res.Ok)
             return StatusCode(res.StatusCode, new ApiErrorDto(res.Error ?? "work_failed"));
 
-        return StatusCode(res.StatusCode, Content(res.BodyJson ?? "{}", "application/json"));
+        return new ContentResult
+        {
+            StatusCode = res.StatusCode,
+            ContentType = "application/json",
+            Content = res.BodyJson ?? "{}"
+        };
     }
 
     private bool HasScope(string scope)
