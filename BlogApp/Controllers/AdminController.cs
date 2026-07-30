@@ -265,19 +265,6 @@ public partial class AdminController : Controller
         return RedirectToAction(nameof(Posts));
     }
 
-    public IActionResult Media() => View("ComingSoon", new ComingSoonViewModel
-    {
-        Title = _t["admin.nav.media"],
-        Description = "Media library for images, video and uploads.",
-        DemoFeatures =
-        [
-            "Grid gallery with previews",
-            "Search by name and type",
-            "Image compression & WebP",
-            "Bulk delete / replace in posts"
-        ]
-    });
-
     public IActionResult CategoriesAdmin() => View("ComingSoon", new ComingSoonViewModel
     {
         Title = _t["admin.nav.taxonomy"],
