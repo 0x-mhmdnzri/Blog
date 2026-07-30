@@ -225,6 +225,7 @@ try
     builder.Services.AddHostedService<WeeklyDigestHostedService>();
     builder.Services.AddHostedService<NotificationRealtimeHostedService>();
     builder.Services.AddHostedService<NotificationSchedulerHostedService>();
+    builder.Services.AddHostedService<NewsletterCampaignHostedService>();
 
     builder.Services.AddSingleton<MarkdownService>();
     builder.Services.AddSingleton<SeoService>();
@@ -237,6 +238,7 @@ try
     builder.Services.AddScoped<ICultureService, CultureService>();
     builder.Services.AddScoped<IUiTranslator, UiTranslatorService>();
     builder.Services.AddScoped<IMembershipService, MembershipService>();
+    builder.Services.AddScoped<INewsletterService, NewsletterService>();
     builder.Services.AddScoped<MentionsService>();
 
     builder.Services.AddControllersWithViews(options =>
@@ -367,7 +369,6 @@ try
 
     app.UseMiddleware<RedirectMiddleware>();
 
-    // Auth BEFORE rate limiter so api_key_id is available for partition + auto-ban
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseRateLimiter();
