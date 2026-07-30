@@ -1,11 +1,75 @@
+@inject BlogApp.Services.IUiTranslator T
 @{
-    ViewData["Title"] = "خطا";
+    Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["NoIndex"] = true;
+    var code = (int)(ViewBag.StatusCode ?? 500);
+    var title = (string)(ViewBag.ErrorTitle ?? T["err.generic.title"]);
+    var message = (string)(ViewBag.ErrorMessage ?? T["err.generic.msg"]);
+    ViewData["Title"] = $"{code} · {title}";
 }
 
-<div class="container py-5 text-center">
-    <div class="hero-prompt mb-2">$ echo $?</div>
-    <h1 class="h3 mb-2">مشکلی پیش آمد</h1>
-    <p class="text-muted-dark">درخواست شما قابل انجام نبود. به صفحه اصلی بازگردید.</p>
-    <a class="btn btn-ghost mt-3" asp-controller="Home" asp-action="Index">بازگشت به نوشته‌ها</a>
+<div class="err-page">
+    <div class="err-card">
+        <div class="err-code ltr-field" aria-hidden="true">@code</div>
+        <h1 class="err-title">@title</h1>
+        <p class="err-msg">@message</p>
+        <p class="err-hint">@T["err.support"]</p>
+        <div class="err-actions">
+            @if (code is 401)
+            {
+                <a class="btn btn-accent" asp-controller="Account" asp-action="Login">@T["err.login"]</a>
+            }
+            <a class="btn btn-ghost" asp-controller="Home" asp-action="Index">@T["err.home"]</a>
+            <button type="button" class="btn btn-ghost" onclick="history.back()">@T["err.back"]</button>
+        </div>
+    </div>
 </div>
+
+<style>
+.err-page {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+.err-card {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+}
+.err-code {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 0.75rem;
+  opacity: 0.9;
+}
+.err-title {
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem;
+}
+.err-msg {
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.err-hint {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  margin: 0 0 1.25rem;
+}
+.err-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+</style>
