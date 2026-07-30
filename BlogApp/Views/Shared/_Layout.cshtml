@@ -26,7 +26,7 @@
     var hreflang = ViewBag.HreflangLinks as IEnumerable<dynamic>;
 }
 <!DOCTYPE html>
-<html lang="@lang" dir="@dir" data-bs-theme="dark" data-culture="@lang">
+<html lang="@lang" dir="@dir" data-bs-theme="dark" data-theme="dark" data-culture="@lang">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -36,7 +36,8 @@
     <meta name="author" content="@Seo.AuthorName" />
     <meta name="robots" content="@(noIndex ? "noindex, nofollow" : "index, follow")" />
     <link rel="canonical" href="@canonicalUrl" />
-    <meta name="theme-color" content="#0b0e14" />
+    <meta name="theme-color" content="#0b0e14" id="meta-theme-color" />
+    <meta name="color-scheme" content="dark light" />
 
     @if (hreflang != null)
     {
@@ -70,6 +71,23 @@
         <meta name="twitter:image" content="@ogImage" />
     }
 
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('blog-theme');
+                if (t === 'light' || t === 'dark') {
+                    document.documentElement.setAttribute('data-theme', t);
+                    document.documentElement.setAttribute('data-bs-theme', t);
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    document.documentElement.setAttribute('data-bs-theme', 'light');
+                }
+                var fs = localStorage.getItem('blog-font-scale');
+                if (fs) document.documentElement.style.setProperty('--reader-font-scale', fs);
+            } catch (e) {}
+        })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="@culture.BootstrapCss" rel="stylesheet">
@@ -77,6 +95,7 @@
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/media-blur.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ux.css" asp-append-version="true" />
     <style>
         .site-announce { padding: .65rem 1rem; text-align: center; font-size: .9rem; border-bottom: 1px solid var(--border-soft, #1e2430); }
         .site-announce.info { background: rgba(111,179,210,.12); color: #b8d4e8; }
@@ -91,6 +110,9 @@
     @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
+    <a class="skip-link" href="#main-content">پرش به محتوا</a>
+    <div id="reading-progress" class="reading-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="پیشرفت مطالعه"></div>
+
     @if (announceOn && !string.IsNullOrWhiteSpace(announceText))
     {
         <div class="site-announce @announceStyle" dir="auto" role="status">@announceText</div>
@@ -110,12 +132,18 @@
                         <li class="nav-item">
                             <a class="nav-link site-nav-link" href="/@lang/">@T["nav.posts"]</a>
                         </li>
+                        <li class="nav-item">
+                            <button type="button" class="btn btn-ghost btn-sm nav-link site-nav-link" data-search-open title="جست‌وجو (Ctrl+K)">⌕ جست‌وجو</button>
+                        </li>
                         @if (isReader)
                         {
                             <li class="nav-item">
                                 <a class="nav-link site-nav-link" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
                             </li>
                         }
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link" asp-controller="Home" asp-action="History">سابقه</a>
+                        </li>
                         @if (isStaff)
                         {
                             <li class="nav-item">
@@ -128,6 +156,12 @@
                                 <partial name="_NotificationBell" />
                             </li>
                         }
+                        <li class="nav-item">
+                            <button type="button" class="btn btn-ghost btn-sm" data-theme-toggle title="تم روشن/تاریک" aria-label="تغییر تم">
+                                <span class="theme-icon-dark">☾</span>
+                                <span class="theme-icon-light">☀</span>
+                            </button>
+                        </li>
                         <li class="nav-item">
                             <partial name="_LanguageSwitcher" />
                         </li>
@@ -155,7 +189,7 @@
         </nav>
     </header>
 
-    <main class="site-main">
+    <main class="site-main" id="main-content">
         @RenderBody()
     </main>
 
@@ -166,11 +200,26 @@
         </div>
     </footer>
 
+    <div id="search-overlay" hidden>
+        <div class="search-panel" role="dialog" aria-modal="true" aria-label="جست‌وجو">
+            <input type="search" id="search-input" placeholder="جست‌وجوی نوشته‌ها… (Enter)" autocomplete="off" dir="auto" />
+            <div id="search-suggest" role="listbox"></div>
+            <div class="p-2 small" style="opacity:.6;border-top:1px solid var(--border-soft,#1e2430)">
+                <button type="button" class="btn btn-ghost btn-sm" data-search-close>بستن (Esc)</button>
+                <span class="ltr-field ms-2">Ctrl+K</span>
+            </div>
+        </div>
+    </div>
+    <div id="toast-host" aria-live="polite"></div>
+    <button type="button" id="back-to-top" class="back-to-top" aria-label="بازگشت به بالا">↑</button>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>hljs.highlightAll();</script>
     <script src="~/js/media-blur.js" asp-append-version="true"></script>
     <script src="~/js/notifications-bell.js" asp-append-version="true"></script>
+    <script src="~/js/site.js" asp-append-version="true" defer></script>
+    <script src="~/js/ux.js" asp-append-version="true" defer></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
