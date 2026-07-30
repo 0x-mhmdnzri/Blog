@@ -1,0 +1,48 @@
+@model BlogApp.Models.ViewModels.ApiAnalyticsPanel?
+@if (Model is null) { return; }
+
+<div class="chart-card chart-card-tight mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <div class="chart-title mb-0">API — درخواست‌ها و کاربران</div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-accent btn-sm" asp-controller="AdminAnalytics" asp-action="Api" asp-route-range="@ViewBag.RangeDays">مانیتور کامل API</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminApiKeys" asp-action="Index">کلیدها</a>
+        </div>
+    </div>
+    <div class="ana-meta-row mb-2">
+        <span class="ana-chip"><strong class="ltr-field">@Model.TotalRequests</strong> درخواست</span>
+        <span class="ana-chip"><strong class="ltr-field">@Model.UniqueUsers</strong> کاربر API</span>
+        <span class="ana-chip"><strong class="ltr-field">@Model.ActiveKeys</strong> کلید فعال</span>
+        <span class="ana-chip"><strong class="ltr-field">@Model.ErrorCount</strong> خطا</span>
+        <span class="ana-chip"><strong class="ltr-field">@Model.RateLimitedCount</strong> ۴۲۹</span>
+    </div>
+    <div class="admin-table-wrap" style="border:none;max-height:260px;overflow:auto;">
+        <table class="admin-table" style="min-width:0;">
+            <thead>
+            <tr>
+                <th>کاربر</th>
+                <th class="ltr-field">Keys</th>
+                <th class="ltr-field">Req</th>
+                <th class="ltr-field">Err/429</th>
+                <th class="ltr-field">Lifetime</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var u in Model.Users.Take(8))
+            {
+                <tr>
+                    <td class="ltr-field">@u.UserName</td>
+                    <td class="ltr-field small">@u.ActiveKeys/@u.KeyCount</td>
+                    <td class="ltr-field">@u.RangeRequests</td>
+                    <td class="ltr-field">@u.RangeErrors/@u.RangeRateLimited</td>
+                    <td class="ltr-field small">@u.LifetimeRequests</td>
+                </tr>
+            }
+            @if (Model.Users.Count == 0)
+            {
+                <tr><td colspan="5" class="text-muted-dark small">هنوز درخواست API ثبت نشده.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

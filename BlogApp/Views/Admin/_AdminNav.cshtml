@@ -5,6 +5,17 @@
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     string? lastGroup = null;
+
+    string Label(BlogApp.Services.AdminNavItem item)
+    {
+        // Known missing seed keys with FA fallback
+        if (item.Key == "apikeys")
+        {
+            var v = T["admin.nav.apikeys"];
+            return v == "admin.nav.apikeys" ? "کلیدهای API" : v;
+        }
+        return T[item.LabelKey];
+    }
 }
 <nav class="admin-nav" id="adminNav" aria-label="Admin">
 @foreach (var item in items)
@@ -19,13 +30,13 @@
        asp-controller="@item.Controller"
        asp-action="@item.Action"
        data-nav-key="@item.Key"
-       title="@T[item.LabelKey]">
+       title="@Label(item)">
         <span class="nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" focusable="false">
                 <path d="@item.Icon"/>
             </svg>
         </span>
-        <span class="nav-label">@T[item.LabelKey]</span>
+        <span class="nav-label">@Label(item)</span>
         <span class="nav-trail">
             @if (item.ShowPendingBadge)
             {

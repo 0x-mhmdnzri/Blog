@@ -38,6 +38,7 @@ public sealed class AdminNavItem
             "reports" => string.Equals(controller, "AdminReports", StringComparison.OrdinalIgnoreCase),
             "users" => string.Equals(controller, "AdminUsers", StringComparison.OrdinalIgnoreCase),
             "audit" => string.Equals(controller, "AdminAudit", StringComparison.OrdinalIgnoreCase),
+            "apikeys" => string.Equals(controller, "AdminApiKeys", StringComparison.OrdinalIgnoreCase),
             "dashboard" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
                            && action is "Index",
             "seo" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
@@ -114,6 +115,11 @@ public static class AdminNavCatalog
         new() { Key = "authors", GroupKey = "admin.group.account", LabelKey = "admin.nav.authors",
             Controller = "Account", Action = "Authors", SuperAdminOnly = true,
             Icon = "M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" },
+
+        // === API Keys (SuperAdmin) — system group ===
+        new() { Key = "apikeys", GroupKey = "admin.group.system", LabelKey = "admin.nav.apikeys",
+            Controller = "AdminApiKeys", Action = "Index", SuperAdminOnly = true,
+            Icon = "M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" },
 
         new() { Key = "settings", GroupKey = "admin.group.system", LabelKey = "admin.nav.settings",
             Controller = "AdminSettings", Action = "Index", SuperAdminOnly = true,
