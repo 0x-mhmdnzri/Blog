@@ -1,14 +1,14 @@
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "نوشته‌ها";
+    ViewData["Title"] = T["page.posts"];
     var showAuthor = ViewBag.ShowAuthorColumn as bool? ?? false;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div class="admin-tabs mb-0">
-        <span class="admin-tab active">همه</span>
+        <span class="admin-tab active">@T["tab.all"]</span>
     </div>
-    <a class="btn btn-accent btn-sm" asp-controller="Posts" asp-action="Create">نوشته جدید</a>
+    <a class="btn btn-accent btn-sm" asp-controller="Posts" asp-action="Create">@T["btn.new_post"]</a>
 </div>
 
 @Html.AntiForgeryToken()
@@ -17,19 +17,19 @@
     <table id="postsTable" class="admin-table display nowrap" style="width:100%">
         <thead>
             <tr>
-                <th>#</th>
-                <th>عنوان</th>
+                <th>@T["col.index"]</th>
+                <th>@T["col.title"]</th>
                 @if (showAuthor)
                 {
-                    <th>نویسنده</th>
+                    <th>@T["col.author"]</th>
                 }
-                <th>دسته‌بندی</th>
-                <th>وضعیت</th>
-                <th>ویژگی‌ها</th>
-                <th>بازدید</th>
-                <th>دیدگاه‌ها</th>
-                <th>تاریخ</th>
-                <th>عملیات</th>
+                <th>@T["col.category"]</th>
+                <th>@T["col.status"]</th>
+                <th>@T["col.features"]</th>
+                <th>@T["col.views"]</th>
+                <th>@T["col.comments"]</th>
+                <th>@T["col.date"]</th>
+                <th>@T["col.actions"]</th>
             </tr>
         </thead>
     </table>
