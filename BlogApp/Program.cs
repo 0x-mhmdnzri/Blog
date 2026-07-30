@@ -2,6 +2,8 @@ using System.IO.Compression;
 using System.Text;
 using System.Threading.RateLimiting;
 using BlogApp;
+using BlogApp.Api.Auth;
+using BlogApp.Api.Validation;
 using BlogApp.Data;
 using BlogApp.Logging;
 using BlogApp.Middleware;
@@ -9,6 +11,7 @@ using BlogApp.Models;
 using BlogApp.Services;
 using BlogApp.Services.Analytics;
 using BlogApp.Services.Messaging;
+using FluentValidation;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -57,7 +60,6 @@ try
     builder.Services.AddMemoryCache();
     builder.Services.AddHttpContextAccessor();
 
-    // Performance: Response/Output cache, Redis/memory distributed cache, jobs, CDN, image pipeline
     builder.Services.AddBlogPerformance(builder.Configuration);
 
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -81,6 +83,10 @@ try
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
+    // API key (PAT) authentication scheme alongside cookies
+    builder.Services.AddAuthentication()
+        .AddScheme<ApiKeyAuthOptions, ApiKeyAuthHandler>(ApiKeyDefaults.Scheme, _ => { });
+
     builder.Services.ConfigureApplicationCookie(options =>
     {
         options.LoginPath = "/Account/Login";
@@ -103,13 +109,33 @@ try
         options.Cookie.SameSite = SameSiteMode.Strict;
     });
 
+    // FluentValidation (free OSS)
+    builder.Services.AddValidatorsFromAssemblyContaining<ApiCommentCreateValidator>();
+
     builder.Services.AddRateLimiter(options =>
     {
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         options.OnRejected = async (ctx, token) =>
         {
             ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            await Task.CompletedTask;
+            ctx.HttpContext.Response.ContentType = "application/json; charset=utf-8";
+            await ctx.HttpContext.Response.WriteAsync(
+                "{\"error\":\"rate_limited\",\"detail\":\"Too many requests\"}", token);
+
+            // Auto abuse detection → strike / ban API key
+            try
+            {
+                var keyClaim = ctx.HttpContext.User.FindFirst("api_key_id")?.Value;
+                if (int.TryParse(keyClaim, out var apiKeyId) && apiKeyId > 0)
+                {
+                    var db = ctx.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                    await ApiKeyAbuseService.RegisterRateLimitStrikeAsync(db, apiKeyId, "rate_limit_429");
+                }
+            }
+            catch
+            {
+                /* never fail the 429 response */
+            }
         };
 
         options.AddPolicy("global", httpContext =>
@@ -121,6 +147,21 @@ try
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0
                 }));
+
+        options.AddPolicy("api", httpContext =>
+        {
+            var keyId = httpContext.User.FindFirst("api_key_id")?.Value
+                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                        ?? "anon";
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: "api:" + keyId,
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 60,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                });
+        });
 
         options.AddPolicy("login", httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
@@ -166,7 +207,9 @@ try
             "application/xml",
             "text/xml",
             "image/svg+xml",
-            "application/ld+json"
+            "application/ld+json",
+            "application/rss+xml",
+            "application/atom+xml"
         });
     });
     builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
@@ -322,7 +365,6 @@ try
     };
     app.UseStaticFiles(staticCache);
 
-    // Response + Output caching (after static files)
     app.UseBlogPerformance(builder.Configuration);
 
     app.UseMiddleware<CultureMiddleware>();
@@ -336,6 +378,9 @@ try
     app.UseAuthorization();
 
     app.UseMiddleware<MaintenanceMiddleware>();
+
+    // Attribute-routed API + feed controllers
+    app.MapControllers().RequireRateLimiting("global");
 
     app.MapControllerRoute(
             name: "post-details",
@@ -354,7 +399,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening (notifications SSE + Channel bus + background jobs active)");
+    Log.Information("BlogApp listening (API v1 + GraphQL + RSS/Atom + PAT keys active)");
     app.Run();
 }
 catch (Exception ex)

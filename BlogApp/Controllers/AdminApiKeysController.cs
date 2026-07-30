@@ -1,4 +1,3 @@
-using BlogApp.Api.Auth;
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Services;
@@ -58,7 +57,7 @@ public class AdminApiKeysController : Controller
         if (key is null) return NotFound();
         key.IsActive = false;
         await _db.SaveChangesAsync();
-        await _audit.LogAsync(User, "api_key.disable", $"ApiKeyId={id}");
+        await _audit.LogAsync("api_key.disable", "ApiKey", id.ToString(), http: HttpContext);
         TempData["Msg"] = "کلید غیرفعال شد.";
         return RedirectToAction(nameof(Index));
     }
@@ -75,7 +74,7 @@ public class AdminApiKeysController : Controller
         }
         key.IsActive = true;
         await _db.SaveChangesAsync();
-        await _audit.LogAsync(User, "api_key.enable", $"ApiKeyId={id}");
+        await _audit.LogAsync("api_key.enable", "ApiKey", id.ToString(), http: HttpContext);
         TempData["Msg"] = "کلید فعال شد.";
         return RedirectToAction(nameof(Index));
     }
@@ -88,9 +87,10 @@ public class AdminApiKeysController : Controller
         key.IsBanned = true;
         key.IsActive = false;
         key.BannedAtUtc = DateTime.UtcNow;
-        key.BanReason = string.IsNullOrWhiteSpace(reason) ? "Banned by admin" : reason.Trim()[..Math.Min(500, reason.Trim().Length)];
+        var r = string.IsNullOrWhiteSpace(reason) ? "Banned by admin" : reason.Trim();
+        key.BanReason = r.Length > 500 ? r[..500] : r;
         await _db.SaveChangesAsync();
-        await _audit.LogAsync(User, "api_key.ban", $"ApiKeyId={id} Reason={key.BanReason}");
+        await _audit.LogAsync("api_key.ban", "ApiKey", id.ToString(), key.BanReason, HttpContext);
         TempData["Msg"] = "کلید بن شد.";
         return RedirectToAction(nameof(Index));
     }
@@ -106,7 +106,7 @@ public class AdminApiKeysController : Controller
         key.AbuseStrikeCount = 0;
         key.IsActive = true;
         await _db.SaveChangesAsync();
-        await _audit.LogAsync(User, "api_key.unban", $"ApiKeyId={id}");
+        await _audit.LogAsync("api_key.unban", "ApiKey", id.ToString(), http: HttpContext);
         TempData["Msg"] = "رفع بن انجام شد.";
         return RedirectToAction(nameof(Index));
     }
@@ -118,7 +118,7 @@ public class AdminApiKeysController : Controller
         if (key is null) return NotFound();
         _db.ApiKeys.Remove(key);
         await _db.SaveChangesAsync();
-        await _audit.LogAsync(User, "api_key.delete", $"ApiKeyId={id}");
+        await _audit.LogAsync("api_key.delete", "ApiKey", id.ToString(), http: HttpContext);
         TempData["Msg"] = "کلید حذف شد.";
         return RedirectToAction(nameof(Index));
     }
