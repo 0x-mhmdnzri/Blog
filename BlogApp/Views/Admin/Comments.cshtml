@@ -1,21 +1,21 @@
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "دیدگاه‌ها";
+    ViewData["Title"] = T["page.comments"];
     var current = ViewBag.CurrentStatus as string ?? "pending";
 }
 
 <div class="admin-tabs">
     <a class="admin-tab @(current == "pending" ? "active" : "")" asp-action="Comments" asp-route-status="pending">
-        در انتظار <span class="text-muted-dark">(@ViewBag.PendingCount)</span>
+        @T["tab.pending"] <span class="text-muted-dark">(@ViewBag.PendingCount)</span>
     </a>
     <a class="admin-tab @(current == "approved" ? "active" : "")" asp-action="Comments" asp-route-status="approved">
-        تأییدشده <span class="text-muted-dark">(@ViewBag.ApprovedCount)</span>
+        @T["tab.approved"] <span class="text-muted-dark">(@ViewBag.ApprovedCount)</span>
     </a>
     <a class="admin-tab @(current == "rejected" ? "active" : "")" asp-action="Comments" asp-route-status="rejected">
-        ردشده <span class="text-muted-dark">(@ViewBag.RejectedCount)</span>
+        @T["tab.rejected"] <span class="text-muted-dark">(@ViewBag.RejectedCount)</span>
     </a>
     <a class="admin-tab @(current == "all" ? "active" : "")" asp-action="Comments" asp-route-status="all">
-        همه <span class="text-muted-dark">(@ViewBag.AllCount)</span>
+        @T["tab.all"] <span class="text-muted-dark">(@ViewBag.AllCount)</span>
     </a>
 </div>
 
@@ -25,13 +25,13 @@
     <table id="commentsTable" class="admin-table display nowrap" style="width:100%">
         <thead>
             <tr>
-                <th>#</th>
-                <th>نویسنده</th>
-                <th>متن دیدگاه</th>
-                <th>مربوط به نوشته</th>
-                <th>تاریخ</th>
-                <th>وضعیت</th>
-                <th>عملیات</th>
+                <th>@T["col.index"]</th>
+                <th>@T["col.author"]</th>
+                <th>@T["col.comment_body"]</th>
+                <th>@T["col.related_post"]</th>
+                <th>@T["col.date"]</th>
+                <th>@T["col.status"]</th>
+                <th>@T["col.actions"]</th>
             </tr>
         </thead>
     </table>
