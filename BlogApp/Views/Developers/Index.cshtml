@@ -1,274 +1,455 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "راهنمای توسعه‌دهندگان API";
+    ViewData["Title"] = "راهنمای API";
     var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
 }
 
 <style>
-.dev-book { max-width: 880px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+.dev {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3.5rem;
+}
 .dev-hero {
-  border-radius: 18px; padding: 1.5rem 1.4rem 1.35rem;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface));
-  border: 1px solid var(--border-soft); margin-bottom: 1.5rem;
-}
-.dev-hero h1 { font-size: 1.45rem; font-weight: 750; margin: 0 0 .4rem; }
-.dev-hero p { margin: 0; color: var(--text-muted); font-size: .92rem; line-height: 1.65; max-width: 38rem; }
-.dev-toc {
-  display: flex; flex-wrap: wrap; gap: .4rem; margin: 1rem 0 0;
-}
-.dev-toc a {
-  font-size: .78rem; padding: .35rem .7rem; border-radius: 999px;
-  border: 1px solid var(--border-soft); background: var(--surface); color: var(--text); text-decoration: none;
-}
-.dev-toc a:hover { border-color: var(--accent); color: var(--accent); }
-.dev-sec {
-  background: var(--surface); border: 1px solid var(--border-soft); border-radius: 14px;
-  padding: 1.15rem 1.25rem; margin-bottom: 1rem; scroll-margin-top: 5rem;
-}
-.dev-sec h2 {
-  font-size: 1.05rem; font-weight: 700; margin: 0 0 .75rem;
-  display: flex; align-items: center; gap: .5rem;
-}
-.dev-sec h2 .n {
-  width: 1.5rem; height: 1.5rem; border-radius: 8px; font-size: .75rem; font-weight: 700;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent);
-}
-.dev-sec h3 { font-size: .9rem; font-weight: 650; margin: 1rem 0 .4rem; }
-.dev-sec p, .dev-sec li { font-size: .88rem; line-height: 1.65; color: var(--text); }
-.dev-sec ul { padding-inline-start: 1.2rem; margin: .4rem 0 .6rem; }
-.dev-callout {
-  border-radius: 10px; padding: .75rem .9rem; font-size: .84rem; line-height: 1.55; margin: .75rem 0;
+  display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: flex-start;
+  padding: 1.25rem 1.35rem;
+  border-radius: 16px;
+  background: var(--surface);
   border: 1px solid var(--border-soft);
+  margin-bottom: 1rem;
 }
-.dev-callout.info { background: color-mix(in srgb, #6fb3d2 12%, transparent); border-color: color-mix(in srgb, #6fb3d2 35%, var(--border-soft)); }
-.dev-callout.warn { background: color-mix(in srgb, #e3b341 12%, transparent); border-color: color-mix(in srgb, #e3b341 40%, var(--border-soft)); }
-.dev-callout.ok { background: color-mix(in srgb, #9ecb8c 12%, transparent); border-color: color-mix(in srgb, #9ecb8c 35%, var(--border-soft)); }
+.dev-hero h1 {
+  font-size: 1.35rem; font-weight: 750; margin: 0 0 .35rem; letter-spacing: -.01em;
+}
+.dev-hero p {
+  margin: 0; font-size: .88rem; line-height: 1.6; color: var(--text-muted); max-width: 34rem;
+}
+.dev-hero-actions { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
+
+/* KPI strip like Media */
+.dev-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+@@media (max-width: 720px) { .dev-kpis { grid-template-columns: repeat(2, 1fr); } }
+.dev-kpi {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: .75rem .85rem;
+  min-height: 72px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.dev-kpi .l { font-size: .72rem; color: var(--text-muted); margin-bottom: .2rem; }
+.dev-kpi .v { font-size: .95rem; font-weight: 700; line-height: 1.25; }
+.dev-kpi .v.ltr { direction: ltr; font-family: ui-monospace, "JetBrains Mono", monospace; font-size: .82rem; }
+
+.dev-layout {
+  display: grid;
+  grid-template-columns: 11.5rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@@media (max-width: 860px) {
+  .dev-layout { grid-template-columns: 1fr; }
+  .dev-side { position: static !important; }
+}
+.dev-side {
+  position: sticky;
+  top: 4.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: .75rem;
+}
+.dev-side .ttl {
+  font-size: .7rem; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .04em; margin: 0 0 .5rem; padding: 0 .35rem;
+}
+.dev-side a {
+  display: block; text-decoration: none; color: var(--text);
+  font-size: .82rem; padding: .45rem .55rem; border-radius: 8px;
+  border: 1px solid transparent;
+}
+.dev-side a:hover, .dev-side a:focus {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.dev-side a span {
+  display: inline-flex; width: 1.2rem; height: 1.2rem; align-items: center; justify-content: center;
+  border-radius: 6px; font-size: .68rem; font-weight: 700; margin-inline-end: .35rem;
+  background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent);
+}
+
+.dev-main { min-width: 0; display: flex; flex-direction: column; gap: .75rem; }
+
+.dev-sec {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 1.1rem 1.2rem 1.15rem;
+  scroll-margin-top: 5rem;
+}
+.dev-sec > h2 {
+  font-size: 1rem; font-weight: 700; margin: 0 0 .85rem;
+  display: flex; align-items: center; gap: .5rem;
+  padding-bottom: .65rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+.dev-sec > h2 .n {
+  width: 1.55rem; height: 1.55rem; border-radius: 8px; font-size: .75rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent);
+}
+.dev-sec p { font-size: .88rem; line-height: 1.65; margin: 0 0 .65rem; color: var(--text); }
+.dev-sec p:last-child { margin-bottom: 0; }
+
+/* Step timeline */
+.dev-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem; }
+.dev-step {
+  display: grid; grid-template-columns: 2rem 1fr; gap: .65rem; align-items: start;
+  padding: .75rem .85rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--bg, #000) 3%, var(--surface));
+  min-height: 4.25rem;
+}
+.dev-step .num {
+  width: 2rem; height: 2rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .85rem;
+  background: var(--accent); color: #1a1a1a;
+}
+.dev-step strong { display: block; font-size: .88rem; margin-bottom: .15rem; }
+.dev-step span { font-size: .8rem; color: var(--text-muted); line-height: 1.5; }
+
+/* Endpoint cards — equal height grid */
+.dev-endpoints {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .55rem;
+}
+@@media (max-width: 640px) { .dev-endpoints { grid-template-columns: 1fr; } }
+.dev-ep {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: .75rem .85rem;
+  min-height: 108px;
+  display: flex; flex-direction: column; gap: .35rem;
+  background: color-mix(in srgb, var(--bg, #000) 2%, var(--surface));
+}
+.dev-ep .row1 { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+.dev-ep .path {
+  font-family: ui-monospace, "JetBrains Mono", monospace; font-size: .78rem; direction: ltr;
+  word-break: break-all;
+}
+.dev-ep .desc { font-size: .8rem; color: var(--text-muted); line-height: 1.45; flex: 1; }
+.dev-ep .scope {
+  font-size: .68rem; font-family: ui-monospace, monospace; direction: ltr;
+  padding: .1rem .4rem; border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.dev-m {
+  font-size: .65rem; font-weight: 700; padding: .15rem .4rem; border-radius: 4px;
+  font-family: ui-monospace, monospace; direction: ltr; letter-spacing: .02em;
+}
+.dev-m.get { background: color-mix(in srgb, #6fb3d2 25%, transparent); color: #4a9bb8; }
+.dev-m.post { background: color-mix(in srgb, #9ecb8c 25%, transparent); color: #5a9a4a; }
+.dev-m.del { background: color-mix(in srgb, #e5637a 22%, transparent); color: #c44; }
+[data-theme="dark"] .dev-m.get, html.dark .dev-m.get { color: #8ec8e0; }
+[data-theme="dark"] .dev-m.post, html.dark .dev-m.post { color: #b6e0a8; }
+[data-theme="dark"] .dev-m.del, html.dark .dev-m.del { color: #f5a3b0; }
+
+.dev-note {
+  display: flex; gap: .55rem; align-items: flex-start;
+  padding: .7rem .85rem; border-radius: 10px; font-size: .83rem; line-height: 1.55;
+  margin-top: .75rem; border: 1px solid var(--border-soft);
+}
+.dev-note .ico { flex-shrink: 0; font-size: 1rem; line-height: 1.4; }
+.dev-note.info { background: color-mix(in srgb, #6fb3d2 10%, transparent); border-color: color-mix(in srgb, #6fb3d2 30%, var(--border-soft)); }
+.dev-note.warn { background: color-mix(in srgb, #e3b341 10%, transparent); border-color: color-mix(in srgb, #e3b341 35%, var(--border-soft)); }
+.dev-note.ok { background: color-mix(in srgb, #9ecb8c 10%, transparent); border-color: color-mix(in srgb, #9ecb8c 30%, var(--border-soft)); }
+
+.dev-code-wrap {
+  position: relative;
+  margin: .6rem 0 .4rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  overflow: hidden;
+  background: color-mix(in srgb, #000 28%, var(--surface));
+}
+[data-theme="light"] .dev-code-wrap { background: #f3f5f9; }
+.dev-code-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .35rem .65rem;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: .7rem; color: var(--text-muted);
+}
+.dev-code-bar button {
+  border: 0; background: transparent; color: var(--accent); font-size: .72rem;
+  font-weight: 650; cursor: pointer; padding: .2rem .45rem; border-radius: 6px;
+}
+.dev-code-bar button:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .dev-code {
-  direction: ltr; text-align: left; font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
-  font-size: .78rem; line-height: 1.5; padding: .85rem 1rem; border-radius: 10px;
-  background: color-mix(in srgb, #000 35%, var(--surface)); border: 1px solid var(--border-soft);
-  overflow-x: auto; margin: .55rem 0 .85rem; white-space: pre;
+  direction: ltr; text-align: left;
+  font-family: ui-monospace, "JetBrains Mono", Menlo, monospace;
+  font-size: .76rem; line-height: 1.55;
+  padding: .75rem .9rem;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--text);
 }
-[data-theme="light"] .dev-code { background: #f4f6fa; }
-.dev-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin: .5rem 0 0; }
-.dev-table th, .dev-table td {
-  border-bottom: 1px solid var(--border-soft); padding: .45rem .5rem; text-align: start; vertical-align: top;
+
+.dev-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: .4rem 0; }
+.dev-chip {
+  font-size: .75rem; padding: .25rem .55rem; border-radius: 999px;
+  border: 1px solid var(--border-soft); background: var(--surface);
 }
-.dev-table th { color: var(--text-muted); font-weight: 600; font-size: .75rem; }
-.dev-table code { direction: ltr; font-size: .78rem; }
-.dev-badge {
-  display: inline-block; font-size: .68rem; font-weight: 700; padding: .12rem .4rem; border-radius: 4px;
-  font-family: ui-monospace, monospace; direction: ltr;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+.dev-chip code { font-size: .72rem; direction: ltr; }
+
+.dev-err-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: .45rem;
 }
-.dev-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.dev-err {
+  border: 1px solid var(--border-soft); border-radius: 10px; padding: .65rem .7rem;
+  min-height: 76px; display: flex; flex-direction: column; justify-content: center;
+}
+.dev-err .c {
+  font-family: ui-monospace, monospace; font-weight: 700; font-size: .95rem; direction: ltr;
+  margin-bottom: .2rem;
+}
+.dev-err .t { font-size: .75rem; color: var(--text-muted); line-height: 1.4; }
+
+.dev-footer-cta {
+  display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center;
+  padding: 1rem; margin-top: .25rem;
+}
 </style>
 
-<div class="dev-book">
+<div class="dev">
     <header class="dev-hero">
-        <h1>کتابچهٔ راهنمای API برای توسعه‌دهندگان</h1>
-        <p>
-            این صفحه راهنمای انسانی است — نه JSON خام.
-            گام‌به‌گام: ساخت کلید (PAT)، تأیید سوپرادمین، احراز هویت، REST، GraphQL، Webhook و RSS.
-        </p>
-        <nav class="dev-toc" aria-label="فهرست">
-            <a href="#s1">۱. شروع</a>
-            <a href="#s2">۲. کلید API</a>
-            <a href="#s3">۳. احراز هویت</a>
-            <a href="#s4">۴. REST</a>
-            <a href="#s5">۵. GraphQL</a>
-            <a href="#s6">۶. Webhooks</a>
-            <a href="#s7">۷. RSS / Atom</a>
-            <a href="#s8">۸. محدودیت‌ها</a>
-            <a href="#s9">۹. خطاها</a>
-        </nav>
-        <div class="dev-actions">
-            <a class="btn btn-accent btn-sm" asp-controller="AccountApiKeys" asp-action="Index">درخواست کلید API</a>
-            <a class="btn btn-ghost btn-sm" href="/api/docs" target="_blank" rel="noopener">JSON machine docs</a>
+        <div>
+            <h1>راهنمای API</h1>
+            <p>از ساخت کلید تا اولین درخواست — ساده و مرحله‌به‌مرحله. برای ماشین‌ها از JSON در <span class="ltr-field">/api/docs</span> استفاده کنید.</p>
+        </div>
+        <div class="dev-hero-actions">
+            <a class="btn btn-accent btn-sm" asp-controller="AccountApiKeys" asp-action="Index">درخواست کلید</a>
+            <a class="btn btn-ghost btn-sm" href="/api/docs" target="_blank" rel="noopener">JSON docs</a>
         </div>
     </header>
 
-    <section class="dev-sec" id="s1">
-        <h2><span class="n">۱</span> شروع سریع</h2>
-        <ol>
-            <li>حساب بسازید و وارد شوید (نقش Reader یا Author کافی است).</li>
-            <li>از منوی حساب → <strong>کلیدهای API (PAT)</strong> یک کلید درخواست کنید.</li>
-            <li>توکن را <strong>همان لحظه کپی</strong> کنید — فقط یک‌بار نمایش داده می‌شود.</li>
-            <li>صبر کنید تا <strong>سوپرادمین</strong> درخواست را تأیید کند؛ اعلان «کلید API شما تأیید شد» می‌گیرید.</li>
-            <li>با هدر زیر به API درخواست بزنید.</li>
-        </ol>
-        <div class="dev-code">curl -s @baseUrl/api/v1/posts \
-  -H "X-Api-Key: blog_YOUR_TOKEN_HERE"</div>
-        <div class="dev-callout warn">
-            قبل از تأیید سوپرادمین، حتی با توکن صحیح پاسخ <strong>401</strong> با پیام pending approval می‌گیرید.
-        </div>
-    </section>
+    <div class="dev-kpis">
+        <div class="dev-kpi"><div class="l">پایه REST</div><div class="v ltr">/api/v1</div></div>
+        <div class="dev-kpi"><div class="l">احراز هویت</div><div class="v">X-Api-Key یا Bearer</div></div>
+        <div class="dev-kpi"><div class="l">محدودیت</div><div class="v">~۶۰ req / min</div></div>
+        <div class="dev-kpi"><div class="l">تأیید</div><div class="v">سوپرادمین</div></div>
+    </div>
 
-    <section class="dev-sec" id="s2">
-        <h2><span class="n">۲</span> کلید API (مثل GitHub PAT)</h2>
-        <ul>
-            <li>مسیر کاربر: <code class="ltr-field">/AccountApiKeys</code></li>
-            <li>مسیر سوپرادمین: <code class="ltr-field">/AdminApiKeys</code> — تأیید / رد / بن / خاموش</li>
-            <li>Scopes پیشنهادی: <code class="ltr-field">read</code> · <code class="ltr-field">write</code> · <code class="ltr-field">webhooks</code> (با کاما)</li>
-            <li>حداکثر حدود ۱۰ کلید غیرردشده به‌ازای هر کاربر</li>
-        </ul>
-        <div class="dev-callout info">
-            توکن با پیشوند <code class="ltr-field">blog_</code> شروع می‌شود. فقط hash ذخیره می‌شود؛ سرور توکن را دوباره به شما نشان نمی‌دهد.
-        </div>
-    </section>
+    <div class="dev-layout">
+        <aside class="dev-side" aria-label="فهرست">
+            <div class="ttl">فهرست</div>
+            <a href="#start"><span>۱</span> شروع</a>
+            <a href="#key"><span>۲</span> کلید</a>
+            <a href="#auth"><span>۳</span> احراز هویت</a>
+            <a href="#rest"><span>۴</span> REST</a>
+            <a href="#more"><span>۵</span> GraphQL و فید</a>
+            <a href="#limits"><span>۶</span> محدودیت</a>
+            <a href="#errors"><span>۷</span> خطاها</a>
+        </aside>
 
-    <section class="dev-sec" id="s3">
-        <h2><span class="n">۳</span> احراز هویت</h2>
-        <p>یکی از دو هدر را بفرستید:</p>
-        <div class="dev-code">X-Api-Key: blog_…
+        <div class="dev-main">
+            <section class="dev-sec" id="start">
+                <h2><span class="n">۱</span> شروع در ۵ قدم</h2>
+                <ol class="dev-steps">
+                    <li class="dev-step">
+                        <span class="num">۱</span>
+                        <div><strong>ورود</strong><span>با حساب Reader یا Author وارد شوید.</span></div>
+                    </li>
+                    <li class="dev-step">
+                        <span class="num">۲</span>
+                        <div><strong>درخواست کلید</strong><span>منوی حساب → کلیدهای API (PAT) → نام و scope را بزنید.</span></div>
+                    </li>
+                    <li class="dev-step">
+                        <span class="num">۳</span>
+                        <div><strong>کپی توکن</strong><span>فقط یک‌بار نشان داده می‌شود. امن نگه دارید.</span></div>
+                    </li>
+                    <li class="dev-step">
+                        <span class="num">۴</span>
+                        <div><strong>تأیید مالک</strong><span>سوپرادمین تأیید می‌کند؛ اعلان می‌گیرید.</span></div>
+                    </li>
+                    <li class="dev-step">
+                        <span class="num">۵</span>
+                        <div><strong>اولین درخواست</strong><span>با هدر زیر لیست پست‌ها را بگیرید.</span></div>
+                    </li>
+                </ol>
+                <div class="dev-code-wrap">
+                    <div class="dev-code-bar"><span>bash · curl</span><button type="button" data-copy>کپی</button></div>
+                    <pre class="dev-code">curl -s @baseUrl/api/v1/posts \
+  -H "X-Api-Key: blog_YOUR_TOKEN_HERE"</pre>
+                </div>
+                <div class="dev-note warn"><span class="ico">⚠</span><div>قبل از تأیید، حتی با توکن درست پاسخ <strong>401</strong> می‌گیرید.</div></div>
+            </section>
+
+            <section class="dev-sec" id="key">
+                <h2><span class="n">۲</span> کلید API</h2>
+                <p>شبیه GitHub PAT. کاربر درخواست می‌دهد؛ فقط سوپرادمین تأیید یا رد می‌کند.</p>
+                <div class="dev-chips">
+                    <span class="dev-chip">کاربر: <code>/AccountApiKeys</code></span>
+                    <span class="dev-chip">ادمین: <code>/AdminApiKeys</code></span>
+                    <span class="dev-chip">پیشوند: <code>blog_</code></span>
+                </div>
+                <p class="mb-0" style="font-size:.85rem;color:var(--text-muted);">Scopes: <code class="ltr-field">read</code> · <code class="ltr-field">write</code> · <code class="ltr-field">webhooks</code> — حداکثر حدود ۱۰ کلید به‌ازای کاربر.</p>
+                <div class="dev-note info"><span class="ico">ℹ</span><div>سرور فقط hash را نگه می‌دارد؛ توکن را دوباره نشان نمی‌دهد.</div></div>
+            </section>
+
+            <section class="dev-sec" id="auth">
+                <h2><span class="n">۳</span> احراز هویت</h2>
+                <p>یکی از این دو هدر کافی است:</p>
+                <div class="dev-code-wrap">
+                    <div class="dev-code-bar"><span>HTTP headers</span><button type="button" data-copy>کپی</button></div>
+                    <pre class="dev-code">X-Api-Key: blog_…
 
 # یا
-Authorization: Bearer blog_…</div>
-        <h3>مثال Python</h3>
-        <div class="dev-code">import requests
-
+Authorization: Bearer blog_…</pre>
+                </div>
+                <div class="dev-endpoints" style="margin-top:.75rem;">
+                    <div class="dev-ep">
+                        <div class="row1"><strong style="font-size:.85rem;">Python</strong></div>
+                        <div class="dev-code-wrap" style="margin:0;flex:1;">
+                            <div class="dev-code-bar"><span>requests</span><button type="button" data-copy>کپی</button></div>
+                            <pre class="dev-code">import requests
 r = requests.get(
-    "@baseUrl/api/v1/posts",
-    headers={"X-Api-Key": "blog_YOUR_TOKEN"},
-    params={"page": 1, "pageSize": 10},
+  "@baseUrl/api/v1/posts",
+  headers={"X-Api-Key": "blog_…"},
 )
-print(r.status_code, r.json())</div>
-        <h3>مثال JavaScript (fetch)</h3>
-        <div class="dev-code">const res = await fetch("@baseUrl/api/v1/posts?page=1", {
-  headers: { "X-Api-Key": "blog_YOUR_TOKEN" },
-});
-const data = await res.json();
-console.log(data);</div>
-    </section>
+print(r.json())</pre>
+                        </div>
+                    </div>
+                    <div class="dev-ep">
+                        <div class="row1"><strong style="font-size:.85rem;">JavaScript</strong></div>
+                        <div class="dev-code-wrap" style="margin:0;flex:1;">
+                            <div class="dev-code-bar"><span>fetch</span><button type="button" data-copy>کپی</button></div>
+                            <pre class="dev-code">const res = await fetch(
+  "@baseUrl/api/v1/posts",
+  { headers: { "X-Api-Key": "blog_…" } }
+);
+console.log(await res.json());</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-    <section class="dev-sec" id="s4">
-        <h2><span class="n">۴</span> REST API v1</h2>
-        <p>پایه: <code class="ltr-field">@baseUrl/api/v1</code></p>
-        <table class="dev-table">
-            <thead>
-            <tr>
-                <th>Method</th>
-                <th>Path</th>
-                <th>Scope</th>
-                <th>توضیح</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td><span class="dev-badge">GET</span></td>
-                <td><code>/api/v1/posts</code></td>
-                <td><code>read</code></td>
-                <td>لیست نوشته‌ها — query: <code>page</code>, <code>pageSize</code>, <code>q</code>, <code>lang</code>, <code>tag</code>, <code>category</code></td>
-            </tr>
-            <tr>
-                <td><span class="dev-badge">GET</span></td>
-                <td><code>/api/v1/posts/&#123;slug&#125;</code></td>
-                <td><code>read</code></td>
-                <td>جزئیات یک نوشته — query: <code>lang</code></td>
-            </tr>
-            <tr>
-                <td><span class="dev-badge">POST</span></td>
-                <td><code>/api/v1/comments</code></td>
-                <td><code>write</code></td>
-                <td>ثبت دیدگاه — body JSON: <code>postId</code>, <code>authorName</code>, <code>body</code></td>
-            </tr>
-            <tr>
-                <td><span class="dev-badge">GET</span></td>
-                <td><code>/api/v1/webhooks</code></td>
-                <td><code>webhooks</code></td>
-                <td>لیست webhookهای شما</td>
-            </tr>
-            <tr>
-                <td><span class="dev-badge">POST</span></td>
-                <td><code>/api/v1/webhooks</code></td>
-                <td><code>webhooks</code></td>
-                <td>ثبت webhook — فقط HTTPS عمومی</td>
-            </tr>
-            <tr>
-                <td><span class="dev-badge">DELETE</span></td>
-                <td><code>/api/v1/webhooks/&#123;id&#125;</code></td>
-                <td><code>webhooks</code></td>
-                <td>حذف webhook</td>
-            </tr>
-            </tbody>
-        </table>
-
-        <h3>نمونه لیست پست</h3>
-        <div class="dev-code">curl -s "@baseUrl/api/v1/posts?page=1&amp;pageSize=5&amp;lang=fa" \
-  -H "Authorization: Bearer blog_YOUR_TOKEN"</div>
-
-        <h3>نمونه ثبت دیدگاه</h3>
-        <div class="dev-code">curl -s -X POST "@baseUrl/api/v1/comments" \
+            <section class="dev-sec" id="rest">
+                <h2><span class="n">۴</span> REST — <span class="ltr-field" style="font-weight:600;font-size:.9rem;">/api/v1</span></h2>
+                <div class="dev-endpoints">
+                    <article class="dev-ep">
+                        <div class="row1"><span class="dev-m get">GET</span><span class="path">/api/v1/posts</span><span class="scope">read</span></div>
+                        <div class="desc">لیست نوشته‌ها · page, pageSize, q, lang, tag, category</div>
+                    </article>
+                    <article class="dev-ep">
+                        <div class="row1"><span class="dev-m get">GET</span><span class="path">/api/v1/posts/{slug}</span><span class="scope">read</span></div>
+                        <div class="desc">جزئیات یک نوشته · query: lang</div>
+                    </article>
+                    <article class="dev-ep">
+                        <div class="row1"><span class="dev-m post">POST</span><span class="path">/api/v1/comments</span><span class="scope">write</span></div>
+                        <div class="desc">ثبت دیدگاه · body: postId, authorName, body</div>
+                    </article>
+                    <article class="dev-ep">
+                        <div class="row1"><span class="dev-m get">GET</span><span class="path">/api/v1/webhooks</span><span class="scope">webhooks</span></div>
+                        <div class="desc">لیست webhookهای شما</div>
+                    </article>
+                    <article class="dev-ep">
+                        <div class="row1"><span class="dev-m post">POST</span><span class="path">/api/v1/webhooks</span><span class="scope">webhooks</span></div>
+                        <div class="desc">ثبت webhook · فقط HTTPS عمومی</div>
+                    </article>
+                    <article class="dev-ep">
+                        <div class="row1"><span class="dev-m del">DELETE</span><span class="path">/api/v1/webhooks/{id}</span><span class="scope">webhooks</span></div>
+                        <div class="desc">حذف webhook</div>
+                    </article>
+                </div>
+                <div class="dev-code-wrap">
+                    <div class="dev-code-bar"><span>مثال · دیدگاه</span><button type="button" data-copy>کپی</button></div>
+                    <pre class="dev-code">curl -s -X POST "@baseUrl/api/v1/comments" \
   -H "X-Api-Key: blog_YOUR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"postId":1,"authorName":"Dev","body":"سلام از API"}'</div>
-        <div class="dev-callout ok">
-            ورودی‌های write با <strong>FluentValidation</strong> و sanitizer بررسی می‌شوند (طول، XSS، و برای webhook جلوگیری از SSRF).
+  -d '{"postId":1,"authorName":"Dev","body":"سلام از API"}'</pre>
+                </div>
+                <div class="dev-note ok"><span class="ico">✓</span><div>ورودی‌ها با FluentValidation و sanitizer بررسی می‌شوند (طول، XSS، SSRF).</div></div>
+            </section>
+
+            <section class="dev-sec" id="more">
+                <h2><span class="n">۵</span> GraphQL · RSS · Atom</h2>
+                <div class="dev-endpoints">
+                    <article class="dev-ep">
+                        <div class="row1"><span class="dev-m post">POST</span><span class="path">/api/graphql</span><span class="scope">read</span></div>
+                        <div class="desc">کوئری مینیمال پست‌ها</div>
+                        <div class="dev-code-wrap" style="margin:0;">
+                            <div class="dev-code-bar"><span>GraphQL</span><button type="button" data-copy>کپی</button></div>
+                            <pre class="dev-code">{"query":"{ posts(limit:5) { title slug } }"}</pre>
+                        </div>
+                    </article>
+                    <article class="dev-ep">
+                        <div class="row1"><span class="dev-m get">GET</span><span class="path">/feed/rss</span><span class="scope">public</span></div>
+                        <div class="desc">فید RSS — بدون کلید</div>
+                        <div class="row1" style="margin-top:auto;"><span class="dev-m get">GET</span><span class="path">/feed/atom</span><span class="scope">public</span></div>
+                        <div class="desc">فید Atom — بدون کلید</div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="dev-sec" id="limits">
+                <h2><span class="n">۶</span> محدودیت نرخ</h2>
+                <div class="dev-kpis" style="margin:0;">
+                    <div class="dev-kpi"><div class="l">سقف تقریبی</div><div class="v">۶۰ / دقیقه</div></div>
+                    <div class="dev-kpi"><div class="l">پاسخ اضافه</div><div class="v ltr">429</div></div>
+                    <div class="dev-kpi"><div class="l">Strike تا بن</div><div class="v">۵</div></div>
+                    <div class="dev-kpi"><div class="l">نظارت</div><div class="v">Admin Analytics</div></div>
+                </div>
+                <div class="dev-note warn"><span class="ico">⚠</span><div>کلید را در فرانت یا ریپوی عمومی نگذارید. در CI از secret استفاده کنید.</div></div>
+            </section>
+
+            <section class="dev-sec" id="errors">
+                <h2><span class="n">۷</span> کدهای خطا</h2>
+                <div class="dev-err-grid">
+                    <div class="dev-err"><div class="c">401</div><div class="t">کلید نیست، اشتباه، در انتظار تأیید، منقضی یا بن</div></div>
+                    <div class="dev-err"><div class="c">403</div><div class="t">scope کافی نیست</div></div>
+                    <div class="dev-err"><div class="c">400</div><div class="t">اعتبارسنجی بدنه درخواست</div></div>
+                    <div class="dev-err"><div class="c">404</div><div class="t">منبع پیدا نشد</div></div>
+                    <div class="dev-err"><div class="c">429</div><div class="t">نرخ درخواست زیاد — صبر کنید</div></div>
+                </div>
+                <div class="dev-footer-cta">
+                    <a class="btn btn-accent btn-sm" asp-controller="AccountApiKeys" asp-action="Index">کلیدهای من</a>
+                    <a class="btn btn-ghost btn-sm" asp-controller="Pages" asp-action="Contact">تماس</a>
+                </div>
+            </section>
         </div>
-    </section>
-
-    <section class="dev-sec" id="s5">
-        <h2><span class="n">۵</span> GraphQL (مینیمال)</h2>
-        <p>Endpoint: <code class="ltr-field">POST @baseUrl/api/graphql</code> — نیاز به scope <code class="ltr-field">read</code></p>
-        <div class="dev-code">curl -s -X POST "@baseUrl/api/graphql" \
-  -H "X-Api-Key: blog_YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"query":"{ posts(limit:5) { title slug } }"}'</div>
-        <p class="small text-muted-dark mb-0">کوئری‌های پشتیبانی‌شده: لیست و جزئیات پست (حداقل فیلدها).</p>
-    </section>
-
-    <section class="dev-sec" id="s6">
-        <h2><span class="n">۶</span> Webhooks</h2>
-        <ul>
-            <li>Scope لازم: <code class="ltr-field">webhooks</code></li>
-            <li>فقط URLهای <strong>HTTPS</strong> عمومی — میزبان‌های خصوصی/لوکال رد می‌شوند</li>
-            <li>رویدادهای نمونه: <code class="ltr-field">post.published</code>, <code class="ltr-field">comment.created</code></li>
-        </ul>
-        <div class="dev-code">curl -s -X POST "@baseUrl/api/v1/webhooks" \
-  -H "X-Api-Key: blog_YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"targetUrl":"https://example.com/hook","events":"post.published"}'</div>
-    </section>
-
-    <section class="dev-sec" id="s7">
-        <h2><span class="n">۷</span> RSS / Atom (بدون کلید)</h2>
-        <p>فیدهای عمومی نیاز به API Key ندارند:</p>
-        <div class="dev-code">@baseUrl/feed/rss
-@baseUrl/feed/atom</div>
-    </section>
-
-    <section class="dev-sec" id="s8">
-        <h2><span class="n">۸</span> محدودیت نرخ و سوءاستفاده</h2>
-        <ul>
-            <li>سیاست تقریبی: حدود <strong>۶۰ درخواست در دقیقه</strong> به‌ازای هر کلید (Kestrel rate limiter)</li>
-            <li>پاسخ <code class="ltr-field">429 Too Many Requests</code> = strike</li>
-            <li>پس از حدود <strong>۵ strike</strong> کلید به‌صورت خودکار <strong>بن</strong> می‌شود</li>
-            <li>سوپرادمین می‌تواند دستی بن/رفع بن کند و در Analytics ترافیک را ببیند</li>
-        </ul>
-        <div class="dev-callout warn">
-            کلید را در کلاینت مرورگر یا ریپوی عمومی commit نکنید. برای CI از secret store استفاده کنید.
-        </div>
-    </section>
-
-    <section class="dev-sec" id="s9">
-        <h2><span class="n">۹</span> خطاهای رایج</h2>
-        <table class="dev-table">
-            <thead>
-            <tr><th>کد</th><th>معنی رایج</th></tr>
-            </thead>
-            <tbody>
-            <tr><td><code>401</code></td><td>کلید نیست / اشتباه / هنوز تأیید نشده / منقضی / بن‌شده</td></tr>
-            <tr><td><code>403</code></td><td>scope کافی نیست (مثلاً write بدون scope write)</td></tr>
-            <tr><td><code>400</code></td><td>اعتبارسنجی FluentValidation شکست خورده</td></tr>
-            <tr><td><code>404</code></td><td>منبع پیدا نشد</td></tr>
-            <tr><td><code>429</code></td><td>نرخ درخواست بیش از حد — صبر کنید</td></tr>
-            </tbody>
-        </table>
-        <div class="dev-actions">
-            <a class="btn btn-accent btn-sm" asp-controller="AccountApiKeys" asp-action="Index">مدیریت کلیدهای من</a>
-            <a class="btn btn-ghost btn-sm" asp-controller="Pages" asp-action="Contact">پشتیبانی / تماس</a>
-            <a class="btn btn-ghost btn-sm" href="/api/docs">OpenAPI-style JSON</a>
-        </div>
-    </section>
+    </div>
 </div>
+
+<script>
+(function () {
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var wrap = btn.closest('.dev-code-wrap');
+      var pre = wrap && wrap.querySelector('.dev-code');
+      if (!pre) return;
+      var t = pre.textContent || '';
+      var done = function () {
+        var old = btn.textContent;
+        btn.textContent = 'کپی شد';
+        setTimeout(function () { btn.textContent = old; }, 1200);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(done).catch(done);
+      } else {
+        done();
+      }
+    });
+  });
+})();
+</script>
