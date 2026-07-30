@@ -76,6 +76,7 @@
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/media-blur.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
     <style>
         .site-announce { padding: .65rem 1rem; text-align: center; font-size: .9rem; border-bottom: 1px solid var(--border-soft, #1e2430); }
         .site-announce.info { background: rgba(111,179,210,.12); color: #b8d4e8; }
@@ -114,14 +115,17 @@
                             <li class="nav-item">
                                 <a class="nav-link site-nav-link" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link site-nav-link" asp-controller="Notifications" asp-action="Index">@T["nav.notifications"]</a>
-                            </li>
                         }
                         @if (isStaff)
                         {
                             <li class="nav-item">
                                 <a class="nav-link site-nav-link" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a>
+                            </li>
+                        }
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item d-flex align-items-center">
+                                <partial name="_NotificationBell" />
                             </li>
                         }
                         <li class="nav-item">
@@ -166,6 +170,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>hljs.highlightAll();</script>
     <script src="~/js/media-blur.js" asp-append-version="true"></script>
+    <script src="~/js/notifications-bell.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
