@@ -1,6 +1,6 @@
-@model BlogApp.Models.ViewModels.LoginViewModel
 @{
-    ViewData["Title"] = T["nav.login"];
+    ViewData["Title"] = "ورود";
+    var returnUrl = ViewBag.ReturnUrl as string;
     var googleOn = ViewBag.GoogleLoginEnabled as bool? ?? false;
     var githubOn = ViewBag.GitHubLoginEnabled as bool? ?? false;
 }
@@ -10,27 +10,21 @@
 
     <form asp-action="Login" method="post" class="card-surface p-4">
         @Html.AntiForgeryToken()
-        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
         <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
         <div class="mb-3">
-            <label asp-for="Email" class="form-label"></label>
-            <input asp-for="Email" class="form-control ltr-field" autocomplete="username" />
-            <span asp-validation-for="Email" class="text-danger small"></span>
+            <label class="form-label" for="username">نام کاربری یا ایمیل</label>
+            <input class="form-control ltr-field" id="username" name="username" autocomplete="username" required />
         </div>
         <div class="mb-3">
-            <label asp-for="Password" class="form-label"></label>
-            <input asp-for="Password" class="form-control ltr-field" autocomplete="current-password" />
-            <span asp-validation-for="Password" class="text-danger small"></span>
-        </div>
-        <div class="form-check mb-3">
-            <input asp-for="RememberMe" class="form-check-input" />
-            <label asp-for="RememberMe" class="form-check-label small"></label>
+            <label class="form-label" for="password">رمز عبور</label>
+            <input class="form-control ltr-field" id="password" name="password" type="password" autocomplete="current-password" required />
         </div>
         <button type="submit" class="btn btn-accent w-100">ورود</button>
     </form>
 
     <div class="mt-4 card-surface p-3">
-        <div class="small text-muted-dark mb-2" dir="auto">ورود اجتماعی</div>
+        <div class="small text-muted-dark mb-2" dir="auto">ورود اجتماعی (OAuth)</div>
         @if (googleOn || githubOn)
         {
             <div class="d-flex flex-column gap-2">
@@ -39,7 +33,7 @@
                     <form asp-action="ExternalLogin" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="provider" value="Google" />
-                        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
                         <button type="submit" class="btn btn-ghost w-100">Google</button>
                     </form>
                 }
@@ -48,7 +42,7 @@
                     <form asp-action="ExternalLogin" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="provider" value="GitHub" />
-                        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
                         <button type="submit" class="btn btn-ghost w-100">GitHub</button>
                     </form>
                 }
@@ -57,8 +51,8 @@
         else
         {
             <p class="small text-muted-dark mb-0" dir="auto">
-                برای فعال‌سازی، در <code class="ltr-field">appsettings</code> کلیدهای
-                <span class="ltr-field">Authentication:Google</span> / <span class="ltr-field">GitHub</span> را تنظیم کنید.
+                برای فعال‌سازی، کلیدهای <span class="ltr-field">Authentication:Google</span> و
+                <span class="ltr-field">Authentication:GitHub</span> را در تنظیمات قرار دهید و پکیج OAuth مربوطه را اضافه کنید.
             </p>
         }
     </div>
