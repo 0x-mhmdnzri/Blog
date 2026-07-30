@@ -1,6 +1,7 @@
 @inject BlogApp.Services.SeoService Seo
 @inject BlogApp.Services.ISiteConfigService SiteConfig
 @inject BlogApp.Services.ICultureService Culture
+@inject BlogApp.Services.IUiTranslator T
 @using BlogApp.Models
 @{
     var pageTitle = ViewData["Title"] as string;
@@ -13,6 +14,8 @@
     var noIndex = ViewData["NoIndex"] as bool? ?? false;
     var isStaff = User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin);
     var isReader = User.IsInRole(AppRoles.Reader) || isStaff;
+    var isAuth = User.Identity?.IsAuthenticated == true;
+    var userName = User.Identity?.Name;
 
     var culture = Culture.Current;
     var lang = culture.Code;
@@ -24,6 +27,21 @@
     var announceStyle = await SiteConfig.GetAsync(SiteSettingKeys.AnnouncementStyle) ?? "info";
 
     var hreflang = ViewBag.HreflangLinks as IEnumerable<dynamic>;
+
+    var ctrl = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLowerInvariant();
+    var act = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLowerInvariant();
+    var path = Context.Request.Path.Value ?? "";
+
+    string NavActive(string c, string? a = null)
+    {
+        if (!string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase)) return "";
+        if (a != null && !string.Equals(act, a, StringComparison.OrdinalIgnoreCase)) return "";
+        return "active";
+    }
+
+    var homeActive = (ctrl == "home" && act == "index") || path.TrimEnd('/').Equals($"/{lang}", StringComparison.OrdinalIgnoreCase) || path == "/" || path == $"/{lang}/";
+    var blogActive = path.Contains("/post/", StringComparison.OrdinalIgnoreCase)
+                     || (ctrl == "home" && act == "index" && Context.Request.Query.ContainsKey("tag"));
 }
 <!DOCTYPE html>
 <html lang="@lang" dir="@dir" data-bs-theme="dark" data-theme="dark" data-culture="@lang">
@@ -120,78 +138,138 @@
         <div class="site-announce @announceStyle" dir="auto" role="status">@announceText</div>
     }
 
-    <header class="site-header">
-        <nav class="navbar navbar-expand-md py-3">
-            <div class="container">
-                <a class="navbar-brand brand" href="/@lang/">
-                    <span class="brand-cursor"></span> <span class="ltr-signature">m.nazari</span>
+    <header class="site-header" id="site-header">
+        <nav class="navbar navbar-expand-lg site-navbar py-2" aria-label="ناوبری اصلی">
+            <div class="container site-nav-inner">
+                <a class="navbar-brand brand" href="/@lang/" title="خانه">
+                    <span class="brand-cursor" aria-hidden="true"></span>
+                    <span class="ltr-signature">m.nazari</span>
                 </a>
-                <button class="navbar-toggler border-0 text-light" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+
+                <div class="nav-quick d-flex align-items-center gap-1 order-lg-last">
+                    <button type="button" class="btn btn-nav-icon" data-search-open title="جست‌وجو (Ctrl+K)" aria-label="جست‌وجو">
+                        <span aria-hidden="true">⌕</span>
+                        <span class="d-none d-xl-inline nav-icon-label">جست‌وجو</span>
+                    </button>
+                    <button type="button" class="btn btn-nav-icon" data-theme-toggle title="تم روشن/تاریک" aria-label="تغییر تم">
+                        <span class="theme-icon-dark" aria-hidden="true">☾</span>
+                        <span class="theme-icon-light" aria-hidden="true">☀</span>
+                    </button>
+                    <div class="d-none d-lg-block">
+                        <partial name="_LanguageSwitcher" />
+                    </div>
+                    <button class="navbar-toggler border-0 btn-nav-icon" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#navMain"
+                            aria-controls="navMain" aria-expanded="false" aria-label="منوی ناوبری">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+
                 <div class="collapse navbar-collapse" id="navMain">
-                    <ul class="navbar-nav ms-auto align-items-md-center gap-1">
+                    <ul class="navbar-nav nav-primary align-items-lg-center gap-lg-0 mx-lg-auto">
+                        <li class="nav-section-label d-lg-none">صفحات</li>
                         <li class="nav-item">
-                            <a class="nav-link site-nav-link" href="/@lang/">خانه</a>
+                            <a class="nav-link site-nav-link @(homeActive ? "active" : "")"
+                               href="/@lang/"
+                               aria-current="@(homeActive ? "page" : null)">خانه</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link site-nav-link" asp-controller="Pages" asp-action="About">درباره</a>
+                            <a class="nav-link site-nav-link @NavActive("pages", "about")"
+                               asp-controller="Pages" asp-action="About"
+                               aria-current="@(NavActive("pages", "about") == "active" ? "page" : null)">درباره</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link site-nav-link" asp-controller="Pages" asp-action="Services">خدمات</a>
+                            <a class="nav-link site-nav-link @NavActive("pages", "services")"
+                               asp-controller="Pages" asp-action="Services">خدمات</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link site-nav-link" asp-controller="Pages" asp-action="Projects">پروژه‌ها</a>
+                            <a class="nav-link site-nav-link @NavActive("pages", "projects")"
+                               asp-controller="Pages" asp-action="Projects">پروژه‌ها</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link site-nav-link" href="/@lang/#blog-feed">وبلاگ</a>
+                            <a class="nav-link site-nav-link @(blogActive && !homeActive ? "active" : "")"
+                               href="/@lang/#blog-feed">وبلاگ</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link site-nav-link" asp-controller="Pages" asp-action="Contact">تماس</a>
+                            <a class="nav-link site-nav-link @NavActive("pages", "contact")"
+                               asp-controller="Pages" asp-action="Contact">تماس</a>
                         </li>
-                        <li class="nav-item">
-                            <button type="button" class="btn btn-ghost btn-sm nav-link site-nav-link" data-search-open title="جست‌وجو (Ctrl+K)">⌕</button>
+                    </ul>
+
+                    <ul class="navbar-nav nav-account align-items-lg-center gap-1 mt-2 mt-lg-0">
+                        <li class="nav-section-label d-lg-none">حساب و ابزار</li>
+                        <li class="nav-item d-lg-none">
+                            <partial name="_LanguageSwitcher" />
                         </li>
-                        @if (isReader)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link site-nav-link" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
-                            </li>
-                        }
-                        @if (isStaff)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link site-nav-link" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a>
-                            </li>
-                        }
-                        @if (User.Identity?.IsAuthenticated == true)
+                        @if (isAuth)
                         {
                             <li class="nav-item d-flex align-items-center">
                                 <partial name="_NotificationBell" />
                             </li>
                         }
-                        <li class="nav-item">
-                            <button type="button" class="btn btn-ghost btn-sm" data-theme-toggle title="تم روشن/تاریک" aria-label="تغییر تم">
-                                <span class="theme-icon-dark">☾</span>
-                                <span class="theme-icon-light">☀</span>
-                            </button>
-                        </li>
-                        <li class="nav-item">
-                            <partial name="_LanguageSwitcher" />
-                        </li>
-                        @if (User.Identity?.IsAuthenticated == true)
+                        @if (isReader)
                         {
-                            <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-ghost btn-sm ms-md-2">@T["nav.logout"]</button>
-                                </form>
+                            <li class="nav-item d-lg-none">
+                                <a class="nav-link site-nav-link @NavActive("bookmarks")" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
+                            </li>
+                        }
+                        @if (isStaff)
+                        {
+                            <li class="nav-item d-lg-none">
+                                <a class="nav-link site-nav-link @NavActive("admin")" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a>
+                            </li>
+                        }
+                        @if (isAuth)
+                        {
+                            <li class="nav-item dropdown">
+                                <button class="btn btn-account dropdown-toggle" type="button"
+                                        data-bs-toggle="dropdown" aria-expanded="false"
+                                        id="accountMenuBtn" title="حساب کاربری">
+                                    <span class="account-avatar" aria-hidden="true">@(string.IsNullOrEmpty(userName) ? "؟" : char.ToUpperInvariant(userName[0]))</span>
+                                    <span class="d-none d-xl-inline account-name ltr-field">@(userName ?? "حساب")</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end account-menu" aria-labelledby="accountMenuBtn">
+                                    @if (!string.IsNullOrEmpty(userName))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@userName">
+                                                پروفایل عمومی
+                                            </a>
+                                        </li>
+                                    }
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="Manage">تنظیمات حساب</a>
+                                    </li>
+                                    @if (isReader)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Feed" asp-action="Index">فید فعالیت</a>
+                                        </li>
+                                    }
+                                    @if (isStaff)
+                                    {
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a>
+                                        </li>
+                                    }
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="px-3 py-1">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-ghost btn-sm w-100">@T["nav.logout"]</button>
+                                        </form>
+                                    </li>
+                                </ul>
                             </li>
                         }
                         else
                         {
                             <li class="nav-item">
-                                <a class="btn btn-ghost btn-sm ms-md-2" asp-controller="Account" asp-action="Login">@T["nav.login"]</a>
+                                <a class="btn btn-nav-login" asp-controller="Account" asp-action="Login">@T["nav.login"]</a>
                             </li>
                         }
                     </ul>
@@ -236,7 +314,6 @@
     <div id="toast-host" aria-live="polite"></div>
     <button type="button" id="back-to-top" class="back-to-top" aria-label="بازگشت به بالا">↑</button>
 
-    @* Non-blocking scripts: defer keeps HTML parse free; order preserved for dependents *@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
     <script src="~/js/media-blur.js" asp-append-version="true" defer></script>
@@ -246,6 +323,15 @@
     <script defer>
         document.addEventListener('DOMContentLoaded', function () {
             if (window.hljs) hljs.highlightAll();
+            var header = document.getElementById('site-header');
+            if (header) {
+                var onScroll = function () {
+                    if (window.scrollY > 8) header.classList.add('is-scrolled');
+                    else header.classList.remove('is-scrolled');
+                };
+                onScroll();
+                window.addEventListener('scroll', onScroll, { passive: true });
+            }
         });
     </script>
     @await RenderSectionAsync("Scripts", required: false)
