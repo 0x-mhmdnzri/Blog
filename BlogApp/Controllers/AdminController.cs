@@ -298,16 +298,12 @@ public partial class AdminController : Controller
         });
     }
 
-    public IActionResult Newsletter() => View("ComingSoon", new ComingSoonViewModel
+    [HttpGet]
+    public IActionResult Newsletter()
     {
-        Title = _t["admin.nav.newsletter"],
-        Description = "Reader subscriptions and weekly digest.",
-        DemoFeatures =
-        [
-            "Double opt-in",
-            "Audience segments",
-            "Scheduled sends",
-            "Open rates"
-        ]
-    });
+        if (AuthorAccess.IsSuperAdmin(User))
+            return RedirectToAction("Index", "AdminNewsletter");
+
+        return Forbid();
+    }
 }
