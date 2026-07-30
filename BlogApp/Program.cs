@@ -243,6 +243,9 @@ try
     builder.Services.AddScoped<INewsletterService, NewsletterService>();
     builder.Services.AddScoped<MentionsService>();
 
+    // API work pipeline: topic exchange + sequential consumer (prefetch=1)
+    builder.Services.AddApiTopicBus(builder.Configuration);
+
     builder.Services.AddControllersWithViews(options =>
     {
         options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
@@ -398,7 +401,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening (API v1 + GraphQL + RSS/Atom + PAT keys + API analytics)");
+    Log.Information("BlogApp listening (API v1 + GraphQL + RSS/Atom + PAT keys + API analytics + topic bus)");
     app.Run();
 }
 catch (Exception ex)
