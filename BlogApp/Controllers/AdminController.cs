@@ -15,15 +15,18 @@ public partial class AdminController : Controller
     private readonly ApplicationDbContext _db;
     private readonly AnalyticsBroadcaster _broadcaster;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IUiTranslator _t;
 
     public AdminController(
         ApplicationDbContext db,
         AnalyticsBroadcaster broadcaster,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IUiTranslator t)
     {
         _db = db;
         _broadcaster = broadcaster;
         _userManager = userManager;
+        _t = t;
     }
 
     public async Task<IActionResult> Index(int range = 30)
@@ -81,8 +84,9 @@ public partial class AdminController : Controller
             });
         }
 
+        var uncategorized = _t["msg.uncategorized"];
         var postsByCategory = await postQuery
-            .GroupBy(p => p.Category != null ? p.Category.Name : "بدون دسته")
+            .GroupBy(p => p.Category != null ? p.Category.Name : uncategorized)
             .Select(g => new NamedCount { Name = g.Key, Count = g.Count() })
             .OrderByDescending(g => g.Count)
             .ToListAsync();
@@ -152,7 +156,7 @@ public partial class AdminController : Controller
                 .ToListAsync(),
             DisplayName = currentUser?.DisplayName ?? User.Identity?.Name ?? "",
             IsSuperAdmin = AuthorAccess.IsSuperAdmin(User),
-            ScopeLabel = seeAll ? "همه نویسندگان" : "فقط نوشته‌های من"
+            ScopeLabel = seeAll ? _t["msg.scope_all"] : _t["msg.scope_mine"]
         };
 
         return View(vm);
@@ -164,7 +168,7 @@ public partial class AdminController : Controller
     {
         await _db.PostViews.ExecuteDeleteAsync();
         await _db.Posts.ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, 0));
-        TempData["AnalyticsReset"] = "آمار بازدید پاک شد. از این به بعد فقط بازدیدهای واقعی ثبت می‌شوند.";
+        TempData["AnalyticsReset"] = _t["msg.analytics_reset"];
         return RedirectToAction(nameof(Index));
     }
 
@@ -263,27 +267,27 @@ public partial class AdminController : Controller
 
     public IActionResult Media() => View("ComingSoon", new ComingSoonViewModel
     {
-        Title = "رسانه‌ها",
-        Description = "کتابخانه رسانه برای مرور و مدیریت تصاویر، ویدیو و فایل‌های آپلودشده.",
+        Title = _t["admin.nav.media"],
+        Description = "Media library for images, video and uploads.",
         DemoFeatures =
         [
-            "گالری شبکه‌ای با پیش‌نمایش",
-            "جست‌وجو بر اساس نام و نوع فایل",
-            "فشرده‌سازی تصویر و تبدیل WebP",
-            "حذف گروهی و جایگزینی در نوشته‌ها"
+            "Grid gallery with previews",
+            "Search by name and type",
+            "Image compression & WebP",
+            "Bulk delete / replace in posts"
         ]
     });
 
     public IActionResult CategoriesAdmin() => View("ComingSoon", new ComingSoonViewModel
     {
-        Title = "دسته‌بندی‌ها و برچسب‌ها",
-        Description = "مدیریت ساختار محتوا بدون دست‌کاری دیتابیس به‌صورت دستی.",
+        Title = _t["admin.nav.taxonomy"],
+        Description = "Manage content structure without hand-editing the DB.",
         DemoFeatures =
         [
-            "افزودن / ویرایش / حذف دسته",
-            "دسته‌های تو در تو",
-            "مدیریت برچسب‌ها و ادغام تکراری‌ها",
-            "شمارش نوشته‌های هر دسته"
+            "Add / edit / delete categories",
+            "Nested categories",
+            "Tag merge",
+            "Post counts per category"
         ]
     });
 
@@ -295,41 +299,41 @@ public partial class AdminController : Controller
 
         return View("ComingSoon", new ComingSoonViewModel
         {
-            Title = "تنظیمات سایت",
-            Description = "پیکربندی عمومی فقط برای SuperAdmin در دسترس است.",
+            Title = _t["admin.nav.settings"],
+            Description = "Site configuration is SuperAdmin-only.",
             DemoFeatures =
             [
-                "نام و توضیح سایت",
-                "حالت نگهداری",
-                "بنر اعلان سراسری",
-                "پرچم‌های ویژگی"
+                "Site name & description",
+                "Maintenance mode",
+                "Announcement banner",
+                "Feature flags"
             ]
         });
     }
 
     public IActionResult SeoTools() => View("ComingSoon", new ComingSoonViewModel
     {
-        Title = "ابزارهای سئو",
-        Description = "نقشه سایت، ریدایرکت و تشخیص لینک شکسته از پنل مدیریت.",
+        Title = _t["admin.nav.seo"],
+        Description = "Sitemap, redirects and broken-link tools.",
         DemoFeatures =
         [
-            "مدیریت ریدایرکت ۳۰۱ / ۳۰۲",
-            "اسکن لینک‌های شکسته در نوشته‌ها",
-            "پیش‌نمایش متا و Open Graph",
-            "خروجی sitemap.xml زنده"
+            "301 / 302 redirect management",
+            "Broken link scan",
+            "Meta & Open Graph preview",
+            "Live sitemap.xml"
         ]
     });
 
     public IActionResult Newsletter() => View("ComingSoon", new ComingSoonViewModel
     {
-        Title = "خبرنامه",
-        Description = "عضویت خوانندگان و ارسال خلاصه هفتگی.",
+        Title = _t["admin.nav.newsletter"],
+        Description = "Reader subscriptions and weekly digest.",
         DemoFeatures =
         [
-            "فرم عضویت دو مرحله‌ای",
-            "بخش‌بندی مخاطبان",
-            "زمان‌بندی ارسال",
-            "آمار بازشدن ایمیل"
+            "Double opt-in",
+            "Audience segments",
+            "Scheduled sends",
+            "Open rates"
         ]
     });
 }
