@@ -1,5 +1,6 @@
-@model DonateForm
-@inject BlogApp.Services.IUiTranslator T
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@model BlogApp.Controllers.DonateForm
+@inject IUiTranslator T
 @{
     ViewData["Title"] = T["mon.donate_title"];
 }
