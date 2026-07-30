@@ -1,5 +1,6 @@
 /**
- * BlogApp — server-side DataTables helper.
+ * BlogApp — server-side DataTables helper (single entry point).
+ *
  * Usage:
  *   BlogDT.init('#postsTable', {
  *     ajax: '/Admin/PostsData',
@@ -7,6 +8,8 @@
  *     order: [[7, 'desc']],
  *     columnDefs: [{ orderable: false, targets: [0, 8] }]
  *   });
+ *
+ * Styling lives in ~/css/datatables-admin.css (one file for all tables).
  */
 window.BlogDT = (function () {
   function isRtl() {
@@ -16,6 +19,35 @@ window.BlogDT = (function () {
   function csrfToken() {
     var el = document.querySelector('input[name="__RequestVerificationToken"]');
     return el ? el.value : '';
+  }
+
+  function languagePack() {
+    if (isRtl()) {
+      return {
+        processing: 'در حال بارگذاری…',
+        search: 'جست‌وجو',
+        searchPlaceholder: 'جست‌وجو…',
+        lengthMenu: 'نمایش _MENU_',
+        info: 'نمایش _START_ تا _END_ از _TOTAL_',
+        infoEmpty: 'موردی نیست',
+        infoFiltered: '(فیلتر از _MAX_)',
+        zeroRecords: 'نتیجه‌ای یافت نشد',
+        emptyTable: 'جدولی خالی است',
+        paginate: { first: 'اول', last: 'آخر', next: 'بعدی', previous: 'قبلی' }
+      };
+    }
+    return {
+      processing: 'Loading…',
+      search: 'Search',
+      searchPlaceholder: 'Search…',
+      lengthMenu: 'Show _MENU_',
+      info: 'Showing _START_ to _END_ of _TOTAL_',
+      infoEmpty: 'No entries',
+      infoFiltered: '(filtered from _MAX_)',
+      zeroRecords: 'No matching records',
+      emptyTable: 'No data',
+      paginate: { first: 'First', last: 'Last', next: 'Next', previous: 'Previous' }
+    };
   }
 
   function init(selector, options) {
@@ -34,36 +66,28 @@ window.BlogDT = (function () {
       lengthMenu: [10, 25, 50, 100],
       stateSave: true,
       autoWidth: false,
-      responsive: true,
-      language: isRtl() ? {
-        processing: 'در حال بارگذاری…',
-        search: 'جست‌وجو:',
-        lengthMenu: 'نمایش _MENU_ ردیف',
-        info: 'نمایش _START_ تا _END_ از _TOTAL_',
-        infoEmpty: 'موردی نیست',
-        infoFiltered: '(فیلتر از _MAX_)',
-        zeroRecords: 'نتیجه‌ای یافت نشد',
-        emptyTable: 'جدولی خالی است',
-        paginate: { first: 'اول', last: 'آخر', next: 'بعدی', previous: 'قبلی' }
-      } : {
-        processing: 'Loading…',
-        search: 'Search:',
-        lengthMenu: 'Show _MENU_ rows',
-        info: 'Showing _START_ to _END_ of _TOTAL_',
-        infoEmpty: 'No entries',
-        infoFiltered: '(filtered from _MAX_)',
-        zeroRecords: 'No matching records',
-        emptyTable: 'No data',
-        paginate: { first: 'First', last: 'Last', next: 'Next', previous: 'Previous' }
+      // Bootstrap 5 layout: top toolbar + bottom footer inside our card shell
+      dom:
+        "<'row dt-toolbar'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+        "<'row'<'col-sm-12'tr>>" +
+        "<'row dt-footer'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+      language: languagePack(),
+      classes: {
+        sTable: 'admin-table dataTable'
       }
     }, options || {});
 
-    // Default: first column (often # / id index display) not orderable if marked
     if (!opts.columnDefs) opts.columnDefs = [];
 
-    var table = jQuery(selector).DataTable(opts);
+    var $table = jQuery(selector);
+    // Ensure table sits in the card wrap even if markup forgot the class
+    if (!$table.closest('.admin-table-wrap').length) {
+      $table.wrap('<div class="admin-table-wrap"></div>');
+    }
 
-    // Re-bind after draw for any action buttons that need live handlers
+    var table = $table.DataTable(opts);
+
+    // Confirm dialogs on action forms after each draw
     table.on('draw', function () {
       document.querySelectorAll(selector + ' form[data-confirm]').forEach(function (form) {
         if (form.dataset.bound) return;
