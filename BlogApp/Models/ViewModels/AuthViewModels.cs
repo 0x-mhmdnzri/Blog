@@ -21,24 +21,42 @@ public class ProfileEditViewModel
 
 public class CreateAuthorViewModel
 {
-    [Required, MaxLength(50)]
+    [Required(ErrorMessage = "Username is required")]
+    [MaxLength(50, ErrorMessage = "Max 50 characters")]
+    [RegularExpression(@"^[a-zA-Z0-9._-]{3,50}$",
+        ErrorMessage = "3–50 chars: letters, numbers, . _ -")]
+    [Display(Name = "Username")]
     public string UserName { get; set; } = string.Empty;
 
-    [Required, EmailAddress]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email address")]
+    [MaxLength(256)]
+    [Display(Name = "Email")]
     public string Email { get; set; } = string.Empty;
 
-    [Required, MaxLength(100)]
+    [Required(ErrorMessage = "Display name is required")]
+    [MaxLength(100, ErrorMessage = "Max 100 characters")]
+    [MinLength(2, ErrorMessage = "At least 2 characters")]
+    [Display(Name = "Display name")]
     public string DisplayName { get; set; } = string.Empty;
 
-    [MaxLength(500)]
+    [MaxLength(500, ErrorMessage = "Max 500 characters")]
+    [Display(Name = "Bio")]
     public string? Bio { get; set; }
 
-    [Required, MinLength(10)]
+    [Required(ErrorMessage = "Password is required")]
+    [MinLength(10, ErrorMessage = "At least 10 characters")]
+    [MaxLength(128)]
     [DataType(DataType.Password)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$",
+        ErrorMessage = "Need upper, lower, and a digit (min 10)")]
+    [Display(Name = "Password")]
     public string Password { get; set; } = string.Empty;
 
-    [Required, Compare(nameof(Password), ErrorMessage = "رمز عبور و تکرار آن یکسان نیستند")]
+    [Required(ErrorMessage = "Confirm password is required")]
+    [Compare(nameof(Password), ErrorMessage = "Passwords do not match")]
     [DataType(DataType.Password)]
+    [Display(Name = "Confirm password")]
     public string ConfirmPassword { get; set; } = string.Empty;
 }
 
