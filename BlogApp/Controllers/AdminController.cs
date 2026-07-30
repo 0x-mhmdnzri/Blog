@@ -100,7 +100,6 @@ public partial class AdminController : Controller
         var topPosts = topPostsRaw.Select(p => new TopPostItem
         {
             Title = p.Title,
-            Id = p.Id,
             Slug = p.Slug,
             Views = p.ViewCount,
             RangeViews = currentRangeViews.Count(v => v.PostId == p.Id)
