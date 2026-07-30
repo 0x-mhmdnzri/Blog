@@ -125,7 +125,7 @@
         </form>
     </div>
 
-    <div class="post-meta-line mb-4 d-flex flex-wrap gap-2 align-items-center">
+    <div class="post-meta-line mb-3 d-flex flex-wrap gap-2 align-items-center">
         @if (Model.Author != null)
         {
             <a asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@Model.Author.UserName"
@@ -143,6 +143,8 @@
         <span class="meta-sep" aria-hidden="true">·</span>
         <span><span class="ltr-field">@Model.ViewCount</span> بازدید</span>
     </div>
+
+    <partial name="_ReaderToolbar" />
 
     <div class="readme-content post-body-island">
         @Html.Raw(ViewBag.RenderedHtml)
