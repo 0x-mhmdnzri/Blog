@@ -69,7 +69,6 @@ public sealed class UiTranslatorService : IUiTranslator
         return _cache.GetOrCreate(CacheKeyPrefix + lang, entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = CacheTtl;
-            // Sync load is OK — small table, warm on first hit
             return _db.UiTranslations.AsNoTracking()
                 .Where(t => t.LanguageCode == lang)
                 .ToDictionary(t => t.Key, t => t.Value, StringComparer.OrdinalIgnoreCase);
@@ -118,7 +117,7 @@ public sealed class UiTranslatorService : IUiTranslator
     }
 }
 
-/// <summary>Built-in seed catalog for UI chrome (not post content).</summary>
+/// <summary>Built-in seed catalog for UI chrome (not post content). FA / EN / AR.</summary>
 public static class UiTranslationCatalog
 {
     // (key, group, fa, en, ar)
@@ -154,6 +153,12 @@ public static class UiTranslationCatalog
         ("btn.bookmark", "button", "نشان", "Bookmark", "إشارة"),
         ("btn.bookmarked", "button", "نشان‌شده", "Bookmarked", "مُعلَّم"),
         ("btn.like", "button", "پسند", "Like", "إعجاب"),
+        ("btn.restore", "button", "بازگردانی", "Restore", "استعادة"),
+        ("btn.on", "button", "روشن", "On", "تشغيل"),
+        ("btn.off", "button", "خاموش", "Off", "إيقاف"),
+        ("btn.new_post", "button", "نوشته جدید", "New post", "مقال جديد"),
+        ("btn.new_author", "button", "نویسنده جدید", "New author", "مؤلف جديد"),
+        ("btn.save_settings", "button", "ذخیره تنظیمات", "Save settings", "حفظ الإعدادات"),
 
         // ---- Home ----
         ("home.title", "page", "نوشته‌ها", "Posts", "المقالات"),
@@ -202,6 +207,128 @@ public static class UiTranslationCatalog
         ("admin.nav.audit", "admin", "حسابرسی", "Audit log", "سجل التدقيق"),
         ("admin.nav.translations", "admin", "ترجمه‌های رابط", "UI translations", "ترجمات الواجهة"),
 
+        // ---- Page titles ----
+        ("page.comments", "page", "دیدگاه‌ها", "Comments", "التعليقات"),
+        ("page.posts", "page", "نوشته‌ها", "Posts", "المقالات"),
+        ("page.users", "page", "مدیریت کاربران", "User management", "إدارة المستخدمين"),
+        ("page.audit", "page", "گزارش حسابرسی", "Audit log", "سجل التدقيق"),
+        ("page.reports", "page", "گزارش‌های محتوا", "Content reports", "تقارير المحتوى"),
+        ("page.moderation", "page", "صف بررسی", "Moderation queue", "قائمة المراجعة"),
+        ("page.authors", "page", "نویسندگان", "Authors", "المؤلفون"),
+        ("page.settings", "page", "تنظیمات سایت", "Site settings", "إعدادات الموقع"),
+        ("page.flags", "page", "پرچم‌های ویژگی", "Feature flags", "أعلام الميزات"),
+
+        // ---- Table column headers ----
+        ("col.index", "col", "#", "#", "#"),
+        ("col.author", "col", "نویسنده", "Author", "المؤلف"),
+        ("col.comment_body", "col", "متن دیدگاه", "Comment", "التعليق"),
+        ("col.related_post", "col", "مربوط به نوشته", "Related post", "المقال المرتبط"),
+        ("col.date", "col", "تاریخ", "Date", "التاريخ"),
+        ("col.status", "col", "وضعیت", "Status", "الحالة"),
+        ("col.actions", "col", "عملیات", "Actions", "إجراءات"),
+        ("col.title", "col", "عنوان", "Title", "العنوان"),
+        ("col.category", "col", "دسته‌بندی", "Category", "التصنيف"),
+        ("col.features", "col", "ویژگی‌ها", "Features", "الميزات"),
+        ("col.views", "col", "بازدید", "Views", "المشاهدات"),
+        ("col.comments", "col", "دیدگاه‌ها", "Comments", "التعليقات"),
+        ("col.user", "col", "کاربر", "User", "المستخدم"),
+        ("col.roles", "col", "نقش‌ها", "Roles", "الأدوار"),
+        ("col.posts", "col", "نوشته‌ها", "Posts", "المقالات"),
+        ("col.registered", "col", "ثبت‌نام", "Registered", "التسجيل"),
+        ("col.time", "col", "زمان", "Time", "الوقت"),
+        ("col.action", "col", "اکشن", "Action", "الإجراء"),
+        ("col.entity", "col", "موجودیت", "Entity", "الكيان"),
+        ("col.details", "col", "جزئیات", "Details", "التفاصيل"),
+        ("col.ip", "col", "IP", "IP", "IP"),
+        ("col.target", "col", "هدف", "Target", "الهدف"),
+        ("col.reason", "col", "دلیل", "Reason", "السبب"),
+        ("col.reporter", "col", "گزارش‌دهنده", "Reporter", "المُبلِّغ"),
+        ("col.display_name", "col", "نام نمایشی", "Display name", "الاسم المعروض"),
+        ("col.username", "col", "نام کاربری", "Username", "اسم المستخدم"),
+        ("col.email", "col", "ایمیل", "Email", "البريد"),
+        ("col.role", "col", "نقش", "Role", "الدور"),
+        ("col.post_count", "col", "تعداد نوشته", "Post count", "عدد المقالات"),
+        ("col.feature", "col", "ویژگی", "Feature", "الميزة"),
+        ("col.key", "col", "کلید", "Key", "المفتاح"),
+        ("col.updated", "col", "آخرین تغییر", "Last updated", "آخر تحديث"),
+
+        // ---- DataTables chrome ----
+        ("dt.processing", "dt", "در حال بارگذاری…", "Loading…", "جارٍ التحميل…"),
+        ("dt.search", "dt", "جست‌وجو", "Search", "بحث"),
+        ("dt.search_placeholder", "dt", "جست‌وجو…", "Search…", "بحث…"),
+        ("dt.length_menu", "dt", "نمایش _MENU_", "Show _MENU_", "عرض _MENU_"),
+        ("dt.info", "dt", "نمایش _START_ تا _END_ از _TOTAL_", "Showing _START_ to _END_ of _TOTAL_", "عرض _START_ إلى _END_ من _TOTAL_"),
+        ("dt.info_empty", "dt", "موردی نیست", "No entries", "لا توجد عناصر"),
+        ("dt.info_filtered", "dt", "(فیلتر از _MAX_)", "(filtered from _MAX_)", "(مصفى من _MAX_)"),
+        ("dt.zero_records", "dt", "نتیجه‌ای یافت نشد", "No matching records", "لا توجد نتائج"),
+        ("dt.empty_table", "dt", "جدولی خالی است", "No data", "الجدول فارغ"),
+        ("dt.paginate_first", "dt", "اول", "First", "الأول"),
+        ("dt.paginate_last", "dt", "آخر", "Last", "الأخير"),
+        ("dt.paginate_next", "dt", "بعدی", "Next", "التالي"),
+        ("dt.paginate_previous", "dt", "قبلی", "Previous", "السابق"),
+
+        // ---- Status labels ----
+        ("status.open", "status", "باز", "Open", "مفتوح"),
+        ("status.resolved", "status", "حل‌شده", "Resolved", "محلول"),
+        ("status.dismissed", "status", "ردشده", "Dismissed", "مرفوض"),
+        ("status.pending", "status", "در انتظار", "Pending", "قيد الانتظار"),
+        ("status.approved", "status", "تأییدشده", "Approved", "موافق عليه"),
+        ("status.rejected", "status", "ردشده", "Rejected", "مرفوض"),
+        ("status.published", "status", "منتشر", "Published", "منشور"),
+        ("status.published_full", "status", "منتشرشده", "Published", "منشور"),
+        ("status.draft", "status", "پیش‌نویس", "Draft", "مسودة"),
+        ("status.active", "status", "فعال", "Active", "نشط"),
+        ("status.inactive", "status", "غیرفعال", "Inactive", "غير نشط"),
+        ("status.locked", "status", "قفل", "Locked", "مقفل"),
+        ("status.deleted", "status", "حذف‌شده", "Deleted", "محذوف"),
+        ("status.scheduled", "status", "زمان‌بندی", "Scheduled", "مجدول"),
+        ("status.featured", "status", "ویژه", "Featured", "مميز"),
+        ("status.sticky", "status", "چسبان", "Sticky", "مثبت"),
+
+        // ---- Tabs / filters ----
+        ("tab.all", "tab", "همه", "All", "الكل"),
+        ("tab.pending", "tab", "در انتظار", "Pending", "قيد الانتظار"),
+        ("tab.approved", "tab", "تأییدشده", "Approved", "موافق عليه"),
+        ("tab.rejected", "tab", "ردشده", "Rejected", "مرفوض"),
+        ("tab.open", "tab", "باز", "Open", "مفتوح"),
+        ("tab.resolved", "tab", "حل‌شده", "Resolved", "محلول"),
+        ("tab.dismissed", "tab", "ردشده", "Dismissed", "مرفوض"),
+
+        // ---- Moderation ----
+        ("mod.pending_comments", "mod", "دیدگاه‌های در انتظار", "Pending comments", "تعليقات قيد الانتظار"),
+        ("mod.no_pending_comments", "mod", "دیدگاه معلقی نیست.", "No pending comments.", "لا توجد تعليقات معلقة."),
+        ("mod.open_reports", "mod", "گزارش‌های باز", "Open reports", "بلاغات مفتوحة"),
+        ("mod.no_open_reports", "mod", "گزارش بازی نیست.", "No open reports.", "لا توجد بلاغات مفتوحة."),
+        ("mod.all_comments", "mod", "همه دیدگاه‌ها", "All comments", "كل التعليقات"),
+        ("mod.all_reports", "mod", "همه گزارش‌ها", "All reports", "كل البلاغات"),
+        ("mod.target_post", "mod", "نوشته", "Post", "مقال"),
+        ("mod.target_comment", "mod", "دیدگاه", "Comment", "تعليق"),
+
+        // ---- Authors ----
+        ("authors.subtitle", "page", "مدیریت نویسندگان وبلاگ (فقط سوپر ادمین)", "Manage blog authors (SuperAdmin only)", "إدارة مؤلفي المدونة (للمدير الأعلى فقط)"),
+        ("authors.empty_title", "page", "نویسنده‌ای یافت نشد", "No authors found", "لا يوجد مؤلفون"),
+        ("authors.empty_body", "page", "اولین نویسنده را اضافه کنید.", "Add the first author.", "أضف أول مؤلف."),
+        ("authors.posts_suffix", "page", "نوشته", "posts", "مقالات"),
+
+        // ---- Settings ----
+        ("settings.section_seo", "form", "عمومی و سئو", "General & SEO", "عام وتحسين محركات البحث"),
+        ("settings.site_name", "form", "نام سایت", "Site name", "اسم الموقع"),
+        ("settings.site_description", "form", "توضیح سایت", "Site description", "وصف الموقع"),
+        ("settings.author_name", "form", "نام نویسنده پیش‌فرض", "Default author name", "اسم المؤلف الافتراضي"),
+        ("settings.twitter", "form", "توییتر", "Twitter", "تويتر"),
+        ("settings.base_url", "form", "آدرس پایه", "Base URL", "الرابط الأساسي"),
+        ("settings.section_maintenance", "form", "حالت نگهداری", "Maintenance mode", "وضع الصيانة"),
+        ("settings.maintenance_enable", "form", "فعال‌سازی حالت نگهداری (فقط SuperAdmin عبور می‌کند)", "Enable maintenance (SuperAdmin only can pass)", "تفعيل وضع الصيانة (المدير الأعلى فقط)"),
+        ("settings.maintenance_message", "form", "پیام نگهداری", "Maintenance message", "رسالة الصيانة"),
+        ("settings.section_announcement", "form", "بنر اعلان سراسری", "Site-wide announcement banner", "شريط إعلان عام"),
+        ("settings.announcement_enable", "form", "نمایش بنر در بالای سایت", "Show banner at top of site", "إظهار الشريط أعلى الموقع"),
+        ("settings.announcement_text", "form", "متن بنر", "Banner text", "نص الشريط"),
+        ("settings.announcement_style", "form", "سبک", "Style", "النمط"),
+        ("settings.style_info", "form", "اطلاع", "Info", "معلومة"),
+        ("settings.style_warn", "form", "هشدار", "Warning", "تحذير"),
+        ("settings.style_success", "form", "موفقیت", "Success", "نجاح"),
+        ("flags.help", "page", "بدون redeploy ویژگی‌ها را روشن/خاموش کنید.", "Toggle features without redeploy.", "تشغيل/إيقاف الميزات دون إعادة نشر."),
+
         // ---- Post / comments chrome ----
         ("post.comments", "page", "دیدگاه‌ها", "Comments", "التعليقات"),
         ("post.sort", "page", "مرتب‌سازی", "Sort", "ترتيب"),
@@ -224,21 +351,16 @@ public static class UiTranslationCatalog
         ("auth.password", "auth", "رمز عبور", "Password", "كلمة المرور"),
         ("auth.username", "auth", "نام کاربری", "Username", "اسم المستخدم"),
 
-        // ---- Status ----
-        ("status.open", "status", "باز", "Open", "مفتوح"),
-        ("status.resolved", "status", "حل‌شده", "Resolved", "محلول"),
-        ("status.dismissed", "status", "ردشده", "Dismissed", "مرفوض"),
-        ("status.pending", "status", "در انتظار", "Pending", "قيد الانتظار"),
-        ("status.approved", "status", "تأییدشده", "Approved", "موافق عليه"),
-        ("status.rejected", "status", "ردشده", "Rejected", "مرفوض"),
-        ("status.published", "status", "منتشر", "Published", "منشور"),
-        ("status.draft", "status", "پیش‌نویس", "Draft", "مسودة"),
-        ("status.active", "status", "فعال", "Active", "نشط"),
-        ("status.locked", "status", "قفل", "Locked", "مقفل"),
-
-        // ---- Messages ----
+        // ---- Messages / confirms ----
         ("msg.saved", "message", "ذخیره شد.", "Saved.", "تم الحفظ."),
         ("msg.empty", "message", "موردی یافت نشد.", "Nothing found.", "لا توجد عناصر."),
         ("msg.confirm_delete", "message", "آیا مطمئن هستید؟", "Are you sure?", "هل أنت متأكد؟"),
+        ("msg.confirm_trash", "message", "انتقال به سطل زباله؟", "Move to trash?", "نقل إلى سلة المهملات؟"),
+        ("msg.confirm_delete_comment", "message", "این دیدگاه برای همیشه حذف شود؟", "Permanently delete this comment?", "حذف هذا التعليق نهائياً؟"),
+        ("msg.analytics_reset", "message", "آمار بازدید پاک شد. از این به بعد فقط بازدیدهای واقعی ثبت می‌شوند.", "View stats cleared. Only real visits will be recorded from now on.", "تم مسح إحصاءات المشاهدة."),
+        ("msg.scope_all", "message", "همه نویسندگان", "All authors", "كل المؤلفين"),
+        ("msg.scope_mine", "message", "فقط نوشته‌های من", "My posts only", "مقالاتي فقط"),
+        ("msg.uncategorized", "message", "بدون دسته", "Uncategorized", "بدون تصنيف"),
+        ("msg.dash", "message", "—", "—", "—"),
     };
 }
