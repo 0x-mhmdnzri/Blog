@@ -1,30 +1,7 @@
 @model List<PostListItemViewModel>
-@inject BlogApp.Services.ICultureService Culture
 @{
-    var lang = Culture.CurrentCode;
-    ViewData["Title"] = lang == "en" ? "Posts" : lang == "ar" ? "المقالات" : "نوشته‌ها";
+    ViewData["Title"] = T["home.title"];
     var categories = ViewBag.Categories as List<Category> ?? new();
-
-    var heroTitle = lang switch
-    {
-        "en" => "Notes on building things.",
-        "ar" => "ملاحظات حول بناء الأشياء.",
-        _ => "یادداشت‌هایی درباره ساختن چیزها."
-    };
-    var heroBody = lang switch
-    {
-        "en" => "Long-form writing in the style of a README — Markdown in, polished output with code, images and video inline.",
-        "ar" => "كتابات طويلة بأسلوب ملف README — ماركداون كمدخل، ومخرجات أنيقة مع الكود والصور والفيديو داخل النص.",
-        _ => "نوشته‌های بلند، دقیقاً به همان سبکی که یک ریدمی نوشته می‌شود — مارک‌داون به‌عنوان ورودی، خروجی شیک و استایل‌دار، همراه با کد، تصویر و ویدیو دقیقاً درون متن."
-    };
-    var allLabel = lang switch { "en" => "All", "ar" => "الكل", _ => "همه" };
-    var emptyLabel = lang switch
-    {
-        "en" => "No posts published yet — the first one is waiting to be written.",
-        "ar" => "لا توجد مقالات منشورة بعد — المقالة الأولى في انتظار الكتابة.",
-        _ => "هنوز نوشته‌ای منتشر نشده — اولین نوشته منتظر نوشته‌شدن است."
-    };
-    var draftLabel = lang switch { "en" => "Draft", "ar" => "مسودة", _ => "پیش‌نویس" };
 }
 
 @section Head {
@@ -34,8 +11,8 @@
 <section class="hero py-5">
     <div class="container">
         <div class="hero-prompt mb-2">$ cat ./posts --sort=recent</div>
-        <h1 class="mb-3" dir="auto">@heroTitle</h1>
-        <p class="text-muted-dark" style="max-width:640px;" dir="auto">@heroBody</p>
+        <h1 class="mb-3" dir="auto">@T["home.hero_title"]</h1>
+        <p class="text-muted-dark" style="max-width:640px;" dir="auto">@T["home.hero_body"]</p>
     </div>
 </section>
 
@@ -43,7 +20,7 @@
     <div class="d-flex flex-wrap gap-2 mb-4">
         <a class="tag-pill @(ViewBag.CurrentCategory == null ? "border-0" : "")"
            style="@(ViewBag.CurrentCategory == null ? "background:var(--accent-soft);color:var(--accent);" : "")"
-           asp-action="Index">@allLabel</a>
+           asp-action="Index">@T["home.all"]</a>
         @foreach (var c in categories)
         {
             <a class="tag-pill" dir="auto" style="@(ViewBag.CurrentCategory == c.Slug ? "background:var(--accent-soft);color:var(--accent);" : "")"
@@ -54,7 +31,7 @@
     @if (!Model.Any())
     {
         <div class="card-surface p-5 text-center text-muted-dark">
-            <p class="mb-0" dir="auto">@emptyLabel</p>
+            <p class="mb-0" dir="auto">@T["home.empty"]</p>
         </div>
     }
 
@@ -70,7 +47,7 @@
                         }
                         @if (!post.IsPublished)
                         {
-                            <span class="tag-pill" style="color:var(--danger); border-color:rgba(229,99,122,.4);">@draftLabel</span>
+                            <span class="tag-pill" style="color:var(--danger); border-color:rgba(229,99,122,.4);">@T["home.draft"]</span>
                         }
                     </div>
                     <h2 class="h5 mb-2" dir="auto">
