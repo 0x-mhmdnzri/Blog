@@ -3,14 +3,12 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <ImplicitUsings>enable</Nullable>
     <UserSecretsId>blogapp-dark-pro-secrets</UserSecretsId>
-    <!-- Trim noise in container images; keep single-file optional for local publish -->
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- EF Core + SQLite (.NET 10 / EF 10) -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
       <PrivateAssets>all</PrivateAssets>
@@ -21,16 +19,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
 
-    <!-- ASP.NET Core Identity -->
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.9" />
-
-    <!-- Markdown -->
     <PackageReference Include="Markdig" Version="1.3.2" />
-
-    <!-- Code-page encodings -->
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.0" />
 
-    <!-- Structured logging (ELK-ready Compact JSON) -->
+    <!-- Notification bus (optional at runtime — Channel fallback when host empty) -->
+    <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
+
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
