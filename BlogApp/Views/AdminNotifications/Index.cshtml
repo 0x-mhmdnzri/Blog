@@ -1,0 +1,145 @@
+@model BlogApp.Controllers.ComposeNotificationVm
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "Send notifications";
+    var isSuper = ViewBag.IsSuperAdmin as bool? ?? false;
+    var recent = ViewBag.Recent as List<NotificationCampaign> ?? new();
+    var categories = ViewBag.Categories as List<Category> ?? new();
+}
+
+@if (TempData["Saved"] != null)
+{
+    <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="card-surface p-3 mb-3 small" style="border-color:var(--danger);">@TempData["Error"]</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <form method="post" asp-action="Compose" class="card-surface p-4">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label class="form-label" asp-for="Title">Title</label>
+                <input class="form-control" asp-for="Title" dir="auto" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="Body">Body</label>
+                <textarea class="form-control" asp-for="Body" rows="3" dir="auto"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" asp-for="LinkUrl">Link (optional)</label>
+                <input class="form-control ltr-field" asp-for="LinkUrl" placeholder="/post/slug" />
+            </div>
+
+            @if (isSuper)
+            {
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Audience">Audience</label>
+                    <select class="form-select" asp-for="Audience">
+                        <option value="@((int)NotificationAudience.AllAuthors)">All authors</option>
+                        <option value="@((int)NotificationAudience.Broadcast)">Everyone (broadcast)</option>
+                        <option value="@((int)NotificationAudience.CategoryReaders)">Category readers</option>
+                        <option value="@((int)NotificationAudience.AuthorFollowers)">Author followers</option>
+                        <option value="@((int)NotificationAudience.SingleUser)">Single user</option>
+                        <option value="@((int)NotificationAudience.UserList)">User list (CSV ids)</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="Kind">Kind</label>
+                    <select class="form-select" asp-for="Kind">
+                        <option value="@((int)NotificationKind.AdminMessage)">Admin message</option>
+                        <option value="@((int)NotificationKind.Broadcast)">Broadcast</option>
+                        <option value="@((int)NotificationKind.CategoryBatch)">Category batch</option>
+                        <option value="@((int)NotificationKind.System)">System</option>
+                        <option value="@((int)NotificationKind.AdCampaign)">Ad campaign</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="CategoryId">Category (for category readers)</label>
+                    <select class="form-select" asp-for="CategoryId">
+                        <option value="">—</option>
+                        @foreach (var c in categories)
+                        {
+                            <option value="@c.Id">@c.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="TargetUserId">Target user id (single)</label>
+                    <input class="form-control ltr-field" asp-for="TargetUserId" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="TargetUserIdsCsv">User ids CSV (batch)</label>
+                    <input class="form-control ltr-field" asp-for="TargetUserIdsCsv" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" asp-for="AuthorUserId">Author id (followers audience)</label>
+                    <input class="form-control ltr-field" asp-for="AuthorUserId" />
+                </div>
+            }
+            else
+            {
+                <p class="small text-muted-dark">You can notify users who follow you (e.g. about a new post).</p>
+                <input type="hidden" asp-for="Audience" value="@((int)NotificationAudience.AuthorFollowers)" />
+                <input type="hidden" asp-for="Kind" value="@((int)NotificationKind.NewPost)" />
+            }
+
+            <div class="form-check mb-2">
+                <input class="form-check-input" asp-for="Schedule" id="scheduleToggle" />
+                <label class="form-check-label" asp-for="Schedule">Schedule for later</label>
+            </div>
+            <div class="mb-4" id="scheduleBox">
+                <label class="form-label" asp-for="ScheduledAtUtc">Scheduled UTC</label>
+                <input class="form-control ltr-field" asp-for="ScheduledAtUtc" type="datetime-local" />
+            </div>
+
+            <button type="submit" class="btn btn-accent">Send / schedule</button>
+        </form>
+    </div>
+
+    <div class="col-lg-6">
+        <h2 class="h6 text-muted-dark mb-3">Recent campaigns</h2>
+        @if (recent.Count == 0)
+        {
+            <div class="admin-empty"><p>No campaigns yet.</p></div>
+        }
+        else
+        {
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Audience</th>
+                            <th>Status</th>
+                            <th>Recipients</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var c in recent)
+                    {
+                        <tr>
+                            <td dir="auto">@c.Title</td>
+                            <td class="small ltr-field">@c.Audience</td>
+                            <td>
+                                @if (c.IsSent)
+                                {
+                                    <span class="status-pill approved">Sent</span>
+                                }
+                                else
+                                {
+                                    <span class="status-pill pending">Scheduled</span>
+                                }
+                            </td>
+                            <td class="ltr-field">@c.RecipientCount</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
