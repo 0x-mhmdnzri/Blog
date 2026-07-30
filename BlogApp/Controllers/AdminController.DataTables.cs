@@ -42,9 +42,6 @@ public partial class AdminController
         }
 
         var filtered = await query.CountAsync();
-
-        // Columns: 0 # (no sort), 1 title, 2 author?, 3 category, 4 status, 5 features, 6 views, 7 comments, 8 date, 9 actions
-        // When !seeAll: 0 #, 1 title, 2 category, 3 status, 4 features, 5 views, 6 comments, 7 date, 8 actions
         query = ApplyPostsOrder(query, req, seeAll);
 
         var page = await query
@@ -69,6 +66,7 @@ public partial class AdminController
             .ToListAsync();
 
         var token = GetAntiforgeryToken();
+        var dash = _t["msg.dash"];
         var rows = page.Select((p, i) =>
         {
             var idx = req.Start + i + 1;
@@ -84,7 +82,7 @@ public partial class AdminController
                     idx,
                     titleHtml,
                     System.Net.WebUtility.HtmlEncode(p.AuthorDisplayName),
-                    System.Net.WebUtility.HtmlEncode(p.CategoryName ?? "—"),
+                    System.Net.WebUtility.HtmlEncode(p.CategoryName ?? dash),
                     statusHtml,
                     featuresHtml,
                     p.ViewCount,
@@ -98,7 +96,7 @@ public partial class AdminController
             {
                 idx,
                 titleHtml,
-                System.Net.WebUtility.HtmlEncode(p.CategoryName ?? "—"),
+                System.Net.WebUtility.HtmlEncode(p.CategoryName ?? dash),
                 statusHtml,
                 featuresHtml,
                 p.ViewCount,
@@ -113,7 +111,6 @@ public partial class AdminController
 
     private static IQueryable<Post> ApplyPostsOrder(IQueryable<Post> query, DataTablesRequest req, bool seeAll)
     {
-        // Map DT column index → field (skip # = 0)
         if (seeAll)
         {
             return (req.OrderColumn, req.Asc) switch
@@ -154,43 +151,44 @@ public partial class AdminController
         };
     }
 
-    private static string StatusPill(bool deleted, bool published, DateTime? scheduled)
+    private string StatusPill(bool deleted, bool published, DateTime? scheduled)
     {
-        if (deleted) return "<span class=\"status-pill rejected\">حذف‌شده</span>";
-        if (scheduled.HasValue && !published) return "<span class=\"status-pill scheduled\">زمان‌بندی</span>";
-        if (published) return "<span class=\"status-pill published\">منتشرشده</span>";
-        return "<span class=\"status-pill draft\">پیش‌نویس</span>";
+        if (deleted) return $"<span class=\"status-pill rejected\">{System.Net.WebUtility.HtmlEncode(_t["status.deleted"])}</span>";
+        if (scheduled.HasValue && !published) return $"<span class=\"status-pill scheduled\">{System.Net.WebUtility.HtmlEncode(_t["status.scheduled"])}</span>";
+        if (published) return $"<span class=\"status-pill published\">{System.Net.WebUtility.HtmlEncode(_t["status.published_full"])}</span>";
+        return $"<span class=\"status-pill draft\">{System.Net.WebUtility.HtmlEncode(_t["status.draft"])}</span>";
     }
 
-    private static string FeaturesHtml(bool featured, bool sticky)
+    private string FeaturesHtml(bool featured, bool sticky)
     {
-        if (!featured && !sticky) return "<span class=\"text-muted-dark small\">—</span>";
+        if (!featured && !sticky) return $"<span class=\"text-muted-dark small\">{System.Net.WebUtility.HtmlEncode(_t["msg.dash"])}</span>";
         var parts = new List<string>();
-        if (featured) parts.Add("<span class=\"status-pill featured\">ویژه</span>");
-        if (sticky) parts.Add("<span class=\"status-pill sticky\">چسبان</span>");
+        if (featured) parts.Add($"<span class=\"status-pill featured\">{System.Net.WebUtility.HtmlEncode(_t["status.featured"])}</span>");
+        if (sticky) parts.Add($"<span class=\"status-pill sticky\">{System.Net.WebUtility.HtmlEncode(_t["status.sticky"])}</span>");
         return $"<div class=\"d-flex gap-1 flex-wrap\">{string.Join("", parts)}</div>";
     }
 
-    private static string PostActionsHtml(int id, bool deleted, string token)
+    private string PostActionsHtml(int id, bool deleted, string token)
     {
         if (deleted)
         {
             return $"<form method=\"post\" action=\"/Posts/Restore\" class=\"d-inline\">" +
                    $"<input type=\"hidden\" name=\"__RequestVerificationToken\" value=\"{token}\" />" +
                    $"<input type=\"hidden\" name=\"id\" value=\"{id}\" />" +
-                   "<button type=\"submit\" class=\"icon-btn approve\">بازگردانی</button></form>";
+                   $"<button type=\"submit\" class=\"icon-btn approve\">{System.Net.WebUtility.HtmlEncode(_t["btn.restore"])}</button></form>";
         }
 
+        var confirm = System.Net.WebUtility.HtmlEncode(_t["msg.confirm_trash"]);
         return $"<div class=\"d-flex gap-1 flex-wrap\">" +
-               $"<a class=\"icon-btn\" href=\"/Posts/Edit/{id}\">ویرایش</a>" +
+               $"<a class=\"icon-btn\" href=\"/Posts/Edit/{id}\">{System.Net.WebUtility.HtmlEncode(_t["btn.edit"])}</a>" +
                $"<form method=\"post\" action=\"/Posts/Duplicate\" class=\"d-inline\">" +
                $"<input type=\"hidden\" name=\"__RequestVerificationToken\" value=\"{token}\" />" +
                $"<input type=\"hidden\" name=\"id\" value=\"{id}\" />" +
-               "<button type=\"submit\" class=\"icon-btn\">کپی</button></form>" +
-               $"<form method=\"post\" action=\"/Posts/Delete\" class=\"d-inline\" data-confirm=\"انتقال به سطل زباله؟\">" +
+               $"<button type=\"submit\" class=\"icon-btn\">{System.Net.WebUtility.HtmlEncode(_t["btn.duplicate"])}</button></form>" +
+               $"<form method=\"post\" action=\"/Posts/Delete\" class=\"d-inline\" data-confirm=\"{confirm}\">" +
                $"<input type=\"hidden\" name=\"__RequestVerificationToken\" value=\"{token}\" />" +
                $"<input type=\"hidden\" name=\"id\" value=\"{id}\" />" +
-               "<button type=\"submit\" class=\"icon-btn reject\">حذف</button></form></div>";
+               $"<button type=\"submit\" class=\"icon-btn reject\">{System.Net.WebUtility.HtmlEncode(_t["btn.delete"])}</button></form></div>";
     }
 
     /// <summary>Empty shell — rows via CommentsData.</summary>
@@ -242,7 +240,6 @@ public partial class AdminController
 
         var filtered = await query.CountAsync();
 
-        // 0 #, 1 author, 2 body, 3 post, 4 date, 5 status, 6 actions
         query = (req.OrderColumn, req.Asc) switch
         {
             (1, true) => query.OrderBy(c => c.AuthorName),
@@ -275,14 +272,14 @@ public partial class AdminController
         return Json(DataTablesResponse.Ok(req.Draw, total, filtered, rows));
     }
 
-    private static string CommentStatusHtml(CommentStatus s) => s switch
+    private string CommentStatusHtml(CommentStatus s) => s switch
     {
-        CommentStatus.Approved => "<span class=\"status-pill approved\">تأییدشده</span>",
-        CommentStatus.Rejected => "<span class=\"status-pill rejected\">ردشده</span>",
-        _ => "<span class=\"status-pill pending\">در انتظار</span>"
+        CommentStatus.Approved => $"<span class=\"status-pill approved\">{System.Net.WebUtility.HtmlEncode(_t["status.approved"])}</span>",
+        CommentStatus.Rejected => $"<span class=\"status-pill rejected\">{System.Net.WebUtility.HtmlEncode(_t["status.rejected"])}</span>",
+        _ => $"<span class=\"status-pill pending\">{System.Net.WebUtility.HtmlEncode(_t["status.pending"])}</span>"
     };
 
-    private static string CommentActionsHtml(int id, CommentStatus status, string returnStatus, string token)
+    private string CommentActionsHtml(int id, CommentStatus status, string returnStatus, string token)
     {
         var html = "<div class=\"d-flex gap-1 flex-wrap\">";
         if (status != CommentStatus.Approved)
@@ -291,7 +288,7 @@ public partial class AdminController
                     $"<input type=\"hidden\" name=\"__RequestVerificationToken\" value=\"{token}\" />" +
                     $"<input type=\"hidden\" name=\"id\" value=\"{id}\" />" +
                     $"<input type=\"hidden\" name=\"returnStatus\" value=\"{System.Net.WebUtility.HtmlEncode(returnStatus)}\" />" +
-                    "<button type=\"submit\" class=\"icon-btn approve\">تأیید</button></form>";
+                    $"<button type=\"submit\" class=\"icon-btn approve\">{System.Net.WebUtility.HtmlEncode(_t["btn.approve"])}</button></form>";
         }
         if (status != CommentStatus.Rejected)
         {
@@ -299,13 +296,14 @@ public partial class AdminController
                     $"<input type=\"hidden\" name=\"__RequestVerificationToken\" value=\"{token}\" />" +
                     $"<input type=\"hidden\" name=\"id\" value=\"{id}\" />" +
                     $"<input type=\"hidden\" name=\"returnStatus\" value=\"{System.Net.WebUtility.HtmlEncode(returnStatus)}\" />" +
-                    "<button type=\"submit\" class=\"icon-btn reject\">رد</button></form>";
+                    $"<button type=\"submit\" class=\"icon-btn reject\">{System.Net.WebUtility.HtmlEncode(_t["btn.reject"])}</button></form>";
         }
-        html += $"<form method=\"post\" action=\"/Admin/DeleteComment\" class=\"d-inline\" data-confirm=\"این دیدگاه برای همیشه حذف شود؟\">" +
+        var confirm = System.Net.WebUtility.HtmlEncode(_t["msg.confirm_delete_comment"]);
+        html += $"<form method=\"post\" action=\"/Admin/DeleteComment\" class=\"d-inline\" data-confirm=\"{confirm}\">" +
                 $"<input type=\"hidden\" name=\"__RequestVerificationToken\" value=\"{token}\" />" +
                 $"<input type=\"hidden\" name=\"id\" value=\"{id}\" />" +
                 $"<input type=\"hidden\" name=\"returnStatus\" value=\"{System.Net.WebUtility.HtmlEncode(returnStatus)}\" />" +
-                "<button type=\"submit\" class=\"icon-btn\">حذف</button></form></div>";
+                $"<button type=\"submit\" class=\"icon-btn\">{System.Net.WebUtility.HtmlEncode(_t["btn.delete"])}</button></form></div>";
         return html;
     }
 
