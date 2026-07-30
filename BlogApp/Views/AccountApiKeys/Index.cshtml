@@ -1,34 +1,71 @@
 @model IEnumerable<BlogApp.Models.ApiKey>
+@using BlogApp.Models
 @{
     ViewData["Title"] = "کلیدهای API";
     var newToken = TempData["NewToken"] as string;
+    var list = Model.ToList();
 }
-<div class="container py-4" style="max-width:820px;">
-    <h1 class="h4 mb-3">کلیدهای دسترسی شخصی (PAT)</h1>
-    <p class="text-muted-dark small mb-4">
-        مانند GitHub PAT — برای فراخوانی <code class="ltr-field">/api/v1</code> از هدر
-        <code class="ltr-field">X-Api-Key</code> یا <code class="ltr-field">Authorization: Bearer</code> استفاده کنید.
-        مستندات: <a class="ltr-field" href="/api/docs">/api/docs</a>
-    </p>
+
+<style>
+.pak { max-width: 820px; margin: 0 auto; }
+.pak-hero h1 { font-size: 1.2rem; font-weight: 700; margin: 0 0 .35rem; }
+.pak-hero p { font-size: .85rem; color: var(--text-muted); line-height: 1.55; margin: 0 0 1.1rem; }
+.pak-card {
+  background: var(--surface); border: 1px solid var(--border-soft); border-radius: 14px;
+  padding: 1rem 1.1rem; margin-bottom: .65rem;
+}
+.pak-card.pending { border-color: color-mix(in srgb, #e3b341 45%, var(--border-soft)); }
+.pak-card.approved { border-color: color-mix(in srgb, #9ecb8c 35%, var(--border-soft)); }
+.pak-card.rejected, .pak-card.banned { border-color: color-mix(in srgb, #e5637a 40%, var(--border-soft)); }
+.pak-token {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border-soft));
+  border-radius: 12px; padding: 1rem; margin-bottom: 1rem;
+}
+.pak-token code { word-break: break-all; font-size: .85rem; direction: ltr; display: block; }
+.pak-pill {
+  display: inline-flex; font-size: .7rem; font-weight: 650; padding: .18rem .55rem; border-radius: 999px;
+}
+.pak-pill.wait { background: color-mix(in srgb, #e3b341 22%, transparent); color: #b8860b; }
+.pak-pill.ok { background: color-mix(in srgb, #9ecb8c 22%, transparent); color: #3d6b3a; }
+.pak-pill.no { background: color-mix(in srgb, #e5637a 22%, transparent); color: #a33; }
+.pak-pill.off { background: color-mix(in srgb, var(--text-muted) 18%, transparent); color: var(--text-muted); }
+[data-theme="dark"] .pak-pill.wait, html.dark .pak-pill.wait { color: #e3b341; }
+[data-theme="dark"] .pak-pill.ok, html.dark .pak-pill.ok { color: #b6e0a8; }
+[data-theme="dark"] .pak-pill.no, html.dark .pak-pill.no { color: #f5a3b0; }
+</style>
+
+<div class="container py-4 pak">
+    <div class="pak-hero">
+        <h1>کلیدهای دسترسی شخصی (PAT)</h1>
+        <p>
+            هر کاربر (خواننده یا نویسنده) می‌تواند کلید درخواست کند. پس از <strong>تأیید سوپرادمین</strong>،
+            با هدر <code class="ltr-field">X-Api-Key</code> یا <code class="ltr-field">Authorization: Bearer</code>
+            به <code class="ltr-field">/api/v1</code> دسترسی دارید.
+            مستندات: <a class="ltr-field" href="/api/docs">/api/docs</a>
+        </p>
+    </div>
 
     @if (TempData["Msg"] != null)
     {
-        <div class="card-surface p-3 mb-3 small">@TempData["Msg"]</div>
+        <div class="pak-card small mb-3">@TempData["Msg"]</div>
     }
     @if (TempData["Err"] != null)
     {
-        <div class="card-surface p-3 mb-3 small" style="border-color:var(--danger);">@TempData["Err"]</div>
+        <div class="pak-card small mb-3" style="border-color:var(--danger,#e5637a);">@TempData["Err"]</div>
     }
     @if (!string.IsNullOrEmpty(newToken))
     {
-        <div class="card-surface p-3 mb-4">
-            <div class="small text-muted-dark mb-1">توکن (فقط همین‌بار):</div>
-            <code class="ltr-field" style="word-break:break-all;font-size:.9rem;">@newToken</code>
+        <div class="pak-token">
+            <div class="small text-muted-dark mb-1">توکن محرمانه (فقط همین‌بار — کپی کنید و امن نگه دارید):</div>
+            <code class="ltr-field">@newToken</code>
+            <div class="small mt-2" style="color:#e3b341;">تا تأیید سوپرادمین، API این کلید را قبول نمی‌کند. پس از تأیید، اعلان دریافت می‌کنید.</div>
         </div>
     }
 
-    <form asp-action="Create" method="post" class="card-surface p-3 mb-4">
+    <form asp-action="Create" method="post" class="pak-card mb-4">
         @Html.AntiForgeryToken()
+        <div class="fw-semibold mb-2" style="font-size:.9rem;">درخواست کلید جدید</div>
         <div class="row g-2 align-items-end">
             <div class="col-md-4">
                 <label class="form-label small">نام</label>
@@ -43,54 +80,77 @@
                 <input class="form-control form-control-sm ltr-field" name="expiresInDays" type="number" min="1" max="3650" placeholder="—" />
             </div>
             <div class="col-md-2">
-                <button type="submit" class="btn btn-accent btn-sm w-100">ایجاد</button>
+                <button type="submit" class="btn btn-accent btn-sm w-100">درخواست</button>
             </div>
         </div>
     </form>
 
-    <div class="table-responsive card-surface">
-        <table class="table table-sm mb-0 align-middle">
-            <thead>
-                <tr>
-                    <th>نام</th>
-                    <th class="ltr-field">Prefix</th>
-                    <th>Scopes</th>
-                    <th>وضعیت</th>
-                    <th class="ltr-field">Requests</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach (var k in Model)
-            {
-                <tr>
-                    <td>@k.Name</td>
-                    <td class="ltr-field small">@k.KeyPrefix…</td>
-                    <td class="ltr-field small">@k.Scopes</td>
-                    <td class="small">
-                        @if (k.IsBanned) { <span class="status-pill expired">بن</span> }
-                        else if (!k.IsActive) { <span class="text-muted-dark">باطل</span> }
-                        else { <span class="status-pill featured">فعال</span> }
-                    </td>
-                    <td class="ltr-field small">@k.RequestCount</td>
-                    <td class="text-end">
-                        @if (k.IsActive && !k.IsBanned)
+    @if (list.Count == 0)
+    {
+        <div class="pak-card text-center text-muted-dark small">هنوز کلیدی ندارید — از فرم بالا درخواست دهید.</div>
+    }
+    else
+    {
+        @foreach (var k in list)
+        {
+            var stateClass = k.IsBanned ? "banned"
+                : k.ApprovalStatus == ApiKeyApprovalStatus.Pending ? "pending"
+                : k.ApprovalStatus == ApiKeyApprovalStatus.Rejected ? "rejected"
+                : k.IsUsable ? "approved" : "";
+            <article class="pak-card @stateClass">
+                <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
+                    <div>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                            <strong>@k.Name</strong>
+                            @if (k.IsBanned)
+                            {
+                                <span class="pak-pill no">بن</span>
+                            }
+                            else if (k.ApprovalStatus == ApiKeyApprovalStatus.Pending)
+                            {
+                                <span class="pak-pill wait">در انتظار تأیید</span>
+                            }
+                            else if (k.ApprovalStatus == ApiKeyApprovalStatus.Rejected)
+                            {
+                                <span class="pak-pill no">رد شده</span>
+                            }
+                            else if (!k.IsActive)
+                            {
+                                <span class="pak-pill off">باطل</span>
+                            }
+                            else
+                            {
+                                <span class="pak-pill ok">تأیید و فعال</span>
+                            }
+                            <code class="ltr-field small">@k.KeyPrefix…</code>
+                        </div>
+                        <div class="small text-muted-dark ltr-field">scopes: @k.Scopes · requests: @k.RequestCount</div>
+                        @if (k.ApprovalStatus == ApiKeyApprovalStatus.Rejected && !string.IsNullOrEmpty(k.RejectionReason))
                         {
-                            <form asp-action="Revoke" method="post" class="d-inline">
+                            <div class="small mt-1" style="color:#e5637a;">دلیل رد: @k.RejectionReason</div>
+                        }
+                        @if (k.ApprovalStatus == ApiKeyApprovalStatus.Approved && k.ApprovedAtUtc is { } ap)
+                        {
+                            <div class="small text-muted-dark mt-1 ltr-field">approved: @ap.ToString("yyyy-MM-dd HH:mm") UTC</div>
+                        }
+                    </div>
+                    <div class="d-flex gap-1">
+                        @if (k.IsActive && !k.IsBanned && k.ApprovalStatus != ApiKeyApprovalStatus.Rejected)
+                        {
+                            <form asp-action="Revoke" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@k.Id" />
                                 <button class="btn btn-ghost btn-sm" type="submit">باطل</button>
                             </form>
                         }
-                        <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('حذف؟');">
+                        <form asp-action="Delete" method="post" onsubmit="return confirm('حذف دائمی؟');">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@k.Id" />
                             <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف</button>
                         </form>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
+                    </div>
+                </div>
+            </article>
+        }
+    }
 </div>

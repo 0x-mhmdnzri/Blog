@@ -1,9 +1,9 @@
 using BlogApp.Api.Auth;
 using BlogApp.Api.Dtos;
-using BlogApp.Api.Validation;
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Services;
+using BlogApp.Services.Messaging;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,17 +11,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
-/// <summary>User-facing PAT management (GitHub-style personal access tokens).</summary>
+/// <summary>User-facing PAT management — any authenticated reader/author can request keys; SuperAdmin approves.</summary>
 [Authorize]
 public class AccountApiKeysController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly IValidator<ApiKeyCreateDto> _validator;
+    private readonly INotificationService _notify;
 
-    public AccountApiKeysController(ApplicationDbContext db, IValidator<ApiKeyCreateDto> validator)
+    public AccountApiKeysController(
+        ApplicationDbContext db,
+        IValidator<ApiKeyCreateDto> validator,
+        INotificationService notify)
     {
         _db = db;
         _validator = validator;
+        _notify = notify;
     }
 
     [HttpGet]
@@ -48,10 +53,13 @@ public class AccountApiKeysController : Controller
         }
 
         var userId = AuthorAccess.UserId(User)!;
-        var existing = await _db.ApiKeys.CountAsync(k => k.UserId == userId && k.IsActive && !k.IsBanned);
+        var existing = await _db.ApiKeys.CountAsync(k =>
+            k.UserId == userId
+            && !k.IsBanned
+            && k.ApprovalStatus != ApiKeyApprovalStatus.Rejected);
         if (existing >= 10)
         {
-            TempData["Err"] = "حداکثر ۱۰ کلید فعال مجاز است.";
+            TempData["Err"] = "حداکثر ۱۰ کلید (فعال یا در انتظار تأیید) مجاز است.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -64,6 +72,7 @@ public class AccountApiKeysController : Controller
             KeyHash = hash,
             Scopes = string.IsNullOrWhiteSpace(scopes) ? ApiScopes.Read : scopes.Trim().ToLowerInvariant(),
             IsActive = true,
+            ApprovalStatus = ApiKeyApprovalStatus.Pending,
             CreatedAtUtc = DateTime.UtcNow,
             ExpiresAtUtc = expiresInDays is > 0 ? DateTime.UtcNow.AddDays(expiresInDays.Value) : null
         };
@@ -72,8 +81,32 @@ public class AccountApiKeysController : Controller
         _db.ApiKeys.Add(key);
         await _db.SaveChangesAsync();
 
+        // Alert SuperAdmins that a new PAT needs review
+        try
+        {
+            var supers = await _db.Users.AsNoTracking()
+                .Where(u => _db.UserRoles.Any(ur =>
+                    ur.UserId == u.Id
+                    && _db.Roles.Any(r => r.Id == ur.RoleId && r.Name == AppRoles.SuperAdmin)))
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            var uname = User.Identity?.Name ?? userId;
+            foreach (var sid in supers)
+            {
+                await _notify.NotifyAsync(
+                    sid,
+                    NotificationKind.System,
+                    "درخواست کلید API جدید",
+                    $"{uname} کلید «{key.Name}» را درخواست کرده — نیاز به تأیید سوپرادمین.",
+                    "/AdminApiKeys");
+            }
+        }
+        catch { /* non-fatal */ }
+
         TempData["NewToken"] = token;
-        TempData["Msg"] = "کلید ساخته شد. فقط یک‌بار نمایش داده می‌شود — کپی کنید.";
+        TempData["Msg"] =
+            "کلید ساخته شد و در انتظار تأیید سوپرادمین است. توکن را الان کپی کنید (فقط یک‌بار نمایش داده می‌شود). تا قبل از تأیید، API آن را قبول نمی‌کند.";
         return RedirectToAction(nameof(Index));
     }
 
