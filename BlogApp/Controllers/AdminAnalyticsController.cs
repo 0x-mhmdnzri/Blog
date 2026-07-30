@@ -109,13 +109,7 @@ public class AdminAnalyticsController : Controller
         {
             var p = await postQuery.AsNoTracking().FirstOrDefaultAsync(x => x.Id == t.PostId);
             if (p is null) continue;
-            trendingPosts.Add(new TopPostItem
-            {
-                Title = p.Title,
-                Slug = p.Slug,
-                Views = p.ViewCount,
-                RangeViews = t.C
-            });
+            trendingPosts.Add(MakeTop(p.Title, p.Slug, p.ViewCount, t.C));
         }
 
         var popularRows = await postQuery.AsNoTracking()
@@ -124,13 +118,9 @@ public class AdminAnalyticsController : Controller
             .Select(p => new { p.Id, p.Title, p.Slug, p.ViewCount })
             .ToListAsync();
 
-        var popular = popularRows.Select(p => new TopPostItem
-        {
-            Title = p.Title,
-           Slug = p.Slug,
-            Views = p.ViewCount,
-            RangeViews = rangeViewsByPost.GetValueOrDefault(p.Id)
-        }).ToList();
+        var popular = popularRows
+            .Select(p => MakeTop(p.Title, p.Slug, p.ViewCount, rangeViewsByPost.GetValueOrDefault(p.Id)))
+            .ToList();
 
         var searchLogs = await _db.SearchQueryLogs.AsNoTracking()
             .Where(s => s.SearchedAtUtc >= rangeStart)
@@ -174,6 +164,14 @@ public class AdminAnalyticsController : Controller
         });
     }
 
+    private static TopPostItem MakeTop(string title, string slug, int views, int rangeViews) => new()
+    {
+        Title = title,
+        Slug = slug,
+        Views = views,
+        RangeViews = rangeViews
+    };
+
     [HttpGet]
     public IActionResult Heatmaps()
     {
@@ -211,7 +209,6 @@ public class AdminAnalyticsController : Controller
                 .Select(g => new { PostId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.PostId, x => x.Count);
 
-        // Columns: 0 idx, 1 title, 2 views, 3 clicks, 4 date, 5 actions
         List<Post> page;
         if (req.OrderColumn == 3)
         {
