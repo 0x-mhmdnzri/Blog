@@ -1,5 +1,6 @@
 /**
  * Notification bell — SSE realtime + dropdown.
+ * Chrome strings come from data-i18n-* on #notifBell (seeded by parrot T[]).
  */
 (function () {
   var root = document.getElementById('notifBell');
@@ -10,6 +11,10 @@
   var markAllBtn = document.getElementById('notifMarkAll');
   var tokenInput = root.querySelector('input[name="__RequestVerificationToken"]');
   var csrf = tokenInput ? tokenInput.value : '';
+
+  function t(attr, fallback) {
+    return root.getAttribute(attr) || fallback;
+  }
 
   function setBadge(n) {
     if (!badge) return;
@@ -34,7 +39,8 @@
   function renderItems(items) {
     if (!list) return;
     if (!items || !items.length) {
-      list.innerHTML = '<div class="notif-empty text-muted-dark small p-3">No notifications</div>';
+      list.innerHTML = '<div class="notif-empty text-muted-dark small p-3">' +
+        escapeHtml(t('data-i18n-empty', 'No notifications')) + '</div>';
       return;
     }
     list.innerHTML = items.map(function (it) {
@@ -64,7 +70,10 @@
         renderItems(data.items || []);
       })
       .catch(function () {
-        if (list) list.innerHTML = '<div class="notif-empty small p-3">Failed to load</div>';
+        if (list) {
+          list.innerHTML = '<div class="notif-empty small p-3">' +
+            escapeHtml(t('data-i18n-failed', 'Failed to load')) + '</div>';
+        }
       });
   }
 
@@ -118,19 +127,16 @@
     markAll();
   });
 
-  // Load when dropdown opens
   var btn = document.getElementById('notifBellBtn');
   if (btn) {
     btn.addEventListener('show.bs.dropdown', loadRecent);
   }
 
-  // Initial badge
   fetch('/Notifications/UnreadCount', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (d) { setBadge(d.count || 0); })
     .catch(function () {});
 
-  // SSE realtime
   try {
     var es = new EventSource('/Notifications/Stream');
     es.onmessage = function (e) {
@@ -141,11 +147,9 @@
         return;
       }
       if (data.type === 'notification') {
-        // bump badge
         var cur = parseInt(badge && !badge.hidden ? badge.textContent : '0', 10) || 0;
         if (badge && badge.textContent === '99+') return;
         setBadge(cur + 1);
-        // refresh list if open
         if (root.querySelector('.dropdown-menu.show')) loadRecent();
       }
     };
