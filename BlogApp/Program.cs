@@ -85,7 +85,6 @@ try
         options.OnRejected = async (ctx, token) =>
         {
             ctx.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            // Let StatusCodePages re-execute into /Home/Error
             await Task.CompletedTask;
         };
 
@@ -176,6 +175,7 @@ try
     builder.Services.AddScoped<IAuditService, AuditService>();
     builder.Services.AddScoped<ICultureService, CultureService>();
     builder.Services.AddScoped<IUiTranslator, UiTranslatorService>();
+    builder.Services.AddScoped<IMembershipService, MembershipService>();
 
     builder.Services.AddControllersWithViews(options =>
     {
@@ -248,7 +248,6 @@ try
 
     var forceHttps = builder.Configuration.GetValue("ForceHttps", false);
 
-    // Custom error pages (always — also useful in Development)
     app.UseExceptionHandler("/Home/Error?statusCode=500");
     app.UseStatusCodePagesWithReExecute("/Home/Error", "?statusCode={0}");
 
