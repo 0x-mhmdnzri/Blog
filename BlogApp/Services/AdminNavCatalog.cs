@@ -11,6 +11,8 @@ public sealed class AdminNavItem
     public required string Icon { get; init; }
     public string? GroupKey { get; init; }
     public bool SuperAdminOnly { get; init; }
+    /// <summary>Visible to any authenticated staff (Author or SuperAdmin).</summary>
+    public bool StaffOnly { get; init; }
     public bool DemoTag { get; init; }
     public bool SuperOnlyTag { get; init; }
     public bool ShowPendingBadge { get; init; }
@@ -39,6 +41,7 @@ public sealed class AdminNavItem
             "users" => string.Equals(controller, "AdminUsers", StringComparison.OrdinalIgnoreCase),
             "audit" => string.Equals(controller, "AdminAudit", StringComparison.OrdinalIgnoreCase),
             "apikeys" => string.Equals(controller, "AdminApiKeys", StringComparison.OrdinalIgnoreCase),
+            "myapikeys" => string.Equals(controller, "AccountApiKeys", StringComparison.OrdinalIgnoreCase),
             "dashboard" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
                            && action is "Index",
             "seo" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
@@ -108,6 +111,11 @@ public static class AdminNavCatalog
             Controller = "Account", Action = "Profile",
             Icon = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" },
 
+        // My API keys + self usage (any staff; readers use public account menu)
+        new() { Key = "myapikeys", GroupKey = "admin.group.account", LabelKey = "admin.nav.my_apikeys",
+            Controller = "AccountApiKeys", Action = "Index",
+            Icon = "M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" },
+
         new() { Key = "users", GroupKey = "admin.group.account", LabelKey = "admin.nav.users",
             Controller = "AdminUsers", Action = "Index", SuperAdminOnly = true,
             Icon = "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
@@ -116,11 +124,12 @@ public static class AdminNavCatalog
             Controller = "Account", Action = "Authors", SuperAdminOnly = true,
             Icon = "M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" },
 
-        // === API Keys (SuperAdmin) — system group ===
+        // Moderate all keys — SuperAdmin only
         new() { Key = "apikeys", GroupKey = "admin.group.system", LabelKey = "admin.nav.apikeys",
             Controller = "AdminApiKeys", Action = "Index", SuperAdminOnly = true,
             Icon = "M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" },
 
+        // تنظیمات سایت — SuperAdmin ONLY (no stub for authors)
         new() { Key = "settings", GroupKey = "admin.group.system", LabelKey = "admin.nav.settings",
             Controller = "AdminSettings", Action = "Index", SuperAdminOnly = true,
             Icon = "M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
@@ -132,23 +141,18 @@ public static class AdminNavCatalog
         new() { Key = "audit", GroupKey = "admin.group.system", LabelKey = "admin.nav.audit",
             Controller = "AdminAudit", Action = "Index", SuperAdminOnly = true,
             Icon = "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" },
-
-        new() { Key = "settings_stub", GroupKey = "admin.group.system", LabelKey = "admin.nav.settings",
-            Controller = "Admin", Action = "Settings", SuperOnlyTag = true,
-            Icon = "M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
     };
 
     public static IEnumerable<AdminNavItem> ForUser(ClaimsPrincipal user)
     {
         var isSuper = AuthorAccess.IsSuperAdmin(user);
+        var isStaff = isSuper || user.IsInRole(Models.AppRoles.Author);
+
         foreach (var item in All)
         {
-            if (item.Key == "settings_stub")
-            {
-                if (!isSuper) yield return item;
-                continue;
-            }
             if (item.SuperAdminOnly && !isSuper) continue;
+            // Staff-only items: require Author or SuperAdmin (admin panel users)
+            if (item.StaffOnly && !isStaff) continue;
             yield return item;
         }
     }

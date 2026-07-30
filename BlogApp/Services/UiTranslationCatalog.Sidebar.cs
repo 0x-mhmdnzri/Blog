@@ -6,5 +6,7 @@ public static partial class UiTranslationCatalog
     {
         ("admin.sidebar_lock", "admin", "قفل سایدبار (نمایش کامل)", "Lock sidebar (full labels)", "تثبيت الشريط (تسميات كاملة)"),
         ("admin.sidebar_unlock", "admin", "جمع‌کردن سایدبار (فقط آیکون)", "Collapse sidebar (icons only)", "طي الشريط (أيقونات فقط)"),
+        ("admin.nav.my_apikeys", "admin", "کلیدهای API من", "My API keys", "مفاتيح API الخاصة بي"),
+        ("admin.nav.apikeys", "admin", "مدیریت API Keys", "API Keys (admin)", "إدارة مفاتيح API"),
     };
 }

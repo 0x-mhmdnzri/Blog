@@ -36,13 +36,34 @@ public static class DbSeeder
             var result = await userManager.CreateAsync(user, adminPass);
             if (result.Succeeded)
             {
+                // SuperAdmin ONLY — not Author/Reader (avoids showing as author in lists)
                 await userManager.AddToRoleAsync(user, AppRoles.SuperAdmin);
-                await userManager.AddToRoleAsync(user, AppRoles.Author);
-                await userManager.AddToRoleAsync(user, AppRoles.Reader);
 
                 await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(AppClaims.CanModerateAllComments, "true"));
                 await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(AppClaims.CanManageAllPosts, "true"));
                 await userManager.AddClaimAsync(user, new System.Security.Claims.Claim(AppClaims.CanViewAllAnalytics, "true"));
+            }
+        }
+        else
+        {
+            // Repair existing seed: SuperAdmin must not also be Author/Reader
+            if (await userManager.IsInRoleAsync(existing, AppRoles.SuperAdmin))
+            {
+                if (await userManager.IsInRoleAsync(existing, AppRoles.Author))
+                    await userManager.RemoveFromRoleAsync(existing, AppRoles.Author);
+                if (await userManager.IsInRoleAsync(existing, AppRoles.Reader))
+                    await userManager.RemoveFromRoleAsync(existing, AppRoles.Reader);
+
+                // Ensure elevated claims exist
+                var claims = await userManager.GetClaimsAsync(existing);
+                async Task EnsureClaim(string type)
+                {
+                    if (claims.All(c => c.Type != type))
+                        await userManager.AddClaimAsync(existing, new System.Security.Claims.Claim(type, "true"));
+                }
+                await EnsureClaim(AppClaims.CanModerateAllComments);
+                await EnsureClaim(AppClaims.CanManageAllPosts);
+                await EnsureClaim(AppClaims.CanViewAllAnalytics);
             }
         }
 
