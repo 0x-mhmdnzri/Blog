@@ -1,9 +1,5 @@
 namespace BlogApp.Models.ViewModels;
 
-/// <summary>
-/// Deep visitor / behavior analytics (AdminAnalytics).
-/// Distinct from AdminDashboardViewModel which is operational CMS health.
-/// </summary>
 public class AnalyticsDashboardViewModel
 {
     public int RangeDays { get; set; }
@@ -11,13 +7,8 @@ public class AnalyticsDashboardViewModel
     public int UniqueVisitors { get; set; }
     public double BounceRatePercent { get; set; }
     public double AvgReadingSeconds { get; set; }
-
-    /// <summary>Views per unique visitor in range.</summary>
     public double ViewsPerVisitor { get; set; }
-
-    /// <summary>Share of range views that are returning visitors (seen before range).</summary>
     public double ReturningVisitorPercent { get; set; }
-
     public int SessionCount { get; set; }
     public int HeatmapClickCount { get; set; }
     public int SearchQueryCount { get; set; }
@@ -37,6 +28,9 @@ public class AnalyticsDashboardViewModel
     public int? HeatmapPostId { get; set; }
     public string? HeatmapPostTitle { get; set; }
     public List<(int Id, string Title)> HeatmapPostOptions { get; set; } = new();
+
+    /// <summary>SuperAdmin only — API usage panel embedded on main dashboard.</summary>
+    public ApiAnalyticsPanel? Api { get; set; }
 }
 
 public class HeatmapPoint

@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BlogApp.Controllers;
 
 [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
-public class AdminAnalyticsController : Controller
+public partial class AdminAnalyticsController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly IUiTranslator _t;
@@ -137,6 +137,13 @@ public class AdminAnalyticsController : Controller
             : await _db.HeatmapClicks.AsNoTracking()
                 .CountAsync(h => h.ClickedAtUtc >= rangeStart && myPostIds.Contains(h.PostId));
 
+        ApiAnalyticsPanel? apiPanel = null;
+        if (AuthorAccess.IsSuperAdmin(User))
+        {
+            try { apiPanel = await BuildApiPanelAsync(range); }
+            catch { /* table may not exist yet on first boot */ }
+        }
+
         ViewData["Title"] = "Analytics";
         return View(new AnalyticsDashboardViewModel
         {
@@ -160,7 +167,8 @@ public class AdminAnalyticsController : Controller
             Referrers = Group(views.Select(v => v.ReferrerHost)),
             SearchKeywords = searchKw,
             PopularPosts = popular,
-            TrendingPosts = trendingPosts
+            TrendingPosts = trendingPosts,
+            Api = apiPanel
         });
     }
 
@@ -230,7 +238,7 @@ public class AdminAnalyticsController : Controller
                 (4, false) => query.OrderByDescending(p => p.CreatedAtUtc),
                 _ => query.OrderByDescending(p => p.ViewCount)
             };
-            page = await query.Skip(req.Start).Take(req.Length).ToListAsync();
+            page = await query.Skip(req.Start).Take(req.Length).ToList();
         }
 
         var openLabel = System.Net.WebUtility.HtmlEncode(_t["ana.heatmap_open"]);

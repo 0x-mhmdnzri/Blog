@@ -38,8 +38,3 @@ public class ApiAnalyticsPanel
     public List<ApiEndpointUsageRow> TopEndpoints { get; set; } = new();
     public List<NamedCount> StatusCodes { get; set; } = new();
 }
-
-public partial class AnalyticsDashboardViewModel
-{
-    public ApiAnalyticsPanel? Api { get; set; }
-}
