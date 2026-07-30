@@ -1,0 +1,80 @@
+@{
+    ViewData["Title"] = "پروژه‌ها";
+}
+<section class="persona-hero">
+    <div class="container" style="max-width:900px;">
+        <div class="persona-kicker">$ ls ./projects</div>
+        <h1 class="persona-title" dir="auto">پروژه‌های منتخب</h1>
+        <p class="persona-lead" dir="auto">
+            نمونه‌هایی از پلتفرم API، کیف پول، IAM و الگوهای پیام‌رسانی — جزئیات بیشتر در وبلاگ.
+        </p>
+        <div class="persona-cta">
+            <a class="btn btn-accent" asp-controller="Home" asp-action="Index">خواندن در وبلاگ</a>
+            <a class="btn btn-ghost" href="https://github.com/0x-mhmdnzri" target="_blank" rel="noopener">GitHub</a>
+        </div>
+    </div>
+</section>
+
+<div class="container py-5">
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="skill-card project-card h-100">
+                <h3 dir="auto">Artix.API</h3>
+                <p dir="auto">پلتفرم API با Clean Architecture، DDD، CQRS، Docker و GitHub Actions.</p>
+                <div class="project-tags">
+                    <span class="tag-pill">.NET</span><span class="tag-pill">DDD</span><span class="tag-pill">CQRS</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="skill-card project-card h-100">
+                <h3 dir="auto">Wallet</h3>
+                <p dir="auto">کیف پول دیجیتال با Redis caching و locking برای یکپارچگی تراکنش.</p>
+                <div class="project-tags">
+                    <span class="tag-pill">Redis</span><span class="tag-pill">Payments</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="skill-card project-card h-100">
+                <h3 dir="auto">IDPServer</h3>
+                <p dir="auto">IAM با IdentityServer، OAuth2/OIDC برای SSO و مجوزدهی API.</p>
+                <div class="project-tags">
+                    <span class="tag-pill">IdentityServer</span><span class="tag-pill">OAuth2</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="skill-card project-card h-100">
+                <h3 dir="auto">RabbitMQ Patterns</h3>
+                <p dir="auto">Work Queues، Pub/Sub، Routing، Topics، RPC با Publisher Confirms.</p>
+                <div class="project-tags">
+                    <span class="tag-pill">RabbitMQ</span><span class="tag-pill">EDA</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="skill-card project-card h-100">
+                <h3 dir="auto">File-Uploader</h3>
+                <p dir="auto">آپلود ناهمزمان مقیاس‌پذیر با background jobs.</p>
+                <div class="project-tags">
+                    <span class="tag-pill">Async</span><span class="tag-pill">Jobs</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="skill-card project-card h-100">
+                <h3 dir="auto">این وبلاگ (Blog CMS)</h3>
+                <p dir="auto">CMS فارسی با RTL، JSON-LD، رسانه، نظرات و UX — نمونه زنده ASP.NET Core.</p>
+                <div class="project-tags">
+                    <span class="tag-pill">ASP.NET Core</span><span class="tag-pill">SEO</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5 card-surface p-4 text-center">
+        <p class="mb-3" dir="auto">می‌خواهید پشت صحنه معماری را بخوانید؟</p>
+        <a class="btn btn-accent" asp-controller="Home" asp-action="Index">ورود به وبلاگ</a>
+    </div>
+</div>

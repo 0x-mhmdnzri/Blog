@@ -1,0 +1,78 @@
+@{
+    ViewData["Title"] = "خدمات";
+}
+<section class="persona-hero">
+    <div class="container" style="max-width:900px;">
+        <div class="persona-kicker">$ ./services --list</div>
+        <h1 class="persona-title" dir="auto">خدمات بک‌اند و معماری</h1>
+        <p class="persona-lead" dir="auto">
+            از ایده تا استقرار: طراحی دامنه، API، پیام‌رسانی، کش توزیع‌شده و خطوط CI/CD برای محصولات واقعی.
+        </p>
+        <div class="persona-cta">
+            <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">درخواست مشاوره</a>
+            <a class="btn btn-ghost" asp-controller="Home" asp-action="Index">مطالعه تجربه‌ها در وبلاگ</a>
+        </div>
+    </div>
+</section>
+
+<div class="container py-5">
+    <div class="skill-grid">
+        <div class="skill-card">
+            <h3 dir="auto">معماری و دامنه</h3>
+            <p dir="auto">Clean Architecture، DDD، CQRS، Modular Monolith و مرزبندی bounded context.</p>
+        </div>
+        <div class="skill-card">
+            <h3 dir="auto">پرداخت و FinTech</h3>
+            <p dir="auto">موتور پردازش پرداخت، idempotency با Redis lock، تسویه و جلوگیری از race condition.</p>
+        </div>
+        <div class="skill-card">
+            <h3 dir="auto">پیام‌رسانی</h3>
+            <p dir="auto">RabbitMQ: Work Queues، Pub/Sub، Routing، Topics، RPC و Publisher Confirms.</p>
+        </div>
+        <div class="skill-card">
+            <h3 dir="auto">زمان واقعی</h3>
+            <p dir="auto">SignalR برای نوتیفیکیشن لحظه‌ای داشبوردها و وضعیت تراکنش‌ها.</p>
+        </div>
+        <div class="skill-card">
+            <h3 dir="auto">امنیت و هویت</h3>
+            <p dir="auto">OAuth2، OpenID Connect، JWT، IdentityServer و SSO.</p>
+        </div>
+        <div class="skill-card">
+            <h3 dir="auto">DevOps</h3>
+            <p dir="auto">Docker multi-stage، GitHub Actions CI/CD، بهینه‌سازی EF Core.</p>
+        </div>
+    </div>
+
+    <h2 class="section-title mt-5" dir="auto">مسیر همکاری پیشنهادی</h2>
+    <p class="section-sub" dir="auto">نقشهٔ ساده برای مشتریانی که از آشنایی تا تحویل پیش می‌روند.</p>
+    <div class="roadmap">
+        <div class="roadmap-step">
+            <div class="roadmap-num">1</div>
+            <div>
+                <strong dir="auto">آشنایی با دامنه</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">از صفحه درباره و پروژه‌ها شروع کنید.</p>
+            </div>
+        </div>
+        <div class="roadmap-step">
+            <div class="roadmap-num">2</div>
+            <div>
+                <strong dir="auto">مطالعه نوشتارهای فنی</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">در <a asp-controller="Home" asp-action="Index">وبلاگ</a> معماری و درس‌آموخته‌ها را ببینید.</p>
+            </div>
+        </div>
+        <div class="roadmap-step">
+            <div class="roadmap-num">3</div>
+            <div>
+                <strong dir="auto">تماس و اسکوپ</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">از صفحه <a asp-controller="Pages" asp-action="Contact">تماس</a> موضوع را مطرح کنید.</p>
+            </div>
+        </div>
+        <div class="roadmap-step">
+            <div class="roadmap-num">4</div>
+            <div>
+                <strong dir="auto">تحویل تکراری</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">طراحی، پیاده‌سازی، تست و استقرار با بازخورد کوتاه‌چرخه.</p>
+            </div>
+        </div>
+    </div>
+</div>

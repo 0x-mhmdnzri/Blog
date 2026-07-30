@@ -1,0 +1,72 @@
+@{
+    ViewData["Title"] = "درباره من";
+}
+<section class="persona-hero">
+    <div class="container" style="max-width:820px;">
+        <div class="persona-kicker">$ whoami</div>
+        <h1 class="persona-title" dir="auto">محمد نظری</h1>
+        <p class="persona-lead" dir="auto">
+            Senior .NET Backend Engineer با بیش از ۶ سال تجربه در طراحی سیستم‌های توزیع‌شده برای FinTech، ERP و HealthTech.
+            تخصص در Clean Architecture، Domain-Driven Design، CQRS، Event-Driven Architecture و Microservices.
+        </p>
+        <div class="persona-cta">
+            <a class="btn btn-accent" asp-controller="Home" asp-action="Index">مطالعه وبلاگ</a>
+            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Contact">همکاری</a>
+            <a class="btn btn-ghost" href="https://github.com/0x-mhmdnzri" target="_blank" rel="noopener">GitHub</a>
+        </div>
+    </div>
+</section>
+
+<div class="container py-5" style="max-width:820px;">
+    <h2 class="section-title" dir="auto">مسیر حرفه‌ای</h2>
+    <p class="section-sub" dir="auto">از درگاه‌های پرداخت و ERP تا زیرساخت نوتیفیکیشن لحظه‌ای.</p>
+
+    <div class="timeline-item">
+        <div class="timeline-role" dir="auto">Software Engineer — Dr. Link Psychological Clinics</div>
+        <div class="timeline-meta">May 2025 – Present · Tehran</div>
+        <p class="text-muted-dark small mb-0" dir="auto">
+            موتور پرداخت با Clean Architecture و CQRS/MediatR، Redis distributed lock، RabbitMQ با Publisher Confirms،
+            SignalR برای داشبورد لحظه‌ای، Docker و GitHub Actions CI/CD.
+        </p>
+    </div>
+    <div class="timeline-item">
+        <div class="timeline-role" dir="auto">Backend Developer — SAAP / سامانه اندیشمند پگاه</div>
+        <div class="timeline-meta">Jan 2024 – Dec 2024 · Tehran</div>
+        <p class="text-muted-dark small mb-0" dir="auto">
+            پلتفرم ERP توزیع و فروش؛ Modular Monolith + DDD، CQRS برای audit trail،
+            همگام‌سازی انبار با RabbitMQ Topic و بهینه‌سازی EF Core.
+        </p>
+    </div>
+    <div class="timeline-item">
+        <div class="timeline-role" dir="auto">Full Stack Engineer — SepandPay (PSP Gateway)</div>
+        <div class="timeline-meta">Mar 2022 – Jul 2023 · Tehran</div>
+        <p class="text-muted-dark small mb-0" dir="auto">
+            سیستم مدیریت پذیرنده چندمستأجری، schema جدا per tenant، SSO با OAuth2/OIDC و Redis برای idempotency.
+        </p>
+    </div>
+    <div class="timeline-item">
+        <div class="timeline-role" dir="auto">Founder — NILL</div>
+        <div class="timeline-meta">Apr 2022 – Present</div>
+        <p class="text-muted-dark small mb-0" dir="auto">مشاوره و تحویل راه‌حل‌های توزیع‌شده برای استارتاپ‌ها و سازمان‌ها.</p>
+    </div>
+    <div class="timeline-item">
+        <div class="timeline-role" dir="auto">Instructor — ICT Training Center</div>
+        <div class="timeline-meta">Nov 2025 – Apr 2026</div>
+        <p class="text-muted-dark small mb-0" dir="auto">آموزش معماری .NET، DDD، Microservices و بهترین شیوه‌های مدرن C#.</p>
+    </div>
+
+    <h2 class="section-title mt-5" dir="auto">تحصیلات</h2>
+    <div class="timeline-item">
+        <div class="timeline-role" dir="auto">کارشناسی ارشد — Network and System Administration</div>
+        <div class="timeline-meta">Islamic Azad University · Aug 2024</div>
+    </div>
+    <div class="timeline-item">
+        <div class="timeline-role" dir="auto">کارشناسی — Computer Software Engineering</div>
+        <div class="timeline-meta">Semnan University · 2019 – 2024</div>
+    </div>
+
+    <div class="mt-5 d-flex flex-wrap gap-2">
+        <a class="btn btn-accent" asp-controller="Pages" asp-action="Services">خدمات برای مشتریان</a>
+        <a class="btn btn-ghost" asp-controller="Home" asp-action="Index">نوشته‌های فنی در وبلاگ</a>
+    </div>
+</div>
