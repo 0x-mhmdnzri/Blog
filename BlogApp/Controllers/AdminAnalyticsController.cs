@@ -8,10 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
-/// <summary>
-/// Deep visitor analytics (traffic, devices, geo, search, heatmap, engagement).
-/// Operational CMS metrics stay on Admin/Index dashboard.
-/// </summary>
 [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
 public class AdminAnalyticsController : Controller
 {
@@ -116,7 +112,7 @@ public class AdminAnalyticsController : Controller
             trendingPosts.Add(new TopPostItem
             {
                 Title = p.Title,
-               Slug = p.Slug,
+                Slug = p.Slug,
                 Views = p.ViewCount,
                 RangeViews = t.C
             });
@@ -146,7 +142,6 @@ public class AdminAnalyticsController : Controller
             .Take(15)
             .ToList();
 
-        // Total heatmap clicks across scoped posts in range (summary only)
         var heatmapClicks = myPostIds.Count == 0
             ? 0
             : await _db.HeatmapClicks.AsNoTracking()
@@ -179,7 +174,6 @@ public class AdminAnalyticsController : Controller
         });
     }
 
-    /// <summary>Posts table — pick one to open its click heatmap.</summary>
     [HttpGet]
     public IActionResult Heatmaps()
     {
@@ -208,28 +202,18 @@ public class AdminAnalyticsController : Controller
 
         var filtered = await query.CountAsync();
 
-        // Pre-aggregate click counts (all time) for scoped posts
         var postIds = await query.Select(p => p.Id).ToListAsync();
-        var clickMap = await _db.HeatmapClicks.AsNoTracking()
-            .Where(h => postIds.Contains(h.PostId))
-            .GroupBy(h => h.PostId)
-            .Select(g => new { PostId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.PostId, x => x.Count);
+        var clickMap = postIds.Count == 0
+            ? new Dictionary<int, int>()
+            : await _db.HeatmapClicks.AsNoTracking()
+                .Where(h => postIds.Contains(h.PostId))
+                .GroupBy(h => h.PostId)
+                .Select(g => new { PostId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.PostId, x => x.Count);
 
-        query = (req.OrderColumn, req.Asc) switch
-        {
-            (1, true) => query.OrderBy(p => p.Title),
-            (1, false) => query.OrderByDescending(p => p.Title),
-            (2, true) => query.OrderBy(p => p.ViewCount),
-            (2, false) => query.OrderByDescending(p => p.ViewCount),
-            (3, true) => query.OrderBy(p => p.CreatedAtUtc),
-            (3, false) => query.OrderByDescending(p => p.CreatedAtUtc),
-            _ => query.OrderByDescending(p => p.ViewCount)
-        };
-
-        // Click-count sort needs client order after materialize for SQLite simplicity
+        // Columns: 0 idx, 1 title, 2 views, 3 clicks, 4 date, 5 actions
         List<Post> page;
-        if (req.OrderColumn == 4)
+        if (req.OrderColumn == 3)
         {
             var all = await query.ToListAsync();
             all = req.Asc
@@ -239,6 +223,16 @@ public class AdminAnalyticsController : Controller
         }
         else
         {
+            query = (req.OrderColumn, req.Asc) switch
+            {
+                (1, true) => query.OrderBy(p => p.Title),
+                (1, false) => query.OrderByDescending(p => p.Title),
+                (2, true) => query.OrderBy(p => p.ViewCount),
+                (2, false) => query.OrderByDescending(p => p.ViewCount),
+                (4, true) => query.OrderBy(p => p.CreatedAtUtc),
+                (4, false) => query.OrderByDescending(p => p.CreatedAtUtc),
+                _ => query.OrderByDescending(p => p.ViewCount)
+            };
             page = await query.Skip(req.Start).Take(req.Length).ToListAsync();
         }
 
@@ -246,10 +240,11 @@ public class AdminAnalyticsController : Controller
         var rows = page.Select((p, i) =>
         {
             var clicks = clickMap.GetValueOrDefault(p.Id);
+            var detailUrl = Url.Action("Heatmap", new { id = p.Id }) ?? "#";
             var titleHtml =
-                $"<a href=\"{Url.Action("Heatmap", new { id = p.Id })?}\" dir=\"auto\">{System.Net.WebUtility.HtmlEncode(p.Title)}</a>";
+                $"<a href=\"{detailUrl}\" dir=\"auto\">{System.Net.WebUtility.HtmlEncode(p.Title)}</a>";
             var actionHtml =
-                $"<a class=\"icon-btn\" href=\"{Url.Action("Heatmap", new { id = p.Id })?}\">{openLabel}</a>";
+                $"<a class=\"icon-btn\" href=\"{detailUrl}\">{openLabel}</a>";
             return new object[]
             {
                 req.Start + i + 1,
@@ -264,11 +259,10 @@ public class AdminAnalyticsController : Controller
         return Json(DataTablesResponse.Ok(req.Draw, total, filtered, rows));
     }
 
-    /// <summary>Click heatmap for a single post.</summary>
     [HttpGet]
     public async Task<IActionResult> Heatmap(int id, int range = 30)
     {
-        if (range is not (7 or 30 or 90 or 0)) range = 30; // 0 = all time
+        if (range is not (7 or 30 or 90 or 0)) range = 30;
 
         var userId = AuthorAccess.UserId(User)!;
         var seeAll = AuthorAccess.CanViewAllAnalytics(User);
