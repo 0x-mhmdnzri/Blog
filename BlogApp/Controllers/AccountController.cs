@@ -10,23 +10,26 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
-public class AccountController : Controller
+public partial class AccountController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ApplicationDbContext _db;
     private readonly ILogger<AccountController> _logger;
+    private readonly IConfiguration _config;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         ApplicationDbContext db,
-        ILogger<AccountController> logger)
+        ILogger<AccountController> logger,
+        IConfiguration config)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _db = db;
         _logger = logger;
+        _config = config;
     }
 
     [HttpGet]
@@ -34,6 +37,8 @@ public class AccountController : Controller
     public IActionResult Login(string? returnUrl = null)
     {
         ViewBag.ReturnUrl = SanitizeReturnUrl(returnUrl);
+        ViewBag.GoogleLoginEnabled = !string.IsNullOrWhiteSpace(_config["Authentication:Google:ClientId"]);
+        ViewBag.GitHubLoginEnabled = !string.IsNullOrWhiteSpace(_config["Authentication:GitHub:ClientId"]);
         return View();
     }
 
@@ -43,6 +48,8 @@ public class AccountController : Controller
     {
         returnUrl = SanitizeReturnUrl(returnUrl);
         username = (username ?? string.Empty).Trim();
+        ViewBag.GoogleLoginEnabled = !string.IsNullOrWhiteSpace(_config["Authentication:Google:ClientId"]);
+        ViewBag.GitHubLoginEnabled = !string.IsNullOrWhiteSpace(_config["Authentication:GitHub:ClientId"]);
 
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || password.Length > 256)
         {
