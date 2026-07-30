@@ -38,6 +38,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ContentReport> ContentReports => Set<ContentReport>();
     public DbSet<UiTranslation> UiTranslations => Set<UiTranslation>();
+    public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+    public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
+    public DbSet<Donation> Donations => Set<Donation>();
+    public DbSet<Advertisement> Advertisements => Set<Advertisement>();
+    public DbSet<AffiliateLink> AffiliateLinks => Set<AffiliateLink>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,6 +63,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(p => p.ScheduledPublishAtUtc);
             e.HasIndex(p => p.IsFeatured);
             e.HasIndex(p => p.IsSticky);
+            e.HasIndex(p => p.IsPremium);
         });
 
         modelBuilder.Entity<Category>(e =>
@@ -239,6 +245,39 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(t => t.LanguageCode);
             e.HasIndex(t => t.Group);
             e.Property(t => t.Value).HasColumnType("TEXT");
+        });
+
+        modelBuilder.Entity<SubscriptionPlan>(e =>
+        {
+            e.HasIndex(p => p.Code).IsUnique();
+            e.Property(p => p.Price).HasColumnType("TEXT");
+        });
+
+        modelBuilder.Entity<UserSubscription>(e =>
+        {
+            e.HasOne(s => s.Plan).WithMany(p => p.Subscriptions).HasForeignKey(s => s.PlanId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(s => s.UserId);
+            e.HasIndex(s => s.Status);
+        });
+
+        modelBuilder.Entity<Donation>(e =>
+        {
+            e.Property(d => d.Amount).HasColumnType("TEXT");
+            e.HasIndex(d => d.Status);
+            e.HasIndex(d => d.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<Advertisement>(e =>
+        {
+            e.Property(a => a.HtmlContent).HasColumnType("TEXT");
+            e.HasIndex(a => a.IsActive);
+            e.HasIndex(a => a.Placement);
+        });
+
+        modelBuilder.Entity<AffiliateLink>(e =>
+        {
+            e.HasIndex(a => a.Code).IsUnique();
+            e.HasIndex(a => a.IsActive);
         });
 
         modelBuilder.Entity<ApplicationUser>(e =>
