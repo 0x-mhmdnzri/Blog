@@ -1,0 +1,104 @@
+@model IEnumerable<BlogApp.Models.ApiKey>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "مدیریت API Keys";
+}
+<div class="container-fluid py-3">
+    <h1 class="h5 mb-3">API Keys — نظارت سوپرادمین</h1>
+    @if (TempData["Msg"] != null)
+    {
+        <div class="card-surface p-2 px-3 mb-3 small">@TempData["Msg"]</div>
+    }
+    <form method="get" class="d-flex flex-wrap gap-2 mb-3">
+        <input class="form-control form-control-sm" style="max-width:14rem;" name="q" value="@ViewBag.Q" placeholder="جست‌وجو…" />
+        <select class="form-select form-select-sm" style="max-width:9rem;" name="status">
+            <option value="">همه</option>
+            <option value="active" selected="@(ViewBag.Status == "active")">فعال</option>
+            <option value="disabled" selected="@(ViewBag.Status == "disabled")">غیرفعال</option>
+            <option value="banned" selected="@(ViewBag.Status == "banned")">بن</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" type="submit">فیلتر</button>
+    </form>
+
+    <div class="table-responsive card-surface">
+        <table class="table table-sm mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>کاربر</th>
+                    <th>نام</th>
+                    <th class="ltr-field">Prefix</th>
+                    <th>Scopes</th>
+                    <th class="ltr-field">Req / Strikes</th>
+                    <th>وضعیت</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var k in Model)
+            {
+                <tr>
+                    <td class="ltr-field small">@(k.User?.UserName ?? k.UserId)</td>
+                    <td>@k.Name</td>
+                    <td class="ltr-field small">@k.KeyPrefix…</td>
+                    <td class="ltr-field small">@k.Scopes</td>
+                    <td class="ltr-field small">@k.RequestCount / @k.AbuseStrikeCount</td>
+                    <td class="small">
+                        @if (k.IsBanned)
+                        {
+                            <span class="status-pill expired" title="@k.BanReason">بن</span>
+                        }
+                        else if (!k.IsActive)
+                        {
+                            <span class="text-muted-dark">خاموش</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill featured">فعال</span>
+                        }
+                    </td>
+                    <td class="text-end text-nowrap">
+                        @if (k.IsBanned)
+                        {
+                            <form asp-action="Unban" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@k.Id" />
+                                <button class="btn btn-ghost btn-sm" type="submit">رفع بن</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-action="Ban" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@k.Id" />
+                                <input type="hidden" name="reason" value="Manual ban" />
+                                <button class="btn btn-outline-danger-dark btn-sm" type="submit">بن</button>
+                            </form>
+                            @if (k.IsActive)
+                            {
+                                <form asp-action="Disable" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@k.Id" />
+                                    <button class="btn btn-ghost btn-sm" type="submit">خاموش</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="Enable" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@k.Id" />
+                                    <button class="btn btn-ghost btn-sm" type="submit">روشن</button>
+                                </form>
+                            }
+                        }
+                        <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('حذف دائمی؟');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@k.Id" />
+                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

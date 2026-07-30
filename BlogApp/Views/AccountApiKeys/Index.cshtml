@@ -1,0 +1,96 @@
+@model IEnumerable<BlogApp.Models.ApiKey>
+@{
+    ViewData["Title"] = "کلیدهای API";
+    var newToken = TempData["NewToken"] as string;
+}
+<div class="container py-4" style="max-width:820px;">
+    <h1 class="h4 mb-3">کلیدهای دسترسی شخصی (PAT)</h1>
+    <p class="text-muted-dark small mb-4">
+        مانند GitHub PAT — برای فراخوانی <code class="ltr-field">/api/v1</code> از هدر
+        <code class="ltr-field">X-Api-Key</code> یا <code class="ltr-field">Authorization: Bearer</code> استفاده کنید.
+        مستندات: <a class="ltr-field" href="/api/docs">/api/docs</a>
+    </p>
+
+    @if (TempData["Msg"] != null)
+    {
+        <div class="card-surface p-3 mb-3 small">@TempData["Msg"]</div>
+    }
+    @if (TempData["Err"] != null)
+    {
+        <div class="card-surface p-3 mb-3 small" style="border-color:var(--danger);">@TempData["Err"]</div>
+    }
+    @if (!string.IsNullOrEmpty(newToken))
+    {
+        <div class="card-surface p-3 mb-4">
+            <div class="small text-muted-dark mb-1">توکن (فقط همین‌بار):</div>
+            <code class="ltr-field" style="word-break:break-all;font-size:.9rem;">@newToken</code>
+        </div>
+    }
+
+    <form asp-action="Create" method="post" class="card-surface p-3 mb-4">
+        @Html.AntiForgeryToken()
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small">نام</label>
+                <input class="form-control form-control-sm" name="name" required maxlength="120" placeholder="مثلاً CI / script" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small">Scopes</label>
+                <input class="form-control form-control-sm ltr-field" name="scopes" value="read" placeholder="read,write,webhooks" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">انقضا (روز)</label>
+                <input class="form-control form-control-sm ltr-field" name="expiresInDays" type="number" min="1" max="3650" placeholder="—" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-accent btn-sm w-100">ایجاد</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="table-responsive card-surface">
+        <table class="table table-sm mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>نام</th>
+                    <th class="ltr-field">Prefix</th>
+                    <th>Scopes</th>
+                    <th>وضعیت</th>
+                    <th class="ltr-field">Requests</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var k in Model)
+            {
+                <tr>
+                    <td>@k.Name</td>
+                    <td class="ltr-field small">@k.KeyPrefix…</td>
+                    <td class="ltr-field small">@k.Scopes</td>
+                    <td class="small">
+                        @if (k.IsBanned) { <span class="status-pill expired">بن</span> }
+                        else if (!k.IsActive) { <span class="text-muted-dark">باطل</span> }
+                        else { <span class="status-pill featured">فعال</span> }
+                    </td>
+                    <td class="ltr-field small">@k.RequestCount</td>
+                    <td class="text-end">
+                        @if (k.IsActive && !k.IsBanned)
+                        {
+                            <form asp-action="Revoke" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@k.Id" />
+                                <button class="btn btn-ghost btn-sm" type="submit">باطل</button>
+                            </form>
+                        }
+                        <form asp-action="Delete" method="post" class="d-inline" onsubmit="return confirm('حذف؟');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@k.Id" />
+                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

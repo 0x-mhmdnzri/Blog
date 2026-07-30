@@ -44,14 +44,14 @@ public class CommentsApiController : ControllerBase
             AuthorName = dto.AuthorName.Trim(),
             Body = dto.Body.Trim(),
             CreatedAtUtc = DateTime.UtcNow,
-            IsApproved = false
+            Status = CommentStatus.Pending
         };
 
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
         _db.Comments.Add(comment);
         await _db.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(Create), new ApiCommentDto(
+        return Created($"/api/v1/comments/{comment.Id}", new ApiCommentDto(
             comment.Id, comment.PostId, comment.AuthorName, comment.Body, comment.CreatedAtUtc, comment.LikeCount));
     }
 

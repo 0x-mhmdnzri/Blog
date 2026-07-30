@@ -3,7 +3,6 @@ using BlogApp.Api.Auth;
 using BlogApp.Api.Validation;
 using BlogApp.Data;
 using BlogApp.Models;
-using BlogApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,10 +10,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Api.Controllers;
 
-/// <summary>
-/// Minimal GraphQL-compatible endpoint (posts query) without heavy runtime deps.
-/// Supports: { posts(limit: N) { id title slug summary } } and { post(slug: "...") { ... } }
-/// </summary>
 [ApiController]
 [Route("api/graphql")]
 [EnableRateLimiting("api")]
@@ -22,12 +17,12 @@ namespace BlogApp.Api.Controllers;
 public class GraphQlController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
-    private readonly SeoService _seo;
+    private readonly IConfiguration _config;
 
-    public GraphQlController(ApplicationDbContext db, SeoService seo)
+    public GraphQlController(ApplicationDbContext db, IConfiguration config)
     {
         _db = db;
-        _seo = seo;
+        _config = config;
     }
 
     public record GqlRequest(string? Query, Dictionary<string, JsonElement>? Variables);
@@ -43,69 +38,58 @@ public class GraphQlController : ControllerBase
         if (query.Length is 0 or > 4000)
             return BadRequest(new { errors = new[] { new { message = "Invalid query" } } });
 
-        // Reject introspection amplification / injection markers
         if (query.Contains("__schema", StringComparison.OrdinalIgnoreCase)
             || query.Contains("mutation", StringComparison.OrdinalIgnoreCase)
-            || query.Contains("<", StringComparison.Ordinal))
+            || query.Contains('<'))
             return BadRequest(new { errors = new[] { new { message = "Query not allowed" } } });
 
-        try
+        var baseUrl = (_config["Seo:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}").TrimEnd('/');
+
+        if (query.Contains("posts", StringComparison.OrdinalIgnoreCase)
+            && !query.Contains("post(", StringComparison.OrdinalIgnoreCase))
         {
-            if (query.Contains("posts", StringComparison.OrdinalIgnoreCase)
-                && !query.Contains("post(", StringComparison.OrdinalIgnoreCase))
-            {
-                var limit = ExtractIntArg(query, "limit", 10);
-                limit = Math.Clamp(limit, 1, 50);
-                var baseUrl = _seo.BaseUrl.TrimEnd('/');
-                var items = await _db.Posts.AsNoTracking()
-                    .Where(p => !p.IsDeleted && p.IsPublished)
-                    .OrderByDescending(p => p.PublishedAtUtc)
-                    .Take(limit)
-                    .Select(p => new
-                    {
-                        id = p.Id,
-                        title = p.Title,
-                        slug = p.Slug,
-                        summary = p.Summary,
-                        publishedAtUtc = p.PublishedAtUtc,
-                        url = baseUrl + "/" + p.LanguageCode + "/post/" + p.Slug
-                    })
-                    .ToListAsync();
-                return Ok(new { data = new { posts = items } });
-            }
-
-            if (query.Contains("post(", StringComparison.OrdinalIgnoreCase))
-            {
-                var slug = ExtractStringArg(query, "slug");
-                slug = InputSanitizer.Clamp(slug, 200);
-                if (string.IsNullOrEmpty(slug) || !InputSanitizer.IsSafePlainText(slug))
-                    return BadRequest(new { errors = new[] { new { message = "Invalid slug" } } });
-
-                var p = await _db.Posts.AsNoTracking()
-                    .Where(x => !x.IsDeleted && x.IsPublished && x.Slug == slug)
-                    .Select(x => new
-                    {
-                        id = x.Id,
-                        title = x.Title,
-                        slug = x.Slug,
-                        summary = x.Summary,
-                        contentMarkdown = x.ContentMarkdown,
-                        publishedAtUtc = x.PublishedAtUtc
-                    })
-                    .FirstOrDefaultAsync();
-
-                if (p is null)
-                    return Ok(new { data = new { post = (object?)null } });
-
-                return Ok(new { data = new { post = p } });
-            }
-
-            return BadRequest(new { errors = new[] { new { message = "Unsupported query. Use posts or post(slug)." } } });
+            var limit = ExtractIntArg(query, "limit", 10);
+            limit = Math.Clamp(limit, 1, 50);
+            var items = await _db.Posts.AsNoTracking()
+                .Where(p => !p.IsDeleted && p.IsPublished)
+                .OrderByDescending(p => p.PublishedAtUtc)
+                .Take(limit)
+                .Select(p => new
+                {
+                    id = p.Id,
+                    title = p.Title,
+                    slug = p.Slug,
+                    summary = p.Summary,
+                    publishedAtUtc = p.PublishedAtUtc,
+                    url = baseUrl + "/" + p.LanguageCode + "/post/" + p.Slug
+                })
+                .ToListAsync();
+            return Ok(new { data = new { posts = items } });
         }
-        catch (Exception ex)
+
+        if (query.Contains("post(", StringComparison.OrdinalIgnoreCase))
         {
-            return StatusCode(500, new { errors = new[] { new { message = "Server error", detail = ex.Message } } });
+            var slug = InputSanitizer.Clamp(ExtractStringArg(query, "slug"), 200);
+            if (string.IsNullOrEmpty(slug) || !InputSanitizer.IsSafePlainText(slug))
+                return BadRequest(new { errors = new[] { new { message = "Invalid slug" } } });
+
+            var p = await _db.Posts.AsNoTracking()
+                .Where(x => !x.IsDeleted && x.IsPublished && x.Slug == slug)
+                .Select(x => new
+                {
+                    id = x.Id,
+                    title = x.Title,
+                    slug = x.Slug,
+                    summary = x.Summary,
+                    contentMarkdown = x.ContentMarkdown,
+                    publishedAtUtc = x.PublishedAtUtc
+                })
+                .FirstOrDefaultAsync();
+
+            return Ok(new { data = new { post = p } });
         }
+
+        return BadRequest(new { errors = new[] { new { message = "Unsupported query. Use posts or post(slug)." } } });
     }
 
     private static int ExtractIntArg(string query, string name, int fallback)

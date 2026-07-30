@@ -4,7 +4,6 @@ using BlogApp.Api.Validation;
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Services;
-using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -19,12 +18,12 @@ namespace BlogApp.Api.Controllers;
 public class PostsApiController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
-    private readonly SeoService _seo;
+    private readonly IConfiguration _config;
 
-    public PostsApiController(ApplicationDbContext db, SeoService seo)
+    public PostsApiController(ApplicationDbContext db, IConfiguration config)
     {
         _db = db;
-        _seo = seo;
+        _config = config;
     }
 
     [HttpGet]
@@ -69,7 +68,7 @@ public class PostsApiController : ControllerBase
             query = query.Where(p => p.Title.Contains(q) || (p.Summary != null && p.Summary.Contains(q)));
 
         var total = await query.CountAsync();
-        var baseUrl = _seo.BaseUrl.TrimEnd('/');
+        var baseUrl = (_config["Seo:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}").TrimEnd('/');
 
         var items = await query
             .OrderByDescending(p => p.PublishedAtUtc)
@@ -111,7 +110,7 @@ public class PostsApiController : ControllerBase
         var p = await q.FirstOrDefaultAsync();
         if (p is null) return NotFound(new ApiErrorDto("Post not found"));
 
-        var baseUrl = _seo.BaseUrl.TrimEnd('/');
+        var baseUrl = (_config["Seo:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}").TrimEnd('/');
         return Ok(new ApiPostDetailDto(
             p.Id, p.Title, p.Slug, p.Summary, p.ContentMarkdown,
             p.Category?.Name,
