@@ -16,12 +16,15 @@ public static partial class SchemaBootstrap
                 "LinkUrl" TEXT NULL,
                 "IsRead" INTEGER NOT NULL,
                 "CreatedAtUtc" TEXT NOT NULL,
+                "CampaignId" INTEGER NULL,
                 CONSTRAINT "FK_AppNotifications_AspNetUsers_UserId"
                     FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE
             );
             """);
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_AppNotifications_UserId_IsRead\" ON \"AppNotifications\" (\"UserId\", \"IsRead\");");
+
+        await TryAddColumnAsync(db, "AppNotifications", "CampaignId", "INTEGER NULL");
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "NotificationPreferences" (
@@ -33,11 +36,13 @@ public static partial class SchemaBootstrap
                 "NotifyNewComment" INTEGER NOT NULL,
                 "NotifyNewFollower" INTEGER NOT NULL,
                 "WeeklyDigest" INTEGER NOT NULL,
+                "NotifyNewPostFromFollowed" INTEGER NOT NULL DEFAULT 1,
                 "PhoneE164" TEXT NULL,
                 CONSTRAINT "FK_NotificationPreferences_AspNetUsers_UserId"
                     FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE
             );
             """);
+        await TryAddColumnAsync(db, "NotificationPreferences", "NotifyNewPostFromFollowed", "INTEGER NOT NULL DEFAULT 1");
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "AuthorFollows" (
@@ -65,5 +70,28 @@ public static partial class SchemaBootstrap
                 "UserId" TEXT NULL
             );
             """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "NotificationCampaigns" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_NotificationCampaigns" PRIMARY KEY AUTOINCREMENT,
+                "Title" TEXT NOT NULL,
+                "Body" TEXT NULL,
+                "LinkUrl" TEXT NULL,
+                "Kind" INTEGER NOT NULL,
+                "Audience" INTEGER NOT NULL,
+                "TargetUserId" TEXT NULL,
+                "AuthorUserId" TEXT NULL,
+                "CategoryId" INTEGER NULL,
+                "TargetUserIdsCsv" TEXT NULL,
+                "CreatedByUserId" TEXT NOT NULL,
+                "CreatedAtUtc" TEXT NOT NULL,
+                "ScheduledAtUtc" TEXT NULL,
+                "IsSent" INTEGER NOT NULL,
+                "SentAtUtc" TEXT NULL,
+                "RecipientCount" INTEGER NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_NotificationCampaigns_IsSent_Scheduled\" ON \"NotificationCampaigns\" (\"IsSent\", \"ScheduledAtUtc\");");
     }
 }
