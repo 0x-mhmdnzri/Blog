@@ -12,13 +12,18 @@ namespace BlogApp.Controllers;
 public partial class TaxonomyController : Controller
 {
     private readonly ApplicationDbContext _db;
+    private readonly IUiTranslator _t;
 
-    public TaxonomyController(ApplicationDbContext db) => _db = db;
+    public TaxonomyController(ApplicationDbContext db, IUiTranslator t)
+    {
+        _db = db;
+        _t = t;
+    }
 
     [HttpGet]
     public async Task<IActionResult> Categories()
     {
-        ViewData["Title"] = "دسته‌بندی‌ها و برچسب‌ها";
+        ViewData["Title"] = _t["tax.title"];
         var tree = await BuildCategoryTreeAsync();
         var vm = new TaxonomyAdminViewModel
         {
@@ -61,7 +66,7 @@ public partial class TaxonomyController : Controller
             ParentId = parentId, DisplayOrder = await _db.Categories.CountAsync()
         });
         await _db.SaveChangesAsync();
-        TempData["TaxonomyMsg"] = "دسته افزوده شد.";
+        TempData["TaxonomyMsg"] = _t["tax.msg_cat_added"];
         return RedirectToAction(nameof(Categories));
     }
 
@@ -72,14 +77,14 @@ public partial class TaxonomyController : Controller
         if (cat is null) return NotFound();
         if (cat.Children.Any())
         {
-            TempData["TaxonomyErr"] = "ابتدا زیردسته‌ها را حذف یا جابه‌جا کنید.";
+            TempData["TaxonomyErr"] = _t["tax.msg_cat_has_children"];
             return RedirectToAction(nameof(Categories));
         }
         foreach (var p in await _db.Posts.Where(p => p.CategoryId == id).ToListAsync())
             p.CategoryId = null;
         _db.Categories.Remove(cat);
         await _db.SaveChangesAsync();
-        TempData["TaxonomyMsg"] = "دسته حذف شد.";
+        TempData["TaxonomyMsg"] = _t["tax.msg_cat_deleted"];
         return RedirectToAction(nameof(Categories));
     }
 
@@ -94,7 +99,7 @@ public partial class TaxonomyController : Controller
             Description = description?.Trim()
         });
         await _db.SaveChangesAsync();
-        TempData["TaxonomyMsg"] = "برچسب افزوده شد.";
+        TempData["TaxonomyMsg"] = _t["tax.msg_tag_added"];
         return RedirectToAction(nameof(Categories));
     }
 
@@ -106,7 +111,7 @@ public partial class TaxonomyController : Controller
         _db.PostTags.RemoveRange(await _db.PostTags.Where(pt => pt.TagId == id).ToListAsync());
         _db.Tags.Remove(tag);
         await _db.SaveChangesAsync();
-        TempData["TaxonomyMsg"] = "برچسب حذف شد.";
+        TempData["TaxonomyMsg"] = _t["tax.msg_tag_deleted"];
         return RedirectToAction(nameof(Categories));
     }
 
@@ -124,7 +129,7 @@ public partial class TaxonomyController : Controller
         var source = await _db.Tags.FindAsync(sourceId);
         if (source is not null) _db.Tags.Remove(source);
         await _db.SaveChangesAsync();
-        TempData["TaxonomyMsg"] = "برچسب‌ها ادغام شدند.";
+        TempData["TaxonomyMsg"] = _t["tax.msg_tags_merged"];
         return RedirectToAction(nameof(Categories));
     }
 
@@ -139,7 +144,7 @@ public partial class TaxonomyController : Controller
             Description = description?.Trim()
         });
         await _db.SaveChangesAsync();
-        TempData["TaxonomyMsg"] = "سری ایجاد شد.";
+        TempData["TaxonomyMsg"] = _t["tax.msg_series_created"];
         return RedirectToAction(nameof(Categories));
     }
 
@@ -150,7 +155,7 @@ public partial class TaxonomyController : Controller
         if (s is null) return NotFound();
         _db.PostSeries.Remove(s);
         await _db.SaveChangesAsync();
-        TempData["TaxonomyMsg"] = "سری حذف شد.";
+        TempData["TaxonomyMsg"] = _t["tax.msg_series_deleted"];
         return RedirectToAction(nameof(Categories));
     }
 
@@ -180,7 +185,7 @@ public partial class TaxonomyController : Controller
         var series = await _db.PostSeries.Include(s => s.Posts).ThenInclude(sp => sp.Post)
             .FirstOrDefaultAsync(s => s.Id == id);
         if (series is null) return NotFound();
-        ViewData["Title"] = "ویرایش سری: " + series.Name;
+        ViewData["Title"] = _t["tax.edit_series_title"] + ": " + series.Name;
         var members = series.Posts.OrderBy(sp => sp.SortOrder).ToList();
         var memberIds = members.Select(m => m.PostId).ToHashSet();
         ViewBag.Series = series;
@@ -202,7 +207,7 @@ public partial class TaxonomyController : Controller
             IsPublished = true
         });
         await _db.SaveChangesAsync();
-        TempData["TaxonomyMsg"] = "مجموعه موضوعی ایجاد شد.";
+        TempData["TaxonomyMsg"] = _t["tax.msg_topic_created"];
         return RedirectToAction(nameof(Categories));
     }
 
@@ -213,7 +218,7 @@ public partial class TaxonomyController : Controller
         if (t is null) return NotFound();
         _db.TopicCollections.Remove(t);
         await _db.SaveChangesAsync();
-        TempData["TaxonomyMsg"] = "مجموعه موضوعی حذف شد.";
+        TempData["TaxonomyMsg"] = _t["tax.msg_topic_deleted"];
         return RedirectToAction(nameof(Categories));
     }
 
@@ -225,7 +230,7 @@ public partial class TaxonomyController : Controller
             .Include(t => t.Items).ThenInclude(i => i.Tag)
             .FirstOrDefaultAsync(t => t.Id == id);
         if (topic is null) return NotFound();
-        ViewData["Title"] = "ویرایش موضوع: " + topic.Name;
+        ViewData["Title"] = _t["tax.edit_topic_title"] + ": " + topic.Name;
         ViewBag.Topic = topic;
         ViewBag.AllCategories = await _db.Categories.OrderBy(c => c.Name).ToListAsync();
         ViewBag.AllTags = await _db.Tags.OrderBy(t => t.Name).ToListAsync();
