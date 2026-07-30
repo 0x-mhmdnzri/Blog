@@ -16,41 +16,9 @@ public class AdminAuditController : Controller
     public AdminAuditController(ApplicationDbContext db) => _db = db;
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? actionFilter = null, int page = 1)
+    public async Task<IActionResult> Index()
     {
-        const int pageSize = 40;
-        if (page < 1) page = 1;
-
         ViewData["Title"] = "گزارش حسابرسی";
-        ViewBag.ActionFilter = actionFilter;
-
-        var query = _db.AuditLogs.AsNoTracking().AsQueryable();
-        if (!string.IsNullOrWhiteSpace(actionFilter))
-            query = query.Where(a => a.Action.Contains(actionFilter));
-
-        var total = await query.CountAsync();
-        var items = await query
-            .OrderByDescending(a => a.CreatedAtUtc)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(a => new AuditLogItem
-            {
-                Id = a.Id,
-                ActorUserName = a.ActorUserName,
-                Action = a.Action,
-                EntityType = a.EntityType,
-                EntityId = a.EntityId,
-                Details = a.Details,
-                IpAddress = a.IpAddress,
-                CreatedAtUtc = a.CreatedAtUtc
-            })
-            .ToListAsync();
-
-        ViewBag.Page = page;
-        ViewBag.TotalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
-        ViewBag.Total = total;
-
-        // Simple action breakdown for dashboard strip
         var since = DateTime.UtcNow.AddDays(-30);
         ViewBag.TopActions = await _db.AuditLogs.AsNoTracking()
             .Where(a => a.CreatedAtUtc >= since)
@@ -59,7 +27,59 @@ public class AdminAuditController : Controller
             .OrderByDescending(x => x.Count)
             .Take(8)
             .ToListAsync();
+        return View();
+    }
 
-        return View(items);
+    [HttpGet]
+    public async Task<IActionResult> Data()
+    {
+        var req = DataTablesRequest.From(Request);
+        var query = _db.AuditLogs.AsNoTracking().AsQueryable();
+
+        var total = await query.CountAsync();
+
+        if (!string.IsNullOrWhiteSpace(req.SearchValue))
+        {
+            var term = req.SearchValue;
+            query = query.Where(a =>
+                a.Action.Contains(term)
+                || (a.ActorUserName != null && a.ActorUserName.Contains(term))
+                || (a.EntityType != null && a.EntityType.Contains(term))
+                || (a.EntityId != null && a.EntityId.Contains(term))
+                || (a.Details != null && a.Details.Contains(term))
+                || (a.IpAddress != null && a.IpAddress.Contains(term)));
+        }
+
+        var filtered = await query.CountAsync();
+
+        // 0 #, 1 time, 2 user, 3 action, 4 entity, 5 details, 6 ip
+        query = (req.OrderColumn, req.Asc) switch
+        {
+            (1, true) => query.OrderBy(a => a.CreatedAtUtc),
+            (1, false) => query.OrderByDescending(a => a.CreatedAtUtc),
+            (2, true) => query.OrderBy(a => a.ActorUserName),
+            (2, false) => query.OrderByDescending(a => a.ActorUserName),
+            (3, true) => query.OrderBy(a => a.Action),
+            (3, false) => query.OrderByDescending(a => a.Action),
+            (4, true) => query.OrderBy(a => a.EntityType),
+            (4, false) => query.OrderByDescending(a => a.EntityType),
+            (6, true) => query.OrderBy(a => a.IpAddress),
+            (6, false) => query.OrderByDescending(a => a.IpAddress),
+            _ => query.OrderByDescending(a => a.CreatedAtUtc)
+        };
+
+        var page = await query.Skip(req.Start).Take(req.Length).ToListAsync();
+        var rows = page.Select((a, i) => new object[]
+        {
+            req.Start + i + 1,
+            PersianDate.DateTime(a.CreatedAtUtc),
+            System.Net.WebUtility.HtmlEncode(a.ActorUserName ?? "—"),
+            System.Net.WebUtility.HtmlEncode(a.Action),
+            System.Net.WebUtility.HtmlEncode((a.EntityType ?? "") + (string.IsNullOrEmpty(a.EntityId) ? "" : "#" + a.EntityId)),
+            System.Net.WebUtility.HtmlEncode(a.Details ?? ""),
+            System.Net.WebUtility.HtmlEncode(a.IpAddress ?? "")
+        }).ToList();
+
+        return Json(DataTablesResponse.Ok(req.Draw, total, filtered, rows));
     }
 }
