@@ -19,6 +19,7 @@
     var isAudit = currentController == "AdminAudit";
     var isReports = currentController == "AdminReports";
     var isModeration = currentController == "AdminModeration";
+    var isNotifAdmin = currentController == "AdminNotifications";
     var isSuperAdmin = AuthorAccess.IsSuperAdmin(User);
 
     var culture = Culture.Current;
@@ -37,7 +38,6 @@
     var pageTitle = ViewData["Title"] as string;
     var fullTitle = pageTitle != null ? $"{pageTitle} · {panelTitle}" : panelTitle;
 
-    // Client-side i18n bag for DataTables / JS (keys only — values from parrot)
     var dtKeys = new[]
     {
         "dt.processing", "dt.search", "dt.search_placeholder", "dt.length_menu",
@@ -63,6 +63,7 @@
     <link rel="stylesheet" href="~/css/admin-rtl.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/datatables-admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
 </head>
 <body class="admin-body">
     <div class="admin-shell">
@@ -89,6 +90,9 @@
                 </a>
                 <a class="admin-nav-link @(isReports ? "active" : "")" asp-controller="AdminReports" asp-action="Index">
                     <span>@T["admin.nav.reports"]</span>
+                </a>
+                <a class="admin-nav-link @(isNotifAdmin ? "active" : "")" asp-controller="AdminNotifications" asp-action="Index">
+                    <span>@T["nav.notifications"]</span>
                 </a>
 
                 <div class="admin-nav-group-label">@T["admin.group.content"]</div>
@@ -165,6 +169,7 @@
                     <h1>@pageTitle</h1>
                 </div>
                 <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <partial name="_NotificationBell" />
                     <partial name="_LanguageSwitcher" />
                     <span id="liveIndicator" class="live-indicator" title="@T["admin.live_title"]">
                         <span class="live-dot"></span> @T["admin.live"]
@@ -192,6 +197,7 @@
     <script src="https://cdn.jsdelivr.net/npm/datatables.net@1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.8/js/dataTables.bootstrap5.min.js"></script>
     <script src="~/js/datatables-server.js" asp-append-version="true"></script>
+    <script src="~/js/notifications-bell.js" asp-append-version="true"></script>
     <script>
         (function () {
             const indicator = document.getElementById('liveIndicator');
