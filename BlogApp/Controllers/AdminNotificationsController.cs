@@ -32,8 +32,7 @@ public class AdminNotificationsController : Controller
         if (!isSuper)
             q = q.Where(c => c.CreatedByUserId == userId);
 
-        var recent = await q.OrderByDescending(c => c.CreatedAtUtc).Take(40).ToListAsync();
-        ViewBag.Recent = recent;
+        ViewBag.Recent = await q.OrderByDescending(c => c.CreatedAtUtc).Take(40).ToListAsync();
         ViewBag.IsSuperAdmin = isSuper;
         ViewBag.Categories = await _db.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
         return View(new ComposeNotificationVm());
@@ -48,7 +47,6 @@ public class AdminNotificationsController : Controller
         ViewBag.IsSuperAdmin = isSuper;
         ViewBag.Categories = await _db.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
 
-        // Authors may only notify their own followers
         if (!isSuper)
         {
             model.Audience = NotificationAudience.AuthorFollowers;
@@ -56,8 +54,18 @@ public class AdminNotificationsController : Controller
             model.Kind = NotificationKind.NewPost;
         }
 
+        ValidateCompose(model, isSuper);
+
         if (!ModelState.IsValid)
         {
+            ViewBag.Recent = await LoadRecentAsync(isSuper, userId);
+            return View("Index", model);
+        }
+
+        if (!isSuper && model.Audience is not NotificationAudience.AuthorFollowers
+            and not NotificationAudience.SingleUser)
+        {
+            TempData["Error"] = "Authors can only notify their followers or a single user.";
             ViewBag.Recent = await LoadRecentAsync(isSuper, userId);
             return View("Index", model);
         }
@@ -69,27 +77,18 @@ public class AdminNotificationsController : Controller
             LinkUrl = string.IsNullOrWhiteSpace(model.LinkUrl) ? null : model.LinkUrl.Trim(),
             Kind = model.Kind,
             Audience = model.Audience,
-            TargetUserId = model.TargetUserId,
+            TargetUserId = string.IsNullOrWhiteSpace(model.TargetUserId) ? null : model.TargetUserId.Trim(),
             AuthorUserId = model.Audience == NotificationAudience.AuthorFollowers
-                ? (model.AuthorUserId ?? userId)
-                : model.AuthorUserId,
+                ? (string.IsNullOrWhiteSpace(model.AuthorUserId) ? userId : model.AuthorUserId.Trim())
+                : (string.IsNullOrWhiteSpace(model.AuthorUserId) ? null : model.AuthorUserId.Trim()),
             CategoryId = model.CategoryId,
-            TargetUserIdsCsv = model.TargetUserIdsCsv,
+            TargetUserIdsCsv = string.IsNullOrWhiteSpace(model.TargetUserIdsCsv) ? null : model.TargetUserIdsCsv.Trim(),
             CreatedByUserId = userId,
             CreatedAtUtc = DateTime.UtcNow,
             ScheduledAtUtc = model.Schedule
                 ? model.ScheduledAtUtc?.ToUniversalTime()
                 : null
         };
-
-        // Safety: non-super cannot broadcast / all-authors / category
-        if (!isSuper && campaign.Audience is not NotificationAudience.AuthorFollowers
-            and not NotificationAudience.SingleUser)
-        {
-            TempData["Error"] = "Authors can only notify their followers or a single user.";
-            ViewBag.Recent = await LoadRecentAsync(isSuper, userId);
-            return View("Index", model);
-        }
 
         _db.NotificationCampaigns.Add(campaign);
         await _db.SaveChangesAsync();
@@ -107,6 +106,46 @@ public class AdminNotificationsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    private void ValidateCompose(ComposeNotificationVm model, bool isSuper)
+    {
+        if (string.IsNullOrWhiteSpace(model.Title))
+            ModelState.AddModelError(nameof(model.Title), "Title is required.");
+
+        if (!string.IsNullOrWhiteSpace(model.LinkUrl))
+        {
+            var link = model.LinkUrl.Trim();
+            if (!(link.StartsWith('/') || link.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                  || link.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+            {
+                ModelState.AddModelError(nameof(model.LinkUrl), "Link must start with / or http(s)://");
+            }
+        }
+
+        if (isSuper)
+        {
+            switch (model.Audience)
+            {
+                case NotificationAudience.CategoryReaders when model.CategoryId is null or <= 0:
+                    ModelState.AddModelError(nameof(model.CategoryId), "Category is required for this audience.");
+                    break;
+                case NotificationAudience.SingleUser when string.IsNullOrWhiteSpace(model.TargetUserId):
+                    ModelState.AddModelError(nameof(model.TargetUserId), "Target user id is required.");
+                    break;
+                case NotificationAudience.UserList when string.IsNullOrWhiteSpace(model.TargetUserIdsCsv):
+                    ModelState.AddModelError(nameof(model.TargetUserIdsCsv), "At least one user id is required.");
+                    break;
+            }
+        }
+
+        if (model.Schedule)
+        {
+            if (model.ScheduledAtUtc is null)
+                ModelState.AddModelError(nameof(model.ScheduledAtUtc), "Schedule time is required.");
+            else if (model.ScheduledAtUtc.Value.ToUniversalTime() < DateTime.UtcNow.AddMinutes(-1))
+                ModelState.AddModelError(nameof(model.ScheduledAtUtc), "Schedule time must be in the future.");
+        }
+    }
+
     private async Task<List<NotificationCampaign>> LoadRecentAsync(bool isSuper, string userId)
     {
         var q = _db.NotificationCampaigns.AsNoTracking().AsQueryable();
@@ -117,7 +156,7 @@ public class AdminNotificationsController : Controller
 
 public class ComposeNotificationVm
 {
-    [Required, MaxLength(200)]
+    [Required(ErrorMessage = "Title is required"), MaxLength(200)]
     public string Title { get; set; } = string.Empty;
 
     [MaxLength(1000)]
