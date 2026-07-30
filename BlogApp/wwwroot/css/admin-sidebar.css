@@ -171,6 +171,53 @@ html[dir="rtl"] .admin-main {
   color: var(--danger);
 }
 
+/* ---- Topbar + breadcrumb ---- */
+.admin-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.admin-topbar-titles h1 {
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+.admin-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  line-height: 1.3;
+}
+.admin-breadcrumb .bc-sep {
+  opacity: 0.55;
+  user-select: none;
+}
+.admin-breadcrumb .bc-link {
+  color: var(--text-muted);
+  text-decoration: none !important;
+}
+.admin-breadcrumb .bc-link:hover {
+  color: var(--accent);
+}
+.admin-breadcrumb .bc-group {
+  color: var(--text-faint);
+}
+.admin-breadcrumb .bc-current {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Menu toggle: mobile only (Bootstrap d-md-none + safety) */
+@media (min-width: 768px) {
+  .admin-menu-toggle {
+    display: none !important;
+  }
+}
+
 /* ---- Skeleton loading ---- */
 .admin-content.is-loading {
   position: relative;
