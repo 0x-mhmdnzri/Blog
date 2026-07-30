@@ -96,13 +96,9 @@
                         <div class="media-name" title="@m.FileName">@m.FileName</div>
                         <div class="media-sub ltr-field">@m.SizeLabel · #@m.Id</div>
                         <div class="media-actions">
-                            <button type="button" class="icon-btn" data-copy="@m.Url" title="URL">URL</button>
+                            <button type="button" class="icon-btn" data-copy="@m.Url">URL</button>
                             <button type="button" class="icon-btn" data-md="@(m.Kind == BlogApp.Models.MediaKind.Image ? $"![img]({m.Url})" : m.Kind == BlogApp.Models.MediaKind.Video ? $"{{{{video:{m.Id}}}}}" : $"[{m.FileName}]({m.Url})")">MD</button>
                             <button type="button" class="icon-btn" data-usage="@m.Id">@T["media.usage"]</button>
-                            <button type="submit" class="icon-btn reject"
-                                    formaction="@Url.Action("MediaDelete")" formmethod="post"
-                                    name="id" value="@m.Id"
-                                    onclick="return confirm('@T["msg.confirm_delete"]');">@T["btn.delete"]</button>
                         </div>
                     </div>
                 </div>
@@ -110,6 +106,36 @@
         </div>
     }
 </form>
+
+@* Single-delete forms outside bulk form *@
+@foreach (var m in Model.Items)
+{
+    <form asp-action="MediaDelete" method="post" class="d-none" id="del-@m.Id" onsubmit="return confirm('@T["msg.confirm_delete"]');">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@m.Id" />
+    </form>
+}
+@if (Model.Items.Count > 0)
+{
+    <div class="mt-2 small text-muted-dark">
+        @T["media.grid_hint"] —
+        @foreach (var m in Model.Items.Take(0)) { }
+        <span class="d-none" id="del-bind-hint"></span>
+    </div>
+    <script>
+      document.querySelectorAll('.media-card').forEach(function (card) {
+        var id = card.getAttribute('data-id');
+        var actions = card.querySelector('.media-actions');
+        if (!actions || !id) return;
+        var btn = document.createElement('button');
+        btn.type = 'submit';
+        btn.className = 'icon-btn reject';
+        btn.setAttribute('form', 'del-' + id);
+        btn.textContent = '@T["btn.delete"]';
+        actions.appendChild(btn);
+      });
+    </script>
+}
 
 <div class="modal fade" id="usageModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -201,21 +227,17 @@
 @section Scripts {
 <script>
 (function () {
-  var cbs = document.querySelectorAll('.media-cb');
   var bulkBtn = document.getElementById('bulkDeleteBtn');
   function syncBulk() {
     var n = document.querySelectorAll('.media-cb:checked').length;
     if (bulkBtn) bulkBtn.disabled = n === 0;
   }
-  cbs.forEach(function (c) { c.addEventListener('change', syncBulk); });
+  document.querySelectorAll('.media-cb').forEach(function (c) { c.addEventListener('change', syncBulk); });
 
   document.querySelectorAll('[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var t = btn.getAttribute('data-copy');
       if (navigator.clipboard) navigator.clipboard.writeText(t);
-      else {
-        var i = document.createElement('input'); i.value = t; document.body.appendChild(i); i.select(); document.execCommand('copy'); i.remove();
-      }
       btn.textContent = '✓';
       setTimeout(function () { btn.textContent = 'URL'; }, 900);
     });
@@ -239,13 +261,17 @@
       fetch('/Admin/MediaUsage?id=' + id)
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          if (!data.usages || !data.usages.length) {
+          var list = data.usages || [];
+          if (!list.length) {
             usageBody.innerHTML = '<p class="text-muted-dark small mb-0">@T["media.usage_none"]</p>';
           } else {
             var html = '<ul class="mb-0" style="padding-inline-start:1.1rem;">';
-            data.usages.forEach(function (u) {
-              html += '<li class="mb-1"><a href="' + (u.editUrl || '#') + '">' + (u.Title || u.title) + '</a>'
-                + (u.isCover ? ' <span class="soon-tag">cover</span>' : '') + '</li>';
+            list.forEach(function (u) {
+              var title = u.title || u.Title || ('#' + (u.id || u.Id));
+              var href = u.editUrl || u.EditUrl || '#';
+              var cover = u.isCover || u.IsCover;
+              html += '<li class="mb-1"><a href="' + href + '">' + title + '</a>'
+                + (cover ? ' <span class="soon-tag">cover</span>' : '') + '</li>';
             });
             html += '</ul>';
             usageBody.innerHTML = html;
