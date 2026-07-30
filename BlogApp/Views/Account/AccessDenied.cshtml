@@ -1,12 +1,46 @@
+@inject BlogApp.Services.IUiTranslator T
 @{
-    ViewData["Title"] = "دسترسی غیرمجاز";
+    ViewData["Title"] = T["err.403.title"];
     ViewData["NoIndex"] = true;
 }
 
-<div class="container py-5 text-center" style="max-width:480px;">
-    <div class="card-surface p-4">
-        <h1 class="h4 mb-3">دسترسی غیرمجاز</h1>
-        <p class="text-muted-dark mb-4">شما مجوز لازم برای مشاهده این صفحه را ندارید.</p>
-        <a class="btn btn-accent" asp-controller="Home" asp-action="Index">بازگشت به خانه</a>
+<div class="err-page">
+    <div class="err-card">
+        <div class="err-code ltr-field" aria-hidden="true">403</div>
+        <h1 class="err-title">@T["err.403.title"]</h1>
+        <p class="err-msg">@T["err.403.msg"]</p>
+        <div class="err-actions">
+            <a class="btn btn-accent" asp-controller="Home" asp-action="Index">@T["err.home"]</a>
+            <button type="button" class="btn btn-ghost" onclick="history.back()">@T["err.back"]</button>
+        </div>
     </div>
 </div>
+
+<style>
+.err-page {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+.err-card {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+}
+.err-code {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 0.75rem;
+}
+.err-title { font-size: 1.25rem; margin: 0 0 0.5rem; }
+.err-msg { color: var(--text-muted); margin: 0 0 1.25rem; font-size: 0.95rem; }
+.err-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+</style>
