@@ -120,18 +120,9 @@ public class HomeController : Controller
     public IActionResult Error(int? statusCode = null)
     {
         var feature = HttpContext.Features.Get<IStatusCodeReExecuteFeature>();
-        var code = statusCode
-                   ?? HttpContext.Response.StatusCode
-                   ?? 500;
-
-        if (code < 400) code = 500;
-
-        // Prefer explicit re-execute status
-        if (feature != null && int.TryParse(HttpContext.Request.Query["statusCode"], out var qCode))
-            code = qCode;
-
-        if (statusCode is > 0)
-            code = statusCode.Value;
+        var code = statusCode ?? HttpContext.Response.StatusCode;
+        if (code < 400)
+            code = 500;
 
         HttpContext.Response.StatusCode = code;
 
