@@ -3,6 +3,7 @@ using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
 using BlogApp.Services.Analytics;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,17 +15,20 @@ public class HomeController : Controller
     private readonly SeoService _seo;
     private readonly IAnalyticsTracker _analytics;
     private readonly ICultureService _culture;
+    private readonly IUiTranslator _t;
 
     public HomeController(
         ApplicationDbContext db,
         SeoService seo,
         IAnalyticsTracker analytics,
-        ICultureService culture)
+        ICultureService culture,
+        IUiTranslator t)
     {
         _db = db;
         _seo = seo;
         _analytics = analytics;
         _culture = culture;
+        _t = t;
     }
 
     public async Task<IActionResult> Index(string? category, string? tag, string? q, int page = 1)
@@ -41,7 +45,6 @@ public class HomeController : Controller
                         || isAuthor
                         || (p.ScheduledPublishAtUtc != null && p.ScheduledPublishAtUtc <= now))
             .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now || isAuthor)
-            // Hide unfinished translations from public list
             .Where(p => isAuthor
                         || p.TranslationStatus == TranslationStatus.Original
                         || p.TranslationStatus == TranslationStatus.Approved)
@@ -113,5 +116,39 @@ public class HomeController : Controller
         return View(posts);
     }
 
-    public IActionResult Error() => View();
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error(int? statusCode = null)
+    {
+        var feature = HttpContext.Features.Get<IStatusCodeReExecuteFeature>();
+        var code = statusCode
+                   ?? HttpContext.Response.StatusCode
+                   ?? 500;
+
+        if (code < 400) code = 500;
+
+        // Prefer explicit re-execute status
+        if (feature != null && int.TryParse(HttpContext.Request.Query["statusCode"], out var qCode))
+            code = qCode;
+
+        if (statusCode is > 0)
+            code = statusCode.Value;
+
+        HttpContext.Response.StatusCode = code;
+
+        var known = code is 400 or 401 or 403 or 404 or 405 or 408 or 429 or 500 or 502 or 503
+            ? code
+            : 0;
+
+        var titleKey = known > 0 ? $"err.{known}.title" : "err.generic.title";
+        var msgKey = known > 0 ? $"err.{known}.msg" : "err.generic.msg";
+
+        ViewData["Title"] = _t[titleKey];
+        ViewData["NoIndex"] = true;
+        ViewBag.StatusCode = code;
+        ViewBag.ErrorTitle = _t[titleKey];
+        ViewBag.ErrorMessage = _t[msgKey];
+        ViewBag.OriginalPath = feature?.OriginalPath;
+
+        return View();
+    }
 }
