@@ -2,6 +2,12 @@
 @{
     ViewData["Title"] = T["home.title"];
     var categories = ViewBag.Categories as List<Category> ?? new();
+    var page = ViewBag.Page as int? ?? 1;
+    var totalPages = ViewBag.TotalPages as int? ?? 1;
+    var sort = ViewBag.Sort as string;
+    var featured = ViewBag.Featured as bool?;
+    var minRead = ViewBag.MinRead as int?;
+    var q = ViewBag.SearchQuery as string;
 }
 
 @section Head {
@@ -24,6 +30,30 @@
 </section>
 
 <div class="container py-5">
+    <form method="get" class="ux-filters mb-3" action="">
+        <input type="search" name="q" value="@q" placeholder="جست‌وجو…" dir="auto" />
+        <select name="sort">
+            <option value="">جدیدترین</option>
+            @if (sort == "popular") { <option value="popular" selected>محبوب</option> } else { <option value="popular">محبوب</option> }
+            @if (sort == "oldest") { <option value="oldest" selected>قدیمی‌تر</option> } else { <option value="oldest">قدیمی‌تر</option> }
+            @if (sort == "read") { <option value="read" selected>کوتاه‌تر</option> } else { <option value="read">کوتاه‌تر</option> }
+        </select>
+        <label class="small d-inline-flex align-items-center gap-1">
+            <input type="checkbox" name="featured" value="true" @(featured == true ? "checked" : null) /> ویژه
+        </label>
+        <select name="minRead">
+            <option value="">هر مدت</option>
+            @if (minRead == 3) { <option value="3" selected>۳+ دقیقه</option> } else { <option value="3">۳+ دقیقه</option> }
+            @if (minRead == 5) { <option value="5" selected>۵+ دقیقه</option> } else { <option value="5">۵+ دقیقه</option> }
+            @if (minRead == 10) { <option value="10" selected>۱۰+ دقیقه</option> } else { <option value="10">۱۰+ دقیقه</option> }
+        </select>
+        @if (!string.IsNullOrEmpty(ViewBag.CurrentCategory as string))
+        {
+            <input type="hidden" name="category" value="@ViewBag.CurrentCategory" />
+        }
+        <button type="submit" class="btn btn-ghost btn-sm">اعمال</button>
+    </form>
+
     <div class="d-flex flex-wrap gap-2 mb-4">
         <a class="tag-pill @(ViewBag.CurrentCategory == null ? "border-0" : "")"
            style="@(ViewBag.CurrentCategory == null ? "background:var(--accent-soft);color:var(--accent);" : "")"
@@ -42,50 +72,23 @@
         </div>
     }
 
-    <div class="row g-4">
-        @foreach (var post in Model)
-        {
-            <div class="col-md-6 col-lg-4">
-                <div class="post-card">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        @if (post.CategoryName != null)
-                        {
-                            <div class="eyebrow" dir="auto">@post.CategoryName</div>
-                        }
-                        @if (!post.IsPublished)
-                        {
-                            <span class="tag-pill" style="color:var(--danger); border-color:rgba(229,99,122,.4);">@T["home.draft"]</span>
-                        }
-                    </div>
-                    <h2 class="h5 mb-2" dir="auto">
-                        <a asp-controller="Posts" asp-action="Details" asp-route-slug="@post.Slug">@post.Title</a>
-                    </h2>
-                    <p class="text-muted-dark small mb-3" dir="auto">@post.Summary</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="ltr-field small" style="color:var(--text-faint); font-size:.78rem;">
-                            @PersianDate.Date(post.PublishedAtUtc)
-                        </span>
-                        <div class="d-flex gap-1">
-                            @foreach (var t in post.Tags.Take(2))
-                            {
-                                <span class="tag-pill" dir="auto">#@t</span>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
+    <div class="row g-4" id="posts-grid" data-page="@page" data-total-pages="@totalPages">
+        <partial name="_PostCards" model="Model" />
     </div>
 
-    @if ((int)ViewBag.TotalPages > 1)
+    <div id="infinite-sentinel"></div>
+    <div id="infinite-status" class="infinite-status"></div>
+
+    @if (totalPages > 1)
     {
-        <nav class="mt-5 d-flex justify-content-center gap-2">
-            @for (int p = 1; p <= (int)ViewBag.TotalPages; p++)
-            {
-                <a class="btn btn-ghost btn-sm ltr-field @(p == (int)ViewBag.Page ? "border-accent" : "")"
-                   style="@(p == (int)ViewBag.Page ? "border-color:var(--accent);color:var(--accent);" : "")"
-                   asp-action="Index" asp-route-page="@p" asp-route-category="@ViewBag.CurrentCategory">@p</a>
-            }
-        </nav>
+        <noscript>
+            <nav class="mt-5 d-flex justify-content-center gap-2">
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    <a class="btn btn-ghost btn-sm ltr-field" asp-action="Index" asp-route-page="@p"
+                       asp-route-category="@ViewBag.CurrentCategory" asp-route-q="@q">@p</a>
+                }
+            </nav>
+        </noscript>
     }
 </div>
