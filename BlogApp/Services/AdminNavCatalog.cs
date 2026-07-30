@@ -44,6 +44,7 @@ public sealed class AdminNavItem
                      && action.StartsWith("Seo", StringComparison.OrdinalIgnoreCase),
             "media" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
                        && action.StartsWith("Media", StringComparison.OrdinalIgnoreCase),
+            "monetization" => string.Equals(controller, "AdminMonetization", StringComparison.OrdinalIgnoreCase),
             _ => string.Equals(Action, action, StringComparison.OrdinalIgnoreCase)
         };
     }
@@ -92,6 +93,10 @@ public static class AdminNavCatalog
         new() { Key = "seo", GroupKey = "admin.group.growth", LabelKey = "admin.nav.seo",
             Controller = "Admin", Action = "SeoTools",
             Icon = "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" },
+
+        new() { Key = "monetization", GroupKey = "admin.group.growth", LabelKey = "admin.nav.monetization",
+            Controller = "AdminMonetization", Action = "Index", SuperAdminOnly = true,
+            Icon = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z" },
 
         new() { Key = "newsletter", GroupKey = "admin.group.growth", LabelKey = "admin.nav.newsletter",
             Controller = "Admin", Action = "Newsletter", DemoTag = true,
