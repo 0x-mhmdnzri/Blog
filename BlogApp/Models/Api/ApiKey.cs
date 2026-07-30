@@ -25,9 +25,16 @@ public class ApiKey
     [Required, MaxLength(16)]
     public string KeyPrefix { get; set; } = string.Empty;
 
-    /// <summary>SHA-256 hex of full secret (never store plaintext).</summary>
+    /// <summary>SHA-256 hex of full secret (used for auth).</summary>
     [Required, MaxLength(64)]
     public string KeyHash { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Data-Protection ciphertext of the full token so the owner can copy later.
+    /// Null for legacy keys created before this field existed.
+    /// </summary>
+    [MaxLength(2000)]
+    public string? EncryptedToken { get; set; }
 
     /// <summary>Comma-separated scopes: read,write,webhooks</summary>
     [MaxLength(200)]
@@ -64,6 +71,8 @@ public class ApiKey
         && !IsBanned
         && ApprovalStatus == ApiKeyApprovalStatus.Approved
         && (ExpiresAtUtc is null || ExpiresAtUtc > DateTime.UtcNow);
+
+    public bool CanRevealToken => !string.IsNullOrEmpty(EncryptedToken);
 }
 
 public class WebhookSubscription

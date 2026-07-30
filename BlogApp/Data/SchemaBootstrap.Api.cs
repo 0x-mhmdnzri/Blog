@@ -6,7 +6,6 @@ public static partial class SchemaBootstrap
 {
     public static async Task EnsureApiTablesAsync(ApplicationDbContext db)
     {
-        // Full CREATE includes approval columns for fresh DBs
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "ApiKeys" (
                 "Id" INTEGER NOT NULL CONSTRAINT "PK_ApiKeys" PRIMARY KEY AUTOINCREMENT,
@@ -14,6 +13,7 @@ public static partial class SchemaBootstrap
                 "Name" TEXT NOT NULL,
                 "KeyPrefix" TEXT NOT NULL,
                 "KeyHash" TEXT NOT NULL,
+                "EncryptedToken" TEXT NULL,
                 "Scopes" TEXT NOT NULL,
                 "IsActive" INTEGER NOT NULL,
                 "IsBanned" INTEGER NOT NULL,
@@ -38,13 +38,12 @@ public static partial class SchemaBootstrap
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_ApiKeys_UserId\" ON \"ApiKeys\" (\"UserId\");");
 
-        // Existing DBs created before approval: add missing columns only (no ERR log spam)
         await TryAddColumnAsync(db, "ApiKeys", "ApprovalStatus", "INTEGER NOT NULL DEFAULT 0");
         await TryAddColumnAsync(db, "ApiKeys", "ApprovedAtUtc", "TEXT NULL");
         await TryAddColumnAsync(db, "ApiKeys", "ApprovedByUserId", "TEXT NULL");
         await TryAddColumnAsync(db, "ApiKeys", "RejectionReason", "TEXT NULL");
+        await TryAddColumnAsync(db, "ApiKeys", "EncryptedToken", "TEXT NULL");
 
-        // Keys that already served traffic before approval workflow → mark approved
         try
         {
             await db.Database.ExecuteSqlRawAsync("""
@@ -56,10 +55,7 @@ public static partial class SchemaBootstrap
                   AND "RequestCount" > 0;
                 """);
         }
-        catch
-        {
-            /* column race on first boot — safe to ignore */
-        }
+        catch { }
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "WebhookSubscriptions" (
