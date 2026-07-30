@@ -1,58 +1,58 @@
 @model BlogApp.Models.NotificationPreference
 @{
-    ViewData["Title"] = "تنظیمات اعلان";
+    ViewData["Title"] = T["notif.prefs_title"];
 }
 
 <div class="container py-5" style="max-width:520px;">
-    <h1 class="h4 mb-4">تنظیمات اعلان</h1>
+    <h1 class="h4 mb-4">@T["notif.prefs_title"]</h1>
 
     @if (TempData["PrefsSaved"] != null)
     {
-        <div class="card-surface p-2 px-3 mb-3 small">@TempData["PrefsSaved"]</div>
+        <div class="card-surface p-2 px-3 mb-3 small">@T["msg.saved"]</div>
     }
 
     <form asp-action="Preferences" method="post" class="card-surface p-4">
         @Html.AntiForgeryToken()
 
-        <h2 class="h6 text-muted-dark mb-3">کانال‌ها</h2>
+        <h2 class="h6 text-muted-dark mb-3">@T["notif.channels"]</h2>
         <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" asp-for="EmailEnabled" />
-            <label class="form-check-label" asp-for="EmailEnabled">ایمیل</label>
+            <label class="form-check-label" asp-for="EmailEnabled">@T["notif.channel_email"]</label>
         </div>
         <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" asp-for="InAppEnabled" />
-            <label class="form-check-label" asp-for="InAppEnabled">اعلان داخل سایت</label>
+            <label class="form-check-label" asp-for="InAppEnabled">@T["notif.channel_inapp"]</label>
         </div>
         <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" asp-for="PushEnabled" />
-            <label class="form-check-label" asp-for="PushEnabled">پوش (نیاز به پیکربندی VAPID)</label>
+            <label class="form-check-label" asp-for="PushEnabled">@T["notif.channel_push"]</label>
         </div>
         <div class="form-check mb-3">
             <input class="form-check-input" type="checkbox" asp-for="SmsEnabled" />
-            <label class="form-check-label" asp-for="SmsEnabled">پیامک تبلیغاتی</label>
+            <label class="form-check-label" asp-for="SmsEnabled">@T["notif.channel_sms"]</label>
         </div>
 
         <div class="mb-4">
-            <label class="form-label" asp-for="PhoneE164">شماره موبایل (E.164)</label>
+            <label class="form-label" asp-for="PhoneE164">@T["notif.phone"]</label>
             <input class="form-control ltr-field" asp-for="PhoneE164" placeholder="+98912…" />
-            <div class="form-text">برای SMS تبلیغات — سرویس‌دهنده را خودتان در Sms:* تنظیم کنید.</div>
+            <div class="form-text">@T["notif.phone_help"]</div>
         </div>
 
-        <h2 class="h6 text-muted-dark mb-3">رویدادها</h2>
+        <h2 class="h6 text-muted-dark mb-3">@T["notif.events"]</h2>
         <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" asp-for="NotifyNewComment" />
-            <label class="form-check-label" asp-for="NotifyNewComment">دیدگاه جدید روی نوشته‌های من</label>
+            <label class="form-check-label" asp-for="NotifyNewComment">@T["notif.event_comment"]</label>
         </div>
         <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" asp-for="NotifyNewFollower" />
-            <label class="form-check-label" asp-for="NotifyNewFollower">دنبال‌کننده جدید</label>
+            <label class="form-check-label" asp-for="NotifyNewFollower">@T["notif.event_follower"]</label>
         </div>
         <div class="form-check mb-4">
             <input class="form-check-input" type="checkbox" asp-for="WeeklyDigest" />
-            <label class="form-check-label" asp-for="WeeklyDigest">خلاصه هفتگی ایمیل</label>
+            <label class="form-check-label" asp-for="WeeklyDigest">@T["notif.event_digest"]</label>
         </div>
 
-        <button type="submit" class="btn btn-accent">ذخیره</button>
-        <a class="btn btn-ghost" asp-action="Index">بازگشت</a>
+        <button type="submit" class="btn btn-accent">@T["btn.save"]</button>
+        <a class="btn btn-ghost" asp-action="Index">@T["btn.back"]</a>
     </form>
 </div>
