@@ -8,6 +8,9 @@
     var featured = ViewBag.Featured as bool?;
     var minRead = ViewBag.MinRead as int?;
     var q = ViewBag.SearchQuery as string;
+    var isFeedOnly = !string.IsNullOrEmpty(q) || !string.IsNullOrEmpty(ViewBag.CurrentCategory as string)
+        || !string.IsNullOrEmpty(ViewBag.CurrentTag as string) || currentPage > 1
+        || !string.IsNullOrEmpty(sort) || featured == true || minRead is > 0;
 }
 
 @section Head {
@@ -21,15 +24,104 @@
     }
 }
 
-<section class="hero py-5">
+@if (!isFeedOnly)
+{
+<section class="persona-hero">
     <div class="container">
-        <div class="hero-prompt mb-2">$ cat ./posts --sort=recent</div>
-        <h1 class="mb-3" dir="auto">@T["home.hero_title"]</h1>
-        <p class="text-muted-dark" style="max-width:640px;" dir="auto">@T["home.hero_body"]</p>
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <div class="persona-kicker">Senior .NET Backend Engineer · Tehran</div>
+                <h1 class="persona-title" dir="auto">محمد نظری</h1>
+                <p class="persona-lead" dir="auto">
+                    طراحی و ساخت سیستم‌های توزیع‌شده برای FinTech، ERP و HealthTech —
+                    Clean Architecture، DDD، CQRS، RabbitMQ و Redis در مقیاس واقعی.
+                    این وبلاگ جای درس‌آموخته‌های فنی و مسیر کار با مشتریان است.
+                </p>
+                <div class="persona-cta">
+                    <a class="btn btn-accent" href="#blog-feed">مطالعه وبلاگ</a>
+                    <a class="btn btn-ghost" asp-controller="Pages" asp-action="About">درباره من</a>
+                    <a class="btn btn-ghost" asp-controller="Pages" asp-action="Contact">همکاری با من</a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="persona-stats">
+                    <div class="persona-stat">
+                        <div class="num ltr-field">6+</div>
+                        <div class="lbl" dir="auto">سال تجربه</div>
+                    </div>
+                    <div class="persona-stat">
+                        <div class="num ltr-field">.NET 8</div>
+                        <div class="lbl" dir="auto">اکوسیستم اصلی</div>
+                    </div>
+                    <div class="persona-stat">
+                        <div class="num">DDD</div>
+                        <div class="lbl" dir="auto">معماری دامنه</div>
+                    </div>
+                    <div class="persona-stat">
+                        <div class="num">EDA</div>
+                        <div class="lbl" dir="auto">رویدادمحور</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
 <div class="container py-5">
+    <h2 class="section-title" dir="auto">نقشه راه برای مشتریان</h2>
+    <p class="section-sub" dir="auto">اگر برای اولین بار آمده‌اید، این ترتیب را پیشنهاد می‌کنم.</p>
+    <div class="roadmap mb-5">
+        <div class="roadmap-step">
+            <div class="roadmap-num">1</div>
+            <div>
+                <strong dir="auto"><a asp-controller="Pages" asp-action="About">درباره</a></strong>
+                <span class="text-muted-dark small"> — سابقه، حوزه و سبک کار</span>
+            </div>
+        </div>
+        <div class="roadmap-step">
+            <div class="roadmap-num">2</div>
+            <div>
+                <strong dir="auto"><a asp-controller="Pages" asp-action="Services">خدمات</a> و <a asp-controller="Pages" asp-action="Projects">پروژه‌ها</a></strong>
+                <span class="text-muted-dark small"> — آنچه می‌توانم تحویل دهم</span>
+            </div>
+        </div>
+        <div class="roadmap-step">
+            <div class="roadmap-num">3</div>
+            <div>
+                <strong dir="auto"><a href="#blog-feed">وبلاگ</a></strong>
+                <span class="text-muted-dark small"> — عمق فنی، الگوها و تصمیم‌های واقعی</span>
+            </div>
+        </div>
+        <div class="roadmap-step">
+            <div class="roadmap-num">4</div>
+            <div>
+                <strong dir="auto"><a asp-controller="Pages" asp-action="Contact">تماس</a></strong>
+                <span class="text-muted-dark small"> — شروع همکاری</span>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-title" dir="auto">مهارت‌های کلیدی</h2>
+    <div class="skill-grid mb-2">
+        <div class="skill-card"><h3>Architecture</h3><p>Clean Architecture · DDD · CQRS · Microservices · Modular Monolith</p></div>
+        <div class="skill-card"><h3>Data &amp; Cache</h3><p>EF Core · Dapper · SQL Server · PostgreSQL · Redis lock &amp; cache</p></div>
+        <div class="skill-card"><h3>Messaging</h3><p>RabbitMQ patterns · SignalR · Event-driven flows</p></div>
+        <div class="skill-card"><h3>Security</h3><p>OAuth2 · OIDC · IdentityServer · JWT · SSO</p></div>
+    </div>
+</div>
+}
+
+<div class="container py-5" id="blog-feed">
+    <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+        <div>
+            <h2 class="section-title mb-1" dir="auto">@(isFeedOnly ? T["home.title"] : "از وبلاگ")</h2>
+            @if (!isFeedOnly)
+            {
+                <p class="section-sub mb-0" dir="auto">نوشته‌های فنی، معماری و تجربه پروژه — برای مشتریان و مهندسان.</p>
+            }
+        </div>
+    </div>
+
     <form method="get" class="ux-filters mb-3" action="">
         <input type="search" name="q" value="@q" placeholder="جست‌وجو…" dir="auto" />
         <select name="sort">
