@@ -154,6 +154,7 @@ public static partial class SchemaBootstrap
         await EnsureAdministrationTablesAsync(db);
         await EnsureI18nTablesAsync(db);
         await EnsureMonetizationTablesAsync(db);
+        await EnsureSocialTablesAsync(db);
 
         logger?.LogInformation("Schema bootstrap complete");
     }

@@ -1,37 +1,69 @@
+@model BlogApp.Models.ViewModels.LoginViewModel
 @{
-    ViewData["Title"] = "ورود";
-    ViewData["NoIndex"] = true;
+    ViewData["Title"] = T["nav.login"];
+    var googleOn = ViewBag.GoogleLoginEnabled as bool? ?? false;
+    var githubOn = ViewBag.GitHubLoginEnabled as bool? ?? false;
 }
 
-<div class="container py-5 d-flex justify-content-center">
-    <div class="card-surface p-4" style="max-width:380px; width:100%;">
-        <div class="hero-prompt mb-2">$ auth login</div>
-        <h1 class="h4 mb-4">ورود به حساب</h1>
+<div class="container py-5" style="max-width:420px;">
+    <h1 class="h4 mb-4" dir="auto">ورود</h1>
 
-        @if (!ViewData.ModelState.IsValid)
+    <form asp-action="Login" method="post" class="card-surface p-4">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+        <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control ltr-field" autocomplete="username" />
+            <span asp-validation-for="Email" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Password" class="form-label"></label>
+            <input asp-for="Password" class="form-control ltr-field" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="text-danger small"></span>
+        </div>
+        <div class="form-check mb-3">
+            <input asp-for="RememberMe" class="form-check-input" />
+            <label asp-for="RememberMe" class="form-check-label small"></label>
+        </div>
+        <button type="submit" class="btn btn-accent w-100">ورود</button>
+    </form>
+
+    <div class="mt-4 card-surface p-3">
+        <div class="small text-muted-dark mb-2" dir="auto">ورود اجتماعی</div>
+        @if (googleOn || githubOn)
         {
-            <div class="alert" style="background:rgba(229,99,122,.12); color:var(--danger); border:1px solid rgba(229,99,122,.3);">
-                <div asp-validation-summary="All"></div>
+            <div class="d-flex flex-column gap-2">
+                @if (googleOn)
+                {
+                    <form asp-action="ExternalLogin" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="provider" value="Google" />
+                        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                        <button type="submit" class="btn btn-ghost w-100">Google</button>
+                    </form>
+                }
+                @if (githubOn)
+                {
+                    <form asp-action="ExternalLogin" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="provider" value="GitHub" />
+                        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                        <button type="submit" class="btn btn-ghost w-100">GitHub</button>
+                    </form>
+                }
             </div>
         }
-
-        <form asp-action="Login" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
-            <div class="mb-3">
-                <label class="form-label">نام کاربری یا ایمیل</label>
-                <input class="form-control ltr-field" style="width:100%; display:block;" name="username" required autofocus />
-            </div>
-            <div class="mb-4">
-                <label class="form-label">رمز عبور</label>
-                <input class="form-control ltr-field" style="width:100%; display:block;" type="password" name="password" required />
-            </div>
-            <button class="btn btn-accent w-100" type="submit">ورود</button>
-        </form>
-
-        <p class="mt-3 mb-0 small text-muted-dark text-center">
-            حساب ندارید؟
-            <a asp-action="Register" asp-route-returnUrl="@ViewBag.ReturnUrl">ثبت‌نام خواننده</a>
-        </p>
+        else
+        {
+            <p class="small text-muted-dark mb-0" dir="auto">
+                برای فعال‌سازی، در <code class="ltr-field">appsettings</code> کلیدهای
+                <span class="ltr-field">Authentication:Google</span> / <span class="ltr-field">GitHub</span> را تنظیم کنید.
+            </p>
+        }
     </div>
+
+    <p class="mt-3 small text-center">
+        <a asp-action="Register">ثبت‌نام</a>
+    </p>
 </div>
