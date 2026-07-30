@@ -2,6 +2,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BlogApp.Models;
 
+public enum ApiKeyApprovalStatus : byte
+{
+    Pending = 0,
+    Approved = 1,
+    Rejected = 2
+}
+
 public class ApiKey
 {
     public int Id { get; set; }
@@ -32,6 +39,17 @@ public class ApiKey
     public string? BanReason { get; set; }
     public DateTime? BannedAtUtc { get; set; }
 
+    /// <summary>SuperAdmin must approve before the key can authenticate API calls.</summary>
+    public ApiKeyApprovalStatus ApprovalStatus { get; set; } = ApiKeyApprovalStatus.Pending;
+
+    public DateTime? ApprovedAtUtc { get; set; }
+
+    [MaxLength(450)]
+    public string? ApprovedByUserId { get; set; }
+
+    [MaxLength(500)]
+    public string? RejectionReason { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? LastUsedAtUtc { get; set; }
     public DateTime? ExpiresAtUtc { get; set; }
@@ -39,6 +57,13 @@ public class ApiKey
     public long RequestCount { get; set; }
     public int AbuseStrikeCount { get; set; }
     public DateTime? LastAbuseAtUtc { get; set; }
+
+    /// <summary>Usable for API auth only when active, not banned, approved, and not expired.</summary>
+    public bool IsUsable =>
+        IsActive
+        && !IsBanned
+        && ApprovalStatus == ApiKeyApprovalStatus.Approved
+        && (ExpiresAtUtc is null || ExpiresAtUtc > DateTime.UtcNow);
 }
 
 public class WebhookSubscription

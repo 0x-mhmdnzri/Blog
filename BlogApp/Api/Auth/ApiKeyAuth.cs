@@ -64,13 +64,15 @@ public sealed class ApiKeyAuthHandler : AuthenticationHandler<ApiKeyAuthOptions>
         if (key.IsBanned)
             return AuthenticateResult.Fail("API key is banned.");
 
+        if (key.ApprovalStatus != ApiKeyApprovalStatus.Approved)
+            return AuthenticateResult.Fail("API key is pending SuperAdmin approval.");
+
         if (!key.IsActive)
             return AuthenticateResult.Fail("API key is disabled.");
 
         if (key.ExpiresAtUtc is { } exp && exp < DateTime.UtcNow)
             return AuthenticateResult.Fail("API key expired.");
 
-        // Touch usage (fire-and-forget style update)
         await _db.ApiKeys
             .Where(k => k.Id == key.Id)
             .ExecuteUpdateAsync(s => s
