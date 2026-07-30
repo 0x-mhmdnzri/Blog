@@ -54,8 +54,30 @@
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/datatables-admin.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
+    <script>
+      // Apply locked sidebar before paint to avoid width jump
+      (function () {
+        try {
+          var m = document.cookie.match(/(?:^|; )Blog\.AdminSidebarLocked=([^;]*)/);
+          if (m && decodeURIComponent(m[1]) === '1') {
+            document.documentElement.classList.add('sidebar-lock-pending');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      html.sidebar-lock-pending .admin-sidebar { width: 260px !important; transition: none !important; }
+      html.sidebar-lock-pending .admin-sidebar .nav-label,
+      html.sidebar-lock-pending .admin-sidebar .nav-trail,
+      html.sidebar-lock-pending .admin-sidebar .admin-nav-group-label,
+      html.sidebar-lock-pending .admin-sidebar .brand-text { display: initial !important; }
+      html.sidebar-lock-pending .admin-sidebar .admin-nav-link { justify-content: flex-start !important; padding: 0.65rem 0.85rem !important; }
+    </style>
 </head>
 <body class="admin-body sidebar-collapsed">
+    <div id="adminPageOverlay" class="admin-page-overlay" aria-hidden="true">
+        <div class="admin-page-spinner" role="status"></div>
+    </div>
     <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop"></div>
     <div class="admin-shell">
         <aside class="admin-sidebar is-collapsed" id="adminSidebar">
@@ -159,6 +181,7 @@
     <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
     <script>
         (function () {
+            document.documentElement.classList.remove('sidebar-lock-pending');
             const indicator = document.getElementById('liveIndicator');
             const pendingBadge = document.getElementById('pendingBadge');
             let pendingCount = @pendingCount;
@@ -194,6 +217,7 @@
     @await RenderSectionAsync("Scripts", required: false)
     <script>
         document.querySelector('.admin-content')?.classList.remove('is-loading');
+        document.getElementById('adminPageOverlay')?.classList.remove('is-visible');
     </script>
 </body>
 </html>
