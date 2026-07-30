@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<AuthorFollow> AuthorFollows => Set<AuthorFollow>();
     public DbSet<OutboundMessage> OutboundMessages => Set<OutboundMessage>();
+    public DbSet<NotificationCampaign> NotificationCampaigns => Set<NotificationCampaign>();
     public DbSet<AnalyticsSession> AnalyticsSessions => Set<AnalyticsSession>();
     public DbSet<SearchQueryLog> SearchQueryLogs => Set<SearchQueryLog>();
     public DbSet<ReadingDurationLog> ReadingDurationLogs => Set<ReadingDurationLog>();
@@ -199,6 +200,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(m => m.Body).HasColumnType("TEXT");
             e.HasIndex(m => m.IsSent);
             e.HasIndex(m => m.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<NotificationCampaign>(e =>
+        {
+            e.HasIndex(c => new { c.IsSent, c.ScheduledAtUtc });
+            e.HasIndex(c => c.CreatedAtUtc);
         });
 
         modelBuilder.Entity<SiteSetting>(e =>
