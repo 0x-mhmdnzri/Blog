@@ -1,116 +1,8 @@
-using BlogApp.Data;
-using BlogApp.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-
 namespace BlogApp.Services;
-
-public interface IUiTranslator
-{
-    string this[string key] { get; }
-    string T(string key, string? languageCode = null);
-    Task InvalidateCacheAsync();
-    Task EnsureSeedAsync(CancellationToken ct = default);
-}
-
-public sealed class UiTranslatorService : IUiTranslator
-{
-    private const string CacheKeyPrefix = "ui-i18n:";
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(6);
-
-    private readonly ApplicationDbContext _db;
-    private readonly IMemoryCache _cache;
-    private readonly ICultureService _culture;
-
-    public UiTranslatorService(
-        ApplicationDbContext db,
-        IMemoryCache cache,
-        ICultureService culture)
-    {
-        _db = db;
-        _cache = cache;
-        _culture = culture;
-    }
-
-    public string this[string key] => T(key);
-
-    public string T(string key, string? languageCode = null)
-    {
-        if (string.IsNullOrWhiteSpace(key)) return string.Empty;
-
-        var lang = AppCultures.Normalize(languageCode ?? _culture.CurrentCode);
-        var map = GetMap(lang);
-
-        if (map.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value))
-            return value;
-
-        if (lang != AppCultures.Default)
-        {
-            var fallback = GetMap(AppCultures.Default);
-            if (fallback.TryGetValue(key, out var fb) && !string.IsNullOrEmpty(fb))
-                return fb;
-        }
-
-        return key.Contains('.') ? key[(key.LastIndexOf('.') + 1)..] : key;
-    }
-
-    private IReadOnlyDictionary<string, string> GetMap(string lang)
-    {
-        return _cache.GetOrCreate(CacheKeyPrefix + lang, entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = CacheTtl;
-            return _db.UiTranslations.AsNoTracking()
-                .Where(t => t.LanguageCode == lang)
-                .ToDictionary(t => t.Key, t => t.Value, StringComparer.OrdinalIgnoreCase);
-        }) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    }
-
-    public Task InvalidateCacheAsync()
-    {
-        foreach (var c in AppCultures.All)
-            _cache.Remove(CacheKeyPrefix + c.Code);
-        return Task.CompletedTask;
-    }
-
-    public async Task EnsureSeedAsync(CancellationToken ct = default)
-    {
-        var existing = await _db.UiTranslations.AsNoTracking()
-            .Select(t => t.Key + "|" + t.LanguageCode)
-            .ToListAsync(ct);
-        var set = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
-
-        var rows = UiTranslationCatalog.All.Concat(UiTranslationCatalog.Wizard);
-        var added = 0;
-        foreach (var (key, group, fa, en, ar) in rows)
-        {
-            foreach (var (code, value) in new[] { ("fa", fa), ("en", en), ("ar", ar) })
-            {
-                var id = key + "|" + code;
-                if (set.Contains(id)) continue;
-                _db.UiTranslations.Add(new UiTranslation
-                {
-                    Key = key,
-                    LanguageCode = code,
-                    Value = value,
-                    Group = group,
-                    UpdatedAtUtc = DateTime.UtcNow
-                });
-                set.Add(id);
-                added++;
-            }
-        }
-
-        if (added > 0)
-            await _db.SaveChangesAsync(ct);
-
-        await InvalidateCacheAsync();
-    }
-}
 
 /// <summary>Built-in seed catalog for UI chrome (not post content). FA / EN / AR.</summary>
 public static partial class UiTranslationCatalog
 {
-    // Full chrome catalog remains in this file for now; Wizard lives in UiTranslationCatalog.Wizard.cs
     public static readonly (string Key, string Group, string Fa, string En, string Ar)[] All =
     {
         ("nav.posts", "nav", "نوشته‌ها", "Posts", "المقالات"),
@@ -180,7 +72,7 @@ public static partial class UiTranslationCatalog
         ("admin.nav.reports", "admin", "گزارش‌ها", "Reports", "التقارير"),
         ("admin.nav.media", "admin", "رسانه‌ها", "Media", "الوسائط"),
         ("admin.nav.taxonomy", "admin", "دسته‌ها و برچسب‌ها", "Categories & tags", "التصنيفات والوسوم"),
-        ("admin.nav.analytics", "admin", "آمار و تحلیل", "Analytics", "الإحصاءات"),
+        ("admin.nav.analytics", "admin", "تحلیل‌ها", "Analytics", "التحليلات"),
         ("admin.nav.seo", "admin", "ابزارهای سئو", "SEO tools", "أدوات تحسين محركات البحث"),
         ("admin.nav.newsletter", "admin", "خبرنامه", "Newsletter", "النشرة"),
         ("admin.nav.profile", "admin", "پروفایل من", "My profile", "ملفي"),
@@ -388,7 +280,7 @@ public static partial class UiTranslationCatalog
         ("notif.status_sent", "notif", "ارسال‌شده", "Sent", "مُرسَل"),
 
         ("dash.range_7", "dash", "۷ روز اخیر", "Last 7 days", "آخر 7 أيام"),
-        ("dash.range_30", "dash", "۳۰ روز اخیر", "Last 30 days", "آخر 30 يوماً"),
+        ("dash.range_30", "dash", "۳۰ روز اخیر", "Last 30 days", "آخر 90 يوماً"),
         ("dash.range_90", "dash", "۹۰ روز اخیر", "Last 90 days", "آخر 90 يوماً"),
         ("dash.reset_btn", "dash", "ریست آمار بازدید", "Reset view stats", "إعادة ضبط الإحصاءات"),
         ("dash.reset_title", "dash", "پاک‌کردن بازدیدهای قدیمی/دمو", "Clear old/demo view stats", "مسح إحصاءات قديمة"),
