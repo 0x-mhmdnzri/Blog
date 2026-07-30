@@ -36,6 +36,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<FeatureFlag> FeatureFlags => Set<FeatureFlag>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ContentReport> ContentReports => Set<ContentReport>();
+    public DbSet<UiTranslation> UiTranslations => Set<UiTranslation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,7 +44,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<Post>(e =>
         {
-            // Slug unique per language (same article can share slug across locales)
             e.HasIndex(p => new { p.LanguageCode, p.Slug }).IsUnique();
             e.HasIndex(p => p.LanguageCode);
             e.HasIndex(p => p.TranslationGroupId);
@@ -224,6 +224,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(r => r.Status);
             e.HasIndex(r => r.CreatedAtUtc);
             e.Property(r => r.Details).HasColumnType("TEXT");
+        });
+
+        modelBuilder.Entity<UiTranslation>(e =>
+        {
+            e.HasIndex(t => new { t.Key, t.LanguageCode }).IsUnique();
+            e.HasIndex(t => t.LanguageCode);
+            e.HasIndex(t => t.Group);
+            e.Property(t => t.Value).HasColumnType("TEXT");
         });
 
         modelBuilder.Entity<ApplicationUser>(e =>
