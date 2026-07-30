@@ -48,9 +48,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="@culture.BootstrapCss" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-rtl.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/datatables-admin.css" asp-append-version="true" />
 </head>
 <body class="admin-body">
     <div class="admin-shell">
@@ -167,7 +169,11 @@
         </main>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="~/js/datatables-server.js" asp-append-version="true"></script>
     <script>
         (function () {
             const indicator = document.getElementById('liveIndicator');
