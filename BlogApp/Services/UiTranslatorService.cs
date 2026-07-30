@@ -52,7 +52,6 @@ public sealed class UiTranslatorService : IUiTranslator
         if (map.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value))
             return value;
 
-        // Fallback to default language (fa)
         if (lang != AppCultures.Default)
         {
             var fallback = GetMap(AppCultures.Default);
@@ -60,7 +59,6 @@ public sealed class UiTranslatorService : IUiTranslator
                 return fb;
         }
 
-        // Last resort: humanize the key
         return key.Contains('.') ? key[(key.LastIndexOf('.') + 1)..] : key;
     }
 
@@ -363,7 +361,7 @@ public static class UiTranslationCatalog
         ("msg.uncategorized", "message", "بدون دسته", "Uncategorized", "بدون تصنيف"),
         ("msg.dash", "message", "—", "—", "—"),
 
-        // ---- Notifications (bell + pages + admin compose) ----
+        // ---- Notifications ----
         ("notif.title", "notif", "اعلان‌ها", "Notifications", "الإشعارات"),
         ("notif.mark_all", "notif", "خواندن همه", "Mark all read", "تحديد الكل كمقروء"),
         ("notif.view_all", "notif", "مشاهده همه", "View all", "عرض الكل"),
@@ -414,5 +412,43 @@ public static class UiTranslationCatalog
         ("notif.no_campaigns", "notif", "هنوز کمپینی نیست.", "No campaigns yet.", "لا توجد حملات بعد."),
         ("notif.col_recipients", "notif", "گیرندگان", "Recipients", "المستلمون"),
         ("notif.status_sent", "notif", "ارسال‌شده", "Sent", "مُرسَل"),
+
+        // ---- Admin dashboard ----
+        ("dash.range_7", "dash", "۷ روز اخیر", "Last 7 days", "آخر 7 أيام"),
+        ("dash.range_30", "dash", "۳۰ روز اخیر", "Last 30 days", "آخر 30 يوماً"),
+        ("dash.range_90", "dash", "۹۰ روز اخیر", "Last 90 days", "آخر 90 يوماً"),
+        ("dash.reset_btn", "dash", "ریست آمار بازدید", "Reset view stats", "إعادة ضبط الإحصاءات"),
+        ("dash.reset_title", "dash", "پاک‌کردن بازدیدهای قدیمی/دمو", "Clear old/demo view stats", "مسح إحصاءات قديمة"),
+        ("dash.reset_confirm", "dash", "همه آمار بازدید پاک شود؟ این کار قابل بازگشت نیست.", "Clear all view stats? This cannot be undone.", "مسح كل إحصاءات المشاهدة؟ لا يمكن التراجع."),
+        ("dash.kpi_views_range", "dash", "بازدید در بازه انتخاب‌شده", "Views in selected range", "المشاهدات في الفترة"),
+        ("dash.vs_previous", "dash", "نسبت به بازه قبلی", "vs previous period", "مقارنة بالفترة السابقة"),
+        ("dash.kpi_views_today", "dash", "بازدید امروز", "Views today", "مشاهدات اليوم"),
+        ("dash.kpi_views_total", "dash", "بازدید کل تاریخی", "All-time views", "إجمالي المشاهدات"),
+        ("dash.kpi_pending", "dash", "دیدگاه‌های در انتظار بررسی", "Pending comments", "تعليقات قيد المراجعة"),
+        ("dash.view_moderation", "dash", "مشاهده در صف مدیریت ›", "Open moderation queue ›", "فتح قائمة المراجعة ›"),
+        ("dash.kpi_approved", "dash", "دیدگاه‌های تأییدشده", "Approved comments", "تعليقات موافق عليها"),
+        ("dash.kpi_rejected", "dash", "دیدگاه‌های ردشده", "Rejected comments", "تعليقات مرفوضة"),
+        ("dash.kpi_media", "dash", "فایل‌های رسانه", "Media files", "ملفات الوسائط"),
+        ("dash.kpi_media_size", "dash", "حجم رسانه‌های ذخیره‌شده", "Stored media size", "حجم الوسائط"),
+        ("dash.chart_views_title", "dash", "روند بازدید", "Views trend", "اتجاه المشاهدات"),
+        ("dash.chart_views_sub", "dash", "تعداد بازدید واقعی خوانندگان در {0} روز اخیر · به‌روز‌رسانی زنده", "Real reader views over the last {0} days · live", "مشاهدات حقيقية خلال آخر {0} يوماً · مباشر"),
+        ("dash.chart_views_label", "dash", "بازدید", "Views", "المشاهدات"),
+        ("dash.chart_comments_title", "dash", "وضعیت دیدگاه‌ها", "Comment status", "حالة التعليقات"),
+        ("dash.chart_comments_sub", "dash", "تأییدشده / در انتظار / ردشده", "Approved / Pending / Rejected", "موافق / قيد الانتظار / مرفوض"),
+        ("dash.chart_posts_title", "dash", "نوشته‌های ایجادشده", "Posts created", "المقالات المنشأة"),
+        ("dash.chart_posts_sub", "dash", "۶ ماه اخیر", "Last 6 months", "آخر 6 أشهر"),
+        ("dash.chart_cat_title", "dash", "نوشته‌ها بر اساس دسته‌بندی", "Posts by category", "المقالات حسب التصنيف"),
+        ("dash.chart_cat_sub", "dash", "توزیع کل نوشته‌ها", "Distribution of all posts", "توزيع كل المقالات"),
+        ("dash.chart_fail", "dash", "بارگذاری کتابخانه نمودار ناموفق بود.", "Chart library failed to load.", "فشل تحميل مكتبة الرسوم."),
+        ("dash.top_posts", "dash", "پربازدیدترین نوشته‌ها", "Top posts", "أكثر المقالات مشاهدة"),
+        ("dash.view_all_posts", "dash", "مشاهده همه نوشته‌ها", "View all posts", "عرض كل المقالات"),
+        ("dash.top_empty_title", "dash", "هنوز داده‌ای برای نمایش نیست", "No data to show yet", "لا توجد بيانات بعد"),
+        ("dash.top_empty_body", "dash", "وقتی نوشته‌ها بازدید بگیرند، رتبه‌بندی همین‌جا نمایش داده می‌شود.", "When posts get views, rankings appear here.", "عند حصول المقالات على مشاهدات تظهر الترتيبات هنا."),
+        ("dash.col_views_total", "dash", "بازدید کل", "Total views", "إجمالي المشاهدات"),
+        ("dash.col_views_range", "dash", "بازدید در بازه", "Views in range", "المشاهدات في الفترة"),
+        ("dash.recent_comments", "dash", "آخرین دیدگاه‌ها", "Recent comments", "أحدث التعليقات"),
+        ("dash.view_all", "dash", "مشاهده همه", "View all", "عرض الكل"),
+        ("dash.comments_empty_title", "dash", "هنوز دیدگاهی ثبت نشده", "No comments yet", "لا تعليقات بعد"),
+        ("dash.comments_empty_body", "dash", "وقتی خواننده‌ای دیدگاهی بگذارد، همین‌جا نمایش داده می‌شود.", "When a reader leaves a comment, it shows up here.", "عند ترك قارئ تعليقاً يظهر هنا."),
     };
 }
