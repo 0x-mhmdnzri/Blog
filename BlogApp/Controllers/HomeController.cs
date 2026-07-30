@@ -59,12 +59,14 @@ public class HomeController : Controller
         int total;
         List<Category> categories;
 
+        // Categories: small table — plain AsNoTracking (no compiled query; EF OrderBy type clash)
+        var catsTask = _db.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
+
         if (useCompiled)
         {
             var skip = (page - 1) * pageSize;
             var countTask = CompiledQueries.HomeRecentCount(_db, lang, now);
             var postsTask = ToListAsync(CompiledQueries.HomeRecentPage(_db, lang, now, skip, pageSize));
-            var catsTask = CompiledQueries.CategoriesOrderedAsync(_db);
 
             await Task.WhenAll(countTask, postsTask, catsTask);
 
@@ -136,7 +138,6 @@ public class HomeController : Controller
 
             var totalTask = projected.CountAsync();
             var postsTask = projected.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            var catsTask = CompiledQueries.CategoriesOrderedAsync(_db);
 
             await Task.WhenAll(totalTask, postsTask, catsTask);
 

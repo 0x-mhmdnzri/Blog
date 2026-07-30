@@ -6,20 +6,10 @@ namespace BlogApp.Data;
 
 /// <summary>
 /// EF Core compiled queries — parse/compile once, reuse on hot paths (home feed).
+/// Categories intentionally not compiled: small table + OrderBy type inference issues under EF 10.
 /// </summary>
 public static class CompiledQueries
 {
-    /// <summary>
-    /// Categories are a small table; compiled as sync enumerable then buffered.
-    /// (CompileAsyncQuery + OrderBy inferred Task&lt;IOrderedQueryable&gt; under EF 10.)
-    /// </summary>
-    private static readonly Func<ApplicationDbContext, IEnumerable<Category>> CategoriesOrderedCore =
-        EF.CompileQuery((ApplicationDbContext db) =>
-            db.Categories.AsNoTracking().OrderBy(c => c.Name));
-
-    public static Task<List<Category>> CategoriesOrderedAsync(ApplicationDbContext db) =>
-        Task.FromResult(CategoriesOrderedCore(db).ToList());
-
     /// <summary>
     /// Lean home-feed page: list columns only (never ContentMarkdown / large blobs).
     /// </summary>
