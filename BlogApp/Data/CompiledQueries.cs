@@ -9,9 +9,16 @@ namespace BlogApp.Data;
 /// </summary>
 public static class CompiledQueries
 {
-    public static readonly Func<ApplicationDbContext, IAsyncEnumerable<Category>> CategoriesOrdered =
-        EF.CompileAsyncQuery((ApplicationDbContext db) =>
+    /// <summary>
+    /// Categories are a small table; compiled as sync enumerable then buffered.
+    /// (CompileAsyncQuery + OrderBy inferred Task&lt;IOrderedQueryable&gt; under EF 10.)
+    /// </summary>
+    private static readonly Func<ApplicationDbContext, IEnumerable<Category>> CategoriesOrderedCore =
+        EF.CompileQuery((ApplicationDbContext db) =>
             db.Categories.AsNoTracking().OrderBy(c => c.Name));
+
+    public static Task<List<Category>> CategoriesOrderedAsync(ApplicationDbContext db) =>
+        Task.FromResult(CategoriesOrderedCore(db).ToList());
 
     /// <summary>
     /// Lean home-feed page: list columns only (never ContentMarkdown / large blobs).
@@ -41,7 +48,7 @@ public static class CompiledQueries
                 {
                     Id = p.Id,
                     Title = p.Title,
-                    Slug = p.Slug,
+                    !Slugs = p.Slug,
                     Summary = p.Summary,
                     CategoryName = p.Category != null ? p.Category.Name : null,
                     PublishedAtUtc = p.PublishedAtUtc,
