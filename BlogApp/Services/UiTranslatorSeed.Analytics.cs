@@ -6,9 +6,6 @@ namespace BlogApp.Services;
 
 public sealed partial class UiTranslatorService
 {
-    /// <summary>
-    /// Insert missing chrome keys, then force-refresh Analytics catalog (nav rename, etc.).
-    /// </summary>
     public async Task EnsureSeedAsync(CancellationToken ct = default)
     {
         var existing = await _db.UiTranslations.AsNoTracking()
@@ -19,7 +16,8 @@ public sealed partial class UiTranslatorService
         var insertRows = UiTranslationCatalog.All
             .Concat(UiTranslationCatalog.Wizard)
             .Concat(UiTranslationCatalog.Analytics)
-            .Concat(UiTranslationCatalog.Taxonomy);
+            .Concat(UiTranslationCatalog.Taxonomy)
+            .Concat(UiTranslationCatalog.Sidebar);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
@@ -41,7 +39,6 @@ public sealed partial class UiTranslatorService
             }
         }
 
-        // Force-update Analytics keys (e.g. admin.nav.analytics → تحلیل‌ها)
         var tracked = await _db.UiTranslations
             .Where(t => t.Group == "ana" || t.Key == "admin.nav.analytics")
             .ToListAsync(ct);
