@@ -1,14 +1,14 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "گزارش‌های محتوا";
+    ViewData["Title"] = T["page.reports"];
     var current = ViewBag.CurrentStatus as string ?? "open";
 }
 
 <div class="admin-tabs">
-    <a class="admin-tab @(current == "open" ? "active" : "")" asp-action="Index" asp-route-status="open">باز (@ViewBag.OpenCount)</a>
-    <a class="admin-tab @(current == "resolved" ? "active" : "")" asp-action="Index" asp-route-status="resolved">حل‌شده (@ViewBag.ResolvedCount)</a>
-    <a class="admin-tab @(current == "dismissed" ? "active" : "")" asp-action="Index" asp-route-status="dismissed">ردشده (@ViewBag.DismissedCount)</a>
-    <a class="admin-tab @(current == "all" ? "active" : "")" asp-action="Index" asp-route-status="all">همه</a>
+    <a class="admin-tab @(current == "open" ? "active" : "")" asp-action="Index" asp-route-status="open">@T["tab.open"] (@ViewBag.OpenCount)</a>
+    <a class="admin-tab @(current == "resolved" ? "active" : "")" asp-action="Index" asp-route-status="resolved">@T["tab.resolved"] (@ViewBag.ResolvedCount)</a>
+    <a class="admin-tab @(current == "dismissed" ? "active" : "")" asp-action="Index" asp-route-status="dismissed">@T["tab.dismissed"] (@ViewBag.DismissedCount)</a>
+    <a class="admin-tab @(current == "all" ? "active" : "")" asp-action="Index" asp-route-status="all">@T["tab.all"]</a>
 </div>
 
 @Html.AntiForgeryToken()
@@ -17,13 +17,13 @@
     <table id="reportsTable" class="admin-table display nowrap" style="width:100%">
         <thead>
             <tr>
-                <th>#</th>
-                <th>هدف</th>
-                <th>دلیل</th>
-                <th>گزارش‌دهنده</th>
-                <th>تاریخ</th>
-                <th>وضعیت</th>
-                <th>عملیات</th>
+                <th>@T["col.index"]</th>
+                <th>@T["col.target"]</th>
+                <th>@T["col.reason"]</th>
+                <th>@T["col.reporter"]</th>
+                <th>@T["col.date"]</th>
+                <th>@T["col.status"]</th>
+                <th>@T["col.actions"]</th>
             </tr>
         </thead>
     </table>
