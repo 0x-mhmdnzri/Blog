@@ -45,4 +45,24 @@ public partial class PostsController
 
         ViewBag.SocialReactionCounts = counts.ToDictionary(x => x.Key, x => x.C);
     }
+
+    /// <summary>Hook called from Details — safe if tables not yet migrated.</summary>
+    private async Task TryLoadSocialContextAsync(Post post)
+    {
+        try
+        {
+            await LoadSocialContextAsync(post);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Social context load skipped PostId={Id}", post.Id);
+            ViewBag.SocialPostId = post.Id;
+            ViewBag.SocialSlug = post.Slug;
+            ViewBag.SocialTitle = post.Title;
+            ViewBag.SocialLikeCount = post.LikeCount;
+            ViewBag.SocialAuthorId = post.AuthorId;
+            ViewBag.SocialCategoryId = post.CategoryId;
+            ViewBag.SocialReactionCounts = new Dictionary<ReactionKind, int>();
+        }
+    }
 }
