@@ -1,0 +1,5 @@
+Required order for API PAT rate-limit + auto-ban:
+  UseRouting
+  UseAuthentication
+  UseAuthorization
+  UseRateLimiter
