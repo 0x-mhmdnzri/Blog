@@ -1,11 +1,21 @@
-/* Admin panel — full RTL, Persian, right-aligned. Responsive. */
+/* Admin panel — bidirectional (RTL default catalog, LTR when html[dir=ltr]). */
 
 .admin-body {
-  font-family: var(--font-body);
+  font-family: var(--font-body-rtl, var(--font-body, "Vazirmatn", Tahoma, sans-serif));
   background: var(--bg);
   margin: 0;
+  direction: inherit;
+  text-align: start;
+}
+html[dir="rtl"] .admin-body {
   direction: rtl;
   text-align: right;
+  font-family: var(--font-body-rtl, "Vazirmatn", Tahoma, sans-serif);
+}
+html[dir="ltr"] .admin-body {
+  direction: ltr;
+  text-align: left;
+  font-family: var(--font-body-ltr, "Space Grotesk", system-ui, sans-serif);
 }
 
 .admin-body code,
@@ -18,17 +28,19 @@
 
 .admin-shell {
   display: flex;
-  flex-direction: row; /* in RTL: first child (sidebar) sits on the RIGHT */
+  flex-direction: row;
   min-height: 100vh;
   width: 100%;
-  direction: rtl;
+  direction: inherit;
 }
+html[dir="rtl"] .admin-shell { direction: rtl; }
+html[dir="ltr"] .admin-shell { direction: ltr; }
 
 .admin-sidebar {
   width: 260px;
   flex-shrink: 0;
   background: var(--surface);
-  border-left: 1px solid var(--border-soft); /* edge toward main content */
+  border-inline-end: 1px solid var(--border-soft);
   display: flex;
   flex-direction: column;
   position: sticky;
@@ -36,7 +48,7 @@
   height: 100vh;
   z-index: 40;
   transition: transform 0.22s ease, box-shadow 0.22s ease;
-  text-align: right;
+  text-align: start;
 }
 
 .admin-brand {
@@ -48,7 +60,6 @@
   font-weight: 700;
   font-size: 1.02rem;
   line-height: 1.3;
-  font-family: var(--font-body);
 }
 .admin-brand .brand-cursor {
   width: 9px; height: 18px;
@@ -81,7 +92,7 @@
   font-size: 0.92rem;
   margin-bottom: 0.15rem;
   text-decoration: none !important;
-  text-align: right;
+  text-align: start;
 }
 .admin-nav-link:hover { background: var(--surface-2); color: var(--text); }
 .admin-nav-link.active {
@@ -124,8 +135,7 @@
   padding: 0.45rem 0.8rem;
   font-size: 0.86rem;
   width: 100%;
-  text-align: right;
-  font-family: var(--font-body);
+  text-align: start;
   cursor: pointer;
 }
 .admin-sidebar-footer button:hover { border-color: var(--danger); color: var(--danger); }
@@ -135,7 +145,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  text-align: right;
+  text-align: start;
 }
 
 .admin-topbar {
@@ -149,11 +159,10 @@
   z-index: 20;
   gap: 0.75rem;
 }
-.admin-topbar h1 { font-size: 1.15rem; margin: 0; word-break: break-word; text-align: right; }
+.admin-topbar h1 { font-size: 1.15rem; margin: 0; word-break: break-word; text-align: start; }
 .admin-topbar .eyebrow {
   font-size: 0.72rem;
   color: var(--text-faint);
-  font-family: var(--font-body);
 }
 
 .live-indicator {
@@ -162,7 +171,6 @@
   gap: 0.4rem;
   font-size: 0.78rem;
   color: var(--text-faint);
-  font-family: var(--font-body);
   white-space: nowrap;
 }
 .live-dot {
@@ -189,7 +197,7 @@
   padding: 1.5rem;
   max-width: 1200px;
   width: 100%;
-  text-align: right;
+  text-align: start;
 }
 
 .stat-card, .kpi-card, .chart-card {
@@ -198,7 +206,7 @@
   border-radius: var(--radius-lg);
   padding: 1.2rem 1.3rem;
   height: 100%;
-  text-align: right;
+  text-align: start;
 }
 .chart-title {
   font-weight: 600;
@@ -210,12 +218,11 @@
   color: var(--text-faint);
   margin-bottom: 0.75rem;
 }
-.kpi-card { border-right: 3px solid var(--accent-dim); border-left: none; }
-.kpi-card.kpi-danger { border-right-color: var(--danger); }
-.kpi-card.kpi-good { border-right-color: var(--success, #9ecb8c); }
+.kpi-card { border-inline-start: 3px solid var(--accent-dim); }
+.kpi-card.kpi-danger { border-inline-start-color: var(--danger); }
+.kpi-card.kpi-good { border-inline-start-color: var(--success, #9ecb8c); }
 .kpi-label, .stat-label { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 0.35rem; }
 .kpi-value, .stat-value {
-  font-family: var(--font-display);
   font-size: clamp(1.4rem, 3vw, 1.9rem);
   font-weight: 700;
   line-height: 1.1;
@@ -252,14 +259,14 @@
   width: 100%;
   border-collapse: collapse;
   min-width: 640px;
-  direction: rtl;
+  direction: inherit;
 }
 .admin-table th {
   background: var(--surface-2);
   color: var(--text-muted);
   font-weight: 600;
   font-size: 0.82rem;
-  text-align: right;
+  text-align: start;
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
@@ -269,7 +276,7 @@
   border-bottom: 1px solid var(--border-soft);
   font-size: 0.9rem;
   vertical-align: middle;
-  text-align: right;
+  text-align: start;
 }
 .admin-table tr:last-child td { border-bottom: none; }
 .admin-table tr:hover td { background: var(--surface-2); }
@@ -334,7 +341,7 @@
     gap: 0.9rem;
     align-items: flex-start;
   }
-  .author-card .meta { flex: 1; min-width: 0; text-align: right; }
+  .author-card .meta { flex: 1; min-width: 0; text-align: start; }
   .author-card .meta .title {
     font-weight: 600;
     margin-bottom: 0.2rem;
@@ -393,7 +400,7 @@
   border: 1px dashed var(--border);
   border-radius: var(--radius-lg);
   padding: 3rem 1.5rem;
-  text-align: right;
+  text-align: start;
   color: var(--text-muted);
 }
 
@@ -405,7 +412,6 @@
   font-size: 0.78rem;
   color: var(--text-muted);
   cursor: pointer;
-  font-family: var(--font-body);
   text-decoration: none !important;
   display: inline-flex;
   align-items: center;
@@ -438,17 +444,19 @@
 }
 
 @media (max-width: 900px) {
-  .admin-sidebar {
+  html[dir="rtl"] .admin-sidebar {
     position: fixed;
-    top: 0;
-    bottom: 0;
-    right: 0;
+    top: 0; bottom: 0; right: 0;
     transform: translateX(100%);
-    box-shadow: none;
+  }
+  html[dir="ltr"] .admin-sidebar {
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    transform: translateX(-100%);
   }
   .admin-sidebar.open {
-    transform: translateX(0);
-    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+    transform: translateX(0) !important;
+    box-shadow: 0 0 32px rgba(0, 0, 0, 0.45);
   }
   .admin-content { padding: 1rem; }
   .admin-topbar { padding: 0.85rem 1rem; }
