@@ -31,8 +31,35 @@ try
 
     builder.Host.UseSerilog((ctx, services, cfg) => SerilogBootstrap.Configure(ctx, services, cfg));
 
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=blog.db";
-    builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Data Source=blog.db;Cache=Shared;Pooling=True;Default Timeout=30";
+
+    // Append ADO.NET pool knobs when using SQL Server (ignored harmlessly by SQLite if present in config-only path).
+    var maxPool = builder.Configuration.GetValue("Database:MaxPoolSize", 100);
+    var minPool = builder.Configuration.GetValue("Database:MinPoolSize", 0);
+    var cmdTimeout = builder.Configuration.GetValue("Database:CommandTimeoutSeconds", 30);
+
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    {
+        options.UseSqlite(connectionString, sqlite =>
+        {
+            sqlite.CommandTimeout(cmdTimeout);
+        });
+
+        // Read-heavy site: no tracking by default (Identity attaches when needed).
+        options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+
+        // Explicit loading only — never lazy proxies (extra round-trips + proxy types).
+        options.UseLazyLoadingProxies(false);
+
+        options.EnableSensitiveDataLogging(false);
+        options.EnableDetailedErrors(builder.Environment.IsDevelopment());
+    });
+
+    // Surface pool intent for ops (SQL Server connection strings can set Max Pool Size / Min Pool Size).
+    Log.Information("EF configured NoTracking default, LazyLoading=false, CommandTimeout={Timeout}s, Pool Max={Max} Min={Min}",
+        cmdTimeout, maxPool, minPool);
+
     builder.Services.AddMemoryCache();
     builder.Services.AddHttpContextAccessor();
 

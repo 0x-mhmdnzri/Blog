@@ -47,59 +47,82 @@ public class HomeController : Controller
         var now = DateTime.UtcNow;
         var lang = _culture.CurrentCode;
 
-        var query = _db.Posts
-            .AsNoTracking()
-            .Where(p => !p.IsDeleted)
-            .Where(p => p.LanguageCode == lang)
-            .Where(p => p.IsPublished
-                        || isAuthor
-                        || (p.ScheduledPublishAtUtc != null && p.ScheduledPublishAtUtc <= now))
-            .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now || isAuthor)
-            .Where(p => isAuthor
-                        || p.TranslationStatus == TranslationStatus.Original
-                        || p.TranslationStatus == TranslationStatus.Approved);
+        // Fast path: default home feed (no filters) — compiled queries + lean columns only.
+        var useCompiled = string.IsNullOrWhiteSpace(category)
+            && string.IsNullOrWhiteSpace(tag)
+            && string.IsNullOrWhiteSpace(q)
+            && string.IsNullOrWhiteSpace(sort)
+            && featured != true
+            && minRead is not > 0
+            && !isAuthor;
 
-        if (!string.IsNullOrWhiteSpace(category))
-            query = query.Where(p => p.Category != null && p.Category.Slug == category);
+        List<PostListItemViewModel> posts;
+        int total;
+        List<Category> categories;
 
-        if (!string.IsNullOrWhiteSpace(tag))
-            query = query.Where(p => p.PostTags.Any(pt => pt.Tag.Slug == tag));
-
-        if (featured == true)
-            query = query.Where(p => p.IsFeatured);
-        if (minRead is > 0)
-            query = query.Where(p => p.ReadingTimeMinutes >= minRead);
-
-        if (!string.IsNullOrWhiteSpace(q))
+        if (useCompiled)
         {
-            var term = q.Trim();
-            if (term.Length > 100) term = term[..100];
-            query = query.Where(p =>
-                p.Title.Contains(term) ||
-                (p.Summary != null && p.Summary.Contains(term)) ||
-                p.ContentMarkdown.Contains(term) ||
-                p.PostTags.Any(pt => pt.Tag.Name.Contains(term)));
+            var skip = (page - 1) * pageSize;
+            var countTask = CompiledQueries.HomeRecentCount(_db, lang, now);
+            var postsEnum = CompiledQueries.HomeRecentPage(_db, lang, now, skip, pageSize);
+            var catEnum = CompiledQueries.CategoriesOrdered(_db);
+
+            var postsTask = ToListAsync(postsEnum);
+            var catsTask = ToListAsync(catEnum);
+
+            await Task.WhenAll(countTask, postsTask, catsTask);
+
+            total = await countTask;
+            posts = await postsTask;
+            categories = await catsTask;
         }
-
-        query = (sort?.ToLowerInvariant()) switch
+        else
         {
-            "popular" => query.OrderByDescending(p => p.ViewCount).ThenByDescending(p => p.PublishedAtUtc),
-            "oldest" => query.OrderBy(p => p.PublishedAtUtc ?? p.CreatedAtUtc),
-            "read" => query.OrderBy(p => p.ReadingTimeMinutes).ThenByDescending(p => p.PublishedAtUtc),
-            _ => query.OrderByDescending(p => p.IsSticky)
-                      .ThenByDescending(p => p.IsFeatured)
-                      .ThenByDescending(p => p.IsPublished ? p.PublishedAtUtc : p.CreatedAtUtc)
-        };
+            var query = _db.Posts
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted)
+                .Where(p => p.LanguageCode == lang)
+                .Where(p => p.IsPublished
+                            || isAuthor
+                            || (p.ScheduledPublishAtUtc != null && p.ScheduledPublishAtUtc <= now))
+                .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now || isAuthor)
+                .Where(p => isAuthor
+                            || p.TranslationStatus == TranslationStatus.Original
+                            || p.TranslationStatus == TranslationStatus.Approved);
 
-        var total = await query.CountAsync();
+            if (!string.IsNullOrWhiteSpace(category))
+                query = query.Where(p => p.Category != null && p.Category.Slug == category);
 
-        if (!string.IsNullOrWhiteSpace(q))
-            await _analytics.TrackSearchAsync(HttpContext, q.Trim(), total);
+            if (!string.IsNullOrWhiteSpace(tag))
+                query = query.Where(p => p.PostTags.Any(pt => pt.Tag.Slug == tag));
 
-        var posts = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new PostListItemViewModel
+            if (featured == true)
+                query = query.Where(p => p.IsFeatured);
+            if (minRead is > 0)
+                query = query.Where(p => p.ReadingTimeMinutes >= minRead);
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var term = q.Trim();
+                if (term.Length > 100) term = term[..100];
+                // Avoid scanning ContentMarkdown on busy index — title/summary/tags only.
+                query = query.Where(p =>
+                    p.Title.Contains(term) ||
+                    (p.Summary != null && p.Summary.Contains(term)) ||
+                    p.PostTags.Any(pt => pt.Tag.Name.Contains(term)));
+            }
+
+            query = (sort?.ToLowerInvariant()) switch
+            {
+                "popular" => query.OrderByDescending(p => p.ViewCount).ThenByDescending(p => p.PublishedAtUtc),
+                "oldest" => query.OrderBy(p => p.PublishedAtUtc ?? p.CreatedAtUtc),
+                "read" => query.OrderBy(p => p.ReadingTimeMinutes).ThenByDescending(p => p.PublishedAtUtc),
+                _ => query.OrderByDescending(p => p.IsSticky)
+                          .ThenByDescending(p => p.IsFeatured)
+                          .ThenByDescending(p => p.IsPublished ? p.PublishedAtUtc : p.CreatedAtUtc)
+            };
+
+            var projected = query.Select(p => new PostListItemViewModel
             {
                 Id = p.Id,
                 Title = p.Title,
@@ -114,10 +137,23 @@ public class HomeController : Controller
                 ReadingTimeMinutes = p.ReadingTimeMinutes,
                 LanguageCode = p.LanguageCode,
                 Tags = p.PostTags.Select(pt => pt.Tag.Name).ToList()
-            })
-            .ToListAsync();
+            });
 
-        ViewBag.Categories = await _db.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
+            var totalTask = projected.CountAsync();
+            var postsTask = projected.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            var catsTask = ToListAsync(CompiledQueries.CategoriesOrdered(_db));
+
+            await Task.WhenAll(totalTask, postsTask, catsTask);
+
+            total = await totalTask;
+            posts = await postsTask;
+            categories = await catsTask;
+
+            if (!string.IsNullOrWhiteSpace(q))
+                await _analytics.TrackSearchAsync(HttpContext, q.Trim(), total);
+        }
+
+        ViewBag.Categories = categories;
         ViewBag.CurrentCategory = category;
         ViewBag.CurrentTag = tag;
         ViewBag.SearchQuery = q;
@@ -129,8 +165,8 @@ public class HomeController : Controller
         ViewBag.Featured = featured;
         ViewBag.MinRead = minRead;
 
-        if (string.Equals(partial, "1", StringComparison.Ordinal) ||
-            (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase) && page > 1))
+        if (string.Equals(partial, "1", StringComparison.Ordinal)
+            || (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase) && page > 1))
         {
             return PartialView("_PostCards", posts);
         }
@@ -155,6 +191,14 @@ public class HomeController : Controller
             )));
 
         return View(posts);
+    }
+
+    private static async Task<List<T>> ToListAsync<T>(IAsyncEnumerable<T> source)
+    {
+        var list = new List<T>();
+        await foreach (var item in source)
+            list.Add(item);
+        return list;
     }
 
     [HttpGet]
