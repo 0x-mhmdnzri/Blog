@@ -2,7 +2,7 @@
 @using System.Text.Json
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "داشبورد";
+    ViewData["Title"] = T["admin.nav.dashboard"];
 
     string FormatBytes(long bytes)
     {
@@ -23,29 +23,34 @@
     var maxLeaderViews = Math.Max(1, Model.TopPosts.Any() ? Model.TopPosts.Max(p => p.Views) : 1);
     var currentUserId = ViewBag.CurrentUserId as string ?? "";
     var seeAllAnalytics = ViewBag.SeeAllAnalytics as bool? ?? false;
+
+    var chartViewsLabel = JsonSerializer.Serialize(T["dash.chart_views_label"], jsonOptions);
+    var chartCommentLabels = JsonSerializer.Serialize(new[] { T["status.approved"], T["status.pending"], T["status.rejected"] }, jsonOptions);
+    var chartPostsLabel = JsonSerializer.Serialize(T["col.posts"], jsonOptions);
+    var chartFailMsg = JsonSerializer.Serialize(T["dash.chart_fail"], jsonOptions);
 }
 
 @if (TempData["AnalyticsReset"] != null)
 {
     <div class="alert mb-3" style="background:rgba(158,203,140,.12);color:var(--good,#9ecb8c);border:1px solid rgba(158,203,140,.35);">
-        @TempData["AnalyticsReset"]
+        @T["msg.analytics_reset"]
     </div>
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div class="range-tabs">
-        <a class="admin-tab @(Model.RangeDays == 7 ? "active" : "")" asp-action="Index" asp-route-range="7">۷ روز اخیر</a>
-        <a class="admin-tab @(Model.RangeDays == 30 ? "active" : "")" asp-action="Index" asp-route-range="30">۳۰ روز اخیر</a>
-        <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Index" asp-route-range="90">۹۰ روز اخیر</a>
+        <a class="admin-tab @(Model.RangeDays == 7 ? "active" : "")" asp-action="Index" asp-route-range="7">@T["dash.range_7"]</a>
+        <a class="admin-tab @(Model.RangeDays == 30 ? "active" : "")" asp-action="Index" asp-route-range="30">@T["dash.range_30"]</a>
+        <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Index" asp-route-range="90">@T["dash.range_90"]</a>
     </div>
     <div class="d-flex gap-2 align-items-center flex-wrap">
-        <a class="btn btn-accent btn-sm" asp-controller="Posts" asp-action="Create">نوشته جدید</a>
+        <a class="btn btn-accent btn-sm" asp-controller="Posts" asp-action="Create">@T["btn.new_post"]</a>
         @if (Model.IsSuperAdmin)
         {
             <form asp-action="ResetAnalytics" method="post" class="d-inline"
-                  onsubmit="return confirm('همه آمار بازدید پاک شود؟ این کار قابل بازگشت نیست.');">
+                  onsubmit="return confirm('@T["dash.reset_confirm"]');">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-ghost btn-sm" title="پاک‌کردن بازدیدهای قدیمی/دمو">ریست آمار بازدید</button>
+                <button type="submit" class="btn btn-ghost btn-sm" title="@T["dash.reset_title"]">@T["dash.reset_btn"]</button>
             </form>
         }
     </div>
@@ -54,7 +59,7 @@
 <div class="row g-3 mb-3">
     <div class="col-6 col-lg-3">
         <div class="kpi-card">
-            <div class="kpi-label">بازدید در بازه انتخاب‌شده</div>
+            <div class="kpi-label">@T["dash.kpi_views_range"]</div>
             <div class="kpi-value"><span class="ltr-field" id="kpiViewsRange" style="font-size:inherit;color:inherit;">@Model.ViewsThisRange</span></div>
             <div class="kpi-sub">
                 @{
@@ -62,31 +67,31 @@
                     var trendArrow = Model.ViewsTrendPercent > 0 ? "▲" : Model.ViewsTrendPercent < 0 ? "▼" : "—";
                 }
                 <span class="trend-badge @trendClass">@trendArrow @Math.Abs(Model.ViewsTrendPercent)٪</span>
-                نسبت به بازه قبلی
+                @T["dash.vs_previous"]
             </div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
         <div class="kpi-card">
-            <div class="kpi-label">بازدید امروز</div>
+            <div class="kpi-label">@T["dash.kpi_views_today"]</div>
             <div class="kpi-value" id="kpiViewsToday">@Model.ViewsToday</div>
-            <div class="kpi-sub">بازدید کل تاریخی: <span class="ltr-field" id="kpiViewsTotal" style="font-size:inherit;color:inherit;">@Model.TotalViews</span></div>
+            <div class="kpi-sub">@T["dash.kpi_views_total"]: <span class="ltr-field" id="kpiViewsTotal" style="font-size:inherit;color:inherit;">@Model.TotalViews</span></div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
         <div class="kpi-card @(Model.PendingComments > 0 ? "kpi-danger" : "kpi-good")" id="kpiPendingCard">
-            <div class="kpi-label">دیدگاه‌های در انتظار بررسی</div>
+            <div class="kpi-label">@T["dash.kpi_pending"]</div>
             <div class="kpi-value" id="kpiPending">@Model.PendingComments</div>
             <div class="kpi-sub">
-                <a asp-action="Comments" asp-route-status="pending">مشاهده در صف مدیریت ›</a>
+                <a asp-action="Comments" asp-route-status="pending">@T["dash.view_moderation"]</a>
             </div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
         <div class="kpi-card kpi-good">
-            <div class="kpi-label">نوشته‌ها</div>
+            <div class="kpi-label">@T["col.posts"]</div>
             <div class="kpi-value">@Model.TotalPosts</div>
-            <div class="kpi-sub">@Model.PublishedPosts منتشرشده · @Model.DraftPosts پیش‌نویس</div>
+            <div class="kpi-sub">@Model.PublishedPosts @T["status.published_full"] · @Model.DraftPosts @T["status.draft"]</div>
         </div>
     </div>
 </div>
@@ -94,25 +99,25 @@
 <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
         <div class="kpi-card">
-            <div class="kpi-label">دیدگاه‌های تأییدشده</div>
+            <div class="kpi-label">@T["dash.kpi_approved"]</div>
             <div class="kpi-value" id="kpiApproved" style="font-size:1.3rem;">@Model.ApprovedComments</div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
         <div class="kpi-card">
-            <div class="kpi-label">دیدگاه‌های ردشده</div>
+            <div class="kpi-label">@T["dash.kpi_rejected"]</div>
             <div class="kpi-value" id="kpiRejected" style="font-size:1.3rem;">@Model.RejectedComments</div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
         <div class="kpi-card">
-            <div class="kpi-label">فایل‌های رسانه</div>
+            <div class="kpi-label">@T["dash.kpi_media"]</div>
             <div class="kpi-value" style="font-size:1.3rem;">@Model.TotalMedia</div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
         <div class="kpi-card">
-            <div class="kpi-label">حجم رسانه‌های ذخیره‌شده</div>
+            <div class="kpi-label">@T["dash.kpi_media_size"]</div>
             <div class="kpi-value ltr-field" style="font-size:1.3rem;color:inherit;">@FormatBytes(Model.TotalMediaBytes)</div>
         </div>
     </div>
@@ -121,8 +126,8 @@
 <div class="row g-3 mb-3">
     <div class="col-lg-8">
         <div class="chart-card">
-            <div class="chart-title">روند بازدید</div>
-            <div class="chart-subtitle">تعداد بازدید واقعی خوانندگان در @Model.RangeDays روز اخیر · به‌روز‌رسانی زنده</div>
+            <div class="chart-title">@T["dash.chart_views_title"]</div>
+            <div class="chart-subtitle">@string.Format(T["dash.chart_views_sub"], Model.RangeDays)</div>
             <div class="chart-canvas-wrap" style="height:260px;">
                 <canvas id="viewsChart"></canvas>
             </div>
@@ -130,8 +135,8 @@
     </div>
     <div class="col-lg-4">
         <div class="chart-card">
-            <div class="chart-title">وضعیت دیدگاه‌ها</div>
-            <div class="chart-subtitle">تأییدشده / در انتظار / ردشده</div>
+            <div class="chart-title">@T["dash.chart_comments_title"]</div>
+            <div class="chart-subtitle">@T["dash.chart_comments_sub"]</div>
             <div class="chart-canvas-wrap" style="height:260px;">
                 <canvas id="commentStatusChart"></canvas>
             </div>
@@ -142,8 +147,8 @@
 <div class="row g-3 mb-4">
     <div class="col-lg-7">
         <div class="chart-card">
-            <div class="chart-title">نوشته‌های ایجادشده</div>
-            <div class="chart-subtitle">۶ ماه اخیر</div>
+            <div class="chart-title">@T["dash.chart_posts_title"]</div>
+            <div class="chart-subtitle">@T["dash.chart_posts_sub"]</div>
             <div class="chart-canvas-wrap" style="height:240px;">
                 <canvas id="postsByMonthChart"></canvas>
             </div>
@@ -151,8 +156,8 @@
     </div>
     <div class="col-lg-5">
         <div class="chart-card">
-            <div class="chart-title">نوشته‌ها بر اساس دسته‌بندی</div>
-            <div class="chart-subtitle">توزیع کل نوشته‌ها</div>
+            <div class="chart-title">@T["dash.chart_cat_title"]</div>
+            <div class="chart-subtitle">@T["dash.chart_cat_sub"]</div>
             <div class="chart-canvas-wrap" style="height:240px;">
                 <canvas id="categoryChart"></canvas>
             </div>
@@ -161,22 +166,22 @@
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="h6 mb-0 text-muted-dark">پربازدیدترین نوشته‌ها</h2>
-    <a class="btn btn-ghost btn-sm" asp-action="Posts">مشاهده همه نوشته‌ها</a>
+    <h2 class="h6 mb-0 text-muted-dark">@T["dash.top_posts"]</h2>
+    <a class="btn btn-ghost btn-sm" asp-action="Posts">@T["dash.view_all_posts"]</a>
 </div>
 
 @if (!Model.TopPosts.Any())
 {
     <div class="admin-empty mb-4" id="topPostsEmpty">
-        <h2>هنوز داده‌ای برای نمایش نیست</h2>
-        <p class="mb-0">وقتی نوشته‌ها بازدید بگیرند، رتبه‌بندی همین‌جا نمایش داده می‌شود.</p>
+        <h2>@T["dash.top_empty_title"]</h2>
+        <p class="mb-0">@T["dash.top_empty_body"]</p>
     </div>
     <table class="admin-table mb-4 d-none" id="topPostsTable">
         <thead>
             <tr>
-                <th>نوشته</th>
-                <th style="width:40%;">بازدید کل</th>
-                <th>بازدید در بازه</th>
+                <th>@T["col.title"]</th>
+                <th style="width:40%;">@T["dash.col_views_total"]</th>
+                <th>@T["dash.col_views_range"]</th>
             </tr>
         </thead>
         <tbody id="topPostsBody"></tbody>
@@ -187,9 +192,9 @@ else
     <table class="admin-table mb-4" id="topPostsTable">
         <thead>
             <tr>
-                <th>نوشته</th>
-                <th style="width:40%;">بازدید کل</th>
-                <th>بازدید در بازه</th>
+                <th>@T["col.title"]</th>
+                <th style="width:40%;">@T["dash.col_views_total"]</th>
+                <th>@T["dash.col_views_range"]</th>
             </tr>
         </thead>
         <tbody id="topPostsBody">
@@ -213,15 +218,15 @@ else
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="h6 mb-0 text-muted-dark">آخرین دیدگاه‌ها</h2>
-    <a class="btn btn-ghost btn-sm" asp-action="Comments">مشاهده همه</a>
+    <h2 class="h6 mb-0 text-muted-dark">@T["dash.recent_comments"]</h2>
+    <a class="btn btn-ghost btn-sm" asp-action="Comments">@T["dash.view_all"]</a>
 </div>
 
 @if (!Model.RecentComments.Any())
 {
     <div class="admin-empty">
-        <h2>هنوز دیدگاهی ثبت نشده</h2>
-        <p class="mb-0">وقتی خواننده‌ای دیدگاهی بگذارد، همین‌جا نمایش داده می‌شود.</p>
+        <h2>@T["dash.comments_empty_title"]</h2>
+        <p class="mb-0">@T["dash.comments_empty_body"]</p>
     </div>
 }
 else
@@ -229,11 +234,11 @@ else
     <table class="admin-table">
         <thead>
             <tr>
-                <th>نویسنده</th>
-                <th>متن دیدگاه</th>
-                <th>مربوط به نوشته</th>
-                <th>وضعیت</th>
-                <th>تاریخ</th>
+                <th>@T["col.author"]</th>
+                <th>@T["col.comment_body"]</th>
+                <th>@T["col.related_post"]</th>
+                <th>@T["col.status"]</th>
+                <th>@T["col.date"]</th>
             </tr>
         </thead>
         <tbody>
@@ -247,13 +252,13 @@ else
                         @switch (c.Status)
                         {
                             case CommentStatus.Approved:
-                                <span class="status-pill approved">تأییدشده</span>
+                                <span class="status-pill approved">@T["status.approved"]</span>
                                 break;
                             case CommentStatus.Rejected:
-                                <span class="status-pill rejected">ردشده</span>
+                                <span class="status-pill rejected">@T["status.rejected"]</span>
                                 break;
                             default:
-                                <span class="status-pill pending">در انتظار</span>
+                                <span class="status-pill pending">@T["status.pending"]</span>
                                 break;
                         }
                     </td>
@@ -271,6 +276,10 @@ else
         (function () {
             const currentUserId = @Html.Raw(JsonSerializer.Serialize(currentUserId, jsonOptions));
             const seeAllAnalytics = @(seeAllAnalytics ? "true" : "false");
+            const chartViewsLabel = @Html.Raw(chartViewsLabel);
+            const chartCommentLabels = @Html.Raw(chartCommentLabels);
+            const chartPostsLabel = @Html.Raw(chartPostsLabel);
+            const chartFailMsg = @Html.Raw(chartFailMsg);
 
             let viewsChart = null;
             let commentStatusChart = null;
@@ -359,7 +368,7 @@ else
             if (typeof Chart === 'undefined') {
                 console.error('Chart.js failed to load — KPI counters still update via SSE.');
                 document.querySelectorAll('.chart-canvas-wrap').forEach(function (el) {
-                    el.innerHTML = '<div class="admin-empty" style="padding:1rem;"><p class="mb-0">بارگذاری کتابخانه نمودار ناموفق بود.</p></div>';
+                    el.innerHTML = '<div class="admin-empty" style="padding:1rem;"><p class="mb-0">' + chartFailMsg + '</p></div>';
                 });
                 return;
             }
@@ -388,7 +397,7 @@ else
                     data: {
                         labels: @Html.Raw(viewsByDayLabels),
                         datasets: [{
-                            label: 'بازدید',
+                            label: chartViewsLabel,
                             data: @Html.Raw(viewsByDayValues),
                             borderColor: accent,
                             backgroundColor: 'rgba(227,179,65,0.12)',
@@ -415,7 +424,7 @@ else
                 return new Chart(document.getElementById('commentStatusChart'), {
                     type: 'doughnut',
                     data: {
-                        labels: ['تأییدشده', 'در انتظار', 'ردشده'],
+                        labels: chartCommentLabels,
                         datasets: [{
                             data: @Html.Raw(commentStatusValues),
                             backgroundColor: [good, accent, danger],
@@ -438,7 +447,7 @@ else
                     data: {
                         labels: @Html.Raw(postsByMonthLabels),
                         datasets: [{
-                            label: 'نوشته‌ها',
+                            label: chartPostsLabel,
                             data: @Html.Raw(postsByMonthValues),
                             backgroundColor: info,
                             borderRadius: 4,
