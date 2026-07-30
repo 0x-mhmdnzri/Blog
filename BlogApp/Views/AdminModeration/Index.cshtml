@@ -1,15 +1,15 @@
 @model ModerationQueueViewModel
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "صف بررسی";
+    ViewData["Title"] = T["page.moderation"];
 }
 
 <div class="row g-4">
     <div class="col-lg-6">
-        <h2 class="h6 text-muted-dark mb-3">دیدگاه‌های در انتظار (@Model.PendingComments.Count)</h2>
+        <h2 class="h6 text-muted-dark mb-3">@T["mod.pending_comments"] (@Model.PendingComments.Count)</h2>
         @if (Model.PendingComments.Count == 0)
         {
-            <div class="admin-empty"><p>دیدگاه معلقی نیست.</p></div>
+            <div class="admin-empty"><p>@T["mod.no_pending_comments"]</p></div>
         }
         else
         {
@@ -28,31 +28,31 @@
                         <form asp-controller="Admin" asp-action="ApproveComment" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@c.Id" />
-                            <button type="submit" class="icon-btn approve">تأیید</button>
+                            <button type="submit" class="icon-btn approve">@T["btn.approve"]</button>
                         </form>
                         <form asp-controller="Admin" asp-action="RejectComment" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@c.Id" />
-                            <button type="submit" class="icon-btn reject">رد</button>
+                            <button type="submit" class="icon-btn reject">@T["btn.reject"]</button>
                         </form>
                     </div>
                 </div>
             }
-            <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="Comments">همه دیدگاه‌ها →</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="Comments">@T["mod.all_comments"] →</a>
         }
     </div>
     <div class="col-lg-6">
-        <h2 class="h6 text-muted-dark mb-3">گزارش‌های باز (@Model.OpenReports.Count)</h2>
+        <h2 class="h6 text-muted-dark mb-3">@T["mod.open_reports"] (@Model.OpenReports.Count)</h2>
         @if (Model.OpenReports.Count == 0)
         {
-            <div class="admin-empty"><p>گزارش بازی نیست.</p></div>
+            <div class="admin-empty"><p>@T["mod.no_open_reports"]</p></div>
         }
         else
         {
             @foreach (var r in Model.OpenReports)
             {
                 <div class="card-surface p-3 mb-2">
-                    <div class="small text-muted-dark">@(r.TargetType == ContentReportTarget.Post ? "نوشته" : "دیدگاه") · @r.Reason</div>
+                    <div class="small text-muted-dark">@(r.TargetType == ContentReportTarget.Post ? T["mod.target_post"] : T["mod.target_comment"]) · @r.Reason</div>
                     <div dir="auto" class="mb-1">@(r.TargetTitle ?? "#" + r.TargetId)</div>
                     @if (!string.IsNullOrEmpty(r.Details))
                     {
@@ -62,17 +62,17 @@
                         <form asp-controller="AdminReports" asp-action="Resolve" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@r.Id" />
-                            <button type="submit" class="icon-btn approve">حل</button>
+                            <button type="submit" class="icon-btn approve">@T["btn.resolve"]</button>
                         </form>
                         <form asp-controller="AdminReports" asp-action="Dismiss" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@r.Id" />
-                            <button type="submit" class="icon-btn reject">رد</button>
+                            <button type="submit" class="icon-btn reject">@T["btn.dismiss"]</button>
                         </form>
                     </div>
                 </div>
             }
-            <a class="btn btn-ghost btn-sm" asp-controller="AdminReports" asp-action="Index">همه گزارش‌ها →</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminReports" asp-action="Index">@T["mod.all_reports"] →</a>
         }
     </div>
 </div>
