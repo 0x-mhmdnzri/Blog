@@ -36,6 +36,16 @@
     var panelTitle = T["admin.panel"];
     var pageTitle = ViewData["Title"] as string;
     var fullTitle = pageTitle != null ? $"{pageTitle} · {panelTitle}" : panelTitle;
+
+    // Client-side i18n bag for DataTables / JS (keys only — values from parrot)
+    var dtKeys = new[]
+    {
+        "dt.processing", "dt.search", "dt.search_placeholder", "dt.length_menu",
+        "dt.info", "dt.info_empty", "dt.info_filtered", "dt.zero_records", "dt.empty_table",
+        "dt.paginate_first", "dt.paginate_last", "dt.paginate_next", "dt.paginate_previous",
+        "btn.approve", "btn.reject", "btn.delete", "btn.edit", "btn.duplicate", "btn.restore",
+        "msg.confirm_delete", "msg.confirm_trash", "msg.confirm_delete_comment"
+    };
 }
 <!DOCTYPE html>
 <html lang="@lang" dir="@dir" data-bs-theme="dark" data-culture="@lang">
@@ -48,7 +58,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="@culture.BootstrapCss" rel="stylesheet">
-    <!-- DataTables via jsDelivr (CSP allows cdn.jsdelivr.net for style + script) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.8/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-rtl.css" asp-append-version="true" />
@@ -170,9 +179,16 @@
         </main>
     </div>
 
+    <script>
+        window.__i18n = {
+@foreach (var k in dtKeys)
+{
+            @Html.Raw($"            '{k}': {System.Text.Json.JsonSerializer.Serialize(T[k])},\n")
+}
+        };
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-    <!-- DataTables core + Bootstrap 5 integration (jsDelivr — CSP-safe) -->
     <script src="https://cdn.jsdelivr.net/npm/datatables.net@1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.8/js/dataTables.bootstrap5.min.js"></script>
     <script src="~/js/datatables-server.js" asp-append-version="true"></script>
