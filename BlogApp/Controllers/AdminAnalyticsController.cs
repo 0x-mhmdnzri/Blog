@@ -16,11 +16,16 @@ namespace BlogApp.Controllers;
 public class AdminAnalyticsController : Controller
 {
     private readonly ApplicationDbContext _db;
+    private readonly IUiTranslator _t;
 
-    public AdminAnalyticsController(ApplicationDbContext db) => _db = db;
+    public AdminAnalyticsController(ApplicationDbContext db, IUiTranslator t)
+    {
+        _db = db;
+        _t = t;
+    }
 
     [HttpGet]
-    public async Task<IActionResult> Index(int range = 30, int? heatmapPostId = null)
+    public async Task<IActionResult> Index(int range = 30)
     {
         if (range is not (7 or 30 or 90)) range = 30;
 
@@ -111,13 +116,12 @@ public class AdminAnalyticsController : Controller
             trendingPosts.Add(new TopPostItem
             {
                 Title = p.Title,
-                Slug = p.Slug,
+               Slug = p.Slug,
                 Views = p.ViewCount,
                 RangeViews = t.C
             });
         }
 
-        // Load posts first (SQL-only), then attach range view counts in memory
         var popularRows = await postQuery.AsNoTracking()
             .OrderByDescending(p => p.ViewCount)
             .Take(8)
@@ -127,7 +131,7 @@ public class AdminAnalyticsController : Controller
         var popular = popularRows.Select(p => new TopPostItem
         {
             Title = p.Title,
-            Slug = p.Slug,
+           Slug = p.Slug,
             Views = p.ViewCount,
             RangeViews = rangeViewsByPost.GetValueOrDefault(p.Id)
         }).ToList();
@@ -142,38 +146,11 @@ public class AdminAnalyticsController : Controller
             .Take(15)
             .ToList();
 
-        var heatmapOptions = await postQuery.AsNoTracking()
-            .OrderByDescending(p => p.ViewCount)
-            .Take(40)
-            .Select(p => new ValueTuple<int, string>(p.Id, p.Title))
-            .ToListAsync();
-        var heatmapNamed = heatmapOptions.Select(t => (Id: t.Item1, Title: t.Item2)).ToList();
-
-        var hmId = heatmapPostId ?? heatmapNamed.FirstOrDefault().Id;
-        List<HeatmapPoint> heatmap = new();
-        string? hmTitle = null;
-        var heatmapClicks = 0;
-        if (hmId > 0)
-        {
-            hmTitle = heatmapNamed.FirstOrDefault(o => o.Id == hmId).Title;
-            var clicks = await _db.HeatmapClicks.AsNoTracking()
-                .Where(h => h.PostId == hmId && h.ClickedAtUtc >= rangeStart)
-                .ToListAsync();
-            heatmapClicks = clicks.Count;
-            heatmap = clicks
-                .GroupBy(c => (c.X / 50) * 50 + "," + (c.Y / 50) * 50)
-                .Select(g =>
-                {
-                    var parts = g.Key.Split(',');
-                    return new HeatmapPoint
-                    {
-                        X = int.Parse(parts[0]),
-                        Y = int.Parse(parts[1]),
-                        Count = g.Count()
-                    };
-                })
-                .ToList();
-        }
+        // Total heatmap clicks across scoped posts in range (summary only)
+        var heatmapClicks = myPostIds.Count == 0
+            ? 0
+            : await _db.HeatmapClicks.AsNoTracking()
+                .CountAsync(h => h.ClickedAtUtc >= rangeStart && myPostIds.Contains(h.PostId));
 
         ViewData["Title"] = "Analytics";
         return View(new AnalyticsDashboardViewModel
@@ -198,11 +175,141 @@ public class AdminAnalyticsController : Controller
             Referrers = Group(views.Select(v => v.ReferrerHost)),
             SearchKeywords = searchKw,
             PopularPosts = popular,
-            TrendingPosts = trendingPosts,
-            Heatmap = heatmap,
-            HeatmapPostId = hmId > 0 ? hmId : null,
-            HeatmapPostTitle = hmTitle,
-            HeatmapPostOptions = heatmapNamed
+            TrendingPosts = trendingPosts
+        });
+    }
+
+    /// <summary>Posts table — pick one to open its click heatmap.</summary>
+    [HttpGet]
+    public IActionResult Heatmaps()
+    {
+        ViewData["Title"] = _t["ana.heatmap_list_title"];
+        return View();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> HeatmapsData()
+    {
+        var req = DataTablesRequest.From(Request);
+        var userId = AuthorAccess.UserId(User)!;
+        var seeAll = AuthorAccess.CanViewAllAnalytics(User);
+
+        var query = _db.Posts.AsNoTracking().Where(p => !p.IsDeleted);
+        if (!seeAll)
+            query = query.Where(p => p.AuthorId == userId);
+
+        var total = await query.CountAsync();
+
+        if (!string.IsNullOrWhiteSpace(req.SearchValue))
+        {
+            var term = req.SearchValue;
+            query = query.Where(p => p.Title.Contains(term) || p.Slug.Contains(term));
+        }
+
+        var filtered = await query.CountAsync();
+
+        // Pre-aggregate click counts (all time) for scoped posts
+        var postIds = await query.Select(p => p.Id).ToListAsync();
+        var clickMap = await _db.HeatmapClicks.AsNoTracking()
+            .Where(h => postIds.Contains(h.PostId))
+            .GroupBy(h => h.PostId)
+            .Select(g => new { PostId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.PostId, x => x.Count);
+
+        query = (req.OrderColumn, req.Asc) switch
+        {
+            (1, true) => query.OrderBy(p => p.Title),
+            (1, false) => query.OrderByDescending(p => p.Title),
+            (2, true) => query.OrderBy(p => p.ViewCount),
+            (2, false) => query.OrderByDescending(p => p.ViewCount),
+            (3, true) => query.OrderBy(p => p.CreatedAtUtc),
+            (3, false) => query.OrderByDescending(p => p.CreatedAtUtc),
+            _ => query.OrderByDescending(p => p.ViewCount)
+        };
+
+        // Click-count sort needs client order after materialize for SQLite simplicity
+        List<Post> page;
+        if (req.OrderColumn == 4)
+        {
+            var all = await query.ToListAsync();
+            all = req.Asc
+                ? all.OrderBy(p => clickMap.GetValueOrDefault(p.Id)).ToList()
+                : all.OrderByDescending(p => clickMap.GetValueOrDefault(p.Id)).ToList();
+            page = all.Skip(req.Start).Take(req.Length).ToList();
+        }
+        else
+        {
+            page = await query.Skip(req.Start).Take(req.Length).ToListAsync();
+        }
+
+        var openLabel = System.Net.WebUtility.HtmlEncode(_t["ana.heatmap_open"]);
+        var rows = page.Select((p, i) =>
+        {
+            var clicks = clickMap.GetValueOrDefault(p.Id);
+            var titleHtml =
+                $"<a href=\"{Url.Action("Heatmap", new { id = p.Id })?}\" dir=\"auto\">{System.Net.WebUtility.HtmlEncode(p.Title)}</a>";
+            var actionHtml =
+                $"<a class=\"icon-btn\" href=\"{Url.Action("Heatmap", new { id = p.Id })?}\">{openLabel}</a>";
+            return new object[]
+            {
+                req.Start + i + 1,
+                titleHtml,
+                p.ViewCount,
+                clicks,
+                PersianDate.Date(p.CreatedAtUtc),
+                actionHtml
+            };
+        }).ToList();
+
+        return Json(DataTablesResponse.Ok(req.Draw, total, filtered, rows));
+    }
+
+    /// <summary>Click heatmap for a single post.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Heatmap(int id, int range = 30)
+    {
+        if (range is not (7 or 30 or 90 or 0)) range = 30; // 0 = all time
+
+        var userId = AuthorAccess.UserId(User)!;
+        var seeAll = AuthorAccess.CanViewAllAnalytics(User);
+
+        var post = await _db.Posts.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+        if (post is null) return NotFound();
+        if (!seeAll && post.AuthorId != userId) return Forbid();
+
+        var clickQuery = _db.HeatmapClicks.AsNoTracking().Where(h => h.PostId == id);
+        if (range > 0)
+        {
+            var rangeStart = DateTime.UtcNow.Date.AddDays(-(range - 1));
+            clickQuery = clickQuery.Where(h => h.ClickedAtUtc >= rangeStart);
+        }
+
+        var clicks = await clickQuery.ToListAsync();
+        var points = clicks
+            .GroupBy(c => (c.X / 40) * 40 + "," + (c.Y / 40) * 40)
+            .Select(g =>
+            {
+                var parts = g.Key.Split(',');
+                return new HeatmapPoint
+                {
+                    X = int.Parse(parts[0]),
+                    Y = int.Parse(parts[1]),
+                    Count = g.Count()
+                };
+            })
+            .ToList();
+
+        ViewData["Title"] = _t["ana.heatmap"] + ": " + post.Title;
+        return View(new HeatmapDetailViewModel
+        {
+            PostId = post.Id,
+            Title = post.Title,
+            Slug = post.Slug,
+            RangeDays = range,
+            TotalClicks = clicks.Count,
+            UniqueCells = points.Count,
+            Points = points
         });
     }
 }
