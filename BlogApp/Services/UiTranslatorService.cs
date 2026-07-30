@@ -7,20 +7,12 @@ namespace BlogApp.Services;
 
 public interface IUiTranslator
 {
-    /// <summary>Resolve a UI string for the current culture. Falls back to default language, then the key.</summary>
     string this[string key] { get; }
-
     string T(string key, string? languageCode = null);
-
     Task InvalidateCacheAsync();
-
     Task EnsureSeedAsync(CancellationToken ct = default);
 }
 
-/// <summary>
-/// Loads all UiTranslation rows into memory cache (per language dictionary).
-/// Cookie/culture is read from ICultureService — preference persists across pages.
-/// </summary>
 public sealed class UiTranslatorService : IUiTranslator
 {
     private const string CacheKeyPrefix = "ui-i18n:";
@@ -87,7 +79,7 @@ public sealed class UiTranslatorService : IUiTranslator
             .ToListAsync(ct);
         var set = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
 
-        var rows = UiTranslationCatalog.All;
+        var rows = UiTranslationCatalog.All.Concat(UiTranslationCatalog.Wizard);
         var added = 0;
         foreach (var (key, group, fa, en, ar) in rows)
         {
@@ -116,12 +108,11 @@ public sealed class UiTranslatorService : IUiTranslator
 }
 
 /// <summary>Built-in seed catalog for UI chrome (not post content). FA / EN / AR.</summary>
-public static class UiTranslationCatalog
+public static partial class UiTranslationCatalog
 {
-    // (key, group, fa, en, ar)
+    // Full chrome catalog remains in this file for now; Wizard lives in UiTranslationCatalog.Wizard.cs
     public static readonly (string Key, string Group, string Fa, string En, string Ar)[] All =
     {
-        // ---- Public nav ----
         ("nav.posts", "nav", "نوشته‌ها", "Posts", "المقالات"),
         ("nav.bookmarks", "nav", "نشان‌ها", "Bookmarks", "الإشارات"),
         ("nav.notifications", "nav", "اعلان‌ها", "Notifications", "الإشعارات"),
@@ -131,7 +122,6 @@ public static class UiTranslationCatalog
         ("nav.logout", "nav", "خروج", "Logout", "خروج"),
         ("nav.language", "nav", "زبان", "Language", "اللغة"),
 
-        // ---- Common buttons ----
         ("btn.save", "button", "ذخیره", "Save", "حفظ"),
         ("btn.cancel", "button", "انصراف", "Cancel", "إلغاء"),
         ("btn.delete", "button", "حذف", "Delete", "حذف"),
@@ -158,7 +148,6 @@ public static class UiTranslationCatalog
         ("btn.new_author", "button", "نویسنده جدید", "New author", "مؤلف جديد"),
         ("btn.save_settings", "button", "ذخیره تنظیمات", "Save settings", "حفظ الإعدادات"),
 
-        // ---- Home ----
         ("home.title", "page", "نوشته‌ها", "Posts", "المقالات"),
         ("home.hero_title", "page", "یادداشت‌هایی درباره ساختن چیزها.", "Notes on building things.", "ملاحظات حول بناء الأشياء."),
         ("home.hero_body", "page",
@@ -169,7 +158,6 @@ public static class UiTranslationCatalog
         ("home.empty", "page", "هنوز نوشته‌ای منتشر نشده — اولین نوشته منتظر نوشته‌شدن است.", "No posts published yet — the first one is waiting to be written.", "لا توجد مقالات منشورة بعد."),
         ("home.draft", "page", "پیش‌نویس", "Draft", "مسودة"),
 
-        // ---- Admin shell ----
         ("admin.brand", "admin", "پنل مدیریت وبلاگ", "Blog Admin", "لوحة إدارة المدونة"),
         ("admin.panel", "admin", "پنل مدیریت", "Admin panel", "لوحة الإدارة"),
         ("admin.live", "admin", "زنده", "Live", "مباشر"),
@@ -179,14 +167,12 @@ public static class UiTranslationCatalog
         ("admin.demo", "admin", "دمو", "Demo", "تجريبي"),
         ("admin.super_only", "admin", "فقط ادمین", "Admin only", "للمدير فقط"),
 
-        // ---- Admin nav groups ----
         ("admin.group.general", "admin", "کلی", "General", "عام"),
         ("admin.group.content", "admin", "محتوا", "Content", "المحتوى"),
         ("admin.group.growth", "admin", "رشد و سئو", "Growth & SEO", "النمو وتحسين محركات البحث"),
         ("admin.group.account", "admin", "حساب", "Account", "الحساب"),
         ("admin.group.system", "admin", "سیستم", "System", "النظام"),
 
-        // ---- Admin nav links ----
         ("admin.nav.dashboard", "admin", "داشبورد", "Dashboard", "لوحة التحكم"),
         ("admin.nav.moderation", "admin", "صف بررسی", "Moderation queue", "قائمة المراجعة"),
         ("admin.nav.posts", "admin", "نوشته‌ها", "Posts", "المقالات"),
@@ -205,7 +191,6 @@ public static class UiTranslationCatalog
         ("admin.nav.audit", "admin", "حسابرسی", "Audit log", "سجل التدقيق"),
         ("admin.nav.translations", "admin", "ترجمه‌های رابط", "UI translations", "ترجمات الواجهة"),
 
-        // ---- Page titles ----
         ("page.comments", "page", "دیدگاه‌ها", "Comments", "التعليقات"),
         ("page.posts", "page", "نوشته‌ها", "Posts", "المقالات"),
         ("page.users", "page", "مدیریت کاربران", "User management", "إدارة المستخدمين"),
@@ -216,7 +201,6 @@ public static class UiTranslationCatalog
         ("page.settings", "page", "تنظیمات سایت", "Site settings", "إعدادات الموقع"),
         ("page.flags", "page", "پرچم‌های ویژگی", "Feature flags", "أعلام الميزات"),
 
-        // ---- Table column headers ----
         ("col.index", "col", "#", "#", "#"),
         ("col.author", "col", "نویسنده", "Author", "المؤلف"),
         ("col.comment_body", "col", "متن دیدگاه", "Comment", "التعليق"),
@@ -250,7 +234,6 @@ public static class UiTranslationCatalog
         ("col.key", "col", "کلید", "Key", "المفتاح"),
         ("col.updated", "col", "آخرین تغییر", "Last updated", "آخر تحديث"),
 
-        // ---- DataTables chrome ----
         ("dt.processing", "dt", "در حال بارگذاری…", "Loading…", "جارٍ التحميل…"),
         ("dt.search", "dt", "جست‌وجو", "Search", "بحث"),
         ("dt.search_placeholder", "dt", "جست‌وجو…", "Search…", "بحث…"),
@@ -265,7 +248,6 @@ public static class UiTranslationCatalog
         ("dt.paginate_next", "dt", "بعدی", "Next", "التالي"),
         ("dt.paginate_previous", "dt", "قبلی", "Previous", "السابق"),
 
-        // ---- Status labels ----
         ("status.open", "status", "باز", "Open", "مفتوح"),
         ("status.resolved", "status", "حل‌شده", "Resolved", "محلول"),
         ("status.dismissed", "status", "ردشده", "Dismissed", "مرفوض"),
@@ -283,7 +265,6 @@ public static class UiTranslationCatalog
         ("status.featured", "status", "ویژه", "Featured", "مميز"),
         ("status.sticky", "status", "چسبان", "Sticky", "مثبت"),
 
-        // ---- Tabs / filters ----
         ("tab.all", "tab", "همه", "All", "الكل"),
         ("tab.pending", "tab", "در انتظار", "Pending", "قيد الانتظار"),
         ("tab.approved", "tab", "تأییدشده", "Approved", "موافق عليه"),
@@ -292,7 +273,6 @@ public static class UiTranslationCatalog
         ("tab.resolved", "tab", "حل‌شده", "Resolved", "محلول"),
         ("tab.dismissed", "tab", "ردشده", "Dismissed", "مرفوض"),
 
-        // ---- Moderation ----
         ("mod.pending_comments", "mod", "دیدگاه‌های در انتظار", "Pending comments", "تعليقات قيد الانتظار"),
         ("mod.no_pending_comments", "mod", "دیدگاه معلقی نیست.", "No pending comments.", "لا توجد تعليقات معلقة."),
         ("mod.open_reports", "mod", "گزارش‌های باز", "Open reports", "بلاغات مفتوحة"),
@@ -302,13 +282,11 @@ public static class UiTranslationCatalog
         ("mod.target_post", "mod", "نوشته", "Post", "مقال"),
         ("mod.target_comment", "mod", "دیدگاه", "Comment", "تعليق"),
 
-        // ---- Authors ----
         ("authors.subtitle", "page", "مدیریت نویسندگان وبلاگ (فقط سوپر ادمین)", "Manage blog authors (SuperAdmin only)", "إدارة مؤلفي المدونة (للمدير الأعلى فقط)"),
         ("authors.empty_title", "page", "نویسنده‌ای یافت نشد", "No authors found", "لا يوجد مؤلفون"),
         ("authors.empty_body", "page", "اولین نویسنده را اضافه کنید.", "Add the first author.", "أضف أول مؤلف."),
         ("authors.posts_suffix", "page", "نوشته", "posts", "مقالات"),
 
-        // ---- Settings ----
         ("settings.section_seo", "form", "عمومی و سئو", "General & SEO", "عام وتحسين محركات البحث"),
         ("settings.site_name", "form", "نام سایت", "Site name", "اسم الموقع"),
         ("settings.site_description", "form", "توضیح سایت", "Site description", "وصف الموقع"),
@@ -327,7 +305,6 @@ public static class UiTranslationCatalog
         ("settings.style_success", "form", "موفقیت", "Success", "نجاح"),
         ("flags.help", "page", "بدون redeploy ویژگی‌ها را روشن/خاموش کنید.", "Toggle features without redeploy.", "تشغيل/إيقاف الميزات دون إعادة نشر."),
 
-        // ---- Post / comments chrome ----
         ("post.comments", "page", "دیدگاه‌ها", "Comments", "التعليقات"),
         ("post.sort", "page", "مرتب‌سازی", "Sort", "ترتيب"),
         ("post.sort_relevant", "page", "مرتبط (پسندها)", "Relevant (likes)", "الأكثر صلة"),
@@ -342,14 +319,12 @@ public static class UiTranslationCatalog
         ("post.report_reason", "form", "دلیل گزارش", "Report reason", "سبب الإبلاغ"),
         ("post.report_send", "form", "ارسال گزارش", "Submit report", "إرسال البلاغ"),
 
-        // ---- Auth ----
         ("auth.login", "auth", "ورود", "Login", "دخول"),
         ("auth.register", "auth", "ثبت‌نام", "Register", "تسجيل"),
         ("auth.email", "auth", "ایمیل", "Email", "البريد"),
         ("auth.password", "auth", "رمز عبور", "Password", "كلمة المرور"),
         ("auth.username", "auth", "نام کاربری", "Username", "اسم المستخدم"),
 
-        // ---- Messages / confirms ----
         ("msg.saved", "message", "ذخیره شد.", "Saved.", "تم الحفظ."),
         ("msg.empty", "message", "موردی یافت نشد.", "Nothing found.", "لا توجد عناصر."),
         ("msg.confirm_delete", "message", "آیا مطمئن هستید؟", "Are you sure?", "هل أنت متأكد؟"),
@@ -361,7 +336,6 @@ public static class UiTranslationCatalog
         ("msg.uncategorized", "message", "بدون دسته", "Uncategorized", "بدون تصنيف"),
         ("msg.dash", "message", "—", "—", "—"),
 
-        // ---- Notifications ----
         ("notif.title", "notif", "اعلان‌ها", "Notifications", "الإشعارات"),
         ("notif.mark_all", "notif", "خواندن همه", "Mark all read", "تحديد الكل كمقروء"),
         ("notif.view_all", "notif", "مشاهده همه", "View all", "عرض الكل"),
@@ -413,7 +387,6 @@ public static class UiTranslationCatalog
         ("notif.col_recipients", "notif", "گیرندگان", "Recipients", "المستلمون"),
         ("notif.status_sent", "notif", "ارسال‌شده", "Sent", "مُرسَل"),
 
-        // ---- Admin dashboard ----
         ("dash.range_7", "dash", "۷ روز اخیر", "Last 7 days", "آخر 7 أيام"),
         ("dash.range_30", "dash", "۳۰ روز اخیر", "Last 30 days", "آخر 30 يوماً"),
         ("dash.range_90", "dash", "۹۰ روز اخیر", "Last 90 days", "آخر 90 يوماً"),
