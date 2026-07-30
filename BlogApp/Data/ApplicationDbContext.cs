@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Data;
 
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
@@ -284,5 +284,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             e.Property(u => u.ProfileImage).HasColumnType("BLOB");
         });
+
+        OnModelCreatingSocial(modelBuilder);
     }
 }
