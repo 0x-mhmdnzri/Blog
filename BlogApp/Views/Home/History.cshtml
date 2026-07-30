@@ -1,0 +1,11 @@
+@{
+    ViewData["Title"] = "سابقه مطالعه";
+}
+<div class="container py-5" style="max-width:720px;">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="h4 mb-0">سابقه مطالعه</h1>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="blogClearHistory()">پاک کردن</button>
+    </div>
+    <p class="text-muted-dark small mb-3">آخرین نوشته‌هایی که در این مرورگر خوانده‌اید (محلی).</p>
+    <div id="reading-history-list" class="history-list card-surface p-3"></div>
+</div>
