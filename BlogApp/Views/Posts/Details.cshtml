@@ -142,6 +142,8 @@
         <span><span class="ltr-field">@readingMinutes</span> دقیقه مطالعه</span>
         <span class="meta-sep" aria-hidden="true">·</span>
         <span><span class="ltr-field">@Model.ViewCount</span> بازدید</span>
+        <span class="meta-sep" aria-hidden="true">·</span>
+        <span>♥ <span class="ltr-field">@Model.LikeCount</span></span>
     </div>
 
     <partial name="_ReaderToolbar" />
@@ -157,6 +159,12 @@
             <a class="btn btn-accent btn-sm" asp-controller="Monetization" asp-action="Membership">@T["mon.premium_cta"]</a>
             <a class="btn btn-ghost btn-sm" asp-controller="Monetization" asp-action="Donate">@T["mon.donate_title"]</a>
         </div>
+    }
+
+    @* Social Features: likes, reactions, share, follow *@
+    @if (ViewBag.SocialPostId != null)
+    {
+        <partial name="_SocialBar" />
     }
 
     @if (Model.PostTags.Any())
@@ -230,7 +238,7 @@
                 <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" />
             </div>
             <div class="mb-2">
-                <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" required maxlength="2000" placeholder="متن دیدگاه…"></textarea>
+                <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" required maxlength="2000" placeholder="متن دیدگاه… می‌توانید با @username منشن کنید"></textarea>
             </div>
             <button class="btn btn-accent btn-sm" type="submit">ارسال دیدگاه</button>
         </form>
