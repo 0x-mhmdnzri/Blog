@@ -1,23 +1,23 @@
 @model List<BlogApp.Models.AppNotification>
 @{
-    ViewData["Title"] = "اعلان‌ها";
+    ViewData["Title"] = T["notif.title"];
 }
 
 <div class="container py-5" style="max-width:640px;">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h1 class="h4 mb-0">اعلان‌ها</h1>
+        <h1 class="h4 mb-0">@T["notif.title"]</h1>
         <div class="d-flex gap-2">
-            <a class="btn btn-ghost btn-sm" asp-action="Preferences">تنظیمات</a>
+            <a class="btn btn-ghost btn-sm" asp-action="Preferences">@T["notif.preferences"]</a>
             <form asp-action="MarkAllRead" method="post">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-ghost btn-sm">خواندن همه</button>
+                <button type="submit" class="btn btn-ghost btn-sm">@T["notif.mark_all"]</button>
             </form>
         </div>
     </div>
 
     @if (Model.Count == 0)
     {
-        <div class="card-surface p-4 text-muted-dark">اعلانی نیست.</div>
+        <div class="card-surface p-4 text-muted-dark">@T["notif.empty"]</div>
     }
     else
     {
@@ -36,7 +36,7 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@n.Id" />
                     <button type="submit" class="btn btn-ghost btn-sm py-0">
-                        @(string.IsNullOrEmpty(n.LinkUrl) ? "خواندم" : "مشاهده")
+                        @(string.IsNullOrEmpty(n.LinkUrl) ? T["notif.mark_read"] : T["notif.view"])
                     </button>
                 </form>
             </div>
