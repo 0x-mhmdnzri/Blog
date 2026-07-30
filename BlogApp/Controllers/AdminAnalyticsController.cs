@@ -8,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
+/// <summary>
+/// Deep visitor analytics (traffic, devices, geo, search, heatmap, engagement).
+/// Operational CMS metrics stay on Admin/Index dashboard.
+/// </summary>
 [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
 public class AdminAnalyticsController : Controller
 {
@@ -25,7 +29,7 @@ public class AdminAnalyticsController : Controller
         var today = DateTime.UtcNow.Date;
         var rangeStart = today.AddDays(-(range - 1));
 
-        var postQuery = _db.Posts.AsQueryable();
+        var postQuery = _db.Posts.AsQueryable().Where(p => !p.IsDeleted);
         if (!seeAll) postQuery = postQuery.Where(p => p.AuthorId == userId);
         var myPostIds = await postQuery.Select(p => p.Id).ToListAsync();
 
@@ -43,6 +47,14 @@ public class AdminAnalyticsController : Controller
             });
         }
 
+        var viewsByHour = Enumerable.Range(0, 24)
+            .Select(h => new ChartPoint
+            {
+                Label = h.ToString("00"),
+                Value = views.Count(v => v.ViewedAtUtc.Hour == h)
+            })
+            .ToList();
+
         static List<NamedCount> Group(IEnumerable<string?> items) =>
             items.Where(s => !string.IsNullOrWhiteSpace(s))
                 .GroupBy(s => s!)
@@ -51,6 +63,7 @@ public class AdminAnalyticsController : Controller
                 .Take(12)
                 .ToList();
 
+        // Sessions scoped loosely: all sessions in range (site-level bounce)
         var sessions = await _db.AnalyticsSessions.AsNoTracking()
             .Where(s => s.StartedAtUtc >= rangeStart)
             .ToListAsync();
@@ -62,6 +75,22 @@ public class AdminAnalyticsController : Controller
             .Select(r => r.DurationSeconds)
             .ToListAsync();
         var avgRead = durations.Count == 0 ? 0 : Math.Round(durations.Average(), 1);
+
+        var unique = views.Select(v => v.VisitorHash).Where(h => !string.IsNullOrEmpty(h)).Distinct().Count();
+        var viewsPerVisitor = unique == 0 ? 0 : Math.Round(views.Count * 1.0 / unique, 2);
+
+        // Returning = hashes that also appear in views before rangeStart
+        var rangeHashes = views.Select(v => v.VisitorHash).Where(h => !string.IsNullOrEmpty(h)).Distinct().ToList();
+        var returning = 0;
+        if (rangeHashes.Count > 0)
+        {
+            returning = await _db.PostViews.AsNoTracking()
+                .Where(v => v.ViewedAtUtc < rangeStart && myPostIds.Contains(v.PostId) && rangeHashes.Contains(v.VisitorHash))
+                .Select(v => v.VisitorHash)
+                .Distinct()
+                .CountAsync();
+        }
+        var returningPct = unique == 0 ? 0 : Math.Round(returning * 100.0 / unique, 1);
 
         var trendingStart = DateTime.UtcNow.AddDays(-3);
         var trendingIds = views
@@ -98,32 +127,34 @@ public class AdminAnalyticsController : Controller
             })
             .ToListAsync();
 
-        var searchKw = await _db.SearchQueryLogs.AsNoTracking()
+        var searchLogs = await _db.SearchQueryLogs.AsNoTracking()
             .Where(s => s.SearchedAtUtc >= rangeStart)
-            .GroupBy(s => s.Query.ToLower())
+            .ToListAsync();
+        var searchKw = searchLogs
+            .GroupBy(s => s.Query.Trim().ToLowerInvariant())
             .Select(g => new NamedCount { Name = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(15)
-            .ToListAsync();
+            .ToList();
 
         var heatmapOptions = await postQuery.AsNoTracking()
             .OrderByDescending(p => p.ViewCount)
-            .Take(30)
+            .Take(40)
             .Select(p => new ValueTuple<int, string>(p.Id, p.Title))
             .ToListAsync();
-
-        // Map to named tuple list for the view (Id, Title)
         var heatmapNamed = heatmapOptions.Select(t => (Id: t.Item1, Title: t.Item2)).ToList();
 
         var hmId = heatmapPostId ?? heatmapNamed.FirstOrDefault().Id;
         List<HeatmapPoint> heatmap = new();
         string? hmTitle = null;
+        var heatmapClicks = 0;
         if (hmId > 0)
         {
             hmTitle = heatmapNamed.FirstOrDefault(o => o.Id == hmId).Title;
             var clicks = await _db.HeatmapClicks.AsNoTracking()
                 .Where(h => h.PostId == hmId && h.ClickedAtUtc >= rangeStart)
                 .ToListAsync();
+            heatmapClicks = clicks.Count;
             heatmap = clicks
                 .GroupBy(c => (c.X / 50) * 50 + "," + (c.Y / 50) * 50)
                 .Select(g =>
@@ -139,18 +170,25 @@ public class AdminAnalyticsController : Controller
                 .ToList();
         }
 
-        ViewData["Title"] = "آمار و تحلیل";
+        ViewData["Title"] = "Analytics"; // overridden by view T[]
         return View(new AnalyticsDashboardViewModel
         {
             RangeDays = range,
             TotalViews = views.Count,
-            UniqueVisitors = views.Select(v => v.VisitorHash).Distinct().Count(),
+            UniqueVisitors = unique,
             BounceRatePercent = bounceRate,
             AvgReadingSeconds = avgRead,
+            ViewsPerVisitor = viewsPerVisitor,
+            ReturningVisitorPercent = returningPct,
+            SessionCount = sessions.Count,
+            HeatmapClickCount = heatmapClicks,
+            SearchQueryCount = searchLogs.Count,
             ViewsByDay = viewsByDay,
+            ViewsByHour = viewsByHour,
             TrafficSources = Group(views.Select(v => v.TrafficSource)),
             Devices = Group(views.Select(v => v.DeviceType)),
             Browsers = Group(views.Select(v => v.Browser)),
+            OperatingSystems = Group(views.Select(v => v.Os)),
             Countries = Group(views.Select(v => v.CountryCode)),
             Referrers = Group(views.Select(v => v.ReferrerHost)),
             SearchKeywords = searchKw,
