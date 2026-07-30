@@ -1,0 +1,93 @@
+/* DataTables — dark admin skin */
+
+.dataTables_wrapper {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.35rem 0.6rem;
+  margin-inline: 0.35rem;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus,
+.dataTables_wrapper .dataTables_length select:focus {
+  outline: none;
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-soft) !important;
+  color: var(--text-muted) !important;
+  border-radius: var(--radius-sm, 6px) !important;
+  padding: 0.3rem 0.7rem !important;
+  margin: 0 0.15rem !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border-color: var(--text-faint) !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  border-color: var(--accent-dim) !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  opacity: 0.4;
+  cursor: default !important;
+}
+
+.dataTables_wrapper .dataTables_processing {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: var(--radius, 10px);
+  box-shadow: var(--shadow-soft);
+}
+
+table.dataTable.admin-table thead th {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+table.dataTable.admin-table thead th.sorting_disabled {
+  cursor: default;
+}
+table.dataTable.admin-table thead th.sorting:after,
+table.dataTable.admin-table thead th.sorting_asc:after,
+table.dataTable.admin-table thead th.sorting_desc:after {
+  opacity: 0.55;
+  font-size: 0.7em;
+  margin-inline-start: 0.35rem;
+}
+table.dataTable.admin-table thead th.sorting_asc:after { content: "▲"; }
+table.dataTable.admin-table thead th.sorting_desc:after { content: "▼"; }
+table.dataTable.admin-table thead th.sorting:after { content: "↕"; }
+
+table.dataTable.no-footer {
+  border-bottom: none !important;
+}
+
+.dataTables_wrapper .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
