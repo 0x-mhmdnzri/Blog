@@ -167,17 +167,45 @@ public partial class AccountController : Controller
         var user = await _userManager.FindByNameAsync(userName);
         if (user is null) return NotFound();
 
-        var posts = await _db.Posts
-            .Where(p => p.AuthorId == user.Id && p.IsPublished && !p.IsDeleted)
-            .OrderByDescending(p => p.PublishedAtUtc)
-            .Select(p => new { p.Title, p.Slug, p.Summary, p.PublishedAtUtc, p.ViewCount })
+        var roles = await _userManager.GetRolesAsync(user);
+        var isAuthor = roles.Contains(AppRoles.Author) || roles.Contains(AppRoles.SuperAdmin);
+        var isSuper = roles.Contains(AppRoles.SuperAdmin);
+
+        var postsQuery = _db.Posts
+            .AsNoTracking()
+            .Where(p => p.AuthorId == user.Id && p.IsPublished && !p.IsDeleted);
+
+        var postCount = await postsQuery.CountAsync();
+        var totalViews = await postsQuery.SumAsync(p => (long)p.ViewCount);
+        var followerCount = await _db.AuthorFollows.CountAsync(f => f.AuthorUserId == user.Id);
+
+        var posts = await postsQuery
+            .OrderByDescending(p => p.IsSticky)
+            .ThenByDescending(p => p.PublishedAtUtc)
+            .Select(p => new AuthorPostItem
+            {
+                Title = p.Title,
+                Slug = p.Slug,
+                Summary = p.Summary,
+                PublishedAtUtc = p.PublishedAtUtc,
+                ViewCount = p.ViewCount,
+                ReadingTimeMinutes = p.ReadingTimeMinutes,
+                CategoryName = p.Category != null ? p.Category.Name : null,
+                CoverUrl = p.CoverMediaAssetId != null ? "/media/" + p.CoverMediaAssetId : null
+            })
             .ToListAsync();
 
         var viewerId = AuthorAccess.UserId(User);
-        var canFollow = viewerId != null && viewerId != user.Id
+        var isOwn = viewerId != null && viewerId == user.Id;
+        var canFollow = viewerId != null && !isOwn
             && (User.IsInRole(AppRoles.Reader) || User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
         var isFollowing = canFollow
             && await _db.AuthorFollows.AnyAsync(f => f.FollowerUserId == viewerId && f.AuthorUserId == user.Id);
+
+        ViewData["Description"] = string.IsNullOrWhiteSpace(user.Bio)
+            ? $"{user.DisplayName} · @{user.UserName}"
+            : user.Bio;
+        ViewData["OgType"] = "profile";
 
         var vm = new PublicAuthorProfileViewModel
         {
@@ -188,14 +216,14 @@ public partial class AccountController : Controller
             HasProfileImage = user.ProfileImage is { Length: > 0 },
             CanFollow = canFollow,
             IsFollowing = isFollowing,
-            Posts = posts.Select(p => new AuthorPostItem
-            {
-                Title = p.Title,
-                Slug = p.Slug,
-                Summary = p.Summary,
-                PublishedAtUtc = p.PublishedAtUtc,
-                ViewCount = p.ViewCount
-            }).ToList()
+            IsOwnProfile = isOwn,
+            IsAuthor = isAuthor,
+            IsSuperAdmin = isSuper,
+            JoinedAtUtc = user.CreatedAtUtc,
+            FollowerCount = followerCount,
+            PostCount = postCount,
+            TotalViews = totalViews,
+            Posts = posts
         };
         return View(vm);
     }
