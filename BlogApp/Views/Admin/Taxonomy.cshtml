@@ -1,7 +1,7 @@
 @model TaxonomyAdminViewModel
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "دسته‌بندی‌ها و برچسب‌ها";
+    ViewData["Title"] = T["tax.title"];
 }
 
 @if (TempData["TaxonomyMsg"] != null)
@@ -14,29 +14,28 @@
 }
 
 <div class="admin-tabs mb-4">
-    <a class="admin-tab active" href="#cats">دسته‌بندی‌ها</a>
-    <a class="admin-tab" href="#tags">برچسب‌ها</a>
-    <a class="admin-tab" href="#series">سری‌ها</a>
-    <a class="admin-tab" href="#topics">مجموعه‌های موضوعی</a>
+    <a class="admin-tab active" href="#cats">@T["tax.tab_cats"]</a>
+    <a class="admin-tab" href="#tags">@T["tax.tab_tags"]</a>
+    <a class="admin-tab" href="#series">@T["tax.tab_series"]</a>
+    <a class="admin-tab" href="#topics">@T["tax.tab_topics"]</a>
 </div>
 
-<!-- Categories -->
 <section id="cats" class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h2 class="h6 mb-0 text-muted-dark">دسته‌بندی‌های تو در تو</h2>
+        <h2 class="h6 mb-0 text-muted-dark">@T["tax.cats_heading"]</h2>
     </div>
 
     <form asp-controller="Taxonomy" asp-action="CreateCategory" method="post" class="card-surface p-3 mb-3">
         @Html.AntiForgeryToken()
         <div class="row g-2 align-items-end">
             <div class="col-md-4">
-                <label class="form-label">نام دسته</label>
+                <label class="form-label">@T["tax.label_cat_name"]</label>
                 <input class="form-control form-control-sm" name="name" required dir="auto" />
             </div>
             <div class="col-md-3">
-                <label class="form-label">دسته والد</label>
+                <label class="form-label">@T["tax.label_parent"]</label>
                 <select class="form-select form-select-sm" name="parentId">
-                    <option value="">— ریشه —</option>
+                    <option value="">@T["tax.label_root"]</option>
                     @foreach (var o in Model.ParentOptions)
                     {
                         <option value="@o.Id">@o.Name</option>
@@ -44,18 +43,18 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">توضیح</label>
+                <label class="form-label">@T["tax.label_description"]</label>
                 <input class="form-control form-control-sm" name="description" dir="auto" />
             </div>
             <div class="col-md-2">
-                <button type="submit" class="btn btn-accent btn-sm w-100">افزودن</button>
+                <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_add"]</button>
             </div>
         </div>
     </form>
 
     @if (!Model.Categories.Any())
     {
-        <div class="admin-empty">هنوز دسته‌ای ثبت نشده.</div>
+        <div class="admin-empty">@T["tax.empty_cats"]</div>
     }
     else
     {
@@ -63,10 +62,10 @@
             <table class="admin-table">
                 <thead>
                     <tr>
-                        <th>نام</th>
-                        <th>اسلاگ</th>
-                        <th>نوشته‌ها</th>
-                        <th>عملیات</th>
+                        <th>@T["tax.col_name"]</th>
+                        <th>@T["tax.col_slug"]</th>
+                        <th>@T["tax.col_posts"]</th>
+                        <th>@T["tax.col_actions"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -74,7 +73,7 @@
                 {
                     <tr>
                         <td dir="auto">
-                            <span style="padding-right:@(c.Depth * 1.2)rem;display:inline-block;">
+                            <span style="padding-inline-start:@(c.Depth * 1.2)rem;display:inline-block;">
                                 @if (c.Depth > 0) { <span class="text-muted-dark">└ </span> }
                                 @c.Name
                             </span>
@@ -83,12 +82,12 @@
                         <td><span class="ltr-field">@c.PostCount</span></td>
                         <td>
                             <div class="d-flex gap-1 flex-wrap">
-                                <a class="icon-btn" asp-controller="Home" asp-action="Index" asp-route-category="@c.Slug">مشاهده</a>
+                                <a class="icon-btn" asp-controller="Home" asp-action="Index" asp-route-category="@c.Slug">@T["tax.btn_view"]</a>
                                 <form asp-controller="Taxonomy" asp-action="DeleteCategory" method="post"
-                                      onsubmit="return confirm('حذف این دسته؟');">
+                                      onsubmit="return confirm('@T["tax.confirm_delete_cat"]');">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@c.Id" />
-                                    <button type="submit" class="icon-btn reject">حذف</button>
+                                    <button type="submit" class="icon-btn reject">@T["tax.btn_delete"]</button>
                                 </form>
                             </div>
                         </td>
@@ -100,23 +99,22 @@
     }
 </section>
 
-<!-- Tags -->
 <section id="tags" class="mb-5">
-    <h2 class="h6 mb-3 text-muted-dark">مدیریت برچسب‌ها</h2>
+    <h2 class="h6 mb-3 text-muted-dark">@T["tax.tags_heading"]</h2>
 
     <form asp-controller="Taxonomy" asp-action="CreateTag" method="post" class="card-surface p-3 mb-3">
         @Html.AntiForgeryToken()
         <div class="row g-2 align-items-end">
             <div class="col-md-4">
-                <label class="form-label">نام برچسب</label>
+                <label class="form-label">@T["tax.label_tag_name"]</label>
                 <input class="form-control form-control-sm" name="name" required dir="auto" />
             </div>
             <div class="col-md-5">
-                <label class="form-label">توضیح</label>
+                <label class="form-label">@T["tax.label_description"]</label>
                 <input class="form-control form-control-sm" name="description" dir="auto" />
             </div>
             <div class="col-md-3">
-                <button type="submit" class="btn btn-accent btn-sm w-100">افزودن برچسب</button>
+                <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_add_tag"]</button>
             </div>
         </div>
     </form>
@@ -127,19 +125,19 @@
             @Html.AntiForgeryToken()
             <div class="row g-2 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label">ادغام از</label>
+                    <label class="form-label">@T["tax.label_merge_from"]</label>
                     <select class="form-select form-select-sm" name="sourceId" required>
                         @foreach (var t in Model.Tags) { <option value="@t.Id">@t.Name</option> }
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">به</label>
+                    <label class="form-label">@T["tax.label_merge_to"]</label>
                     <select class="form-select form-select-sm" name="targetId" required>
                         @foreach (var t in Model.Tags) { <option value="@t.Id">@t.Name</option> }
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <button type="submit" class="btn btn-ghost btn-sm w-100">ادغام برچسب‌ها</button>
+                    <button type="submit" class="btn btn-ghost btn-sm w-100">@T["tax.btn_merge"]</button>
                 </div>
             </div>
         </form>
@@ -148,7 +146,12 @@
     <div class="admin-table-wrap">
         <table class="admin-table">
             <thead>
-                <tr><th>نام</th><th>اسلاگ</th><th>نوشته‌ها</th><th>عملیات</th></tr>
+                <tr>
+                    <th>@T["tax.col_name"]</th>
+                    <th>@T["tax.col_slug"]</th>
+                    <th>@T["tax.col_posts"]</th>
+                    <th>@T["tax.col_actions"]</th>
+                </tr>
             </thead>
             <tbody>
             @foreach (var t in Model.Tags)
@@ -159,12 +162,12 @@
                     <td><span class="ltr-field">@t.PostCount</span></td>
                     <td>
                         <div class="d-flex gap-1">
-                            <a class="icon-btn" asp-controller="Home" asp-action="Index" asp-route-tag="@t.Slug">مشاهده</a>
+                            <a class="icon-btn" asp-controller="Home" asp-action="Index" asp-route-tag="@t.Slug">@T["tax.btn_view"]</a>
                             <form asp-controller="Taxonomy" asp-action="DeleteTag" method="post"
-                                  onsubmit="return confirm('حذف برچسب؟');">
+                                  onsubmit="return confirm('@T["tax.confirm_delete_tag"]');">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@t.Id" />
-                                <button type="submit" class="icon-btn reject">حذف</button>
+                                <button type="submit" class="icon-btn reject">@T["tax.btn_delete"]</button>
                             </form>
                         </div>
                     </td>
@@ -175,23 +178,22 @@
     </div>
 </section>
 
-<!-- Series -->
 <section id="series" class="mb-5">
-    <h2 class="h6 mb-3 text-muted-dark">مدیریت سری‌ها</h2>
+    <h2 class="h6 mb-3 text-muted-dark">@T["tax.series_heading"]</h2>
 
     <form asp-controller="Taxonomy" asp-action="CreateSeries" method="post" class="card-surface p-3 mb-3">
         @Html.AntiForgeryToken()
         <div class="row g-2 align-items-end">
             <div class="col-md-4">
-                <label class="form-label">نام سری</label>
+                <label class="form-label">@T["tax.label_series_name"]</label>
                 <input class="form-control form-control-sm" name="name" required dir="auto" />
             </div>
             <div class="col-md-5">
-                <label class="form-label">توضیح</label>
+                <label class="form-label">@T["tax.label_description"]</label>
                 <input class="form-control form-control-sm" name="description" dir="auto" />
             </div>
             <div class="col-md-3">
-                <button type="submit" class="btn btn-accent btn-sm w-100">ایجاد سری</button>
+                <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_create_series"]</button>
             </div>
         </div>
     </form>
@@ -199,7 +201,12 @@
     <div class="admin-table-wrap">
         <table class="admin-table">
             <thead>
-                <tr><th>نام</th><th>اسلاگ</th><th>نوشته‌ها</th><th>عملیات</th></tr>
+                <tr>
+                    <th>@T["tax.col_name"]</th>
+                    <th>@T["tax.col_slug"]</th>
+                    <th>@T["tax.col_posts"]</th>
+                    <th>@T["tax.col_actions"]</th>
+                </tr>
             </thead>
             <tbody>
             @foreach (var s in Model.Series)
@@ -210,13 +217,13 @@
                     <td><span class="ltr-field">@s.PostCount</span></td>
                     <td>
                         <div class="d-flex gap-1">
-                            <a class="icon-btn" asp-controller="Taxonomy" asp-action="EditSeries" asp-route-id="@s.Id">ویرایش</a>
-                            <a class="icon-btn" href="/series/@s.Slug">صفحه عمومی</a>
+                            <a class="icon-btn" asp-controller="Taxonomy" asp-action="EditSeries" asp-route-id="@s.Id">@T["tax.btn_edit"]</a>
+                            <a class="icon-btn" href="/series/@s.Slug">@T["tax.btn_public"]</a>
                             <form asp-controller="Taxonomy" asp-action="DeleteSeries" method="post"
-                                  onsubmit="return confirm('حذف سری؟');">
+                                  onsubmit="return confirm('@T["tax.confirm_delete_series"]');">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@s.Id" />
-                                <button type="submit" class="icon-btn reject">حذف</button>
+                                <button type="submit" class="icon-btn reject">@T["tax.btn_delete"]</button>
                             </form>
                         </div>
                     </td>
@@ -227,23 +234,22 @@
     </div>
 </section>
 
-<!-- Topics -->
 <section id="topics" class="mb-5">
-    <h2 class="h6 mb-3 text-muted-dark">مجموعه‌های موضوعی</h2>
+    <h2 class="h6 mb-3 text-muted-dark">@T["tax.topics_heading"]</h2>
 
     <form asp-controller="Taxonomy" asp-action="CreateTopic" method="post" class="card-surface p-3 mb-3">
         @Html.AntiForgeryToken()
         <div class="row g-2 align-items-end">
             <div class="col-md-4">
-                <label class="form-label">نام موضوع</label>
+                <label class="form-label">@T["tax.label_topic_name"]</label>
                 <input class="form-control form-control-sm" name="name" required dir="auto" />
             </div>
             <div class="col-md-5">
-                <label class="form-label">توضیح</label>
+                <label class="form-label">@T["tax.label_description"]</label>
                 <input class="form-control form-control-sm" name="description" dir="auto" />
             </div>
             <div class="col-md-3">
-                <button type="submit" class="btn btn-accent btn-sm w-100">ایجاد موضوع</button>
+                <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_create_topic"]</button>
             </div>
         </div>
     </form>
@@ -251,7 +257,12 @@
     <div class="admin-table-wrap">
         <table class="admin-table">
             <thead>
-                <tr><th>نام</th><th>اسلاگ</th><th>آیتم‌ها</th><th>عملیات</th></tr>
+                <tr>
+                    <th>@T["tax.col_name"]</th>
+                    <th>@T["tax.col_slug"]</th>
+                    <th>@T["tax.col_items"]</th>
+                    <th>@T["tax.col_actions"]</th>
+                </tr>
             </thead>
             <tbody>
             @foreach (var t in Model.Topics)
@@ -262,13 +273,13 @@
                     <td><span class="ltr-field">@t.ItemCount</span></td>
                     <td>
                         <div class="d-flex gap-1">
-                            <a class="icon-btn" asp-controller="Taxonomy" asp-action="EditTopic" asp-route-id="@t.Id">ویرایش</a>
-                            <a class="icon-btn" href="/topic/@t.Slug">صفحه عمومی</a>
+                            <a class="icon-btn" asp-controller="Taxonomy" asp-action="EditTopic" asp-route-id="@t.Id">@T["tax.btn_edit"]</a>
+                            <a class="icon-btn" href="/topic/@t.Slug">@T["tax.btn_public"]</a>
                             <form asp-controller="Taxonomy" asp-action="DeleteTopic" method="post"
-                                  onsubmit="return confirm('حذف موضوع؟');">
+                                  onsubmit="return confirm('@T["tax.confirm_delete_topic"]');">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@t.Id" />
-                                <button type="submit" class="icon-btn reject">حذف</button>
+                                <button type="submit" class="icon-btn reject">@T["tax.btn_delete"]</button>
                             </form>
                         </div>
                     </td>
