@@ -1,6 +1,6 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "گزارش حسابرسی";
+    ViewData["Title"] = T["page.audit"];
     var topActions = ViewBag.TopActions as List<NamedCount> ?? new();
 }
 
@@ -20,13 +20,13 @@
     <table id="auditTable" class="admin-table display nowrap" style="width:100%">
         <thead>
             <tr>
-                <th>#</th>
-                <th>زمان</th>
-                <th>کاربر</th>
-                <th>اکشن</th>
-                <th>موجودیت</th>
-                <th>جزئیات</th>
-                <th>IP</th>
+                <th>@T["col.index"]</th>
+                <th>@T["col.time"]</th>
+                <th>@T["col.user"]</th>
+                <th>@T["col.action"]</th>
+                <th>@T["col.entity"]</th>
+                <th>@T["col.details"]</th>
+                <th>@T["col.ip"]</th>
             </tr>
         </thead>
     </table>
