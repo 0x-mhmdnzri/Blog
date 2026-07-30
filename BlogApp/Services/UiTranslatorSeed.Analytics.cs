@@ -17,7 +17,8 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.Wizard)
             .Concat(UiTranslationCatalog.Analytics)
             .Concat(UiTranslationCatalog.Taxonomy)
-            .Concat(UiTranslationCatalog.Sidebar);
+            .Concat(UiTranslationCatalog.Sidebar)
+            .Concat(UiTranslationCatalog.Errors);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
