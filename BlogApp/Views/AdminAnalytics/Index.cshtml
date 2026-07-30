@@ -20,10 +20,21 @@
         <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Index" asp-route-range="90">@T["dash.range_90"]</a>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @if (Model.Api is not null)
+        {
+            <a class="btn btn-accent btn-sm" asp-action="Api" asp-route-range="@Model.RangeDays">API Analytics</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminApiKeys" asp-action="Index">کلیدهای API</a>
+        }
         <a class="btn btn-accent btn-sm" asp-action="Heatmaps">@T["ana.heatmap_open_list"]</a>
         <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="Index">@T["ana.back_ops"]</a>
     </div>
 </div>
+
+@if (Model.Api is not null)
+{
+    ViewBag.RangeDays = Model.RangeDays;
+    <partial name="_ApiPanel" model="Model.Api" />
+}
 
 <div class="row g-2 mb-3">
     <div class="col-6 col-lg-3">
