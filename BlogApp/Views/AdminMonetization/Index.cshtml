@@ -1,0 +1,262 @@
+@inject BlogApp.Services.IUiTranslator T
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = T["admin.nav.monetization"];
+    var tab = (string)(ViewBag.ActiveTab ?? "overview");
+    var plans = (List<SubscriptionPlan>)ViewBag.Plans;
+    var subs = (List<UserSubscription>)ViewBag.Subscriptions;
+    var donations = (List<Donation>)ViewBag.Donations;
+    var ads = (List<Advertisement>)ViewBag.Ads;
+    var affiliates = (List<AffiliateLink>)ViewBag.Affiliates;
+}
+
+@if (TempData["MonOk"] is string ok)
+{
+    <div class="wizard-alert success mb-3">@ok</div>
+}
+@if (TempData["MonErr"] is string err)
+{
+    <div class="wizard-alert danger mb-3">@err</div>
+}
+
+<div class="admin-tabs mb-3">
+    <a class="admin-tab @(tab=="overview"?"active":"")" asp-action="Index" asp-route-tab="overview">@T["mon.tab_overview"]</a>
+    <a class="admin-tab @(tab=="plans"?"active":"")" asp-action="Index" asp-route-tab="plans">@T["mon.tab_plans"]</a>
+    <a class="admin-tab @(tab=="members"?"active":"")" asp-action="Index" asp-route-tab="members">@T["mon.tab_members"]</a>
+    <a class="admin-tab @(tab=="donations"?"active":"")" asp-action="Index" asp-route-tab="donations">@T["mon.tab_donations"]</a>
+    <a class="admin-tab @(tab=="ads"?"active":"")" asp-action="Index" asp-route-tab="ads">@T["mon.tab_ads"]</a>
+    <a class="admin-tab @(tab=="affiliates"?"active":"")" asp-action="Index" asp-route-tab="affiliates">@T["mon.tab_affiliates"]</a>
+</div>
+
+@if (tab == "overview")
+{
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-4 col-lg-2"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["mon.kpi_plans"]</div><div class="kpi-value ltr-field">@ViewBag.PlanCount</div></div></div>
+        <div class="col-6 col-md-4 col-lg-2"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["mon.kpi_members"]</div><div class="kpi-value ltr-field">@ViewBag.ActiveMembers</div></div></div>
+        <div class="col-6 col-md-4 col-lg-2"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["mon.kpi_pending_don"]</div><div class="kpi-value ltr-field">@ViewBag.PendingDonations</div></div></div>
+        <div class="col-6 col-md-4 col-lg-2"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["mon.kpi_don_sum"]</div><div class="kpi-value ltr-field" style="font-size:1rem;">@(((decimal)ViewBag.ConfirmedDonationSum).ToString("N0"))</div></div></div>
+        <div class="col-6 col-md-4 col-lg-2"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["mon.kpi_ads"]</div><div class="kpi-value ltr-field">@ViewBag.AdCount</div></div></div>
+        <div class="col-6 col-md-4 col-lg-2"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["mon.kpi_aff_clicks"]</div><div class="kpi-value ltr-field">@ViewBag.AffiliateClicks</div></div></div>
+    </div>
+    <div class="chart-card chart-card-tight">
+        <div class="chart-title mb-2">@T["mon.overview_hint"]</div>
+        <ul class="small text-muted-dark mb-0" style="padding-inline-start:1.2rem;">
+            <li>@T["mon.cap_plans"]</li>
+            <li>@T["mon.cap_premium"]</li>
+            <li>@T["mon.cap_donate"]</li>
+            <li>@T["mon.cap_ads"]</li>
+            <li>@T["mon.cap_aff"]</li>
+            <li>@T["mon.cap_sponsored"]</li>
+        </ul>
+        <p class="small mt-3 mb-0">
+            <a asp-controller="Monetization" asp-action="Donate" target="_blank">@T["mon.public_donate"]</a>
+            ·
+            <a asp-controller="Monetization" asp-action="Membership" target="_blank">@T["mon.public_membership"]</a>
+            ·
+            <span class="ltr-field">/go/{code}</span>
+        </p>
+        <p class="small text-muted-dark mt-2 mb-0">@T["mon.premium_posts"]: <strong class="ltr-field">@ViewBag.PremiumPosts</strong></p>
+    </div>
+}
+
+@if (tab == "plans")
+{
+    <div class="chart-card chart-card-tight mb-3">
+        <div class="chart-title mb-2">@T["mon.add_plan"]</div>
+        <form asp-action="SavePlan" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <div class="col-md-3"><input name="name" class="form-control form-control-sm" placeholder="@T["mon.plan_name"]" required /></div>
+            <div class="col-md-2"><input name="code" class="form-control form-control-sm ltr-field" placeholder="pro" required /></div>
+            <div class="col-md-2"><input name="price" type="number" step="0.01" class="form-control form-control-sm ltr-field" placeholder="@T["mon.price"]" required /></div>
+            <div class="col-md-1"><input name="currency" class="form-control form-control-sm ltr-field" value="IRT" /></div>
+            <div class="col-md-2"><input name="durationDays" type="number" class="form-control form-control-sm ltr-field" value="30" title="@T["mon.duration"]" /></div>
+            <div class="col-md-2"><label class="form-check"><input type="checkbox" name="isActive" value="true" checked class="form-check-input" /> @T["mon.active"]</label></div>
+            <div class="col-12"><input name="description" class="form-control form-control-sm" placeholder="@T["mon.desc"]" /></div>
+            <div class="col-12"><button type="submit" class="btn btn-accent btn-sm">@T["mon.save"]</button></div>
+        </form>
+    </div>
+    <div class="admin-table-wrap">
+        <table class="admin-table" style="min-width:0;">
+            <thead><tr><th>@T["mon.plan_name"]</th><th>Code</th><th>@T["mon.price"]</th><th>@T["mon.duration"]</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var p in plans)
+            {
+                <tr>
+                    <td>@p.Name @(p.IsActive ? "" : "(off)")</td>
+                    <td class="ltr-field">@p.Code</td>
+                    <td class="ltr-field">@p.Price @p.Currency</td>
+                    <td class="ltr-field">@(p.DurationDays == 0 ? "∞" : p.DurationDays + "d")</td>
+                    <td>
+                        <form asp-action="DeletePlan" method="post" class="d-inline" onsubmit="return confirm('@T["msg.confirm_delete"]');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@p.Id" />
+                            <button type="submit" class="icon-btn reject">@T["btn.delete"]</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (tab == "members")
+{
+    <div class="chart-card chart-card-tight mb-3">
+        <div class="chart-title mb-2">@T["mon.grant"]</div>
+        <form asp-action="GrantMembership" method="post" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-md-4"><label class="form-label small">UserId</label><input name="userId" class="form-control form-control-sm ltr-field" required /></div>
+            <div class="col-md-3">
+                <label class="form-label small">@T["mon.tab_plans"]</label>
+                <select name="planId" class="form-select form-select-sm">
+                    @foreach (var p in plans.Where(x => x.IsActive))
+                    {
+                        <option value="@p.Id">@p.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3"><label class="form-label small">@T["mon.pay_ref"]</label><input name="paymentReference" class="form-control form-control-sm" /></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-accent btn-sm w-100">@T["mon.grant"]</button></div>
+        </form>
+    </div>
+    <div class="admin-table-wrap">
+        <table class="admin-table" style="min-width:0;">
+            <thead><tr><th>User</th><th>@T["mon.tab_plans"]</th><th>@T["mon.status"]</th><th>Ends</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var s in subs)
+            {
+                <tr>
+                    <td class="ltr-field small">@s.UserId</td>
+                    <td>@s.Plan?.Name</td>
+                    <td>@s.Status</td>
+                    <td class="ltr-field small">@(s.EndsAtUtc?.ToString("yyyy-MM-dd") ?? "∞")</td>
+                    <td>
+                        @if (s.Status == SubscriptionStatus.Active || s.Status == SubscriptionStatus.Pending)
+                        {
+                            <form asp-action="CancelMembership" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@s.Id" />
+                                <button type="submit" class="icon-btn">@T["mon.cancel"]</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (tab == "donations")
+{
+    <div class="admin-table-wrap">
+        <table class="admin-table" style="min-width:0;">
+            <thead><tr><th>@T["mon.donor"]</th><th>@T["mon.price"]</th><th>@T["mon.status"]</th><th>@T["mon.pay_ref"]</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var d in donations)
+            {
+                <tr>
+                    <td>@(d.IsAnonymous ? "—" : (d.DonorName ?? d.UserId ?? "—"))</td>
+                    <td class="ltr-field">@d.Amount @d.Currency</td>
+                    <td>@d.Status</td>
+                    <td class="ltr-field small">@d.PaymentReference</td>
+                    <td class="text-nowrap">
+                        @if (d.Status == DonationStatus.Pending)
+                        {
+                            <form asp-action="ConfirmDonation" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@d.Id" /><button class="icon-btn">@T["mon.confirm"]</button></form>
+                            <form asp-action="RejectDonation" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@d.Id" /><button class="icon-btn reject">@T["mon.reject"]</button></form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (tab == "ads")
+{
+    <div class="chart-card chart-card-tight mb-3">
+        <div class="chart-title mb-2">@T["mon.add_ad"]</div>
+        <form asp-action="SaveAd" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <div class="col-md-3"><input name="name" class="form-control form-control-sm" placeholder="@T["mon.ad_name"]" required /></div>
+            <div class="col-md-2">
+                <select name="placement" class="form-select form-select-sm">
+                    @foreach (AdPlacement pl in Enum.GetValues(typeof(AdPlacement)))
+                    {
+                        <option value="@((int)pl)">@pl</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4"><input name="targetUrl" class="form-control form-control-sm ltr-field" placeholder="https://..." /></div>
+            <div class="col-md-2"><label class="form-check"><input type="checkbox" name="isActive" value="true" checked class="form-check-input" /> @T["mon.active"]</label></div>
+            <div class="col-12"><textarea name="htmlContent" class="form-control form-control-sm ltr-field" rows="2" placeholder="HTML / text"></textarea></div>
+            <div class="col-12"><button type="submit" class="btn btn-accent btn-sm">@T["mon.save"]</button></div>
+        </form>
+    </div>
+    <div class="admin-table-wrap">
+        <table class="admin-table" style="min-width:0;">
+            <thead><tr><th>@T["mon.ad_name"]</th><th>@T["mon.placement"]</th><th>Impr</th><th>Clicks</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var a in ads)
+            {
+                <tr>
+                    <td>@a.Name @(a.IsActive ? "" : "(off)")</td>
+                    <td>@a.Placement</td>
+                    <td class="ltr-field">@a.ImpressionCount</td>
+                    <td class="ltr-field">@a.ClickCount</td>
+                    <td>
+                        <form asp-action="DeleteAd" method="post" class="d-inline" onsubmit="return confirm('@T["msg.confirm_delete"]');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@a.Id" />
+                            <button type="submit" class="icon-btn reject">@T["btn.delete"]</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (tab == "affiliates")
+{
+    <div class="chart-card chart-card-tight mb-3">
+        <div class="chart-title mb-2">@T["mon.add_aff"]</div>
+        <form asp-action="SaveAffiliate" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <div class="col-md-2"><input name="code" class="form-control form-control-sm ltr-field" placeholder="book" required /></div>
+            <div class="col-md-3"><input name="title" class="form-control form-control-sm" placeholder="@T["mon.aff_title"]" required /></div>
+            <div class="col-md-4"><input name="destinationUrl" class="form-control form-control-sm ltr-field" placeholder="https://..." required /></div>
+            <div class="col-md-2"><input name="network" class="form-control form-control-sm" placeholder="Amazon" /></div>
+            <div class="col-md-1"><label class="form-check"><input type="checkbox" name="isActive" value="true" checked class="form-check-input" /></label></div>
+            <div class="col-12"><button type="submit" class="btn btn-accent btn-sm">@T["mon.save"]</button></div>
+        </form>
+        <p class="form-text mb-0">@T["mon.aff_hint"] <code class="ltr-field">/go/code</code></p>
+    </div>
+    <div class="admin-table-wrap">
+        <table class="admin-table" style="min-width:0;">
+            <thead><tr><th>Code</th><th>@T["mon.aff_title"]</th><th>Clicks</th><th>URL</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var a in affiliates)
+            {
+                <tr>
+                    <td class="ltr-field"><a href="/go/@a.Code" target="_blank">@a.Code</a></td>
+                    <td>@a.Title</td>
+                    <td class="ltr-field">@a.ClickCount</td>
+                    <td class="ltr-field small">@a.DestinationUrl</td>
+                    <td>
+                        <form asp-action="DeleteAffiliate" method="post" class="d-inline" onsubmit="return confirm('@T["msg.confirm_delete"]');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@a.Id" />
+                            <button type="submit" class="icon-btn reject">@T["btn.delete"]</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
