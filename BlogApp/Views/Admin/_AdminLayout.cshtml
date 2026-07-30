@@ -45,6 +45,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.8/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-rtl.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin-sidebar.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/datatables-admin.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
@@ -165,7 +166,6 @@
     </script>
     @await RenderSectionAsync("Scripts", required: false)
     <script>
-        // Drop content loading state once body scripts run
         document.querySelector('.admin-content')?.classList.remove('is-loading');
     </script>
 </body>
