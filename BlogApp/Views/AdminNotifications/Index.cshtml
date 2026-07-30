@@ -1,7 +1,7 @@
 @model BlogApp.Controllers.ComposeNotificationVm
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "Send notifications";
+    ViewData["Title"] = T["notif.admin_title"];
     var isSuper = ViewBag.IsSuperAdmin as bool? ?? false;
     var recent = ViewBag.Recent as List<NotificationCampaign> ?? new();
     var categories = ViewBag.Categories as List<Category> ?? new();
@@ -9,7 +9,7 @@
 
 @if (TempData["Saved"] != null)
 {
-    <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
+    <div class="card-surface p-3 mb-3 small text-muted-dark">@T["msg.saved"]</div>
 }
 @if (TempData["Error"] != null)
 {
@@ -22,45 +22,45 @@
             @Html.AntiForgeryToken()
 
             <div class="mb-3">
-                <label class="form-label" asp-for="Title">Title</label>
+                <label class="form-label" asp-for="Title">@T["notif.form_title"]</label>
                 <input class="form-control" asp-for="Title" dir="auto" required />
             </div>
             <div class="mb-3">
-                <label class="form-label" asp-for="Body">Body</label>
+                <label class="form-label" asp-for="Body">@T["notif.form_body"]</label>
                 <textarea class="form-control" asp-for="Body" rows="3" dir="auto"></textarea>
             </div>
             <div class="mb-3">
-                <label class="form-label" asp-for="LinkUrl">Link (optional)</label>
+                <label class="form-label" asp-for="LinkUrl">@T["notif.form_link"]</label>
                 <input class="form-control ltr-field" asp-for="LinkUrl" placeholder="/post/slug" />
             </div>
 
             @if (isSuper)
             {
                 <div class="mb-3">
-                    <label class="form-label" asp-for="Audience">Audience</label>
+                    <label class="form-label" asp-for="Audience">@T["notif.form_audience"]</label>
                     <select class="form-select" asp-for="Audience">
-                        <option value="@((int)NotificationAudience.AllAuthors)">All authors</option>
-                        <option value="@((int)NotificationAudience.Broadcast)">Everyone (broadcast)</option>
-                        <option value="@((int)NotificationAudience.CategoryReaders)">Category readers</option>
-                        <option value="@((int)NotificationAudience.AuthorFollowers)">Author followers</option>
-                        <option value="@((int)NotificationAudience.SingleUser)">Single user</option>
-                        <option value="@((int)NotificationAudience.UserList)">User list (CSV ids)</option>
+                        <option value="@((int)NotificationAudience.AllAuthors)">@T["notif.aud_authors"]</option>
+                        <option value="@((int)NotificationAudience.Broadcast)">@T["notif.aud_broadcast"]</option>
+                        <option value="@((int)NotificationAudience.CategoryReaders)">@T["notif.aud_category"]</option>
+                        <option value="@((int)NotificationAudience.AuthorFollowers)">@T["notif.aud_followers"]</option>
+                        <option value="@((int)NotificationAudience.SingleUser)">@T["notif.aud_single"]</option>
+                        <option value="@((int)NotificationAudience.UserList)">@T["notif.aud_list"]</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" asp-for="Kind">Kind</label>
+                    <label class="form-label" asp-for="Kind">@T["notif.form_kind"]</label>
                     <select class="form-select" asp-for="Kind">
-                        <option value="@((int)NotificationKind.AdminMessage)">Admin message</option>
-                        <option value="@((int)NotificationKind.Broadcast)">Broadcast</option>
-                        <option value="@((int)NotificationKind.CategoryBatch)">Category batch</option>
-                        <option value="@((int)NotificationKind.System)">System</option>
-                        <option value="@((int)NotificationKind.AdCampaign)">Ad campaign</option>
+                        <option value="@((int)NotificationKind.AdminMessage)">@T["notif.kind_admin"]</option>
+                        <option value="@((int)NotificationKind.Broadcast)">@T["notif.kind_broadcast"]</option>
+                        <option value="@((int)NotificationKind.CategoryBatch)">@T["notif.kind_category"]</option>
+                        <option value="@((int)NotificationKind.System)">@T["notif.kind_system"]</option>
+                        <option value="@((int)NotificationKind.AdCampaign)">@T["notif.kind_ad"]</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" asp-for="CategoryId">Category (for category readers)</label>
+                    <label class="form-label" asp-for="CategoryId">@T["notif.form_category"]</label>
                     <select class="form-select" asp-for="CategoryId">
-                        <option value="">—</option>
+                        <option value="">@T["msg.dash"]</option>
                         @foreach (var c in categories)
                         {
                             <option value="@c.Id">@c.Name</option>
@@ -68,43 +68,43 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" asp-for="TargetUserId">Target user id (single)</label>
+                    <label class="form-label" asp-for="TargetUserId">@T["notif.form_target_user"]</label>
                     <input class="form-control ltr-field" asp-for="TargetUserId" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" asp-for="TargetUserIdsCsv">User ids CSV (batch)</label>
+                    <label class="form-label" asp-for="TargetUserIdsCsv">@T["notif.form_target_csv"]</label>
                     <input class="form-control ltr-field" asp-for="TargetUserIdsCsv" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" asp-for="AuthorUserId">Author id (followers audience)</label>
+                    <label class="form-label" asp-for="AuthorUserId">@T["notif.form_author"]</label>
                     <input class="form-control ltr-field" asp-for="AuthorUserId" />
                 </div>
             }
             else
             {
-                <p class="small text-muted-dark">You can notify users who follow you (e.g. about a new post).</p>
+                <p class="small text-muted-dark">@T["notif.author_help"]</p>
                 <input type="hidden" asp-for="Audience" value="@((int)NotificationAudience.AuthorFollowers)" />
                 <input type="hidden" asp-for="Kind" value="@((int)NotificationKind.NewPost)" />
             }
 
             <div class="form-check mb-2">
                 <input class="form-check-input" asp-for="Schedule" id="scheduleToggle" />
-                <label class="form-check-label" asp-for="Schedule">Schedule for later</label>
+                <label class="form-check-label" asp-for="Schedule">@T["notif.form_schedule"]</label>
             </div>
             <div class="mb-4" id="scheduleBox">
-                <label class="form-label" asp-for="ScheduledAtUtc">Scheduled UTC</label>
+                <label class="form-label" asp-for="ScheduledAtUtc">@T["notif.form_scheduled_at"]</label>
                 <input class="form-control ltr-field" asp-for="ScheduledAtUtc" type="datetime-local" />
             </div>
 
-            <button type="submit" class="btn btn-accent">Send / schedule</button>
+            <button type="submit" class="btn btn-accent">@T["notif.form_send"]</button>
         </form>
     </div>
 
     <div class="col-lg-6">
-        <h2 class="h6 text-muted-dark mb-3">Recent campaigns</h2>
+        <h2 class="h6 text-muted-dark mb-3">@T["notif.recent_campaigns"]</h2>
         @if (recent.Count == 0)
         {
-            <div class="admin-empty"><p>No campaigns yet.</p></div>
+            <div class="admin-empty"><p>@T["notif.no_campaigns"]</p></div>
         }
         else
         {
@@ -112,10 +112,10 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th>Title</th>
-                            <th>Audience</th>
-                            <th>Status</th>
-                            <th>Recipients</th>
+                            <th>@T["col.title"]</th>
+                            <th>@T["notif.form_audience"]</th>
+                            <th>@T["col.status"]</th>
+                            <th>@T["notif.col_recipients"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -127,11 +127,11 @@
                             <td>
                                 @if (c.IsSent)
                                 {
-                                    <span class="status-pill approved">Sent</span>
+                                    <span class="status-pill approved">@T["notif.status_sent"]</span>
                                 }
                                 else
                                 {
-                                    <span class="status-pill pending">Scheduled</span>
+                                    <span class="status-pill pending">@T["status.scheduled"]</span>
                                 }
                             </td>
                             <td class="ltr-field">@c.RecipientCount</td>
