@@ -8,7 +8,6 @@ namespace BlogApp.Services.Messaging;
 public class DigestOptions
 {
     public bool Enabled { get; set; } = true;
-    /// <summary>DayOfWeek 0=Sunday … 6=Saturday (UTC).</summary>
     public int DayOfWeekUtc { get; set; } = 1;
     public int HourUtc { get; set; } = 8;
 }
@@ -35,6 +34,7 @@ public sealed class NotificationService : INotificationService
     private readonly IEmailSender _email;
     private readonly ISmsSender _sms;
     private readonly IPushSender _push;
+    private readonly INotificationEventBus _bus;
     private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
@@ -42,12 +42,14 @@ public sealed class NotificationService : INotificationService
         IEmailSender email,
         ISmsSender sms,
         IPushSender push,
+        INotificationEventBus bus,
         ILogger<NotificationService> logger)
     {
         _db = db;
         _email = email;
         _sms = sms;
         _push = push;
+        _bus = bus;
         _logger = logger;
     }
 
@@ -63,7 +65,7 @@ public sealed class NotificationService : INotificationService
 
         if (prefs.InAppEnabled)
         {
-            _db.AppNotifications.Add(new AppNotification
+            var row = new AppNotification
             {
                 UserId = userId,
                 Kind = kind,
@@ -71,8 +73,12 @@ public sealed class NotificationService : INotificationService
                 Body = body,
                 LinkUrl = linkUrl,
                 CreatedAtUtc = DateTime.UtcNow
-            });
+            };
+            _db.AppNotifications.Add(row);
             await _db.SaveChangesAsync(ct);
+
+            await _bus.PublishAsync(new NotificationDeliveredEvent(
+                row.Id, userId, kind, title, body, linkUrl, row.CreatedAtUtc), ct);
         }
 
         if (prefs.PushEnabled)
@@ -86,7 +92,7 @@ public sealed class NotificationService : INotificationService
                 try
                 {
                     var html = $"<p>{System.Net.WebUtility.HtmlEncode(body ?? title)}</p>" +
-                               (string.IsNullOrEmpty(linkUrl) ? "" : $"<p><a href=\"{linkUrl}\">مشاهده</a></p>");
+                               (string.IsNullOrEmpty(linkUrl) ? "" : $"<p><a href=\"{linkUrl}\">Open</a></p>");
                     await _email.SendAsync(user.Email, title, html, true, ct);
                 }
                 catch (Exception ex)
@@ -107,7 +113,7 @@ public sealed class NotificationService : INotificationService
         await NotifyAsync(
             post.AuthorId,
             NotificationKind.NewComment,
-            $"دیدگاه جدید روی «{post.Title}»",
+            $"New comment on «{post.Title}»",
             $"{comment.AuthorName}: {(comment.Body.Length > 120 ? comment.Body[..120] + "…" : comment.Body)}",
             "/Admin/Comments",
             ct);
@@ -121,8 +127,8 @@ public sealed class NotificationService : INotificationService
         await NotifyAsync(
             authorUserId,
             NotificationKind.NewFollower,
-            "دنبال‌کننده جدید",
-            $"{follower.DisplayName} شما را دنبال کرد.",
+            "New follower",
+            $"{follower.DisplayName} started following you.",
             $"/author/{follower.UserName}",
             ct);
     }
