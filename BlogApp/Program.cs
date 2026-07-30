@@ -34,7 +34,6 @@ try
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? "Data Source=blog.db;Cache=Shared;Pooling=True;Default Timeout=30";
 
-    // Append ADO.NET pool knobs when using SQL Server (ignored harmlessly by SQLite if present in config-only path).
     var maxPool = builder.Configuration.GetValue("Database:MaxPoolSize", 100);
     var minPool = builder.Configuration.GetValue("Database:MinPoolSize", 0);
     var cmdTimeout = builder.Configuration.GetValue("Database:CommandTimeoutSeconds", 30);
@@ -46,18 +45,14 @@ try
             sqlite.CommandTimeout(cmdTimeout);
         });
 
-        // Read-heavy site: no tracking by default (Identity attaches when needed).
+        // Read-heavy: no tracking by default (Identity attaches when needed).
+        // Lazy-loading proxies stay OFF (never call UseLazyLoadingProxies).
         options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-
-        // Explicit loading only — never lazy proxies (extra round-trips + proxy types).
-        options.UseLazyLoadingProxies(false);
-
         options.EnableSensitiveDataLogging(false);
         options.EnableDetailedErrors(builder.Environment.IsDevelopment());
     });
 
-    // Surface pool intent for ops (SQL Server connection strings can set Max Pool Size / Min Pool Size).
-    Log.Information("EF configured NoTracking default, LazyLoading=false, CommandTimeout={Timeout}s, Pool Max={Max} Min={Min}",
+    Log.Information("EF NoTracking default, LazyLoading=off, CommandTimeout={Timeout}s, Pool Max={Max} Min={Min}",
         cmdTimeout, maxPool, minPool);
 
     builder.Services.AddMemoryCache();
