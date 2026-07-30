@@ -1,7 +1,7 @@
-@model (IEnumerable<BlogApp.Services.AdminNavItem> Items, int PendingCount)
+@model (List<BlogApp.Services.AdminNavItem> Items, int PendingCount)
 @inject BlogApp.Services.IUiTranslator T
 @{
-    var items = Model.Items.ToList();
+    var items = Model.Items;
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     string? lastGroup = null;
