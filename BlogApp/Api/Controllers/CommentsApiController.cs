@@ -13,6 +13,7 @@ namespace BlogApp.Api.Controllers;
 [ApiController]
 [Route("api/v1/comments")]
 [EnableRateLimiting("api")]
+[IgnoreAntiforgeryToken]
 [Authorize(AuthenticationSchemes = ApiKeyDefaults.Scheme)]
 public class CommentsApiController : ControllerBase
 {

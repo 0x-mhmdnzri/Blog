@@ -13,6 +13,7 @@ namespace BlogApp.Api.Controllers;
 [ApiController]
 [Route("api/graphql")]
 [EnableRateLimiting("api")]
+[IgnoreAntiforgeryToken]
 [Authorize(AuthenticationSchemes = ApiKeyDefaults.Scheme)]
 public class GraphQlController : ControllerBase
 {

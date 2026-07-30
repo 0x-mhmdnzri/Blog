@@ -3,7 +3,6 @@ using BlogApp.Api.Dtos;
 using BlogApp.Api.Validation;
 using BlogApp.Data;
 using BlogApp.Models;
-using BlogApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -14,6 +13,7 @@ namespace BlogApp.Api.Controllers;
 [ApiController]
 [Route("api/v1/posts")]
 [EnableRateLimiting("api")]
+[IgnoreAntiforgeryToken]
 [Authorize(AuthenticationSchemes = ApiKeyDefaults.Scheme)]
 public class PostsApiController : ControllerBase
 {
