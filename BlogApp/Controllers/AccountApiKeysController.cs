@@ -1,3 +1,4 @@
+using System.Text;
 using BlogApp.Api.Auth;
 using BlogApp.Api.Dtos;
 using BlogApp.Data;
@@ -19,15 +20,18 @@ public class AccountApiKeysController : Controller
     private readonly ApplicationDbContext _db;
     private readonly IValidator<ApiKeyCreateDto> _validator;
     private readonly INotificationService _notify;
+    private readonly IApiTokenProtector _tokens;
 
     public AccountApiKeysController(
         ApplicationDbContext db,
         IValidator<ApiKeyCreateDto> validator,
-        INotificationService notify)
+        INotificationService notify,
+        IApiTokenProtector tokens)
     {
         _db = db;
         _validator = validator;
         _notify = notify;
+        _tokens = tokens;
     }
 
     [HttpGet]
@@ -36,7 +40,6 @@ public class AccountApiKeysController : Controller
         if (range is not (7 or 30 or 90)) range = 30;
 
         ViewData["Title"] = "کلیدهای API";
-        // Use admin shell when user is staff so sidebar shows «کلیدهای API من»
         var isStaff = AuthorAccess.IsSuperAdmin(User) || User.IsInRole(AppRoles.Author);
         if (isStaff)
             ViewData["UseAdminLayout"] = true;
@@ -55,6 +58,81 @@ public class AccountApiKeysController : Controller
             Usage = usage,
             RangeDays = range
         });
+    }
+
+    /// <summary>Returns plaintext token for the owner (encrypted at rest).</summary>
+    [HttpGet]
+    public async Task<IActionResult> Reveal(int id)
+    {
+        var userId = AuthorAccess.UserId(User)!;
+        var key = await _db.ApiKeys.AsNoTracking()
+            .FirstOrDefaultAsync(k => k.Id == id && k.UserId == userId);
+        if (key is null) return NotFound(new { error = "not_found" });
+
+        var plain = _tokens.Unprotect(key.EncryptedToken);
+        if (string.IsNullOrEmpty(plain))
+        {
+            return BadRequest(new
+            {
+                error = "unavailable",
+                detail = "این کلید قبل از قابلیت ذخیره امن ساخته شده؛ توکن قابل بازیابی نیست. یک کلید جدید بسازید."
+            });
+        }
+
+        return Json(new { token = plain, prefix = key.KeyPrefix, name = key.Name });
+    }
+
+    /// <summary>Export all own keys as CSV (includes tokens when available).</summary>
+    [HttpGet]
+    public async Task<IActionResult> ExportCsv(bool includeTokens = true)
+    {
+        var userId = AuthorAccess.UserId(User)!;
+        var keys = await _db.ApiKeys.AsNoTracking()
+            .Where(k => k.UserId == userId)
+            .OrderByDescending(k => k.CreatedAtUtc)
+            .ToListAsync();
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Id,Name,Prefix,Token,Scopes,Status,Approval,IsActive,IsBanned,RequestCount,CreatedAtUtc,ExpiresAtUtc,LastUsedAtUtc");
+
+        static string Esc(string? s)
+        {
+            s ??= "";
+            if (s.Contains('"') || s.Contains(',') || s.Contains('\n'))
+                return "\"" + s.Replace("\"", "\"\"") + "\"";
+            return s;
+        }
+
+        foreach (var k in keys)
+        {
+            var status = k.IsBanned ? "banned"
+                : k.ApprovalStatus == ApiKeyApprovalStatus.Pending ? "pending"
+                : k.ApprovalStatus == ApiKeyApprovalStatus.Rejected ? "rejected"
+                : k.IsUsable ? "active" : "inactive";
+
+            var token = "";
+            if (includeTokens)
+                token = _tokens.Unprotect(k.EncryptedToken) ?? "";
+
+            sb.Append(k.Id).Append(',')
+                .Append(Esc(k.Name)).Append(',')
+                .Append(Esc(k.KeyPrefix)).Append(',')
+                .Append(Esc(token)).Append(',')
+                .Append(Esc(k.Scopes)).Append(',')
+                .Append(Esc(status)).Append(',')
+                .Append(Esc(k.ApprovalStatus.ToString())).Append(',')
+                .Append(k.IsActive ? "1" : "0").Append(',')
+                .Append(k.IsBanned ? "1" : "0").Append(',')
+                .Append(k.RequestCount).Append(',')
+                .Append(Esc(k.CreatedAtUtc.ToString("o"))).Append(',')
+                .Append(Esc(k.ExpiresAtUtc?.ToString("o"))).Append(',')
+                .Append(Esc(k.LastUsedAtUtc?.ToString("o")))
+                .AppendLine();
+        }
+
+        var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        var fileName = $"api-keys-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv";
+        return File(bytes, "text/csv; charset=utf-8", fileName);
     }
 
     private async Task<ApiSelfUsage> BuildSelfUsageAsync(string userId, int range)
@@ -149,6 +227,7 @@ public class AccountApiKeysController : Controller
             Name = name.Trim(),
             KeyPrefix = prefix,
             KeyHash = hash,
+            EncryptedToken = _tokens.Protect(token),
             Scopes = string.IsNullOrWhiteSpace(scopes) ? ApiScopes.Read : scopes.Trim().ToLowerInvariant(),
             IsActive = true,
             ApprovalStatus = ApiKeyApprovalStatus.Pending,
@@ -184,7 +263,7 @@ public class AccountApiKeysController : Controller
 
         TempData["NewToken"] = token;
         TempData["Msg"] =
-            "کلید ساخته شد و در انتظار تأیید سوپرادمین است. توکن را الان کپی کنید (فقط یک‌بار نمایش داده می‌شود). تا قبل از تأیید، API آن را قبول نمی‌کند.";
+            "کلید ساخته شد و در انتظار تأیید سوپرادمین است. هر زمان می‌توانید با آیکن کلیپبورد دوباره کپی کنید.";
         return RedirectToAction(nameof(Index));
     }
 

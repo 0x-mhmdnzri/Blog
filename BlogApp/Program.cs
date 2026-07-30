@@ -59,6 +59,8 @@ try
 
     builder.Services.AddMemoryCache();
     builder.Services.AddHttpContextAccessor();
+    builder.Services.AddDataProtection();
+    builder.Services.AddSingleton<IApiTokenProtector, ApiTokenProtector>();
 
     builder.Services.AddBlogPerformance(builder.Configuration);
 
@@ -373,7 +375,6 @@ try
     app.UseAuthorization();
     app.UseRateLimiter();
 
-    // Log every /api/* call (user, key, path, status, duration) for analytics
     app.UseMiddleware<ApiRequestLoggingMiddleware>();
 
     app.UseMiddleware<MaintenanceMiddleware>();
