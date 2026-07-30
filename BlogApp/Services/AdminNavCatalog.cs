@@ -45,6 +45,7 @@ public sealed class AdminNavItem
             "media" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
                        && action.StartsWith("Media", StringComparison.OrdinalIgnoreCase),
             "monetization" => string.Equals(controller, "AdminMonetization", StringComparison.OrdinalIgnoreCase),
+            "newsletter" => string.Equals(controller, "AdminNewsletter", StringComparison.OrdinalIgnoreCase),
             _ => string.Equals(Action, action, StringComparison.OrdinalIgnoreCase)
         };
     }
@@ -99,7 +100,7 @@ public static class AdminNavCatalog
             Icon = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z" },
 
         new() { Key = "newsletter", GroupKey = "admin.group.growth", LabelKey = "admin.nav.newsletter",
-            Controller = "Admin", Action = "Newsletter", DemoTag = true,
+            Controller = "AdminNewsletter", Action = "Index", SuperAdminOnly = true,
             Icon = "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" },
 
         new() { Key = "profile", GroupKey = "admin.group.account", LabelKey = "admin.nav.profile",
