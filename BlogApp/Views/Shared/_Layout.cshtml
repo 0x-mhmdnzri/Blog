@@ -329,6 +329,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
     <script src="~/js/media-blur.js" asp-append-version="true" defer></script>
     <script src="~/js/toastify-stack.js" asp-append-version="true" defer></script>
+    <script src="~/js/form-submit-observer.js" asp-append-version="true" defer></script>
     <script src="~/js/notifications-bell.js" asp-append-version="true" defer></script>
     <script src="~/js/site.js" asp-append-version="true" defer></script>
     <script src="~/js/ux.js" asp-append-version="true" defer></script>
@@ -336,7 +337,6 @@
     <script src="~/js/datepicker.js" asp-append-version="true" defer></script>
     <script defer>
         document.addEventListener('DOMContentLoaded', function () {
-            // Prefer ToastifyStack as single toast entry point
             if (window.ToastifyStack && !window.__blogToastBridged) {
                 window.__blogToastBridged = true;
                 window.blogToast = function (message, type) {
