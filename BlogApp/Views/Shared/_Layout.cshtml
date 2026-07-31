@@ -117,6 +117,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="@culture.BootstrapCss" rel="stylesheet">
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/Themes/ActiveCss" />
+    <link rel="stylesheet" href="~/css/theme-system.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/media-blur.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
@@ -167,6 +169,7 @@
                         <span class="theme-icon-dark" aria-hidden="true">☾</span>
                         <span class="theme-icon-light" aria-hidden="true">☀</span>
                     </button>
+                    <partial name="_ThemePicker" />
                     <div class="d-none d-lg-block">
                         <partial name="_LanguageSwitcher" />
                     </div>
@@ -255,6 +258,9 @@
                                     <li>
                                         <a class="dropdown-item" asp-controller="AccountApiKeys" asp-action="Index">کلیدهای API (PAT)</a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Themes" asp-action="Index">گالری تم‌ها</a>
+                                    </li>
                                     @if (isReader)
                                     {
                                         <li>
@@ -310,6 +316,7 @@
                     <a asp-controller="Pages" asp-action="Projects">پروژه‌ها</a>
                     <a href="/@lang/#blog-feed">وبلاگ</a>
                     <a asp-controller="Pages" asp-action="Contact">تماس</a>
+                    <a asp-controller="Themes" asp-action="Index">تم‌ها</a>
                 </nav>
                 <span class="ltr-field small">@culture.NativeName · @culture.Code</span>
             </div>

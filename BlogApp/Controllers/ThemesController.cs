@@ -16,6 +16,8 @@ public class ThemesController : Controller
     private readonly IThemeService _themes;
     private readonly INotificationService _notify;
 
+    public const string PackCookie = "Blog.ThemePack";
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -40,6 +42,8 @@ public class ThemesController : Controller
 
     private void WritePreferredThemeCookie(int themeId)
     {
+        // Prefer DB theme id over ephemeral pack cookie
+        Response.Cookies.Delete(PackCookie, new CookieOptions { Path = "/" });
         Response.Cookies.Append(ThemeService.PreferenceCookie, themeId.ToString(), new CookieOptions
         {
             Path = "/",
@@ -52,14 +56,91 @@ public class ThemesController : Controller
         });
     }
 
+    private void WritePackCookie(CustomTheme t)
+    {
+        Response.Cookies.Delete(ThemeService.PreferenceCookie, new CookieOptions { Path = "/" });
+        var pack = new ThemePack
+        {
+            Name = t.Name,
+            Description = t.Description,
+            Mode = t.Mode,
+            Bg = t.Bg,
+            Surface = t.Surface,
+            Surface2 = t.Surface2,
+            Border = t.Border,
+            Text = t.Text,
+            TextMuted = t.TextMuted,
+            Accent = t.Accent,
+            Danger = t.Danger,
+            Success = t.Success
+        };
+        var json = JsonSerializer.Serialize(pack);
+        var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+        if (b64.Length > 3500) return; // cookie size guard
+        Response.Cookies.Append(PackCookie, b64, new CookieOptions
+        {
+            Path = "/",
+            HttpOnly = false,
+            IsEssential = true,
+            SameSite = SameSiteMode.Lax,
+            Secure = Request.IsHttps,
+            MaxAge = TimeSpan.FromDays(365),
+            Expires = DateTimeOffset.UtcNow.AddDays(365)
+        });
+    }
+
+    private CustomTheme? ReadPackCookieTheme()
+    {
+        if (!Request.Cookies.TryGetValue(PackCookie, out var b64) || string.IsNullOrWhiteSpace(b64))
+            return null;
+        try
+        {
+            var json = Encoding.UTF8.GetString(Convert.FromBase64String(b64));
+            var pack = JsonSerializer.Deserialize<ThemePack>(json, JsonOpts);
+            if (pack is null || string.IsNullOrWhiteSpace(pack.Name)) return null;
+            var t = new CustomTheme
+            {
+                Id = 0,
+                Name = pack.Name.Trim(),
+                Description = pack.Description,
+                Bg = pack.Bg,
+                Surface = pack.Surface,
+                Surface2 = pack.Surface2,
+                Border = pack.Border,
+                Text = pack.Text,
+                TextMuted = pack.TextMuted,
+                Accent = pack.Accent,
+                Danger = pack.Danger,
+                Success = pack.Success,
+                Mode = string.IsNullOrWhiteSpace(pack.Mode) ? "dark" : pack.Mode.Trim().ToLowerInvariant()
+            };
+            var v = ThemeContrastService.Validate(t);
+            return v.Ok ? t : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     [HttpGet, AllowAnonymous]
     public async Task<IActionResult> ActiveCss()
     {
+        // 1) Guest ephemeral pack cookie
+        var packTheme = ReadPackCookieTheme();
+        if (packTheme is not null)
+        {
+            var css = $":root{{{ThemeContrastService.ToCssVariables(packTheme)}}}html{{color-scheme:{packTheme.Mode}}}";
+            Response.Headers.CacheControl = "private,max-age=30";
+            return Content(css, "text/css; charset=utf-8");
+        }
+
+        // 2) DB preference cookie / site active
         var t = await _themes.ResolveForVisitorAsync(ReadPreferredThemeId());
         if (t is null) return Content(":root{}", "text/css");
-        var css = $":root{{{ThemeContrastService.ToCssVariables(t)}}}html{{color-scheme:{t.Mode}}}";
+        var css2 = $":root{{{ThemeContrastService.ToCssVariables(t)}}}html{{color-scheme:{t.Mode}}}";
         Response.Headers.CacheControl = "private,max-age=30";
-        return Content(css, "text/css; charset=utf-8");
+        return Content(css2, "text/css; charset=utf-8");
     }
 
     [HttpGet, AllowAnonymous]
@@ -70,6 +151,7 @@ public class ThemesController : Controller
         ViewBag.Approved = approved;
         ViewBag.ActiveId = (await _themes.GetActiveAsync())?.Id;
         ViewBag.PreferredId = ReadPreferredThemeId();
+        ViewBag.HasPackCookie = ReadPackCookieTheme() is not null;
 
         List<CustomTheme> mine = new();
         if (User.Identity?.IsAuthenticated == true)
@@ -116,13 +198,15 @@ public class ThemesController : Controller
     public IActionResult ClearPreference(string? returnUrl = null)
     {
         Response.Cookies.Delete(ThemeService.PreferenceCookie, new CookieOptions { Path = "/" });
+        Response.Cookies.Delete(PackCookie, new CookieOptions { Path = "/" });
         TempData["Msg"] = "تم شخصی پاک شد — تم پیش‌فرض سایت اعمال می‌شود.";
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return Redirect(returnUrl);
         return RedirectToAction(nameof(Index));
     }
 
-    [HttpGet, Authorize]
+    /// <summary>Create page: guests see file uploader (personal preview); signed-in users can also build manually.</summary>
+    [HttpGet, AllowAnonymous]
     public IActionResult Create()
     {
         ViewData["Title"] = "تم جدید";
@@ -178,7 +262,12 @@ public class ThemesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    [HttpPost, Authorize, ValidateAntiForgeryToken]
+    /// <summary>
+    /// Upload .blogtheme / JSON.
+    /// Guests: personal preview only (pack cookie, no DB).
+    /// Signed-in: save draft/pending to DB + preference cookie.
+    /// </summary>
+    [HttpPost, AllowAnonymous, ValidateAntiForgeryToken]
     [RequestSizeLimit(64 * 1024)]
     public async Task<IActionResult> ImportFile(IFormFile? file, string? action)
     {
@@ -238,7 +327,6 @@ public class ThemesController : Controller
             Danger = pack.Danger,
             Success = pack.Success,
             Mode = string.IsNullOrWhiteSpace(pack.Mode) ? "dark" : pack.Mode.Trim().ToLowerInvariant(),
-            OwnerUserId = AuthorAccess.UserId(User),
             IsSystem = false,
             IsActive = false,
             CreatedAtUtc = DateTime.UtcNow,
@@ -252,6 +340,16 @@ public class ThemesController : Controller
             return RedirectToAction(nameof(Create));
         }
 
+        var isAuth = User.Identity?.IsAuthenticated == true;
+        if (!isAuth)
+        {
+            // Guest: personal preview only via pack cookie (no DB write)
+            WritePackCookie(entity);
+            TempData["Msg"] = $"تم «{entity.Name}» برای شما (مهمان) اعمال شد. برای ذخیره دائمی وارد شوید.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        entity.OwnerUserId = AuthorAccess.UserId(User);
         entity.Status = string.Equals(action, "submit", StringComparison.OrdinalIgnoreCase)
             ? ThemeApprovalStatus.Pending
             : ThemeApprovalStatus.Draft;
