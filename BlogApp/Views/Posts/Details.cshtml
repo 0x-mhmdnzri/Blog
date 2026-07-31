@@ -11,18 +11,11 @@
     var postUrl = Url.Action("Details", "Posts", new { slug = Model.Slug })!;
     var canBookmark = User.Identity?.IsAuthenticated == true
         && (User.IsInRole(AppRoles.Reader) || User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
-    var canLike = canBookmark;
-    var commentSort = (ViewBag.CommentSort as string) ?? "relevant";
-    var likedIds = ViewBag.LikedCommentIds as HashSet<int> ?? new HashSet<int>();
     var premiumLocked = ViewBag.PremiumLocked as bool? ?? false;
     var isSponsored = ViewBag.IsSponsoredPost as bool? ?? Model.IsSponsored;
     var sponsoredLabel = (ViewBag.SponsoredLabel as string) ?? Model.SponsoredLabel;
     var tocHtml = ViewBag.TocHtml as string;
     var related = ViewBag.RelatedPosts as IList<RelatedPostItem> ?? new List<RelatedPostItem>();
-
-    IEnumerable<Comment> orderedComments = commentSort == "latest"
-        ? Model.Comments.OrderByDescending(c => c.CreatedAtUtc)
-        : Model.Comments.OrderByDescending(c => c.LikeCount).ThenByDescending(c => c.CreatedAtUtc);
 }
 
 @section Head {
@@ -33,7 +26,6 @@
 }
 
 <div class="post-layout" data-analytics-post-id="@Model.Id">
-    @* —— Left: related articles slider —— *@
     <aside class="post-aside-related" aria-label="مطالب مرتبط">
         <div class="post-aside-sticky">
             @if (related.Count > 0)
@@ -67,7 +59,6 @@
         </div>
     </aside>
 
-    @* —— Center: article —— *@
     <article class="post-main post-article">
         @if (TempData["BookmarkMsg"] != null)
         {
@@ -217,75 +208,9 @@
             </div>
         }
 
-        <section class="mt-5 pt-4 comments-section" style="border-top:1px solid var(--border-soft);">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h2 class="h6 text-muted-dark mb-0">دیدگاه‌ها <span class="ltr-field">(@Model.Comments.Count)</span></h2>
-                <form method="get" asp-action="Details" asp-route-slug="@Model.Slug" class="d-flex align-items-center gap-2">
-                    <label class="small text-muted-dark mb-0" for="commentSort">مرتب‌سازی</label>
-                    <select class="form-select form-select-sm" id="commentSort" name="sort" style="width:auto;min-width:9rem;"
-                            onchange="this.form.submit()">
-                        <option value="relevant" selected="@(commentSort == "relevant")">مرتبط (پسندها)</option>
-                        <option value="latest" selected="@(commentSort == "latest")">جدیدترین</option>
-                    </select>
-                </form>
-            </div>
-
-            @if (TempData["CommentSubmitted"] != null)
-            {
-                <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["CommentSubmitted"]</div>
-            }
-
-            @foreach (var c in orderedComments)
-            {
-                var liked = likedIds.Contains(c.Id);
-                <div class="card-surface p-3 mb-3">
-                    <div class="d-flex justify-content-between align-items-start gap-2">
-                        <strong dir="@MarkdownService.DetectDir(c.AuthorName)" style="font-size:.9rem;">@c.AuthorName</strong>
-                        <span class="ltr-field small" style="color:var(--text-faint);">@PersianDate.DateTime(c.CreatedAtUtc)</span>
-                    </div>
-                    <p class="mb-2 mt-2 text-muted-dark" dir="@MarkdownService.DetectDir(c.Body)">@c.Body</p>
-                    <div class="d-flex align-items-center gap-2">
-                        @if (canLike)
-                        {
-                            <form asp-controller="Comments" asp-action="ToggleLike" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="commentId" value="@c.Id" />
-                                <input type="hidden" name="returnUrl" value="@(postUrl + "?sort=" + commentSort)" />
-                                <button type="submit" class="btn btn-ghost btn-sm py-0 px-2"
-                                        title="@(liked ? "برداشتن پسند" : "پسندیدن")">
-                                    @(liked ? "♥" : "♡")
-                                    <span class="ltr-field">@c.LikeCount</span>
-                                </button>
-                            </form>
-                        }
-                        else
-                        {
-                            <a class="btn btn-ghost btn-sm py-0 px-2"
-                               asp-controller="Account" asp-action="Login"
-                               asp-route-returnUrl="@(postUrl + "?sort=" + commentSort)"
-                               title="برای پسندیدن وارد شوید">
-                                ♡ <span class="ltr-field">@c.LikeCount</span>
-                            </a>
-                        }
-                    </div>
-                </div>
-            }
-
-            <form asp-action="AddComment" method="post" class="card-surface p-3 mt-3">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="postId" value="@Model.Id" />
-                <div class="mb-2">
-                    <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" />
-                </div>
-                <div class="mb-2">
-                    <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" required maxlength="2000" placeholder="متن دیدگاه… می‌توانید با @@username منشن کنید"></textarea>
-                </div>
-                <button class="btn btn-accent btn-sm" type="submit">ارسال دیدگاه</button>
-            </form>
-        </section>
+        <partial name="_CommentsSection" model="Model" />
     </article>
 
-    @* —— Right: sticky table of contents —— *@
     <aside class="post-aside-toc" aria-label="فهرست مطالب">
         <div class="post-aside-sticky">
             @if (!string.IsNullOrWhiteSpace(tocHtml))
