@@ -103,6 +103,11 @@
   box-shadow: 0 0 0 2px rgba(229,99,122,.12);
 }
 .pw-step-error .pw-n { background: #e5637a !important; color: #fff !important; }
+#rich-editor {
+  min-height: 280px; padding: .75rem; border: 1px solid var(--border-soft);
+  border-radius: 8px; background: var(--surface); outline: none;
+}
+#autosave-status { font-size: .75rem; color: var(--text-muted); margin-inline-start: .5rem; }
 </style>
 
 @if (!ViewData.ModelState.IsValid)
@@ -138,7 +143,6 @@
         </button>
     </div>
 
-    <!-- Step 1: Basics -->
     <div class="pw-panel is-active" data-panel="1" role="tabpanel">
         <div class="pw-card">
             <h2><span class="dot"></span> اطلاعات پایه</h2>
@@ -178,6 +182,7 @@
                     <select asp-for="LanguageCode" class="form-select">
                         <option value="fa">فارسی</option>
                         <option value="en">English</option>
+                        <option value="ar">العربية</option>
                     </select>
                 </div>
             </div>
@@ -190,11 +195,14 @@
         </div>
     </div>
 
-    <!-- Step 2: Content -->
     <div class="pw-panel" data-panel="2" role="tabpanel">
         <div class="pw-card">
-            <h2><span class="dot"></span> محتوا <span class="text-muted-dark small fw-normal ms-1">· <span id="reading-time-display">@(Model.ReadingTimeMinutes > 0 ? Model.ReadingTimeMinutes : "—")</span> دقیقه مطالعه</span></h2>
-            <label class="form-label" asp-for="ContentMarkdown">مارک‌داون <span class="text-danger">*</span></label>
+            <h2>
+                <span class="dot"></span> محتوا
+                <span class="text-muted-dark small fw-normal ms-1">· <span id="reading-time-display">@(Model.ReadingTimeMinutes > 0 ? Model.ReadingTimeMinutes : "—")</span> دقیقه</span>
+                <span id="autosave-status" class="ltr-field"></span>
+            </h2>
+            <label class="form-label" asp-for="ContentMarkdown">متن <span class="text-danger">*</span></label>
             <div class="editor-shell mb-2">
                 <div class="editor-toolbar">
                     <button type="button" data-md-action="h2">H2</button>
@@ -202,10 +210,8 @@
                     <button type="button" data-md-action="italic">I</button>
                     <button type="button" data-md-action="code-block">Code</button>
                     <button type="button" id="btn-ai-grammar">AI Grammar</button>
-                    @if (Model.Id > 0)
-                    {
-                        <button type="button" id="btn-autosave" class="btn-ghost">ذخیره خودکار</button>
-                    }
+                    <button type="button" id="btn-editor-mode" class="btn-ghost">Rich text</button>
+                    <button type="button" id="btn-autosave" class="btn-ghost">Save now</button>
                 </div>
                 <div class="row g-0">
                     <div class="col-lg-6">
@@ -214,6 +220,7 @@
                                   data-upload-url="@Url.Action("Upload", "Media")"
                                   data-autosave-url="@Url.Action("AutoSave", "Posts")"
                                   data-post-id="@Model.Id"></textarea>
+                        <div id="rich-editor" contenteditable="true" dir="auto" hidden></div>
                     </div>
                     <div class="col-lg-6">
                         <div id="preview-pane" class="readme-content editor-preview-pane" dir="auto"></div>
@@ -233,7 +240,6 @@
         </div>
     </div>
 
-    <!-- Step 3: Publishing -->
     <div class="pw-panel" data-panel="3" role="tabpanel">
         <div class="pw-card">
             <h2><span class="dot"></span> انتشار و نمایش</h2>
@@ -268,7 +274,7 @@
                 <div class="col-md-6">
                     <label class="form-label" asp-for="ScheduledPublishAtUtc">انتشار زمان‌بندی‌شده (UTC)</label>
                     <input asp-for="ScheduledPublishAtUtc" type="datetime-local" class="form-control ltr-field" />
-                    <div class="form-text text-muted-dark">خالی = فوری پس از ذخیره در صورت انتشار</div>
+                    <div class="form-text text-muted-dark">Background worker publishes every ~30s</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" asp-for="ExpiresAtUtc">انقضا (UTC)</label>
@@ -284,7 +290,7 @@
                 <ul class="list-group list-group-flush">
                     @foreach (var r in Model.Revisions)
                     {
-                        <li class="list-group-item d-flex justify-content-between align-items-center" style="background:transparent;border-color:var(--border);">
+                        <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:transparent;border-color:var(--border);">
                             <span>
                                 <strong dir="auto">@r.Title</strong>
                                 <small class="text-muted ltr-field">@r.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</small>
@@ -293,12 +299,15 @@
                                     <span class="badge bg-secondary">@r.Note</span>
                                 }
                             </span>
-                            <form asp-action="RestoreRevision" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="postId" value="@Model.Id" />
-                                <input type="hidden" name="revisionId" value="@r.Id" />
-                                <button type="submit" class="btn btn-sm btn-ghost">بازگردانی</button>
-                            </form>
+                            <span class="d-flex gap-1">
+                                <a class="btn btn-sm btn-ghost" asp-action="Revision" asp-route-postId="@Model.Id" asp-route-revisionId="@r.Id">View</a>
+                                <form asp-action="RestoreRevision" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="postId" value="@Model.Id" />
+                                    <input type="hidden" name="revisionId" value="@r.Id" />
+                                    <button type="submit" class="btn btn-sm btn-ghost">Restore</button>
+                                </form>
+                            </span>
                         </li>
                     }
                 </ul>
@@ -313,11 +322,10 @@
         </div>
     </div>
 
-    <!-- Step 4: Review -->
     <div class="pw-panel" data-panel="4" role="tabpanel">
         <div class="pw-card">
             <h2><span class="dot"></span> بازبینی نهایی</h2>
-            <p class="text-muted-dark small mb-3">قبل از ذخیره یک‌بار خلاصه را چک کنید. می‌توانید به مراحل قبل برگردید.</p>
+            <p class="text-muted-dark small mb-3">قبل از ذخیره یک‌بار خلاصه را چک کنید.</p>
             <div class="pw-review" id="pwReview">
                 <div class="pw-review-row"><span class="k">عنوان</span><span class="v" dir="auto" data-rv="title">—</span></div>
                 <div class="pw-review-row"><span class="k">دسته</span><span class="v" data-rv="category">—</span></div>
@@ -363,7 +371,6 @@
     });
     if (bar) bar.style.width = (step / total * 100) + '%';
     if (step === 4) fillReview();
-    try { window.scrollTo({ top: root.offsetTop - 12, behavior: 'smooth' }); } catch (e) {}
   }
 
   function validate(n) {
@@ -423,7 +430,6 @@
   tabs.forEach(function (t) {
     t.addEventListener('click', function () {
       var target = Number(t.getAttribute('data-step'));
-      // allow going back freely; forward only if previous steps valid
       if (target < step) { show(target); return; }
       for (var i = 1; i < target; i++) {
         if (!validate(i)) { show(i); return; }
@@ -431,14 +437,6 @@
       show(target);
     });
   });
-
-  // If server validation failed, jump to first invalid step
-  if (document.querySelector('.validation-summary-errors, .field-validation-error, .text-danger.field-validation-error')) {
-    var titleErr = document.querySelector('[data-valmsg-for="Title"]');
-    var contentErr = document.querySelector('[data-valmsg-for="ContentMarkdown"]');
-    if (titleErr && titleErr.textContent.trim()) show(1);
-    else if (contentErr && contentErr.textContent.trim()) show(2);
-  }
 
   show(1);
 })();
