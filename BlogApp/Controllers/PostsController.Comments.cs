@@ -14,7 +14,7 @@ public partial class PostsController
 {
     /// <summary>
     /// Guest + authenticated comments. Honeypot field "website" must be empty.
-    /// Rate-limited; spam rules may auto-reject.
+    /// Supports Twitter-style threaded replies via parentId (max depth).
     /// </summary>
     [HttpPost, ValidateAntiForgeryToken, AllowAnonymous]
     [EnableRateLimiting("comment")]
@@ -36,20 +36,20 @@ public partial class PostsController
             TempData["CommentSubmitted"] = "ممنون — دیدگاه شما ثبت شد.";
             var bait = await _db.Posts.AsNoTracking()
                 .Where(p => p.Id == postId).Select(p => new { p.Slug, p.LanguageCode }).FirstOrDefaultAsync();
-            return bait is null ? NotFound() : Redirect($"/{bait.LanguageCode}/post/{bait.Slug}");
+            return bait is null ? NotFound() : Redirect($"/{bait.LanguageCode}/post/{bait.Slug}#comments");
         }
 
         authorName = (authorName ?? string.Empty).Trim();
         body = (body ?? string.Empty).Trim();
         authorEmail = string.IsNullOrWhiteSpace(authorEmail) ? null : authorEmail.Trim();
 
-        if (authorName.Length < 2 || authorName.Length > 80 || 
+        if (authorName.Length < 2 || authorName.Length > 80 ||
             body.Length < 2 || body.Length > spamOpt.MaxBodyLength)
         {
             TempData["CommentSubmitted"] = "نام یا متن دیدگاه معتبر نیست.";
             var bad = await _db.Posts.AsNoTracking()
                 .Where(p => p.Id == postId).Select(p => new { p.Slug, p.LanguageCode }).FirstOrDefaultAsync();
-            return bad is null ? NotFound() : Redirect($"/{bad.LanguageCode}/post/{bad.Slug}");
+            return bad is null ? NotFound() : Redirect($"/{bad.LanguageCode}/post/{bad.Slug}#comments");
         }
 
         authorName = new string(authorName.Where(c => !char.IsControl(c)).ToArray());
@@ -65,12 +65,11 @@ public partial class PostsController
         if (!isAuth && !spamOpt.GuestCommentsEnabled)
         {
             TempData["CommentSubmitted"] = "برای ارسال دیدگاه وارد شوید.";
-            return RedirectToAction("Login", "Account", new { returnUrl = $"/{post.LanguageCode}/post/{post.Slug}" });
+            return RedirectToAction("Login", "Account", new { returnUrl = $"/{post.LanguageCode}/post/{post.Slug}#comments" });
         }
 
         if (isAuth && !string.IsNullOrEmpty(userId))
         {
-            var display = User.Identity?.Name;
             var appUser = await _db.Users.AsNoTracking()
                 .Where(u => u.Id == userId)
                 .Select(u => new { u.DisplayName, u.Email })
@@ -83,11 +82,36 @@ public partial class PostsController
             }
         }
 
+        // Twitter-style threading: validate parent + max depth
+        var maxDepth = Math.Clamp(spamOpt.MaxReplyDepth, 1, 12);
         if (parentId is int pid)
         {
-            var parentOk = await _db.Comments.AsNoTracking()
-                .AnyAsync(c => c.Id == pid && c.PostId == postId && c.Status == CommentStatus.Approved);
-            if (!parentOk) parentId = null;
+            var parent = await _db.Comments.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == pid && c.PostId == postId && c.Status == CommentStatus.Approved);
+            if (parent is null)
+            {
+                parentId = null;
+            }
+            else
+            {
+                var depth = 1;
+                var walk = parent.ParentId;
+                while (walk is int wid && depth < maxDepth + 2)
+                {
+                    depth++;
+                    walk = await _db.Comments.AsNoTracking()
+                        .Where(c => c.Id == wid)
+                        .Select(c => c.ParentId)
+                        .FirstOrDefaultAsync();
+                }
+                if (depth >= maxDepth)
+                {
+                    // Flatten: attach to the nearest allowed ancestor (Twitter-style "continue thread")
+                    parentId = parent.ParentId ?? parent.Id;
+                    if (depth > maxDepth)
+                        parentId = parent.Id;
+                }
+            }
         }
 
         var isGuest = string.IsNullOrEmpty(userId);
@@ -158,10 +182,12 @@ public partial class PostsController
             postTitle = post.Title,
             authorId = post.AuthorId,
             authorName = comment.AuthorName,
-            spamScore = comment.SpamScore
+            spamScore = comment.SpamScore,
+            parentId = comment.ParentId
         });
 
-        return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
+        var anchor = status == CommentStatus.Approved ? $"#comment-{comment.Id}" : "#comments";
+        return Redirect($"/{post.LanguageCode}/post/{post.Slug}{anchor}");
     }
 
     private static string? HashIp(string? ip)

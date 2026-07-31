@@ -8,115 +8,239 @@
     var canEditPost = ViewBag.CanEdit as bool? ?? false;
     var currentUserId = ViewBag.CurrentUserId as string;
     var editWindow = ViewBag.CommentEditWindowMinutes as int? ?? 15;
+    var maxBody = ViewBag.CommentMaxBodyLength as int? ?? 2000;
     var postUrl = Url.Action("Details", "Posts", new { slug = Model.Slug })!;
+    var sortQs = "?sort=" + commentSort;
+    var isAuth = User.Identity?.IsAuthenticated == true;
+    var defaultName = isAuth ? (User.Identity?.Name ?? "") : "";
 
-    IEnumerable<Comment> orderedComments = commentSort == "latest"
-        ? Model.Comments.OrderByDescending(c => c.IsPinned).ThenByDescending(c => c.CreatedAtUtc)
-        : Model.Comments.OrderByDescending(c => c.IsPinned).ThenByDescending(c => c.LikeCount).ThenByDescending(c => c.CreatedAtUtc);
-}
+    var all = Model.Comments.ToList();
+    var byParent = all.GroupBy(c => c.ParentId ?? 0).ToDictionary(g => g.Key, g => g.ToList());
 
-<section class="mt-5 pt-4 comments-section" style="border-top:1px solid var(--border-soft);">
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h2 class="h6 text-muted-dark mb-0">دیدگاه‌ها <span class="ltr-field">(@Model.Comments.Count)</span></h2>
-        <form method="get" asp-action="Details" asp-route-slug="@Model.Slug" class="d-flex align-items-center gap-2">
-            <label class="small text-muted-dark mb-0" for="commentSort">مرتب‌سازی</label>
-            <select class="form-select form-select-sm" id="commentSort" name="sort" style="width:auto;min-width:9rem;"
-                    onchange="this.form.submit()">
-                <option value="relevant" selected="@(commentSort == "relevant")">مرتبط (پسندها)</option>
-                <option value="latest" selected="@(commentSort == "latest")">جدیدترین</option>
-            </select>
-        </form>
-    </div>
-
-    @if (TempData["CommentSubmitted"] != null)
+    List<Comment> OrderSiblings(IEnumerable<Comment> src)
     {
-        <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["CommentSubmitted"]</div>
+        return commentSort == "latest"
+            ? src.OrderByDescending(c => c.IsPinned).ThenByDescending(c => c.CreatedAtUtc).ToList()
+            : src.OrderByDescending(c => c.IsPinned).ThenByDescending(c => c.LikeCount).ThenByDescending(c => c.CreatedAtUtc).ToList();
     }
 
-    @foreach (var c in orderedComments)
+    var roots = OrderSiblings(all.Where(c => c.ParentId == null));
+    var byId = all.ToDictionary(c => c.Id);
+
+    string Initials(string name)
+    {
+        var parts = (name ?? "?").Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "?";
+        if (parts.Length == 1) return parts[0].Length > 0 ? parts[0][..1].ToUpperInvariant() : "?";
+        return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+    }
+
+    void RenderThread(Comment c, int depth)
     {
         var liked = likedIds.Contains(c.Id);
         var isOwner = !string.IsNullOrEmpty(c.UserId) && c.UserId == currentUserId;
         var canEditThis = isOwner && (DateTime.UtcNow - c.CreatedAtUtc).TotalMinutes <= editWindow;
-        <div class="card-surface p-3 mb-3 @(c.IsPinned ? "comment-pinned" : "")" id="comment-@c.Id">
-            <div class="d-flex justify-content-between align-items-start gap-2">
-                <div>
-                    <strong dir="@MarkdownService.DetectDir(c.AuthorName)" style="font-size:.9rem;">@c.AuthorName</strong>
+        var replies = byParent.TryGetValue(c.Id, out var kids) ? OrderSiblings(kids) : new List<Comment>();
+        var parentName = c.ParentId is int pid && byId.TryGetValue(pid, out var par) ? par.AuthorName : null;
+
+        <article class="cmt @(c.IsPinned ? "is-pinned" : "")" id="comment-@c.Id" data-id="@c.Id" data-depth="@depth" data-author="@c.AuthorName">
+            <div class="cmt-avatar" aria-hidden="true">@Initials(c.AuthorName)</div>
+            <div class="cmt-main">
+                <header class="cmt-head">
+                    <span class="cmt-name" dir="auto">@c.AuthorName</span>
+                    @if (c.IsGuest)
+                    {
+                        <span class="cmt-badge">مهمان</span>
+                    }
                     @if (c.IsPinned)
                     {
-                        <span class="status-pill sticky" style="font-size:.7rem;">سنجاق‌شده</span>
+                        <span class="cmt-badge cmt-badge-pin">سنجاق‌شده</span>
                     }
-                    @if (c.EditCount > 0)
+                    <span class="cmt-dot" aria-hidden="true">·</span>
+                    <time class="cmt-time ltr-field" datetime="@c.CreatedAtUtc.ToString("o")">@PersianDate.DateTime(c.CreatedAtUtc)</time>
+                    @if (c.EditedAtUtc is not null)
                     {
-                        <span class="small text-muted-dark">(ویرایش‌شده)</span>
+                        <span class="cmt-edited">ویرایش‌شده</span>
                     }
-                </div>
-                <span class="ltr-field small" style="color:var(--text-faint);">@PersianDate.DateTime(c.CreatedAtUtc)</span>
-            </div>
-            <p class="mb-2 mt-2 text-muted-dark" dir="@MarkdownService.DetectDir(c.Body)">@c.Body</p>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                @if (canLike)
+                </header>
+
+                @if (!string.IsNullOrEmpty(parentName))
                 {
-                    <form asp-controller="Comments" asp-action="ToggleLike" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="commentId" value="@c.Id" />
-                        <input type="hidden" name="returnUrl" value="@(postUrl + "?sort=" + commentSort)" />
-                        <button type="submit" class="btn btn-ghost btn-sm py-0 px-2">
-                            @(liked ? "♥" : "♡") <span class="ltr-field">@c.LikeCount</span>
-                        </button>
-                    </form>
+                    <div class="cmt-replying">
+                        در پاسخ به <button type="button" class="cmt-reply-link" data-scroll-to="@c.ParentId">@parentName</button>
+                    </div>
                 }
-                else
-                {
-                    <a class="btn btn-ghost btn-sm py-0 px-2" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@(postUrl + "?sort=" + commentSort)">
-                        ♡ <span class="ltr-field">@c.LikeCount</span>
-                    </a>
-                }
-                @if (canEditPost)
-                {
-                    <form asp-controller="Comments" asp-action="TogglePin" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@c.Id" />
-                        <input type="hidden" name="returnUrl" value="@(postUrl + "?sort=" + commentSort)" />
-                        <button type="submit" class="btn btn-ghost btn-sm py-0 px-2">@(c.IsPinned ? "برداشتن سنجاق" : "سنجاق")</button>
-                    </form>
-                }
+
+                <p class="cmt-body" dir="@MarkdownService.DetectDir(c.Body)">@c.Body</p>
+
+                <footer class="cmt-actions">
+                    @if (canLike)
+                    {
+                        <form asp-controller="Comments" asp-action="ToggleLike" method="post" class="cmt-act-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="commentId" value="@c.Id" />
+                            <input type="hidden" name="returnUrl" value="@(postUrl + sortQs + "#comment-" + c.Id)" />
+                            <button type="submit" class="cmt-act @(liked ? "is-liked" : "")" title="@(liked ? "برداشتن پسند" : "پسندیدن")">
+                                <span aria-hidden="true">@(liked ? "♥" : "♡")</span>
+                                <span class="ltr-field">@c.LikeCount</span>
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a class="cmt-act" asp-controller="Account" asp-action="Login"
+                           asp-route-returnUrl="@(postUrl + sortQs + "#comment-" + c.Id)" title="برای پسندیدن وارد شوید">
+                            <span aria-hidden="true">♡</span>
+                            <span class="ltr-field">@c.LikeCount</span>
+                        </a>
+                    }
+
+                    <button type="button" class="cmt-act cmt-reply-btn" data-reply-to="@c.Id" data-reply-name="@c.AuthorName">
+                        <span aria-hidden="true">↩</span> پاسخ
+                    </button>
+
+                    @if (canEditPost)
+                    {
+                        <form asp-controller="Comments" asp-action="TogglePin" method="post" class="cmt-act-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@c.Id" />
+                            <input type="hidden" name="returnUrl" value="@(postUrl + sortQs + "#comment-" + c.Id)" />
+                            <button type="submit" class="cmt-act">@(c.IsPinned ? "برداشتن سنجاق" : "سنجاق")</button>
+                        </form>
+                    }
+
+                    @if (canEditThis || canEditPost)
+                    {
+                        <button type="button" class="cmt-act" data-edit-toggle="@c.Id">ویرایش</button>
+                    }
+
+                    <button type="button" class="cmt-act cmt-act-muted"
+                            onclick="document.getElementById('reportBox')?.removeAttribute('hidden'); document.getElementById('reportBox')?.scrollIntoView({behavior:'smooth',block:'center'});">
+                        گزارش
+                    </button>
+                </footer>
+
                 @if (canEditThis || canEditPost)
                 {
-                    <button type="button" class="btn btn-ghost btn-sm py-0 px-2" onclick="document.getElementById('edit-@c.Id').hidden = !document.getElementById('edit-@c.Id').hidden">ویرایش</button>
+                    <form id="edit-@c.Id" asp-controller="Comments" asp-action="Edit" method="post" class="cmt-edit" hidden>
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@c.Id" />
+                        <input type="hidden" name="returnUrl" value="@(postUrl + sortQs + "#comment-" + c.Id)" />
+                        <textarea class="cmt-input" name="body" dir="auto" rows="3" maxlength="@maxBody" required>@c.Body</textarea>
+                        <div class="cmt-compose-foot">
+                            <button type="submit" class="btn btn-accent btn-sm">ذخیره</button>
+                        </div>
+                    </form>
+                }
+
+                <div class="cmt-reply-slot" id="reply-slot-@c.Id" hidden></div>
+
+                @if (replies.Count > 0)
+                {
+                    <div class="cmt-thread">
+                        @foreach (var r in replies)
+                        {
+                            RenderThread(r, depth + 1);
+                        }
+                    </div>
                 }
             </div>
-            @if (canEditThis || canEditPost)
-            {
-                <form id="edit-@c.Id" asp-controller="Comments" asp-action="Edit" method="post" class="mt-2" hidden>
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@c.Id" />
-                    <input type="hidden" name="returnUrl" value="@(postUrl + "?sort=" + commentSort)" />
-                    <textarea class="form-control form-control-sm mb-2" name="body" dir="auto" rows="3" maxlength="2000" required>@c.Body</textarea>
-                    <button type="submit" class="btn btn-accent btn-sm">ذخیره</button>
-                </form>
-            }
-        </div>
+        </article>
+    }
+}
+
+<section class="cmt-section" id="comments" data-max-body="@maxBody" data-post-id="@Model.Id" data-post-url="@(postUrl + sortQs)">
+    <header class="cmt-section-head">
+        <h2 class="cmt-section-title">
+            دیدگاه‌ها
+            <span class="cmt-count ltr-field">@all.Count</span>
+        </h2>
+        <form method="get" asp-action="Details" asp-route-slug="@Model.Slug" class="cmt-sort">
+            <label class="visually-hidden" for="commentSort">مرتب‌سازی</label>
+            <select class="form-select form-select-sm" id="commentSort" name="sort" onchange="this.form.submit()">
+                <option value="relevant" selected="@(commentSort == "relevant")">مرتبط</option>
+                <option value="latest" selected="@(commentSort == "latest")">جدیدترین</option>
+            </select>
+        </form>
+    </header>
+
+    @if (TempData["CommentSubmitted"] != null)
+    {
+        <div class="cmt-flash" data-toast-message="@TempData["CommentSubmitted"]" role="status">@TempData["CommentSubmitted"]</div>
     }
 
-    <form asp-action="AddComment" method="post" class="card-surface p-3 mt-3" autocomplete="off">
+    @* —— Top-level composer (Twitter-style) —— *@
+    <form asp-action="AddComment" method="post" class="cmt-composer" id="cmtMainComposer" autocomplete="off" data-toast-success="دیدگاه ثبت شد">
         @Html.AntiForgeryToken()
         <input type="hidden" name="postId" value="@Model.Id" />
-        @* Honeypot — leave empty *@
-        <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+        <input type="hidden" name="parentId" id="cmtParentId" value="" />
+        <div class="cmt-honeypot" aria-hidden="true">
             <label>Website</label>
             <input type="text" name="website" tabindex="-1" autocomplete="off" />
         </div>
-        <div class="mb-2">
-            <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80"
-                   value="@(User.Identity?.IsAuthenticated == true ? (User.Identity?.Name ?? "") : "")" />
+
+        <div class="cmt-composer-row">
+            <div class="cmt-avatar cmt-avatar-self" aria-hidden="true">@(string.IsNullOrEmpty(defaultName) ? "+" : Initials(defaultName))</div>
+            <div class="cmt-composer-body">
+                <div class="cmt-reply-banner" id="cmtReplyBanner" hidden>
+                    <span>در پاسخ به <strong id="cmtReplyName"></strong></span>
+                    <button type="button" class="cmt-reply-cancel" id="cmtReplyCancel" aria-label="لغو پاسخ">×</button>
+                </div>
+                <input class="cmt-input cmt-input-name" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" value="@defaultName" />
+                @if (!isAuth)
+                {
+                    <input class="cmt-input cmt-input-email" name="authorEmail" type="email" dir="ltr" placeholder="ایمیل (اختیاری)" maxlength="120" />
+                }
+                <textarea class="cmt-input cmt-input-body" name="body" id="cmtBody" dir="auto" rows="3" required maxlength="@maxBody"
+                          placeholder="چه چیزی در ذهن دارید؟ می‌توانید با @@username منشن کنید"></textarea>
+                <div class="cmt-compose-foot">
+                    <span class="cmt-counter ltr-field" id="cmtCounter">0 / @maxBody</span>
+                    <button class="btn btn-accent btn-sm" type="submit">ارسال</button>
+                </div>
+            </div>
         </div>
-        <div class="mb-2">
-            <input class="form-control form-control-sm" name="authorEmail" type="email" dir="ltr" placeholder="ایمیل (اختیاری — مهمان)" maxlength="120" />
-        </div>
-        <div class="mb-2">
-            <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" required maxlength="2000" placeholder="متن دیدگاه… می‌توانید با @@username منشن کنید"></textarea>
-        </div>
-        <button class="btn btn-accent btn-sm" type="submit">ارسال دیدگاه</button>
     </form>
+
+    @* Template for inline reply (cloned by JS) *@
+    <template id="cmtReplyTemplate">
+        <form asp-action="AddComment" method="post" class="cmt-composer cmt-composer-inline" autocomplete="off" data-toast-success="پاسخ ثبت شد">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="postId" value="@Model.Id" />
+            <input type="hidden" name="parentId" value="" data-parent-field />
+            <div class="cmt-honeypot" aria-hidden="true">
+                <input type="text" name="website" tabindex="-1" autocomplete="off" />
+            </div>
+            <div class="cmt-composer-row">
+                <div class="cmt-avatar cmt-avatar-self" aria-hidden="true">@(string.IsNullOrEmpty(defaultName) ? "+" : Initials(defaultName))</div>
+                <div class="cmt-composer-body">
+                    <input class="cmt-input cmt-input-name" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" value="@defaultName" />
+                    @if (!isAuth)
+                    {
+                        <input class="cmt-input cmt-input-email" name="authorEmail" type="email" dir="ltr" placeholder="ایمیل (اختیاری)" maxlength="120" />
+                    }
+                    <textarea class="cmt-input cmt-input-body" name="body" dir="auto" rows="2" required maxlength="@maxBody" placeholder="پاسخ خود را بنویسید…"></textarea>
+                    <div class="cmt-compose-foot">
+                        <button type="button" class="btn btn-ghost btn-sm" data-reply-dismiss>لغو</button>
+                        <button class="btn btn-accent btn-sm" type="submit">پاسخ</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </template>
+
+    <div class="cmt-list">
+        @if (roots.Count == 0)
+        {
+            <div class="cmt-empty">
+                <p>هنوز دیدگاهی نیست — اولین نفر باشید.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var c in roots)
+            {
+                RenderThread(c, 0);
+            }
+        }
+    </div>
 </section>
