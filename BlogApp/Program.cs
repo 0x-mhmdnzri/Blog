@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Threading.RateLimiting;
+using Blog.Infrastructure.Middleware;
 using BlogApp;
 using BlogApp.Api.Auth;
 using BlogApp.Api.Validation;
@@ -12,12 +13,12 @@ using BlogApp.Models;
 using BlogApp.Services;
 using BlogApp.Services.Analytics;
 using BlogApp.Services.Messaging;
-using Blog.Infrastructure.Middleware;
+
 using FluentValidation;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
+
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
