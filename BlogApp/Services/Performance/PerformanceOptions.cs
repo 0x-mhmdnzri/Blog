@@ -38,6 +38,8 @@ public class ImageOptimizeOptions
     public int MaxWidth { get; set; } = 1920;
     public int JpegQuality { get; set; } = 82;
     public bool PreferWebP { get; set; } = true;
+    /// <summary>Responsive srcset widths generated when source is larger.</summary>
+    public int[] VariantWidths { get; set; } = [480, 800, 1280];
 }
 
 public class BackgroundJobsOptions
