@@ -52,8 +52,7 @@ public class ThemesController : Controller
         });
     }
 
-    [HttpGet]
-    [ResponseCache(Duration = 30, VaryByHeader = "Cookie", Location = ResponseCacheLocation.Client)]
+    [HttpGet, AllowAnonymous]
     public async Task<IActionResult> ActiveCss()
     {
         var t = await _themes.ResolveForVisitorAsync(ReadPreferredThemeId());
@@ -63,9 +62,7 @@ public class ThemesController : Controller
         return Content(css, "text/css; charset=utf-8");
     }
 
-    /// <summary>Public gallery — guests and users can pick a theme (cookie preference).</summary>
-    [HttpGet]
-    [AllowAnonymous]
+    [HttpGet, AllowAnonymous]
     public async Task<IActionResult> Index()
     {
         ViewData["Title"] = "تم‌ها";
@@ -90,14 +87,20 @@ public class ThemesController : Controller
         return View(mine);
     }
 
-    /// <summary>Visitor theme preference (not site-wide). Works for guests.</summary>
     [HttpPost, AllowAnonymous, ValidateAntiForgeryToken]
     public async Task<IActionResult> Select(int id, string? returnUrl = null)
     {
         var t = await _themes.GetApprovedByIdAsync(id);
+        if (t is null && User.Identity?.IsAuthenticated == true)
+        {
+            var uid = AuthorAccess.UserId(User);
+            t = await _db.CustomThemes.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerUserId == uid);
+        }
+
         if (t is null)
         {
-            TempData["Err"] = "تم یافت نشد یا هنوز تأیید نشده است.";
+            TempData["Err"] = "تم یافت نشد یا هنوز برای عموم تأیید نشده است.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -167,13 +170,14 @@ public class ThemesController : Controller
         if (model.Status == ThemeApprovalStatus.Pending)
             await NotifyAdminsAsync(model);
 
+        WritePreferredThemeCookie(model.Id);
+
         TempData["Msg"] = model.Status == ThemeApprovalStatus.Pending
-            ? "تم برای تأیید ارسال شد. پس از تأیید سوپرادمین قابل انتخاب است."
-            : "پیش‌نویس ذخیره شد.";
+            ? "تم برای تأیید ارسال شد و برای شما اعمال شد."
+            : "پیش‌نویس ذخیره شد و برای شما اعمال شد.";
         return RedirectToAction(nameof(Index));
     }
 
-    /// <summary>Upload a .blogtheme pack as the current user's theme (pending approval).</summary>
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     [RequestSizeLimit(64 * 1024)]
     public async Task<IActionResult> ImportFile(IFormFile? file, string? action)
@@ -258,7 +262,6 @@ public class ThemesController : Controller
         if (entity.Status == ThemeApprovalStatus.Pending)
             await NotifyAdminsAsync(entity);
 
-        // Immediately apply for this visitor (preview)
         WritePreferredThemeCookie(entity.Id);
 
         TempData["Msg"] = entity.Status == ThemeApprovalStatus.Pending
