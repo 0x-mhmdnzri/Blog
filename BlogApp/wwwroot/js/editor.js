@@ -8,20 +8,21 @@
   const previewUrl = textarea.dataset.previewUrl;
   const uploadUrl = textarea.dataset.uploadUrl;
   const autosaveUrl = textarea.dataset.autosaveUrl;
-  const postId = parseInt(textarea.dataset.postId || '0', 10);
+  let postId = parseInt(textarea.dataset.postId || '0', 10);
   const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+  const draftKey = 'blog.draft.' + (postId > 0 ? postId : 'new');
 
   function insertAtCursor(text) {
     const start = textarea.selectionStart, end = textarea.selectionEnd;
     textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
     textarea.setSelectionRange(start + text.length, start + text.length);
-    textarea.focus(); scheduleRender();
+    textarea.focus(); scheduleRender(); markDirty();
   }
   function wrapSelection(prefix, suffix) {
     const start = textarea.selectionStart, end = textarea.selectionEnd;
     const selected = textarea.value.substring(start, end) || 'text';
     textarea.value = textarea.value.substring(0, start) + prefix + selected + suffix + textarea.value.substring(end);
-    scheduleRender();
+    scheduleRender(); markDirty();
   }
 
   document.querySelectorAll('[data-md-action]').forEach(btn => {
@@ -51,14 +52,14 @@
       if (window.hljs) preview.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
     }
   }
-  textarea.addEventListener('input', scheduleRender);
+  textarea.addEventListener('input', function () { scheduleRender(); markDirty(); });
 
   async function uploadFile(file) {
     if (!uploadUrl) return;
     const form = new FormData();
     form.append('file', file);
     form.append('__RequestVerificationToken', token || '');
-    dropzone.textContent = 'Uploading ' + file.name + '\u2026';
+    dropzone.textContent = 'Uploading ' + file.name + '…';
     try {
       const res = await fetch(uploadUrl, { method: 'POST', body: form });
       if (!res.ok) throw new Error('fail');
@@ -75,33 +76,178 @@
     dropzone.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) uploadFile(f); });
   }
 
-  let lastSaved = textarea.value, autosaveTimer = null;
+  // —— Continuous autosave (server + localStorage) ——
+  let lastSaved = textarea.value;
+  let dirty = false;
+  let autosaveTimer = null;
+  const statusEl = document.getElementById('autosave-status');
+
+  function markDirty() {
+    dirty = true;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({
+        title: (document.querySelector('input[name="Title"]') || {}).value || '',
+        summary: (document.getElementById('summary-input') || {}).value || '',
+        content: textarea.value,
+        at: Date.now()
+      }));
+    } catch (e) {}
+  }
+
+  function setStatus(msg) {
+    if (statusEl) statusEl.textContent = msg;
+  }
+
   async function doAutosave() {
-    if (!autosaveUrl || postId <= 0 || textarea.value === lastSaved) return;
+    if (!autosaveUrl) return;
+    if (!dirty && textarea.value === lastSaved && postId > 0) return;
+
     const titleInput = document.querySelector('input[name="Title"]');
     const summaryInput = document.getElementById('summary-input');
+    const langSelect = document.querySelector('select[name="LanguageCode"]');
     const body = new URLSearchParams();
-    body.set('id', postId);
+    body.set('id', String(postId));
     body.set('title', titleInput ? titleInput.value : '');
     body.set('contentMarkdown', textarea.value);
     body.set('summary', summaryInput ? summaryInput.value : '');
+    body.set('languageCode', langSelect ? langSelect.value : '');
     body.set('__RequestVerificationToken', token || '');
+
     try {
+      setStatus('Saving…');
       const res = await fetch(autosaveUrl, { method: 'POST', body });
       if (res.ok) {
         const data = await res.json();
-        lastSaved = textarea.value;
-        const rt = document.getElementById('reading-time-display');
-        if (rt && data.readingTimeMinutes) rt.textContent = data.readingTimeMinutes;
-        const btn = document.getElementById('btn-autosave');
-        if (btn) { const o = btn.textContent; btn.textContent = 'Saved'; setTimeout(() => btn.textContent = o, 2000); }
-      }
-    } catch (e) { console.warn('autosave failed', e); }
+        if (data.ok) {
+          lastSaved = textarea.value;
+          dirty = false;
+          if (data.created && data.id) {
+            postId = data.id;
+            textarea.dataset.postId = String(postId);
+            const idInput = document.querySelector('input[name="Id"]');
+            if (idInput) idInput.value = String(postId);
+            // switch form to Edit so full submit updates the draft
+            const form = document.getElementById('postCreateForm') || document.getElementById('postEditForm');
+            if (form && data.id) {
+              form.action = '/Posts/Edit';
+              if (!document.querySelector('input[name="Id"]')) {
+                const h = document.createElement('input');
+                h.type = 'hidden'; h.name = 'Id'; h.value = String(data.id);
+                form.appendChild(h);
+              }
+            }
+            history.replaceState(null, '', '/Posts/Edit/' + data.id);
+            try { localStorage.removeItem('blog.draft.new'); } catch (e) {}
+          }
+          const rt = document.getElementById('reading-time-display');
+          if (rt && data.readingTimeMinutes) rt.textContent = data.readingTimeMinutes;
+          const t = data.updatedAtUtc ? new Date(data.updatedAtUtc) : new Date();
+          setStatus('Saved ' + t.toLocaleTimeString());
+        }
+      } else setStatus('Save failed');
+    } catch (e) {
+      console.warn('autosave failed', e);
+      setStatus('Offline — local draft kept');
+    }
   }
-  if (postId > 0) {
-    textarea.addEventListener('input', () => { clearTimeout(autosaveTimer); autosaveTimer = setTimeout(doAutosave, 30000); });
-    const autosaveBtn = document.getElementById('btn-autosave');
-    if (autosaveBtn) autosaveBtn.addEventListener('click', doAutosave);
+
+  textarea.addEventListener('input', () => {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(doAutosave, 12000);
+  });
+  const titleEl = document.querySelector('input[name="Title"]');
+  if (titleEl) titleEl.addEventListener('input', () => {
+    markDirty();
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(doAutosave, 12000);
+  });
+
+  const autosaveBtn = document.getElementById('btn-autosave');
+  if (autosaveBtn) autosaveBtn.addEventListener('click', doAutosave);
+  setInterval(doAutosave, 45000);
+
+  window.addEventListener('beforeunload', function (e) {
+    if (!dirty) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+
+  // Restore local draft if newer than server content (create page)
+  try {
+    const raw = localStorage.getItem(draftKey);
+    if (raw && postId <= 0) {
+      const d = JSON.parse(raw);
+      if (d && d.content && d.content.length > 20 && !textarea.value.trim()) {
+        if (confirm('Restore local draft from this browser?')) {
+          textarea.value = d.content || '';
+          if (titleEl && d.title) titleEl.value = d.title;
+          const s = document.getElementById('summary-input');
+          if (s && d.summary) s.value = d.summary;
+          markDirty();
+        }
+      }
+    }
+  } catch (e) {}
+
+  // —— Rich text optional pane (contenteditable → markdown-ish) ——
+  const rich = document.getElementById('rich-editor');
+  const modeBtn = document.getElementById('btn-editor-mode');
+  let richMode = false;
+  if (modeBtn && rich) {
+    modeBtn.addEventListener('click', function () {
+      richMode = !richMode;
+      if (richMode) {
+        rich.innerHTML = mdToRoughHtml(textarea.value);
+        rich.hidden = false;
+        textarea.style.display = 'none';
+        modeBtn.textContent = 'Markdown';
+      } else {
+        textarea.value = htmlToRoughMd(rich.innerHTML);
+        rich.hidden = true;
+        textarea.style.display = '';
+        modeBtn.textContent = 'Rich text';
+        scheduleRender(); markDirty();
+      }
+    });
+    rich.addEventListener('input', function () {
+      textarea.value = htmlToRoughMd(rich.innerHTML);
+      markDirty();
+      scheduleRender();
+    });
+  }
+
+  function mdToRoughHtml(md) {
+    var h = (md || '')
+      .replace(/&/g, '&').replace(/</g, '<')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/_(.+?)_/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+    return '<p>' + h + '</p>';
+  }
+  function htmlToRoughMd(html) {
+    var d = document.createElement('div');
+    d.innerHTML = html || '';
+    function walk(node) {
+      if (node.nodeType === 3) return node.textContent;
+      if (node.nodeType !== 1) return '';
+      var tag = node.tagName.toLowerCase();
+      var inner = Array.from(node.childNodes).map(walk).join('');
+      if (tag === 'h1') return '\n# ' + inner + '\n';
+      if (tag === 'h2') return '\n## ' + inner + '\n';
+      if (tag === 'h3') return '\n### ' + inner + '\n';
+      if (tag === 'strong' || tag === 'b') return '**' + inner + '**';
+      if (tag === 'em' || tag === 'i') return '_' + inner + '_';
+      if (tag === 'code') return '`' + inner + '`';
+      if (tag === 'br') return '\n';
+      if (tag === 'p' || tag === 'div') return '\n\n' + inner;
+      return inner;
+    }
+    return walk(d).replace(/\n{3,}/g, '\n\n').trim();
   }
 
   function antiforgery() { return token || document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''; }
