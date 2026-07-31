@@ -10,7 +10,8 @@
     <p class="text-muted-dark small mb-0">در چهار مرحله: پایه → محتوا → انتشار → بازبینی</p>
 </div>
 
-<form asp-action="Create" method="post" id="postCreateForm">
+<form asp-action="Create" method="post" id="postCreateForm"
+      data-toast-success="نوشته با موفقیت ذخیره شد">
     @Html.AntiForgeryToken()
     @await Html.PartialAsync("_EditorForm", Model)
 </form>

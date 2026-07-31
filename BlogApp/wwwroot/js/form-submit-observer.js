@@ -82,28 +82,39 @@
     return null;
   }
 
+  /** Reject form chrome / report UI text that used to leak into success toasts. */
+  function isUsableFlashText(text) {
+    if (!text) return false;
+    var t = String(text).replace(/\s+/g, ' ').trim();
+    if (!t || t.length > 240) return false;
+    if (/دلیل گزارش|ارسال گزارش|هرزنامه|محتوای توهین|نقض حق نشر/.test(t)) return false;
+    if (/report reason|submit report|\bspam\b/i.test(t)) return false;
+    return true;
+  }
+
   function extractMessageFromHtml(html) {
     if (!html || typeof html !== 'string') return null;
     try {
       var doc = new DOMParser().parseFromString(html, 'text/html');
+      // Only explicit flash / alert nodes — never generic cards or forms (e.g. #reportBox)
       var selectors = [
         '[data-toast-message]',
-        '.alert-success', '.alert-danger', '.alert-error',
+        '[data-toast-flash]',
+        '.js-toast-flash',
+        '.wizard-alert',
+        '.alert-success', '.alert-danger', '.alert-error', '.alert',
         '.validation-summary-errors li',
-        '.text-danger.field-validation-error',
-        '.card-surface.p-3.mb-3.small'
+        '.text-danger.field-validation-error'
       ];
       for (var s = 0; s < selectors.length; s++) {
-        var el = doc.querySelector(selectors[s]);
-        if (el) {
+        var nodes = doc.querySelectorAll(selectors[s]);
+        for (var i = 0; i < nodes.length; i++) {
+          var el = nodes[i];
+          if (el.closest && (el.closest('form') || el.closest('#reportBox'))) continue;
           var text = (el.getAttribute('data-toast-message') || el.textContent || '').trim();
-          if (text) return text.replace(/\s+/g, ' ').slice(0, 280);
+          text = text.replace(/\s+/g, ' ').slice(0, 280);
+          if (isUsableFlashText(text)) return text;
         }
-      }
-      var banner = doc.querySelector('.admin-content .card-surface.mb-3, main .card-surface.mb-3');
-      if (banner) {
-        var t = (banner.textContent || '').trim();
-        if (t && t.length < 300) return t;
       }
     } catch (_) {}
     return null;
@@ -263,26 +274,19 @@
 
   function promoteFlashes() {
     var nodes = document.querySelectorAll(
-      '[data-toast-flash], [data-toast-message], .js-toast-flash'
+      '[data-toast-flash], [data-toast-message], .js-toast-flash, .wizard-alert'
     );
     nodes.forEach(function (el) {
-      var msg = (el.getAttribute('data-toast-message') || el.textContent || '').trim();
-      var type = (el.getAttribute('data-toast-type') || el.getAttribute('data-toast-flash') || '').toLowerCase();
-      if (!msg) return;
-      if (type === 'error' || type === 'danger' || type === 'err') toastErr(msg);
-      else toastOk(msg);
-      el.style.display = 'none';
-    });
-
-    document.querySelectorAll('.card-surface.p-3.mb-3.small').forEach(function (el) {
       if (el.dataset.toastHandled) return;
-      var text = (el.textContent || '').trim();
-      if (!text || text.length > 240) return;
-      var isErr = (el.getAttribute('style') || '').indexOf('danger') !== -1
-        || (el.className || '').indexOf('danger') !== -1;
+      if (el.closest && (el.closest('form') || el.closest('#reportBox'))) return;
+      var msg = (el.getAttribute('data-toast-message') || el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (!isUsableFlashText(msg)) return;
+      var type = (el.getAttribute('data-toast-type') || el.getAttribute('data-toast-flash') || el.className || '').toLowerCase();
       el.dataset.toastHandled = '1';
-      if (isErr) toastErr(text);
-      else toastOk(text);
+      if (type.indexOf('error') !== -1 || type.indexOf('danger') !== -1 || type.indexOf('err') !== -1)
+        toastErr(msg);
+      else
+        toastOk(msg);
       el.style.display = 'none';
     });
   }
