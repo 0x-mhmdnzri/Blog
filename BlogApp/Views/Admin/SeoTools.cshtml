@@ -5,190 +5,269 @@
     ViewData["Title"] = T["admin.nav.seo"];
     var tab = Model.ActiveTab ?? "overview";
     var isSuper = BlogApp.Services.AuthorAccess.IsSuperAdmin(User);
+
+    string TabClass(string id) => tab == id ? "is-active" : "";
 }
 
 @if (TempData["SeoOk"] is string ok)
 {
-    <div class="wizard-alert success mb-3">@ok</div>
+    <div class="seo-alert seo-alert-ok mb-3" role="status">@ok</div>
 }
 @if (TempData["SeoErr"] is string err)
 {
-    <div class="wizard-alert danger mb-3">@err</div>
+    <div class="seo-alert seo-alert-err mb-3" role="alert">@err</div>
 }
 
-<div class="admin-tabs mb-3">
-    <a class="admin-tab @(tab == "overview" ? "active" : "")" asp-action="SeoTools" asp-route-tab="overview">@T["seo.tab_overview"]</a>
-    <a class="admin-tab @(tab == "meta" ? "active" : "")" asp-action="SeoTools" asp-route-tab="meta">@T["seo.tab_meta"]</a>
-    <a class="admin-tab @(tab == "redirects" ? "active" : "")" asp-action="SeoTools" asp-route-tab="redirects">@T["seo.tab_redirects"]</a>
-    <a class="admin-tab @(tab == "broken" ? "active" : "")" asp-action="SeoTools" asp-route-tab="broken">@T["seo.tab_broken"]</a>
-    <a class="admin-tab @(tab == "health" ? "active" : "")" asp-action="SeoTools" asp-route-tab="health">@T["seo.tab_health"]</a>
-    <a class="admin-tab @(tab == "import" ? "active" : "")" asp-action="SeoTools" asp-route-tab="import">@T["seo.tab_import"]</a>
-    <a class="admin-tab @(tab == "indexnow" ? "active" : "")" asp-action="SeoTools" asp-route-tab="indexnow">@T["seo.tab_indexnow"]</a>
-</div>
+<header class="seo-header">
+    <div>
+        <h1 class="seo-title">@T["admin.nav.seo"]</h1>
+        <p class="seo-sub">متا، ریدایرکت، لینک شکسته، سلامت محتوا، ایمپورت و IndexNow — یک پنل برای دیده‌شدن در جست‌وجو.</p>
+    </div>
+</header>
 
+<nav class="seo-nav" role="tablist" aria-label="ابزارهای سئو">
+    <a class="seo-nav-item @TabClass("overview")" asp-action="SeoTools" asp-route-tab="overview">@T["seo.tab_overview"]</a>
+    <a class="seo-nav-item @TabClass("meta")" asp-action="SeoTools" asp-route-tab="meta">@T["seo.tab_meta"]</a>
+    <a class="seo-nav-item @TabClass("redirects")" asp-action="SeoTools" asp-route-tab="redirects">
+        @T["seo.tab_redirects"]
+        @if (Model.Redirects.Count > 0)
+        {
+            <span class="seo-nav-badge">@Model.Redirects.Count</span>
+        }
+    </a>
+    <a class="seo-nav-item @TabClass("broken")" asp-action="SeoTools" asp-route-tab="broken">
+        @T["seo.tab_broken"]
+        @if (Model.BrokenLinks.Count > 0)
+        {
+            <span class="seo-nav-badge seo-nav-badge-warn">@Model.BrokenLinks.Count</span>
+        }
+    </a>
+    <a class="seo-nav-item @TabClass("health")" asp-action="SeoTools" asp-route-tab="health">@T["seo.tab_health"]</a>
+    <a class="seo-nav-item @TabClass("import")" asp-action="SeoTools" asp-route-tab="import">@T["seo.tab_import"]</a>
+    <a class="seo-nav-item @TabClass("indexnow")" asp-action="SeoTools" asp-route-tab="indexnow">@T["seo.tab_indexnow"]</a>
+</nav>
+
+@* ════════════ OVERVIEW ════════════ *@
 @if (tab == "overview")
 {
-    <div class="row g-2 mb-3">
-        <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["seo.kpi_published"]</div><div class="kpi-value ltr-field">@Model.PublishedCount</div></div></div>
-        <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["seo.kpi_redirects"]</div><div class="kpi-value ltr-field">@Model.Redirects.Count</div></div></div>
-        <div class="col-6 col-md-3"><div class="kpi-card kpi-compact @(Model.BrokenLinks.Count > 0 ? "kpi-danger" : "")"><div class="kpi-label">@T["seo.kpi_broken"]</div><div class="kpi-value ltr-field">@Model.BrokenLinks.Count</div></div></div>
-        <div class="col-6 col-md-3"><div class="kpi-card kpi-compact"><div class="kpi-label">@T["seo.kpi_no_summary"]</div><div class="kpi-value ltr-field">@Model.MissingSummaryCount</div></div></div>
-    </div>
-
-    <div class="chart-card chart-card-tight mb-3">
-        <div class="chart-title mb-2">@T["seo.live_endpoints"]</div>
-        <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-ghost btn-sm" href="@Model.SitemapUrl" target="_blank" rel="noopener">sitemap.xml</a>
-            <a class="btn btn-ghost btn-sm" href="@Model.RobotsUrl" target="_blank" rel="noopener">robots.txt</a>
-            @if (!string.IsNullOrEmpty(Model.IndexNowKeyUrl))
-            {
-                <a class="btn btn-ghost btn-sm ltr-field" href="@Model.IndexNowKeyUrl" target="_blank" rel="noopener">IndexNow key</a>
-            }
+    <div class="seo-kpis">
+        <div class="seo-kpi">
+            <span class="seo-kpi-label">@T["seo.kpi_published"]</span>
+            <span class="seo-kpi-value">@Model.PublishedCount.ToString("N0")</span>
         </div>
-        <p class="text-muted-dark small mt-2 mb-0">@T["seo.live_hint"]</p>
+        <div class="seo-kpi">
+            <span class="seo-kpi-label">@T["seo.kpi_redirects"]</span>
+            <span class="seo-kpi-value">@Model.Redirects.Count.ToString("N0")</span>
+        </div>
+        <div class="seo-kpi @(Model.BrokenLinks.Count > 0 ? "seo-kpi-warn" : "")">
+            <span class="seo-kpi-label">@T["seo.kpi_broken"]</span>
+            <span class="seo-kpi-value">@Model.BrokenLinks.Count.ToString("N0")</span>
+        </div>
+        <div class="seo-kpi @(Model.MissingSummaryCount > 0 ? "seo-kpi-muted" : "")">
+            <span class="seo-kpi-label">@T["seo.kpi_no_summary"]</span>
+            <span class="seo-kpi-value">@Model.MissingSummaryCount.ToString("N0")</span>
+        </div>
     </div>
 
-    <div class="chart-card chart-card-tight">
-        <div class="chart-title mb-2">@T["seo.capabilities"]</div>
-        <ul class="mb-0 small text-muted-dark" style="padding-inline-start:1.2rem;">
-            <li>@T["seo.cap_meta"]</li>
-            <li>@T["seo.cap_redirect"]</li>
-            <li>@T["seo.cap_broken"]</li>
-            <li>@T["seo.cap_sitemap"]</li>
-            <li>@T["seo.cap_og"]</li>
-            <li>@T["seo.cap_import"]</li>
-            <li>@T["seo.cap_indexnow"]</li>
-            <li>@T["seo.cap_hreflang"]</li>
-        </ul>
+    <div class="seo-grid-2">
+        <section class="seo-card">
+            <h2 class="seo-card-title">@T["seo.live_endpoints"]</h2>
+            <p class="seo-card-desc">@T["seo.live_hint"]</p>
+            <div class="seo-endpoint-list">
+                <a class="seo-endpoint" href="@Model.SitemapUrl" target="_blank" rel="noopener">
+                    <span class="seo-endpoint-ico" aria-hidden="true">🗺️</span>
+                    <span class="seo-endpoint-body">
+                        <strong>sitemap.xml</strong>
+                        <span class="ltr-field seo-endpoint-url">@Model.SitemapUrl</span>
+                    </span>
+                    <span class="seo-endpoint-go" aria-hidden="true">↗</span>
+                </a>
+                <a class="seo-endpoint" href="@Model.RobotsUrl" target="_blank" rel="noopener">
+                    <span class="seo-endpoint-ico" aria-hidden="true">🤖</span>
+                    <span class="seo-endpoint-body">
+                        <strong>robots.txt</strong>
+                        <span class="ltr-field seo-endpoint-url">@Model.RobotsUrl</span>
+                    </span>
+                    <span class="seo-endpoint-go" aria-hidden="true">↗</span>
+                </a>
+                @if (!string.IsNullOrEmpty(Model.IndexNowKeyUrl))
+                {
+                    <a class="seo-endpoint" href="@Model.IndexNowKeyUrl" target="_blank" rel="noopener">
+                        <span class="seo-endpoint-ico" aria-hidden="true">🔑</span>
+                        <span class="seo-endpoint-body">
+                            <strong>IndexNow key</strong>
+                            <span class="ltr-field seo-endpoint-url">@Model.IndexNowKeyUrl</span>
+                        </span>
+                        <span class="seo-endpoint-go" aria-hidden="true">↗</span>
+                    </a>
+                }
+            </div>
+        </section>
+
+        <section class="seo-card">
+            <h2 class="seo-card-title">@T["seo.capabilities"]</h2>
+            <ul class="seo-cap-list">
+                <li>@T["seo.cap_meta"]</li>
+                <li>@T["seo.cap_redirect"]</li>
+                <li>@T["seo.cap_broken"]</li>
+                <li>@T["seo.cap_sitemap"]</li>
+                <li>@T["seo.cap_og"]</li>
+                <li>@T["seo.cap_import"]</li>
+                <li>@T["seo.cap_indexnow"]</li>
+                <li>@T["seo.cap_hreflang"]</li>
+            </ul>
+        </section>
+    </div>
+
+    <div class="seo-quick">
+        <a class="seo-quick-link" asp-action="SeoTools" asp-route-tab="meta">متا سایت ←</a>
+        <a class="seo-quick-link" asp-action="SeoTools" asp-route-tab="redirects">ریدایرکت‌ها ←</a>
+        <a class="seo-quick-link" asp-action="SeoTools" asp-route-tab="broken">لینک‌های شکسته ←</a>
+        <a class="seo-quick-link" asp-action="SeoTools" asp-route-tab="health">سلامت پست‌ها ←</a>
     </div>
 }
 
+@* ════════════ META ════════════ *@
 @if (tab == "meta")
 {
     @if (!isSuper)
     {
-        <div class="wizard-alert mb-3">@T["seo.meta_super_only"]</div>
+        <div class="seo-alert seo-alert-info mb-3">@T["seo.meta_super_only"]</div>
     }
-    <form asp-action="SeoSaveMeta" method="post" class="chart-card chart-card-tight">
+
+    <form asp-action="SeoSaveMeta" method="post" class="seo-card seo-form">
         @Html.AntiForgeryToken()
-        <div class="chart-title mb-3">@T["seo.tab_meta"]</div>
-        <div class="row g-2">
-            <div class="col-md-6">
-                <label class="form-label small">@T["seo.site_name"]</label>
+        <div class="seo-card-head">
+            <h2 class="seo-card-title mb-0">@T["seo.tab_meta"]</h2>
+            <p class="seo-card-desc mb-0">نام سایت، توضیح پیش‌فرض، Twitter و robots.txt سفارشی.</p>
+        </div>
+
+        <div class="seo-form-grid">
+            <div class="seo-field">
+                <label class="seo-label">@T["seo.site_name"]</label>
                 <input class="form-control" name="SiteName" value="@Model.Meta.SiteName" maxlength="120" @(isSuper ? null : "disabled") />
             </div>
-            <div class="col-md-6">
-                <label class="form-label small">@T["seo.author_name"]</label>
+            <div class="seo-field">
+                <label class="seo-label">@T["seo.author_name"]</label>
                 <input class="form-control" name="AuthorName" value="@Model.Meta.AuthorName" maxlength="120" @(isSuper ? null : "disabled") />
             </div>
-            <div class="col-12">
-                <label class="form-label small">@T["seo.site_desc"]</label>
+            <div class="seo-field seo-field-full">
+                <label class="seo-label">@T["seo.site_desc"]</label>
                 <textarea class="form-control" name="SiteDescription" rows="2" maxlength="400" @(isSuper ? null : "disabled")>@Model.Meta.SiteDescription</textarea>
             </div>
-            <div class="col-md-6">
-                <label class="form-label small">@T["seo.twitter"]</label>
-                <input class="form-control ltr-field" name="TwitterHandle" value="@Model.Meta.TwitterHandle" placeholder="@@site" maxlength="80" @(isSuper ? null : "disabled") />
+            <div class="seo-field">
+                <label class="seo-label">@T["seo.twitter"]</label>
+                <input class="form-control ltr-field" name="TwitterHandle" value="@Model.Meta.TwitterHandle" placeholder="@site" maxlength="80" @(isSuper ? null : "disabled") />
             </div>
-            <div class="col-md-6">
-                <label class="form-label small">@T["seo.base_url"]</label>
+            <div class="seo-field">
+                <label class="seo-label">@T["seo.base_url"]</label>
                 <input class="form-control ltr-field" name="BaseUrl" value="@Model.Meta.BaseUrl" placeholder="https://example.com" maxlength="200" @(isSuper ? null : "disabled") />
             </div>
-            <div class="col-12">
-                <label class="form-label small">@T["seo.robots_custom"]</label>
-                <textarea class="form-control ltr-field" name="RobotsTxt" rows="6" maxlength="4000" placeholder="User-agent: *" @(isSuper ? null : "disabled")>@Model.Meta.RobotsTxt</textarea>
-                <div class="form-text">@T["seo.robots_hint"]</div>
+            <div class="seo-field seo-field-full">
+                <label class="seo-label">@T["seo.robots_custom"]</label>
+                <textarea class="form-control ltr-field seo-mono" name="RobotsTxt" rows="7" maxlength="4000" placeholder="User-agent: *" @(isSuper ? null : "disabled")>@Model.Meta.RobotsTxt</textarea>
+                <p class="seo-hint">@T["seo.robots_hint"]</p>
             </div>
         </div>
+
         @if (isSuper)
         {
-            <div class="mt-3">
-                <button type="submit" class="btn btn-accent btn-sm">@T["seo.save_meta"]</button>
+            <div class="seo-form-footer">
+                <button type="submit" class="btn btn-accent">@T["seo.save_meta"]</button>
             </div>
         }
     </form>
 }
 
+@* ════════════ REDIRECTS ════════════ *@
 @if (tab == "redirects")
 {
-    <div class="chart-card chart-card-tight mb-3">
-        <div class="chart-title mb-2">@T["seo.add_redirect"]</div>
-        <form asp-action="SeoAddRedirect" method="post" class="row g-2 align-items-end">
+    <section class="seo-card seo-form mb-3">
+        <div class="seo-card-head">
+            <h2 class="seo-card-title mb-0">@T["seo.add_redirect"]</h2>
+            <p class="seo-card-desc mb-0">مسیر قدیم → مقصد جدید با کد وضعیت HTTP.</p>
+        </div>
+        <form asp-action="SeoAddRedirect" method="post">
             @Html.AntiForgeryToken()
-            <div class="col-md-4">
-                <label class="form-label small">@T["seo.from_path"]</label>
-                <input class="form-control ltr-field" name="FromPath" required placeholder="/post/old-slug" maxlength="500" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label small">@T["seo.to_url"]</label>
-                <input class="form-control ltr-field" name="ToUrl" required placeholder="/post/new-slug" maxlength="1000" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small">@T["seo.status"]</label>
-                <select class="form-select" name="StatusCode">
-                    <option value="301">301</option>
-                    <option value="302">302</option>
-                    <option value="307">307</option>
-                    <option value="308">308</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-accent btn-sm w-100">@T["seo.add"]</button>
-            </div>
-            <div class="col-12">
-                <input class="form-control form-control-sm" name="Notes" maxlength="300" placeholder="@T["seo.notes"]" />
+            <div class="seo-form-grid seo-form-grid-redir">
+                <div class="seo-field">
+                    <label class="seo-label">@T["seo.from_path"]</label>
+                    <input class="form-control ltr-field" name="FromPath" required placeholder="/post/old-slug" maxlength="500" />
+                </div>
+                <div class="seo-field">
+                    <label class="seo-label">@T["seo.to_url"]</label>
+                    <input class="form-control ltr-field" name="ToUrl" required placeholder="/post/new-slug" maxlength="1000" />
+                </div>
+                <div class="seo-field seo-field-sm">
+                    <label class="seo-label">@T["seo.status"]</label>
+                    <select class="form-select" name="StatusCode">
+                        <option value="301">301</option>
+                        <option value="302">302</option>
+                        <option value="307">307</option>
+                        <option value="308">308</option>
+                    </select>
+                </div>
+                <div class="seo-field seo-field-full">
+                    <label class="seo-label">@T["seo.notes"]</label>
+                    <input class="form-control form-control-sm" name="Notes" maxlength="300" placeholder="@T["seo.notes"]" />
+                </div>
+                <div class="seo-field seo-field-action">
+                    <button type="submit" class="btn btn-accent btn-sm w-100">@T["seo.add"]</button>
+                </div>
             </div>
         </form>
-    </div>
+    </section>
 
     @if (Model.Redirects.Count == 0)
     {
-        <p class="text-muted-dark small">@T["seo.empty_redirects"]</p>
+        <div class="seo-empty">
+            <div class="seo-empty-ico" aria-hidden="true">↪️</div>
+            <p class="seo-empty-title">@T["seo.empty_redirects"]</p>
+            <p class="seo-empty-hint">اولین ریدایرکت را از فرم بالا بسازید.</p>
+        </div>
     }
     else
     {
-        <div class="admin-table-wrap">
-            <table class="admin-table" style="min-width:0;">
-                <thead>
-                <tr>
-                    <th>@T["seo.from_path"]</th>
-                    <th>@T["seo.to_url"]</th>
-                    <th>@T["seo.status"]</th>
-                    <th>@T["seo.hits"]</th>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var r in Model.Redirects)
-                {
-                    <tr style="@(r.IsActive ? "" : "opacity:.55")">
-                        <td class="ltr-field small">@r.FromPath</td>
-                        <td class="ltr-field small">@r.ToUrl</td>
-                        <td class="ltr-field">@r.StatusCode</td>
-                        <td class="ltr-field">@r.HitCount</td>
-                        <td class="text-nowrap">
-                            <form asp-action="SeoToggleRedirect" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@r.Id" />
-                                <button type="submit" class="icon-btn">@(r.IsActive ? T["seo.disable"] : T["seo.enable"])</button>
-                            </form>
-                            <form asp-action="SeoDeleteRedirect" method="post" class="d-inline" onsubmit="return confirm('@T["msg.confirm_delete"]');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@r.Id" />
-                                <button type="submit" class="icon-btn reject">@T["btn.delete"]</button>
-                            </form>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+        <div class="seo-list">
+            @foreach (var r in Model.Redirects)
+            {
+                <article class="seo-list-item @(r.IsActive ? "" : "is-disabled")">
+                    <div class="seo-redir-paths">
+                        <div class="seo-redir-from ltr-field">@r.FromPath</div>
+                        <span class="seo-redir-arrow" aria-hidden="true">→</span>
+                        <div class="seo-redir-to ltr-field">@r.ToUrl</div>
+                    </div>
+                    <div class="seo-list-meta">
+                        <span class="seo-pill seo-pill-code">@r.StatusCode</span>
+                        <span class="seo-pill">@r.HitCount hit</span>
+                        @if (!r.IsActive)
+                        {
+                            <span class="seo-pill seo-pill-off">off</span>
+                        }
+                    </div>
+                    <div class="seo-list-actions">
+                        <form asp-action="SeoToggleRedirect" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <button type="submit" class="seo-act">@(r.IsActive ? T["seo.disable"] : T["seo.enable"])</button>
+                        </form>
+                        <form asp-action="SeoDeleteRedirect" method="post" onsubmit="return confirm('@T["msg.confirm_delete"]');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <button type="submit" class="seo-act seo-act-danger">@T["btn.delete"]</button>
+                        </form>
+                    </div>
+                </article>
+            }
         </div>
     }
 }
 
+@* ════════════ BROKEN ════════════ *@
 @if (tab == "broken")
 {
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <p class="text-muted-dark small mb-0">@T["seo.broken_hint"]</p>
+    <div class="seo-toolbar">
+        <p class="seo-toolbar-hint">@T["seo.broken_hint"]</p>
         <form asp-action="SeoScanBrokenLinks" method="post">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn btn-accent btn-sm">@T["seo.scan_now"]</button>
@@ -197,141 +276,503 @@
 
     @if (Model.BrokenLinks.Count == 0)
     {
-        <p class="text-muted-dark small">@T["seo.empty_broken"]</p>
+        <div class="seo-empty seo-empty-ok">
+            <div class="seo-empty-ico" aria-hidden="true">✓</div>
+            <p class="seo-empty-title">@T["seo.empty_broken"]</p>
+            <p class="seo-empty-hint">اسکن دوره‌ای یا دستی وضعیت لینک‌های داخلی را چک می‌کند.</p>
+        </div>
     }
     else
     {
-        <div class="admin-table-wrap">
-            <table class="admin-table" style="min-width:0;">
-                <thead>
-                <tr>
-                    <th>@T["col.title"]</th>
-                    <th>@T["seo.broken_url"]</th>
-                    <th>@T["seo.detected"]</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var b in Model.BrokenLinks)
-                {
-                    <tr>
-                        <td dir="auto">
+        <div class="seo-list">
+            @foreach (var b in Model.BrokenLinks)
+            {
+                <article class="seo-list-item seo-list-item-warn">
+                    <div class="seo-list-text">
+                        <div class="seo-list-name" dir="auto">
                             <a asp-controller="Posts" asp-action="Edit" asp-route-id="@b.PostId">@b.PostTitle</a>
-                        </td>
-                        <td class="ltr-field small">@b.Url</td>
-                        <td class="ltr-field small">@b.DetectedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+                        </div>
+                        <div class="seo-list-meta">
+                            <span class="ltr-field seo-broken-url">@b.Url</span>
+                            <span class="seo-dot">·</span>
+                            <span class="ltr-field">@b.DetectedAtUtc.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                    </div>
+                    <div class="seo-list-actions">
+                        <a class="seo-act" asp-controller="Posts" asp-action="Edit" asp-route-id="@b.PostId">ویرایش</a>
+                    </div>
+                </article>
+            }
         </div>
     }
 }
 
+@* ════════════ HEALTH ════════════ *@
 @if (tab == "health")
 {
-    <p class="text-muted-dark small mb-3">@T["seo.health_hint"]</p>
+    <p class="seo-section-hint">@T["seo.health_hint"]</p>
+
     @if (Model.PostHealth.Count == 0)
     {
-        <p class="text-muted-dark small">@T["seo.empty_health"]</p>
+        <div class="seo-empty">
+            <div class="seo-empty-ico" aria-hidden="true">📋</div>
+            <p class="seo-empty-title">@T["seo.empty_health"]</p>
+        </div>
     }
     else
     {
-        <div class="admin-table-wrap">
-            <table class="admin-table" style="min-width:0;">
-                <thead>
-                <tr>
-                    <th>@T["col.title"]</th>
-                    <th>@T["seo.has_summary"]</th>
-                    <th>@T["seo.has_cover"]</th>
-                    <th>@T["seo.score"]</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var h in Model.PostHealth)
-                {
-                    <tr>
-                        <td dir="auto"><a asp-controller="Posts" asp-action="Edit" asp-route-id="@h.Id">@h.Title</a></td>
-                        <td>@(h.HasSummary ? "✓" : "—")</td>
-                        <td>@(h.HasCover ? "✓" : "—")</td>
-                        <td class="ltr-field">@h.Score</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+        <div class="seo-health-list">
+            @foreach (var h in Model.PostHealth)
+            {
+                var scoreCls = h.Score >= 80 ? "good" : h.Score >= 50 ? "mid" : "low";
+                <article class="seo-health-item">
+                    <div class="seo-health-main">
+                        <a class="seo-health-title" dir="auto" asp-controller="Posts" asp-action="Edit" asp-route-id="@h.Id">@h.Title</a>
+                        <div class="seo-health-flags">
+                            <span class="seo-flag @(h.HasSummary ? "is-on" : "is-off")" title="@T["seo.has_summary"]">
+                                @(h.HasSummary ? "✓" : "—") خلاصه
+                            </span>
+                            <span class="seo-flag @(h.HasCover ? "is-on" : "is-off")" title="@T["seo.has_cover"]">
+                                @(h.HasCover ? "✓" : "—") کاور
+                            </span>
+                        </div>
+                    </div>
+                    <div class="seo-health-score seo-score-@scoreCls">
+                        <div class="seo-score-bar" style="--p:@h.Score%"></div>
+                        <span class="seo-score-num ltr-field">@h.Score</span>
+                    </div>
+                </article>
+            }
         </div>
     }
 }
 
+@* ════════════ IMPORT ════════════ *@
 @if (tab == "import")
 {
     @if (!isSuper)
     {
-        <div class="wizard-alert mb-3">@T["seo.meta_super_only"]</div>
+        <div class="seo-alert seo-alert-info mb-3">@T["seo.meta_super_only"]</div>
     }
     else
     {
-        <div class="chart-card chart-card-tight mb-3">
-            <div class="chart-title mb-2">@T["seo.import_title"]</div>
-            <p class="text-muted-dark small mb-3">@T["seo.import_hint"]</p>
-            <form asp-action="SeoImport" method="post" enctype="multipart/form-data" class="row g-2 align-items-end">
+        <section class="seo-card seo-form">
+            <div class="seo-card-head">
+                <h2 class="seo-card-title mb-0">@T["seo.import_title"]</h2>
+                <p class="seo-card-desc mb-0">@T["seo.import_hint"]</p>
+            </div>
+            <form asp-action="SeoImport" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
-                <div class="col-md-4">
-                    <label class="form-label small">@T["seo.import_file"]</label>
-                    <input type="file" class="form-control" name="file" accept=".xml,.json,.wxr,application/xml,application/json" required />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small">@T["seo.import_format"]</label>
-                    <select class="form-select" name="format">
-                        <option value="wordpress">WordPress WXR</option>
-                        <option value="ghost">Ghost JSON</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small">@T["seo.import_lang"]</label>
-                    <select class="form-select" name="languageCode">
-                        <option value="fa">fa</option>
-                        <option value="en">en</option>
-                        <option value="ar">ar</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-check mb-1">
-                        <input class="form-check-input" type="checkbox" name="createRedirects" value="true" id="impRedir" checked />
-                        <label class="form-check-label small" for="impRedir">@T["seo.import_redirects"]</label>
+                <div class="seo-form-grid seo-form-grid-import">
+                    <div class="seo-field seo-field-file">
+                        <label class="seo-label">@T["seo.import_file"]</label>
+                        <input type="file" class="form-control" name="file" accept=".xml,.json,.wxr,application/xml,application/json" required />
                     </div>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" name="publishImmediately" value="true" id="impPub" checked />
-                        <label class="form-check-label small" for="impPub">@T["seo.import_publish"]</label>
+                    <div class="seo-field">
+                        <label class="seo-label">@T["seo.import_format"]</label>
+                        <select class="form-select" name="format">
+                            <option value="wordpress">WordPress WXR</option>
+                            <option value="ghost">Ghost JSON</option>
+                        </select>
                     </div>
-                    <button type="submit" class="btn btn-accent btn-sm">@T["seo.import_run"]</button>
+                    <div class="seo-field">
+                        <label class="seo-label">@T["seo.import_lang"]</label>
+                        <select class="form-select" name="languageCode">
+                            <option value="fa">fa</option>
+                            <option value="en">en</option>
+                            <option value="ar">ar</option>
+                        </select>
+                    </div>
+                    <div class="seo-field seo-field-full">
+                        <div class="seo-checks">
+                            <label class="seo-check">
+                                <input type="checkbox" name="createRedirects" value="true" checked />
+                                <span>@T["seo.import_redirects"]</span>
+                            </label>
+                            <label class="seo-check">
+                                <input type="checkbox" name="publishImmediately" value="true" checked />
+                                <span>@T["seo.import_publish"]</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="seo-form-footer">
+                    <button type="submit" class="btn btn-accent">@T["seo.import_run"]</button>
                 </div>
             </form>
-        </div>
+        </section>
     }
 }
 
+@* ════════════ INDEXNOW ════════════ *@
 @if (tab == "indexnow")
 {
-    <div class="chart-card chart-card-tight mb-3">
-        <div class="chart-title mb-2">@T["seo.indexnow_title"]</div>
-        <p class="text-muted-dark small mb-2">@T["seo.indexnow_hint"]</p>
-        <ul class="small text-muted-dark mb-3" style="padding-inline-start:1.2rem;">
-            <li>@T["seo.indexnow_status"]: <strong class="ltr-field">@(Model.IndexNowEnabled ? "enabled" : "disabled")</strong></li>
-            <li>Key: <span class="ltr-field">@(Model.IndexNowHasKey ? Model.IndexNowKeyHint : "—")</span></li>
+    <section class="seo-card">
+        <div class="seo-card-head">
+            <h2 class="seo-card-title mb-0">@T["seo.indexnow_title"]</h2>
+            <p class="seo-card-desc mb-0">@T["seo.indexnow_hint"]</p>
+        </div>
+
+        <div class="seo-status-grid">
+            <div class="seo-status-cell">
+                <span class="seo-status-label">@T["seo.indexnow_status"]</span>
+                <span class="seo-status-value @(Model.IndexNowEnabled ? "is-on" : "is-off")">
+                    @(Model.IndexNowEnabled ? "enabled" : "disabled")
+                </span>
+            </div>
+            <div class="seo-status-cell">
+                <span class="seo-status-label">Key</span>
+                <span class="seo-status-value ltr-field">@(Model.IndexNowHasKey ? Model.IndexNowKeyHint : "—")</span>
+            </div>
             @if (!string.IsNullOrEmpty(Model.IndexNowKeyUrl))
             {
-                <li>Verify: <a class="ltr-field" href="@Model.IndexNowKeyUrl" target="_blank" rel="noopener">@Model.IndexNowKeyUrl</a></li>
+                <div class="seo-status-cell seo-status-full">
+                    <span class="seo-status-label">Verify URL</span>
+                    <a class="seo-status-link ltr-field" href="@Model.IndexNowKeyUrl" target="_blank" rel="noopener">@Model.IndexNowKeyUrl</a>
+                </div>
             }
-        </ul>
-        <p class="text-muted-dark small">@T["seo.indexnow_config"]</p>
+        </div>
+
+        <p class="seo-hint mt-3 mb-0">@T["seo.indexnow_config"]</p>
+
         @if (isSuper)
         {
-            <form asp-action="SeoIndexNowSubmitAll" method="post" class="mt-3">
+            <form asp-action="SeoIndexNowSubmitAll" method="post" class="seo-form-footer mt-3">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-accent btn-sm" @(Model.IndexNowEnabled && Model.IndexNowHasKey ? null : "disabled")>
+                <button type="submit" class="btn btn-accent"
+                        @(Model.IndexNowEnabled && Model.IndexNowHasKey ? null : "disabled")>
                     @T["seo.indexnow_submit_all"]
                 </button>
             </form>
         }
-    </div>
+    </section>
 }
+
+<style>
+/* ── SEO Tools redesign ── */
+.seo-header { margin-bottom: 1.15rem; }
+.seo-title { font-size: 1.35rem; font-weight: 750; margin: 0 0 .3rem; letter-spacing: -0.01em; }
+.seo-sub { margin: 0; font-size: .86rem; color: var(--text-muted); line-height: 1.5; max-width: 36rem; }
+
+.seo-alert {
+  padding: .75rem 1rem; border-radius: 12px; font-size: .88rem;
+  border: 1px solid var(--border-soft);
+}
+.seo-alert-ok {
+  background: color-mix(in srgb, #9ecb8c 12%, transparent);
+  border-color: color-mix(in srgb, #9ecb8c 30%, var(--border-soft));
+  color: var(--success, #9ecb8c);
+}
+.seo-alert-err {
+  background: color-mix(in srgb, #e5637a 12%, transparent);
+  border-color: color-mix(in srgb, #e5637a 35%, var(--border-soft));
+  color: var(--danger);
+}
+.seo-alert-info {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-soft));
+  color: var(--text-muted);
+}
+
+/* Nav */
+.seo-nav {
+  display: flex; flex-wrap: wrap; gap: .3rem;
+  padding: .25rem; margin-bottom: 1.15rem;
+  background: var(--surface-2); border: 1px solid var(--border-soft);
+  border-radius: 14px;
+}
+.seo-nav-item {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .45rem .9rem; border-radius: 10px;
+  font-size: .82rem; font-weight: 550; color: var(--text-muted);
+  text-decoration: none !important;
+  transition: background .12s, color .12s, box-shadow .12s;
+}
+.seo-nav-item:hover { color: var(--text); }
+.seo-nav-item.is-active {
+  background: var(--surface); color: var(--accent); font-weight: 650;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+.seo-nav-badge {
+  font-size: .68rem; font-weight: 700; direction: ltr;
+  background: var(--surface-3, var(--bg)); color: var(--text-muted);
+  border-radius: 999px; padding: .05rem .4rem;
+}
+.seo-nav-item.is-active .seo-nav-badge {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+.seo-nav-badge-warn {
+  background: color-mix(in srgb, var(--danger) 18%, transparent) !important;
+  color: var(--danger) !important;
+}
+
+/* KPIs */
+.seo-kpis {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .6rem; margin-bottom: 1rem;
+}
+@@media (max-width: 720px) { .seo-kpis { grid-template-columns: 1fr 1fr; } }
+.seo-kpi {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 14px; padding: .9rem 1rem;
+  display: flex; flex-direction: column; gap: .3rem;
+}
+.seo-kpi-warn {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
+}
+.seo-kpi-label { font-size: .72rem; color: var(--text-muted); font-weight: 550; }
+.seo-kpi-value {
+  font-size: 1.45rem; font-weight: 750; line-height: 1.1;
+  font-variant-numeric: tabular-nums; direction: ltr; text-align: start;
+}
+.seo-kpi-warn .seo-kpi-value { color: var(--danger); }
+
+.seo-grid-2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;
+}
+@@media (max-width: 800px) { .seo-grid-2 { grid-template-columns: 1fr; } }
+
+/* Cards */
+.seo-card {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 16px; padding: 1.15rem 1.25rem;
+}
+.seo-card-head { margin-bottom: 1rem; }
+.seo-card-title { font-size: 1rem; font-weight: 700; margin: 0 0 .3rem; }
+.seo-card-desc { margin: 0; font-size: .82rem; color: var(--text-muted); line-height: 1.45; }
+
+.seo-endpoint-list { display: flex; flex-direction: column; gap: .45rem; margin-top: .85rem; }
+.seo-endpoint {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .65rem .75rem; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid transparent;
+  text-decoration: none !important; color: inherit;
+  transition: border-color .12s, background .12s;
+}
+.seo-endpoint:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
+}
+.seo-endpoint-ico { font-size: 1.1rem; flex-shrink: 0; }
+.seo-endpoint-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+.seo-endpoint-body strong { font-size: .88rem; }
+.seo-endpoint-url {
+  font-size: .72rem; color: var(--text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.seo-endpoint-go { color: var(--text-faint); font-size: .9rem; }
+
+.seo-cap-list {
+  margin: .75rem 0 0; padding-inline-start: 1.15rem;
+  font-size: .84rem; color: var(--text-muted); line-height: 1.7;
+}
+
+.seo-quick {
+  display: flex; flex-wrap: wrap; gap: .5rem .85rem;
+}
+.seo-quick-link {
+  font-size: .82rem; font-weight: 600; color: var(--accent);
+  text-decoration: none !important;
+}
+.seo-quick-link:hover { text-decoration: underline !important; }
+
+/* Forms */
+.seo-form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .75rem 1rem;
+}
+.seo-form-grid-redir {
+  grid-template-columns: 1.4fr 1.4fr 5.5rem auto;
+  align-items: end;
+}
+.seo-form-grid-import {
+  grid-template-columns: 1.5fr 1fr 5.5rem;
+}
+@@media (max-width: 800px) {
+  .seo-form-grid,
+  .seo-form-grid-redir,
+  .seo-form-grid-import { grid-template-columns: 1fr; }
+}
+.seo-field-full { grid-column: 1 / -1; }
+.seo-field-sm { min-width: 0; }
+.seo-field-action { min-width: 6.5rem; }
+.seo-label {
+  display: block; font-size: .72rem; font-weight: 600;
+  color: var(--text-muted); margin-bottom: .3rem;
+}
+.seo-hint { font-size: .75rem; color: var(--text-faint); margin: .35rem 0 0; }
+.seo-mono { font-family: var(--font-mono); font-size: .84rem; }
+.seo-form-footer {
+  margin-top: 1.15rem; padding-top: 1rem;
+  border-top: 1px solid var(--border-soft);
+}
+.seo-checks { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; }
+.seo-check {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-size: .84rem; cursor: pointer; margin: 0;
+}
+
+/* Lists */
+.seo-list { display: flex; flex-direction: column; gap: .45rem; }
+.seo-list-item {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .55rem .85rem;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 12px; padding: .75rem 1rem;
+  transition: border-color .12s;
+}
+.seo-list-item:hover {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+.seo-list-item.is-disabled { opacity: .55; }
+.seo-list-item-warn {
+  border-color: color-mix(in srgb, var(--danger) 28%, var(--border));
+}
+.seo-list-text { flex: 1; min-width: 0; }
+.seo-list-name { font-weight: 650; font-size: .9rem; }
+.seo-list-name a { color: inherit; text-decoration: none; }
+.seo-list-name a:hover { color: var(--accent); }
+.seo-list-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .35rem;
+  font-size: .72rem; color: var(--text-faint); margin-top: .2rem;
+}
+.seo-list-actions { display: flex; flex-wrap: wrap; gap: .3rem; }
+.seo-list-actions form { margin: 0; display: inline; }
+.seo-dot { opacity: .45; }
+.seo-broken-url {
+  max-width: 22rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.seo-redir-paths {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .55rem;
+  flex: 1; min-width: 0; font-size: .84rem;
+}
+.seo-redir-from, .seo-redir-to {
+  max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.seo-redir-arrow { color: var(--text-faint); flex-shrink: 0; }
+
+.seo-pill {
+  display: inline-flex; align-items: center;
+  font-size: .68rem; font-weight: 650;
+  padding: .12rem .45rem; border-radius: 999px;
+  background: var(--surface-2); color: var(--text-muted);
+  direction: ltr;
+}
+.seo-pill-code {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+.seo-pill-off {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+.seo-act {
+  border: 1px solid var(--border); background: transparent;
+  border-radius: 7px; padding: .28rem .55rem;
+  font-size: .74rem; font-weight: 600; color: var(--text-muted);
+  cursor: pointer; text-decoration: none !important;
+  display: inline-flex; align-items: center;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.seo-act:hover {
+  color: var(--text); border-color: var(--text-faint);
+  background: var(--surface-2);
+}
+.seo-act-danger:hover {
+  color: var(--danger); border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+/* Toolbar */
+.seo-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .75rem; margin-bottom: 1rem;
+}
+.seo-toolbar-hint, .seo-section-hint {
+  margin: 0 0 1rem; font-size: .84rem; color: var(--text-muted);
+}
+.seo-toolbar-hint { margin: 0; }
+
+/* Health */
+.seo-health-list { display: flex; flex-direction: column; gap: .45rem; }
+.seo-health-item {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .65rem 1rem;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 12px; padding: .75rem 1rem;
+}
+.seo-health-main { flex: 1; min-width: 0; }
+.seo-health-title {
+  font-weight: 650; font-size: .9rem; color: inherit;
+  text-decoration: none; display: block;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.seo-health-title:hover { color: var(--accent); }
+.seo-health-flags { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .35rem; }
+.seo-flag {
+  font-size: .7rem; font-weight: 600; padding: .12rem .45rem;
+  border-radius: 999px; background: var(--surface-2); color: var(--text-faint);
+}
+.seo-flag.is-on {
+  background: color-mix(in srgb, #9ecb8c 15%, transparent);
+  color: var(--success, #9ecb8c);
+}
+.seo-health-score {
+  display: flex; align-items: center; gap: .55rem;
+  min-width: 7rem;
+}
+.seo-score-bar {
+  flex: 1; height: 6px; border-radius: 999px;
+  background: var(--surface-2); overflow: hidden; min-width: 3.5rem;
+}
+.seo-score-bar::after {
+  content: ""; display: block; height: 100%; width: var(--p, 0%);
+  border-radius: inherit; background: var(--accent);
+}
+.seo-score-good .seo-score-bar::after { background: var(--success, #9ecb8c); }
+.seo-score-mid .seo-score-bar::after { background: var(--accent); }
+.seo-score-low .seo-score-bar::after { background: var(--danger); }
+.seo-score-num {
+  font-size: .85rem; font-weight: 700; min-width: 1.75rem; text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.seo-score-good .seo-score-num { color: var(--success, #9ecb8c); }
+.seo-score-low .seo-score-num { color: var(--danger); }
+
+/* IndexNow status */
+.seo-status-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .65rem;
+  margin-top: .25rem;
+}
+@@media (max-width: 576px) { .seo-status-grid { grid-template-columns: 1fr; } }
+.seo-status-cell {
+  background: var(--surface-2); border-radius: 12px;
+  padding: .75rem .9rem;
+  display: flex; flex-direction: column; gap: .25rem;
+}
+.seo-status-full { grid-column: 1 / -1; }
+.seo-status-label { font-size: .72rem; color: var(--text-muted); font-weight: 550; }
+.seo-status-value { font-size: .92rem; font-weight: 650; }
+.seo-status-value.is-on { color: var(--success, #9ecb8c); }
+.seo-status-value.is-off { color: var(--text-faint); }
+.seo-status-link {
+  font-size: .82rem; color: var(--accent); word-break: break-all;
+}
+
+/* Empty */
+.seo-empty {
+  text-align: center; padding: 2.75rem 1.25rem;
+  background: var(--surface); border: 1px dashed var(--border);
+  border-radius: 16px;
+}
+.seo-empty-ok {
+  border-color: color-mix(in srgb, #9ecb8c 35%, var(--border));
+  background: color-mix(in srgb, #9ecb8c 5%, var(--surface));
+}
+.seo-empty-ico { font-size: 1.6rem; margin-bottom: .5rem; opacity: .55; }
+.seo-empty-title { font-weight: 650; margin: 0 0 .25rem; }
+.seo-empty-hint { margin: 0; font-size: .84rem; color: var(--text-muted); }
+</style>
