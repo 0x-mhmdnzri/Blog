@@ -15,7 +15,7 @@ obj/
 
 ## Serilog rolling JSON
 logs/
-
+.idea
 ## IDE
 .vs/
 .vscode/
