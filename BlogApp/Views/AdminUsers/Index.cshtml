@@ -12,6 +12,14 @@
     <div class="card-surface p-3 mb-3 small" style="border-color:var(--danger,#e5637a);">@TempData["Error"]</div>
 }
 
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+    <p class="small text-muted-dark mb-0">مدیریت کاربران، نقش‌ها و دسترسی صفحات</p>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-accent btn-sm" asp-controller="AdminRoles" asp-action="Index">نقش‌ها و مجوزها</a>
+        <a class="btn btn-ghost btn-sm" asp-controller="AdminRoles" asp-action="Assign">اختصاص نقش</a>
+    </div>
+</div>
+
 @Html.AntiForgeryToken()
 
 <div class="admin-table-wrap">
