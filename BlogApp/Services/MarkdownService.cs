@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using BlogApp.Services.Performance;
 using Markdig;
 
 namespace BlogApp.Services;
@@ -37,16 +38,23 @@ public class MarkdownService
     private static readonly Regex ImgHtmlRegex =
         new(@"<img\s+([^>]*?)\s*/?>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
+    private static readonly Regex MediaPathRegex =
+        new(@"(?:https?://[^/\s\"']+)?/media/(\d+)(?:/w/\d+)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     private static readonly Regex VideoEmbedDirRegex =
         new("<p dir=\"(?:ltr|rtl|auto)\" class=\"md-p\">\\[\\[VIDEO_EMBED_(\\d+)\\]\\]</p>", RegexOptions.Compiled);
 
     private static readonly Regex VideoEmbedPlainRegex =
         new("<p>\\[\\[VIDEO_EMBED_(\\d+)\\]\\]</p>", RegexOptions.Compiled);
 
-    private readonly MarkdownPipeline _pipeline;
+    private static readonly int[] SrcsetWidths = [480, 800, 1280];
 
-    public MarkdownService()
+    private readonly MarkdownPipeline _pipeline;
+    private readonly ICdnUrlService _cdn;
+
+    public MarkdownService(ICdnUrlService cdn)
     {
+        _cdn = cdn;
         _pipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
             .UseEmojiAndSmiley()
@@ -96,19 +104,7 @@ public class MarkdownService
             return $"<{tag} dir=\"{dir}\">{inner}</{tag}>";
         });
 
-        html = ImgHtmlRegex.Replace(html, m =>
-        {
-            var attrs = m.Groups[1].Value;
-            if (attrs.Contains("media-blur", StringComparison.OrdinalIgnoreCase))
-                return m.Value;
-            attrs = Regex.Replace(attrs, "\\s*loading\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
-            attrs = Regex.Replace(attrs, "\\s*decoding\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
-            if (Regex.IsMatch(attrs, "\\bclass\\s*=", RegexOptions.IgnoreCase))
-                attrs = Regex.Replace(attrs, "class\\s*=\\s*[\"']([^\"']*)[\"']", "class=\"$1 media-blur\"", RegexOptions.IgnoreCase);
-            else
-                attrs += " class=\"media-blur\"";
-            return $"<span class=\"media-blur-wrap\"><img {attrs} loading=\"lazy\" decoding=\"async\" /></span>";
-        });
+        html = ImgHtmlRegex.Replace(html, m => EnhanceImageTag(m.Groups[1].Value));
 
         html = VideoEmbedDirRegex.Replace(html, m => VideoEmbedHtml(m.Groups[1].Value));
         html = VideoEmbedPlainRegex.Replace(html, m => VideoEmbedHtml(m.Groups[1].Value));
@@ -116,8 +112,64 @@ public class MarkdownService
         return html;
     }
 
-    private static string VideoEmbedHtml(string id) =>
-        $"<div class=\"post-video-embed media-blur-wrap\"><video class=\"media-blur\" controls preload=\"metadata\" playsinline src=\"/media/{id}\"></video></div>";
+    private string EnhanceImageTag(string attrs)
+    {
+        if (attrs.Contains("media-blur", StringComparison.OrdinalIgnoreCase)
+            && attrs.Contains("srcset", StringComparison.OrdinalIgnoreCase))
+            return $"<span class=\"media-blur-wrap\"><img {attrs} /></span>";
+
+        attrs = Regex.Replace(attrs, "\\s*loading\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
+        attrs = Regex.Replace(attrs, "\\s*decoding\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
+        attrs = Regex.Replace(attrs, "\\s*srcset\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
+        attrs = Regex.Replace(attrs, "\\s*sizes\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
+
+        // Rewrite src through CDN when it points at /media/{id}
+        var srcMatch = Regex.Match(attrs, "src\\s*=\\s*[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase);
+        if (srcMatch.Success)
+        {
+            var src = srcMatch.Groups[1].Value;
+            var mediaId = TryParseMediaId(src);
+            var resolved = _cdn.Resolve(src);
+            if (!string.Equals(src, resolved, StringComparison.Ordinal))
+                attrs = attrs.Replace(srcMatch.Value, $"src=\"{resolved}\"");
+
+            if (mediaId is int mid)
+            {
+                var srcset = BuildSrcset(mid);
+                attrs += $" srcset=\"{srcset}\" sizes=\"(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 800px\"";
+            }
+        }
+
+        if (Regex.IsMatch(attrs, "\\bclass\\s*=", RegexOptions.IgnoreCase))
+            attrs = Regex.Replace(attrs, "class\\s*=\\s*[\"']([^\"']*)[\"']", "class=\"$1 media-blur\"", RegexOptions.IgnoreCase);
+        else
+            attrs += " class=\"media-blur\"";
+
+        return $"<span class=\"media-blur-wrap\"><img {attrs} loading=\"lazy\" decoding=\"async\" /></span>";
+    }
+
+    private string BuildSrcset(int mediaId)
+    {
+        var parts = new List<string>(SrcsetWidths.Length + 1);
+        foreach (var w in SrcsetWidths)
+            parts.Add($"{_cdn.Resolve($"/media/{mediaId}/w/{w}")} {w}w");
+        parts.Add($"{_cdn.MediaUrl(mediaId)} 1920w");
+        return string.Join(", ", parts);
+    }
+
+    private static int? TryParseMediaId(string url)
+    {
+        var m = MediaPathRegex.Match(url);
+        if (m.Success && int.TryParse(m.Groups[1].Value, out var id))
+            return id;
+        return null;
+    }
+
+    private string VideoEmbedHtml(string id)
+    {
+        var src = _cdn.Resolve($"/media/{id}");
+        return $"<div class=\"post-video-embed media-blur-wrap\"><video class=\"media-blur\" controls preload=\"metadata\" playsinline src=\"{src}\"></video></div>";
+    }
 
     public string ToPlainText(string markdown, int maxLength = 200)
     {
@@ -143,7 +195,7 @@ public class MarkdownService
     {
         if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
 
-        var headings = new List<(int Level, string Text, string Slug, string Dir)>();
+        var headings = new List<(int Level, string Text, stringSlug, string Dir)>();
         foreach (Match m in HeadingRegex.Matches(markdown))
         {
             var level = m.Groups[1].Value.Length;
@@ -152,7 +204,7 @@ public class MarkdownService
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text) || text.Length < 2) continue;
 
-            headings.Add((level, text, SlugifyHeading(text), DetectDir(text)));
+            headings.Add((level, text,SlugifyHeading(text), DetectDir(text)));
         }
 
         if (headings.Count < 2) return string.Empty;
@@ -308,7 +360,6 @@ public class MarkdownService
     private static bool IsVideoPlaceholder(string plain) =>
         plain.StartsWith("[[VIDEO_EMBED_", StringComparison.Ordinal);
 
-    // Keep both casings used in this file consistent
     private static string SlugifyHeading(string text) => slugifyHeading(text);
 
     private static string slugifyHeading(string text)
