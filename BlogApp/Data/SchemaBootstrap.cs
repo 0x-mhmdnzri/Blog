@@ -135,6 +135,7 @@ public static partial class SchemaBootstrap
             "CREATE INDEX IF NOT EXISTS \"IX_PostBookmarks_UserId\" ON \"PostBookmarks\" (\"UserId\");");
 
         await TryAddColumnAsync(db, "Comments", "LikeCount", "INTEGER NOT NULL DEFAULT 0");
+        await EnsureCommentColumnsAsync(db);
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "CommentLikes" (
