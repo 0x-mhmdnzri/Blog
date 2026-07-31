@@ -1,6 +1,6 @@
 /**
- * Notification bell — SSE realtime + dropdown.
- * Chrome strings come from data-i18n-* on #notifBell (seeded by parrot T[]).
+ * Notification bell — SSE realtime + dropdown + ToastifyStack banners.
+ * Single path: SSE → iPhone stack toast → click navigates / dismiss keeps in hub.
  */
 (function () {
   var root = document.getElementById('notifBell');
@@ -26,14 +26,23 @@
       badge.hidden = false;
       badge.textContent = n > 99 ? '99+' : String(n);
     }
+    // Expose for other modules
+    root.dataset.unread = String(n);
+  }
+
+  function getBadgeCount() {
+    if (!badge || badge.hidden) return 0;
+    var txt = badge.textContent || '0';
+    if (txt === '99+') return 99;
+    return parseInt(txt, 10) || 0;
   }
 
   function escapeHtml(s) {
     return String(s || '')
-      .replace(/&/g, '&')
-      .replace(/</g, '<')
-      .replace(/>/g, '>')
-      .replace(/"/g, '"');
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   function renderItems(items) {
@@ -60,6 +69,25 @@
         if (id) markRead(id);
       });
     });
+  }
+
+  function prependItem(data) {
+    if (!list) return;
+    var empty = list.querySelector('.notif-empty');
+    if (empty) empty.remove();
+
+    var href = data.linkUrl || '/Notifications';
+    var a = document.createElement('a');
+    a.className = 'notif-item is-unread';
+    a.href = href;
+    a.setAttribute('data-id', data.id || '');
+    a.innerHTML =
+      '<div class="notif-item-title">' + escapeHtml(data.title || '') + '</div>' +
+      (data.body ? '<div class="notif-item-body">' + escapeHtml(data.body) + '</div>' : '');
+    a.addEventListener('click', function () {
+      if (data.id) markRead(data.id);
+    });
+    list.insertBefore(a, list.firstChild);
   }
 
   function loadRecent() {
@@ -137,23 +165,83 @@
     .then(function (d) { setBadge(d.count || 0); })
     .catch(function () {});
 
+  /** When toast is dismissed without click → ensure hub list stays in sync. */
+  function onToastDismissedToHub(data) {
+    // Already persisted server-side; refresh dropdown if open, pulse badge
+    var menuOpen = !!(root.querySelector('.dropdown-menu.show'));
+    if (menuOpen) loadRecent();
+    else if (data) prependItem(data); // soft-cache until next open
+
+    // subtle badge attention
+    if (badge && !badge.hidden) {
+      badge.style.transform = 'scale(1.15)';
+      setTimeout(function () { badge.style.transform = ''; }, 220);
+    }
+  }
+
+  function showNotificationToast(data) {
+    if (!window.ToastifyStack) return;
+
+    ToastifyStack.notify({
+      notificationId: data.id,
+      title: data.title || 'Notification',
+      body: data.body || '',
+      linkUrl: data.linkUrl || '/Notifications',
+      duration: 6000,
+      appLabel: 'Notification',
+      onClick: function (toast) {
+        // Mark read before navigation when we have an id
+        if (toast.notificationId) markRead(toast.notificationId);
+        return true; // allow default navigate
+      },
+      onDismiss: function (toast, reason) {
+        // Not clicked — stays in hub; refresh badge path already done via SSE
+        onToastDismissedToHub({
+          id: toast.notificationId,
+          title: toast.title,
+          body: toast.body,
+          linkUrl: toast.linkUrl,
+          isRead: false
+        });
+      }
+    });
+  }
+
   try {
     var es = new EventSource('/Notifications/Stream');
     es.onmessage = function (e) {
       var data;
       try { data = JSON.parse(e.data); } catch { return; }
+
       if (data.type === 'unread' && typeof data.count === 'number') {
         setBadge(data.count);
         return;
       }
+
       if (data.type === 'notification') {
-        var cur = parseInt(badge && !badge.hidden ? badge.textContent : '0', 10) || 0;
-        if (badge && badge.textContent === '99+') return;
-        setBadge(cur + 1);
+        var cur = getBadgeCount();
+        if (!(badge && badge.textContent === '99+')) setBadge(cur + 1);
+
+        showNotificationToast(data);
+
         if (root.querySelector('.dropdown-menu.show')) loadRecent();
+        else prependItem({
+          id: data.id,
+          title: data.title,
+          body: data.body,
+          linkUrl: data.linkUrl,
+          isRead: false
+        });
       }
     };
   } catch (err) {
     console.warn('Notification SSE unavailable', err);
   }
+
+  // Public hook for other modules
+  window.BlogNotifications = {
+    setBadge: setBadge,
+    refresh: loadRecent,
+    showToast: showNotificationToast
+  };
 })();
