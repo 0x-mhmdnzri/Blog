@@ -26,7 +26,6 @@ public class RabbitMqOptions
     public int NetworkRecoverySeconds { get; set; } = 10;
     public int RequestedHeartbeatSeconds { get; set; } = 30;
     public int RequestedConnectionTimeoutSeconds { get; set; } = 5;
-    public bool DispatchConsumersAsync { get; set; } = true;
 
     public bool Enabled => !string.IsNullOrWhiteSpace(HostName);
 }
@@ -55,17 +54,18 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
     private readonly RabbitMqOptions _opts;
     private readonly ILogger<NotificationEventBus> _log;
     private IConnection? _conn;
-    private IModel? _pub;
-    private IModel? _sub;
+    private IChannel? _pub;
+    private IChannel? _sub;
     private string? _queueName;
-    private readonly object _gate = new();
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private int _connectStarted;
 
     public NotificationEventBus(IOptions<RabbitMqOptions> opts, ILogger<NotificationEventBus> log)
     {
         _opts = opts.Value;
         _log = log;
         if (_opts.Enabled)
-            TryConnect();
+            _ = TryConnectAsync();
     }
 
     public ChannelReader<NotificationDeliveredEvent> Reader => _channel.Reader;
@@ -74,23 +74,38 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
     {
         await _channel.Writer.WriteAsync(evt, ct);
 
-        if (!_opts.Enabled || _pub is null || !_pub.IsOpen)
+        var pub = _pub;
+        if (!_opts.Enabled || pub is null || !pub.IsOpen)
             return;
 
         try
         {
             var json = JsonSerializer.Serialize(evt);
             var body = Encoding.UTF8.GetBytes(json);
-            var props = _pub.CreateBasicProperties();
-            props.ContentType = "application/json";
-            props.DeliveryMode = 2;
-            props.MessageId = evt.NotificationId.ToString();
-            props.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            var props = new BasicProperties
+            {
+                ContentType = "application/json",
+                DeliveryMode = DeliveryModes.Persistent,
+                MessageId = evt.NotificationId.ToString(),
+                Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+            };
 
-            _pub.BasicPublish(_opts.FanoutExchange, routingKey: "", basicProperties: props, body: body);
+            await pub.BasicPublishAsync(
+                exchange: _opts.FanoutExchange,
+                routingKey: string.Empty,
+                mandatory: false,
+                basicProperties: props,
+                body: body,
+                cancellationToken: ct);
 
             var rk = $"notif.{evt.Kind}";
-            _pub.BasicPublish(_opts.TopicExchange, routingKey: rk, basicProperties: props, body: body);
+            await pub.BasicPublishAsync(
+                exchange: _opts.TopicExchange,
+                routingKey: rk,
+                mandatory: false,
+                basicProperties: props,
+                body: body,
+                cancellationToken: ct);
         }
         catch (Exception ex)
         {
@@ -98,8 +113,11 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
         }
     }
 
-    private void TryConnect()
+    private async Task TryConnectAsync()
     {
+        if (Interlocked.Exchange(ref _connectStarted, 1) == 1)
+            return;
+
         try
         {
             var factory = new ConnectionFactory
@@ -109,7 +127,6 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
                 UserName = _opts.UserName,
                 Password = _opts.Password,
                 VirtualHost = _opts.VirtualHost,
-                DispatchConsumersAsync = _opts.DispatchConsumersAsync,
                 AutomaticRecoveryEnabled = _opts.AutomaticRecoveryEnabled,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(Math.Max(1, _opts.NetworkRecoverySeconds)),
                 RequestedHeartbeat = TimeSpan.FromSeconds(Math.Max(0, _opts.RequestedHeartbeatSeconds)),
@@ -120,23 +137,24 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
                 ? "blogapp-notifications"
                 : _opts.ClientProvidedName;
 
-            _conn = factory.CreateConnection(clientName);
-            _pub = _conn.CreateModel();
-            _sub = _conn.CreateModel();
+            _conn = await factory.CreateConnectionAsync(clientName);
+            _pub = await _conn.CreateChannelAsync();
+            _sub = await _conn.CreateChannelAsync();
 
-            _pub.ExchangeDeclare(_opts.FanoutExchange, ExchangeType.Fanout, durable: true, autoDelete: false);
-            _pub.ExchangeDeclare(_opts.TopicExchange, ExchangeType.Topic, durable: true, autoDelete: false);
+            await _pub.ExchangeDeclareAsync(_opts.FanoutExchange, ExchangeType.Fanout, durable: true, autoDelete: false);
+            await _pub.ExchangeDeclareAsync(_opts.TopicExchange, ExchangeType.Topic, durable: true, autoDelete: false);
 
-            _queueName = _sub.QueueDeclare(
-                queue: "",
+            var q = await _sub.QueueDeclareAsync(
+                queue: string.Empty,
                 durable: false,
                 exclusive: true,
-                autoDelete: true).QueueName;
+                autoDelete: true);
+            _queueName = q.QueueName;
 
-            _sub.QueueBind(_queueName, _opts.FanoutExchange, routingKey: "");
+            await _sub.QueueBindAsync(_queueName, _opts.FanoutExchange, routingKey: string.Empty);
 
             var consumer = new AsyncEventingBasicConsumer(_sub);
-            consumer.Received += async (_, ea) =>
+            consumer.ReceivedAsync += async (_, ea) =>
             {
                 try
                 {
@@ -144,15 +162,15 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
                     var evt = JsonSerializer.Deserialize<NotificationDeliveredEvent>(json);
                     if (evt is not null)
                         await _channel.Writer.WriteAsync(evt);
-                    _sub.BasicAck(ea.DeliveryTag, false);
+                    await _sub.BasicAckAsync(ea.DeliveryTag, multiple: false);
                 }
                 catch (Exception ex)
                 {
                     _log.LogWarning(ex, "RabbitMQ consume failed");
-                    try { _sub.BasicNack(ea.DeliveryTag, false, requeue: false); } catch { /* ignore */ }
+                    try { await _sub.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false); } catch { /* ignore */ }
                 }
             };
-            _sub.BasicConsume(_queueName, autoAck: false, consumer);
+            await _sub.BasicConsumeAsync(_queueName, autoAck: false, consumer);
 
             _log.LogInformation("RabbitMQ notifications connected Host={Host} Fanout={Fanout} Topic={Topic}",
                 _opts.HostName, _opts.FanoutExchange, _opts.TopicExchange);
@@ -160,26 +178,31 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
         catch (Exception ex)
         {
             _log.LogWarning(ex, "RabbitMQ unavailable — using in-process Channel only");
-            try { _sub?.Dispose(); } catch { }
-            try { _pub?.Dispose(); } catch { }
-            try { _conn?.Dispose(); } catch { }
+            try { if (_sub is not null) await _sub.DisposeAsync(); } catch { }
+            try { if (_pub is not null) await _pub.DisposeAsync(); } catch { }
+            try { if (_conn is not null) await _conn.DisposeAsync(); } catch { }
             _sub = null;
             _pub = null;
             _conn = null;
+            Interlocked.Exchange(ref _connectStarted, 0);
         }
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        lock (_gate)
+        await _gate.WaitAsync();
+        try
         {
-            try { _sub?.Close(); } catch { }
-            try { _pub?.Close(); } catch { }
-            try { _conn?.Close(); } catch { }
-            _sub?.Dispose();
-            _pub?.Dispose();
-            _conn?.Dispose();
+            try { if (_sub is not null) await _sub.CloseAsync(); } catch { }
+            try { if (_pub is not null) await _pub.CloseAsync(); } catch { }
+            try { if (_conn is not null) await _conn.CloseAsync(); } catch { }
+            if (_sub is not null) await _sub.DisposeAsync();
+            if (_pub is not null) await _pub.DisposeAsync();
+            if (_conn is not null) await _conn.DisposeAsync();
         }
-        return ValueTask.CompletedTask;
+        finally
+        {
+            _gate.Release();
+        }
     }
 }
