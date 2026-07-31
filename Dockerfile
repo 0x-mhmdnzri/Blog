@@ -1,33 +1,37 @@
 # syntax=docker/dockerfile:1.7
-
 # =============================================================================
-# Dark Pro Blog — .NET 10 multi-stage image
-# Data: SQLite at /app/data  |  Logs: /app/logs (JSON) + stdout for ELK
+# Dark Pro Blog — .NET 10 multi-stage (fast cold start)
+# SQLite: /app/data  |  Logs: /app/logs + stdout
 # =============================================================================
 
 ARG DOTNET_VERSION=10.0
 
-# ---- restore (layer-cached on csproj change) ---------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
+# ---- restore (cached when csproj unchanged) ---------------------------------
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-bookworm-slim AS restore
 WORKDIR /src
 COPY BlogApp/BlogApp.csproj BlogApp/
-RUN dotnet restore BlogApp/BlogApp.csproj --verbosity minimal
+RUN dotnet restore BlogApp/BlogApp.csproj --verbosity quiet
 
-# ---- build + publish --------------------------------------------------------
+# ---- publish ----------------------------------------------------------------
 FROM restore AS build
 COPY BlogApp/ BlogApp/
 WORKDIR /src/BlogApp
+# ReadyToRun = faster cold start; no single-file (simpler layer + volume mounts)
 RUN dotnet publish BlogApp.csproj \
     -c Release \
     -o /app/publish \
     --no-restore \
-    /p:UseAppHost=false
+    -p:UseAppHost=false \
+    -p:PublishReadyToRun=true \
+    -p:PublishReadyToRunComposite=true \
+    -p:DebugType=None \
+    -p:DebugSymbols=false
 
 # ---- runtime ----------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-bookworm-slim AS runtime
 WORKDIR /app
 
-# curl: HEALTHCHECK only. tini optional alternative not needed — ASP.NET is PID1-safe enough.
+# curl only for HEALTHCHECK; keep image lean
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
@@ -37,23 +41,27 @@ RUN apt-get update \
     && chown -R appuser:appgroup /app
 
 ENV ASPNETCORE_HTTP_PORTS=8080 \
+    ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_EnableDiagnostics=0 \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
+    DOTNET_TieredCompilation=1 \
+    DOTNET_TC_QuickJitForLoops=1 \
+    DOTNET_ReadyToRun=1 \
     TZ=Asia/Tehran \
-    ConnectionStrings__DefaultConnection="Data Source=/app/data/blog.db" \
-    ForceHttps=false
+    ConnectionStrings__DefaultConnection="Data Source=/app/data/blog.db;Cache=Shared;Pooling=True;Default Timeout=30" \
+    ForceHttps=false \
+    RabbitMq__HostName=""
 
 EXPOSE 8080
-
-# Named volumes expected from compose; declared for documentation / docker run
 VOLUME ["/app/data", "/app/logs"]
 
 COPY --from=build --chown=appuser:appgroup /app/publish .
 
 USER appuser
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:8080/ || exit 1
+# Lightweight endpoint — does not run full page pipeline
+HEALTHCHECK --interval=15s --timeout=3s --start-period=12s --retries=5 \
+    CMD curl -fsS http://127.0.0.1:8080/health || exit 1
 
 ENTRYPOINT ["dotnet", "BlogApp.dll"]

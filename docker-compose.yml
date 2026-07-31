@@ -1,6 +1,13 @@
 # =============================================================================
-# Dark Pro Blog — production-oriented Compose
-# Copy .env.example → .env and edit secrets before first up.
+# Dark Pro Blog — standalone Compose (fast cold start)
+#
+#   cp .env.example .env   # optional; defaults below work without it
+#   docker compose up --build -d
+#   open http://localhost:8080
+#
+# RabbitMQ is opt-in (profile) so a single-node launch never waits on a broker.
+#   docker compose --profile rabbitmq up -d
+#   then set RabbitMq__HostName=rabbitmq in .env and recreate blog.
 # =============================================================================
 
 name: dark-pro-blog
@@ -17,7 +24,35 @@ services:
     restart: unless-stopped
     env_file:
       - path: .env
-        required: true
+        required: false
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ASPNETCORE_URLS: http://+:8080
+      ForceHttps: ${ForceHttps:-false}
+      AllowedHosts: ${AllowedHosts:-*}
+      ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Data Source=/app/data/blog.db;Cache=Shared;Pooling=True;Default Timeout=30}
+      Admin__Username: ${Admin__Username:-admin}
+      Admin__Password: ${Admin__Password:-ChangeMe_Use_A_Strong_Password_123!}
+      Admin__Email: ${Admin__Email:-admin@localhost}
+      Seo__BaseUrl: ${Seo__BaseUrl:-http://localhost:8080}
+      # Empty HostName = in-process notification/API bus (no broker required)
+      RabbitMq__HostName: ${RabbitMq__HostName:-}
+      RabbitMq__Port: ${RabbitMq__Port:-5672}
+      RabbitMq__UserName: ${RabbitMq__UserName:-blog}
+      RabbitMq__Password: ${RabbitMq__Password:-blog_change_me}
+      RabbitMq__VirtualHost: ${RabbitMq__VirtualHost:-/}
+      RabbitMq__FanoutExchange: ${RabbitMq__FanoutExchange:-blog.notifications.fanout}
+      RabbitMq__TopicExchange: ${RabbitMq__TopicExchange:-blog.notifications.topic}
+      RabbitMq__ClientProvidedName: ${RabbitMq__ClientProvidedName:-blogapp-notifications}
+      RabbitMq__AutomaticRecoveryEnabled: ${RabbitMq__AutomaticRecoveryEnabled:-true}
+      RabbitMq__NetworkRecoverySeconds: ${RabbitMq__NetworkRecoverySeconds:-10}
+      RabbitMq__RequestedHeartbeatSeconds: ${RabbitMq__RequestedHeartbeatSeconds:-30}
+      RabbitMq__RequestedConnectionTimeoutSeconds: ${RabbitMq__RequestedConnectionTimeoutSeconds:-5}
+      ApiTopicBus__UseRabbit: ${ApiTopicBus__UseRabbit:-true}
+      DOTNET_EnableDiagnostics: "0"
+      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "false"
+      TZ: Asia/Tehran
     ports:
       - "${BLOG_HTTP_PORT:-8080}:8080"
     volumes:
@@ -25,13 +60,9 @@ services:
       - blog_logs:/app/logs
     networks:
       - blog_net
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-        required: false
+    # Do NOT depend on rabbitmq by default — standalone must start alone.
     security_opt:
       - no-new-privileges:true
-    read_only: false
     tmpfs:
       - /tmp:size=64m,mode=1777
     deploy:
@@ -49,13 +80,12 @@ services:
         max-file: "5"
         labels: "service=blog,app=dark-pro-blog"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 25s
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
 
-  # Optional — leave RabbitMq__HostName empty in .env to use in-process Channel only
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: ${RABBITMQ_CONTAINER:-dark-pro-rabbitmq}
@@ -73,9 +103,10 @@ services:
       - blog_net
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 20s
+      interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
 volumes:
   blog_data:

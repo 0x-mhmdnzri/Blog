@@ -8,9 +8,12 @@ using RabbitMQ.Client.Events;
 
 namespace BlogApp.Services.Messaging;
 
+/// <summary>
+/// Global RabbitMQ settings (appsettings.json / env). Empty HostName disables the broker.
+/// </summary>
 public class RabbitMqOptions
 {
-    /// <summary>Empty = disable RabbitMQ (Channel-only local bus).</summary>
+    /// <summary>Empty or whitespace = disable RabbitMQ (in-process Channel only).</summary>
     public string? HostName { get; set; }
     public int Port { get; set; } = 5672;
     public string UserName { get; set; } = "guest";
@@ -18,6 +21,13 @@ public class RabbitMqOptions
     public string VirtualHost { get; set; } = "/";
     public string FanoutExchange { get; set; } = "blog.notifications.fanout";
     public string TopicExchange { get; set; } = "blog.notifications.topic";
+    public string ClientProvidedName { get; set; } = "blogapp-notifications";
+    public bool AutomaticRecoveryEnabled { get; set; } = true;
+    public int NetworkRecoverySeconds { get; set; } = 10;
+    public int RequestedHeartbeatSeconds { get; set; } = 30;
+    public int RequestedConnectionTimeoutSeconds { get; set; } = 5;
+    public bool DispatchConsumersAsync { get; set; } = true;
+
     public bool Enabled => !string.IsNullOrWhiteSpace(HostName);
 }
 
@@ -62,7 +72,6 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
 
     public async ValueTask PublishAsync(NotificationDeliveredEvent evt, CancellationToken ct = default)
     {
-        // Local channel always (same process SSE)
         await _channel.Writer.WriteAsync(evt, ct);
 
         if (!_opts.Enabled || _pub is null || !_pub.IsOpen)
@@ -74,14 +83,12 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
             var body = Encoding.UTF8.GetBytes(json);
             var props = _pub.CreateBasicProperties();
             props.ContentType = "application/json";
-            props.DeliveryMode = 2; // persistent
+            props.DeliveryMode = 2;
             props.MessageId = evt.NotificationId.ToString();
             props.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
-            // Fanout → every consumer instance
             _pub.BasicPublish(_opts.FanoutExchange, routingKey: "", basicProperties: props, body: body);
 
-            // Topic → routing by kind (e.g. notif.NewPost, notif.Broadcast)
             var rk = $"notif.{evt.Kind}";
             _pub.BasicPublish(_opts.TopicExchange, routingKey: rk, basicProperties: props, body: body);
         }
@@ -102,19 +109,24 @@ public sealed class NotificationEventBus : INotificationEventBus, IAsyncDisposab
                 UserName = _opts.UserName,
                 Password = _opts.Password,
                 VirtualHost = _opts.VirtualHost,
-                DispatchConsumersAsync = true,
-                AutomaticRecoveryEnabled = true,
-                NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
+                DispatchConsumersAsync = _opts.DispatchConsumersAsync,
+                AutomaticRecoveryEnabled = _opts.AutomaticRecoveryEnabled,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(Math.Max(1, _opts.NetworkRecoverySeconds)),
+                RequestedHeartbeat = TimeSpan.FromSeconds(Math.Max(0, _opts.RequestedHeartbeatSeconds)),
+                RequestedConnectionTimeout = TimeSpan.FromSeconds(Math.Max(1, _opts.RequestedConnectionTimeoutSeconds))
             };
 
-            _conn = factory.CreateConnection("blogapp-notifications");
+            var clientName = string.IsNullOrWhiteSpace(_opts.ClientProvidedName)
+                ? "blogapp-notifications"
+                : _opts.ClientProvidedName;
+
+            _conn = factory.CreateConnection(clientName);
             _pub = _conn.CreateModel();
             _sub = _conn.CreateModel();
 
             _pub.ExchangeDeclare(_opts.FanoutExchange, ExchangeType.Fanout, durable: true, autoDelete: false);
             _pub.ExchangeDeclare(_opts.TopicExchange, ExchangeType.Topic, durable: true, autoDelete: false);
 
-            // Exclusive auto-delete queue per instance for fanout fan-in
             _queueName = _sub.QueueDeclare(
                 queue: "",
                 durable: false,
