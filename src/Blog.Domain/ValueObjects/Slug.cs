@@ -3,7 +3,7 @@ using Blog.Domain.Abstractions;
 
 namespace Blog.Domain.ValueObjects;
 
-public sealed class Snug : ValueObject
+public sealed class Slug : ValueObject
 {
     private static readonly Regex Valid = new(
         "^[a-z0-9]+(?:-[a-z0-9]+)*$",
