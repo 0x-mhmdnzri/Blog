@@ -10,7 +10,7 @@ public partial class AdminController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> PinComment(int id, string? returnStatus)
     {
-        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        var comment = await _db.Comments.AsTracking().Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
         if (comment is not null && AuthorAccess.CanModerateComment(User, comment.Post))
         {
             comment.IsPinned = true;
@@ -26,7 +26,7 @@ public partial class AdminController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> UnpinComment(int id, string? returnStatus)
     {
-        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        var comment = await _db.Comments.AsTracking().Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
         if (comment is not null && AuthorAccess.CanModerateComment(User, comment.Post))
         {
             comment.IsPinned = false;
@@ -39,7 +39,7 @@ public partial class AdminController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkSpamComment(int id, string? returnStatus)
     {
-        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        var comment = await _db.Comments.AsTracking().Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
         if (comment is not null && AuthorAccess.CanModerateComment(User, comment.Post))
         {
             comment.Status = CommentStatus.Spam;
