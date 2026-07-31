@@ -2,38 +2,70 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = T["tax.title"];
+    var catCount = Model.Categories?.Count ?? 0;
+    var tagCount = Model.Tags?.Count ?? 0;
+    var seriesCount = Model.Series?.Count ?? 0;
+    var topicCount = Model.Topics?.Count ?? 0;
 }
 
 @if (TempData["TaxonomyMsg"] != null)
 {
-    <div class="alert mb-3" style="background:rgba(158,203,140,.12);color:var(--success);border:1px solid rgba(158,203,140,.35);">@TempData["TaxonomyMsg"]</div>
+    <div class="tx-alert tx-alert-ok mb-3" role="status">@TempData["TaxonomyMsg"]</div>
 }
 @if (TempData["TaxonomyErr"] != null)
 {
-    <div class="alert mb-3" style="background:rgba(229,99,122,.12);color:var(--danger);border:1px solid rgba(229,99,122,.35);">@TempData["TaxonomyErr"]</div>
+    <div class="tx-alert tx-alert-err mb-3" role="alert">@TempData["TaxonomyErr"]</div>
 }
 
-<div class="admin-tabs mb-4">
-    <a class="admin-tab active" href="#cats">@T["tax.tab_cats"]</a>
-    <a class="admin-tab" href="#tags">@T["tax.tab_tags"]</a>
-    <a class="admin-tab" href="#series">@T["tax.tab_series"]</a>
-    <a class="admin-tab" href="#topics">@T["tax.tab_topics"]</a>
+<header class="tx-header">
+    <div>
+        <h1 class="tx-title">@T["tax.title"]</h1>
+        <p class="tx-sub">دسته‌ها، برچسب‌ها، سری‌ها و موضوعات — ساختار محتوا را اینجا مدیریت کنید.</p>
+    </div>
+</header>
+
+<div class="tx-kpis" role="group" aria-label="آمار ساختار">
+    <button type="button" class="tx-kpi is-active" data-tx-tab="cats">
+        <span class="tx-kpi-label">@T["tax.tab_cats"]</span>
+        <span class="tx-kpi-value">@catCount</span>
+    </button>
+    <button type="button" class="tx-kpi" data-tx-tab="tags">
+        <span class="tx-kpi-label">@T["tax.tab_tags"]</span>
+        <span class="tx-kpi-value">@tagCount</span>
+    </button>
+    <button type="button" class="tx-kpi" data-tx-tab="series">
+        <span class="tx-kpi-label">@T["tax.tab_series"]</span>
+        <span class="tx-kpi-value">@seriesCount</span>
+    </button>
+    <button type="button" class="tx-kpi" data-tx-tab="topics">
+        <span class="tx-kpi-label">@T["tax.tab_topics"]</span>
+        <span class="tx-kpi-value">@topicCount</span>
+    </button>
 </div>
 
-<section id="cats" class="mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h2 class="h6 mb-0 text-muted-dark">@T["tax.cats_heading"]</h2>
+<nav class="tx-seg" role="tablist" aria-label="بخش‌های ساختار">
+    <button type="button" class="tx-seg-item is-active" role="tab" aria-selected="true" data-tx-tab="cats">@T["tax.tab_cats"]</button>
+    <button type="button" class="tx-seg-item" role="tab" aria-selected="false" data-tx-tab="tags">@T["tax.tab_tags"]</button>
+    <button type="button" class="tx-seg-item" role="tab" aria-selected="false" data-tx-tab="series">@T["tax.tab_series"]</button>
+    <button type="button" class="tx-seg-item" role="tab" aria-selected="false" data-tx-tab="topics">@T["tax.tab_topics"]</button>
+</nav>
+
+@* ════════════ Categories ════════════ *@
+<section class="tx-panel is-active" id="tx-cats" role="tabpanel" data-panel="cats">
+    <div class="tx-panel-head">
+        <h2 class="tx-panel-title">@T["tax.cats_heading"]</h2>
+        <p class="tx-panel-desc">درخت دسته‌بندی با والد/فرزند. عمق با تورفتگی نشان داده می‌شود.</p>
     </div>
 
-    <form asp-controller="Taxonomy" asp-action="CreateCategory" method="post" class="card-surface p-3 mb-3">
+    <form asp-controller="Taxonomy" asp-action="CreateCategory" method="post" class="tx-form-card">
         @Html.AntiForgeryToken()
-        <div class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label">@T["tax.label_cat_name"]</label>
-                <input class="form-control form-control-sm" name="name" required dir="auto" />
+        <div class="tx-form-grid">
+            <div class="tx-field">
+                <label class="tx-label">@T["tax.label_cat_name"]</label>
+                <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="نام دسته" />
             </div>
-            <div class="col-md-3">
-                <label class="form-label">@T["tax.label_parent"]</label>
+            <div class="tx-field">
+                <label class="tx-label">@T["tax.label_parent"]</label>
                 <select class="form-select form-select-sm" name="parentId">
                     <option value="">@T["tax.label_root"]</option>
                     @foreach (var o in Model.ParentOptions)
@@ -42,11 +74,11 @@
                     }
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">@T["tax.label_description"]</label>
-                <input class="form-control form-control-sm" name="description" dir="auto" />
+            <div class="tx-field tx-field-wide">
+                <label class="tx-label">@T["tax.label_description"]</label>
+                <input class="form-control form-control-sm" name="description" dir="auto" placeholder="توضیح کوتاه (اختیاری)" />
             </div>
-            <div class="col-md-2">
+            <div class="tx-field tx-field-action">
                 <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_add"]</button>
             </div>
         </div>
@@ -54,66 +86,74 @@
 
     @if (!Model.Categories.Any())
     {
-        <div class="admin-empty">@T["tax.empty_cats"]</div>
+        <div class="tx-empty">
+            <div class="tx-empty-icon" aria-hidden="true">📁</div>
+            <p class="tx-empty-title">@T["tax.empty_cats"]</p>
+            <p class="tx-empty-hint">اولین دسته را از فرم بالا اضافه کنید.</p>
+        </div>
     }
     else
     {
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>@T["tax.col_name"]</th>
-                        <th>@T["tax.col_slug"]</th>
-                        <th>@T["tax.col_posts"]</th>
-                        <th>@T["tax.col_actions"]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var c in Model.Categories)
-                {
-                    <tr>
-                        <td dir="auto">
-                            <span style="padding-inline-start:@(c.Depth * 1.2)rem;display:inline-block;">
-                                @if (c.Depth > 0) { <span class="text-muted-dark">└ </span> }
-                                @c.Name
-                            </span>
-                        </td>
-                        <td><span class="ltr-field">@c.Slug</span></td>
-                        <td><span class="ltr-field">@c.PostCount</span></td>
-                        <td>
-                            <div class="d-flex gap-1 flex-wrap">
-                                <a class="icon-btn" asp-controller="Home" asp-action="Index" asp-route-category="@c.Slug">@T["tax.btn_view"]</a>
-                                <form asp-controller="Taxonomy" asp-action="DeleteCategory" method="post"
-                                      onsubmit="return confirm('@T["tax.confirm_delete_cat"]');">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@c.Id" />
-                                    <button type="submit" class="icon-btn reject">@T["tax.btn_delete"]</button>
-                                </form>
+        <div class="tx-search-row">
+            <input type="search" class="tx-search" id="catSearch" placeholder="جست‌وجو در دسته‌ها…" autocomplete="off" />
+        </div>
+        <div class="tx-tree" id="catTree">
+            @foreach (var c in Model.Categories)
+            {
+                <article class="tx-tree-item" data-name="@c.Name.ToLowerInvariant()" style="--depth:@c.Depth">
+                    <div class="tx-tree-main">
+                        <span class="tx-tree-indent" aria-hidden="true"></span>
+                        @if (c.Depth > 0)
+                        {
+                            <span class="tx-tree-branch" aria-hidden="true">└</span>
+                        }
+                        else
+                        {
+                            <span class="tx-tree-root-dot" aria-hidden="true"></span>
+                        }
+                        <div class="tx-tree-text">
+                            <div class="tx-tree-name" dir="auto">@c.Name</div>
+                            <div class="tx-tree-meta">
+                                <span class="ltr-field">@c.Slug</span>
+                                <span class="tx-dot">·</span>
+                                <span class="ltr-field">@c.PostCount پست</span>
                             </div>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
+                        </div>
+                    </div>
+                    <div class="tx-tree-actions">
+                        <a class="tx-act" asp-controller="Home" asp-action="Index" asp-route-category="@c.Slug">@T["tax.btn_view"]</a>
+                        <form asp-controller="Taxonomy" asp-action="DeleteCategory" method="post"
+                              onsubmit="return confirm('@T["tax.confirm_delete_cat"]');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@c.Id" />
+                            <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
+                        </form>
+                    </div>
+                </article>
+            }
         </div>
     }
 </section>
 
-<section id="tags" class="mb-5">
-    <h2 class="h6 mb-3 text-muted-dark">@T["tax.tags_heading"]</h2>
+@* ════════════ Tags ════════════ *@
+<section class="tx-panel" id="tx-tags" role="tabpanel" data-panel="tags" hidden>
+    <div class="tx-panel-head">
+        <h2 class="tx-panel-title">@T["tax.tags_heading"]</h2>
+        <p class="tx-panel-desc">برچسب‌های تخت — ادغام برچسب‌های تکراری از همین‌جا.</p>
+    </div>
 
-    <form asp-controller="Taxonomy" asp-action="CreateTag" method="post" class="card-surface p-3 mb-3">
+    <form asp-controller="Taxonomy" asp-action="CreateTag" method="post" class="tx-form-card">
         @Html.AntiForgeryToken()
-        <div class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label">@T["tax.label_tag_name"]</label>
-                <input class="form-control form-control-sm" name="name" required dir="auto" />
+        <div class="tx-form-grid">
+            <div class="tx-field">
+                <label class="tx-label">@T["tax.label_tag_name"]</label>
+                <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="نام برچسب" />
             </div>
-            <div class="col-md-5">
-                <label class="form-label">@T["tax.label_description"]</label>
-                <input class="form-control form-control-sm" name="description" dir="auto" />
+            <div class="tx-field tx-field-wide">
+                <label class="tx-label">@T["tax.label_description"]</label>
+                <input class="form-control form-control-sm" name="description" dir="auto" placeholder="توضیح (اختیاری)" />
             </div>
-            <div class="col-md-3">
+            <div class="tx-field tx-field-action">
                 <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_add_tag"]</button>
             </div>
         </div>
@@ -121,171 +161,489 @@
 
     @if (Model.Tags.Count >= 2)
     {
-        <form asp-controller="Taxonomy" asp-action="MergeTags" method="post" class="card-surface p-3 mb-3">
+        <form asp-controller="Taxonomy" asp-action="MergeTags" method="post" class="tx-form-card tx-form-merge">
             @Html.AntiForgeryToken()
-            <div class="row g-2 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label">@T["tax.label_merge_from"]</label>
+            <div class="tx-merge-title">ادغام برچسب‌ها</div>
+            <div class="tx-form-grid">
+                <div class="tx-field">
+                    <label class="tx-label">@T["tax.label_merge_from"]</label>
                     <select class="form-select form-select-sm" name="sourceId" required>
-                        @foreach (var t in Model.Tags) { <option value="@t.Id">@t.Name</option> }
+                        @foreach (var t in Model.Tags) { <option value="@t.Id">@t.Name (@t.PostCount)</option> }
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">@T["tax.label_merge_to"]</label>
+                <div class="tx-field">
+                    <label class="tx-label">@T["tax.label_merge_to"]</label>
                     <select class="form-select form-select-sm" name="targetId" required>
-                        @foreach (var t in Model.Tags) { <option value="@t.Id">@t.Name</option> }
+                        @foreach (var t in Model.Tags) { <option value="@t.Id">@t.Name (@t.PostCount)</option> }
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="tx-field tx-field-action">
                     <button type="submit" class="btn btn-ghost btn-sm w-100">@T["tax.btn_merge"]</button>
                 </div>
             </div>
         </form>
     }
 
-    <div class="admin-table-wrap">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>@T["tax.col_name"]</th>
-                    <th>@T["tax.col_slug"]</th>
-                    <th>@T["tax.col_posts"]</th>
-                    <th>@T["tax.col_actions"]</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach (var t in Model.Tags)
+    @if (Model.Tags.Count == 0)
+    {
+        <div class="tx-empty">
+            <div class="tx-empty-icon" aria-hidden="true">🏷</div>
+            <p class="tx-empty-title">برچسبی نیست</p>
+            <p class="tx-empty-hint">اولین برچسب را اضافه کنید.</p>
+        </div>
+    }
+    else
+    {
+        <div class="tx-search-row">
+            <input type="search" class="tx-search" id="tagSearch" placeholder="جست‌وجو در برچسب‌ها…" autocomplete="off" />
+        </div>
+        <div class="tx-tag-cloud" id="tagCloud">
+            @foreach (var t in Model.Tags.OrderByDescending(x => x.PostCount))
             {
-                <tr>
-                    <td dir="auto">@t.Name</td>
-                    <td><span class="ltr-field">@t.Slug</span></td>
-                    <td><span class="ltr-field">@t.PostCount</span></td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            <a class="icon-btn" asp-controller="Home" asp-action="Index" asp-route-tag="@t.Slug">@T["tax.btn_view"]</a>
-                            <form asp-controller="Taxonomy" asp-action="DeleteTag" method="post"
-                                  onsubmit="return confirm('@T["tax.confirm_delete_tag"]');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@t.Id" />
-                                <button type="submit" class="icon-btn reject">@T["tax.btn_delete"]</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
+                var weight = t.PostCount switch
+                {
+                    >= 20 => "xl",
+                    >= 10 => "lg",
+                    >= 3 => "md",
+                    _ => "sm"
+                };
+                <div class="tx-tag" data-name="@t.Name.ToLowerInvariant()" data-weight="@weight">
+                    <a class="tx-tag-link" asp-controller="Home" asp-action="Index" asp-route-tag="@t.Slug" dir="auto">@t.Name</a>
+                    <span class="tx-tag-count ltr-field">@t.PostCount</span>
+                    <form asp-controller="Taxonomy" asp-action="DeleteTag" method="post" class="tx-tag-del"
+                          onsubmit="return confirm('@T["tax.confirm_delete_tag"]');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@t.Id" />
+                        <button type="submit" class="tx-tag-x" title="@T["tax.btn_delete"]" aria-label="@T["tax.btn_delete"]">×</button>
+                    </form>
+                </div>
             }
-            </tbody>
-        </table>
-    </div>
+        </div>
+    }
 </section>
 
-<section id="series" class="mb-5">
-    <h2 class="h6 mb-3 text-muted-dark">@T["tax.series_heading"]</h2>
+@* ════════════ Series ════════════ *@
+<section class="tx-panel" id="tx-series" role="tabpanel" data-panel="series" hidden>
+    <div class="tx-panel-head">
+        <h2 class="tx-panel-title">@T["tax.series_heading"]</h2>
+        <p class="tx-panel-desc">مجموعه‌های چندقسمتی — ترتیب و ویرایش از صفحه سری.</p>
+    </div>
 
-    <form asp-controller="Taxonomy" asp-action="CreateSeries" method="post" class="card-surface p-3 mb-3">
+    <form asp-controller="Taxonomy" asp-action="CreateSeries" method="post" class="tx-form-card">
         @Html.AntiForgeryToken()
-        <div class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label">@T["tax.label_series_name"]</label>
-                <input class="form-control form-control-sm" name="name" required dir="auto" />
+        <div class="tx-form-grid">
+            <div class="tx-field">
+                <label class="tx-label">@T["tax.label_series_name"]</label>
+                <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="نام سری" />
             </div>
-            <div class="col-md-5">
-                <label class="form-label">@T["tax.label_description"]</label>
-                <input class="form-control form-control-sm" name="description" dir="auto" />
+            <div class="tx-field tx-field-wide">
+                <label class="tx-label">@T["tax.label_description"]</label>
+                <input class="form-control form-control-sm" name="description" dir="auto" placeholder="توضیح (اختیاری)" />
             </div>
-            <div class="col-md-3">
+            <div class="tx-field tx-field-action">
                 <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_create_series"]</button>
             </div>
         </div>
     </form>
 
-    <div class="admin-table-wrap">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>@T["tax.col_name"]</th>
-                    <th>@T["tax.col_slug"]</th>
-                    <th>@T["tax.col_posts"]</th>
-                    <th>@T["tax.col_actions"]</th>
-                </tr>
-            </thead>
-            <tbody>
+    @if (Model.Series.Count == 0)
+    {
+        <div class="tx-empty">
+            <div class="tx-empty-icon" aria-hidden="true">📚</div>
+            <p class="tx-empty-title">سری‌ای نیست</p>
+        </div>
+    }
+    else
+    {
+        <div class="tx-list">
             @foreach (var s in Model.Series)
             {
-                <tr>
-                    <td dir="auto">@s.Name</td>
-                    <td><span class="ltr-field">@s.Slug</span></td>
-                    <td><span class="ltr-field">@s.PostCount</span></td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            <a class="icon-btn" asp-controller="Taxonomy" asp-action="EditSeries" asp-route-id="@s.Id">@T["tax.btn_edit"]</a>
-                            <a class="icon-btn" href="/series/@s.Slug">@T["tax.btn_public"]</a>
-                            <form asp-controller="Taxonomy" asp-action="DeleteSeries" method="post"
-                                  onsubmit="return confirm('@T["tax.confirm_delete_series"]');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@s.Id" />
-                                <button type="submit" class="icon-btn reject">@T["tax.btn_delete"]</button>
-                            </form>
+                <article class="tx-list-item">
+                    <div class="tx-list-text">
+                        <div class="tx-list-name" dir="auto">@s.Name</div>
+                        <div class="tx-list-meta">
+                            <span class="ltr-field">@s.Slug</span>
+                            <span class="tx-dot">·</span>
+                            <span class="ltr-field">@s.PostCount پست</span>
                         </div>
-                    </td>
-                </tr>
+                    </div>
+                    <div class="tx-list-actions">
+                        <a class="tx-act" asp-controller="Taxonomy" asp-action="EditSeries" asp-route-id="@s.Id">@T["tax.btn_edit"]</a>
+                        <a class="tx-act" href="/series/@s.Slug">@T["tax.btn_public"]</a>
+                        <form asp-controller="Taxonomy" asp-action="DeleteSeries" method="post"
+                              onsubmit="return confirm('@T["tax.confirm_delete_series"]');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@s.Id" />
+                            <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
+                        </form>
+                    </div>
+                </article>
             }
-            </tbody>
-        </table>
-    </div>
+        </div>
+    }
 </section>
 
-<section id="topics" class="mb-5">
-    <h2 class="h6 mb-3 text-muted-dark">@T["tax.topics_heading"]</h2>
+@* ════════════ Topics ════════════ *@
+<section class="tx-panel" id="tx-topics" role="tabpanel" data-panel="topics" hidden>
+    <div class="tx-panel-head">
+        <h2 class="tx-panel-title">@T["tax.topics_heading"]</h2>
+        <p class="tx-panel-desc">موضوعات فراتر از دسته — برای خوشه‌بندی موضوعی محتوا.</p>
+    </div>
 
-    <form asp-controller="Taxonomy" asp-action="CreateTopic" method="post" class="card-surface p-3 mb-3">
+    <form asp-controller="Taxonomy" asp-action="CreateTopic" method="post" class="tx-form-card">
         @Html.AntiForgeryToken()
-        <div class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label">@T["tax.label_topic_name"]</label>
-                <input class="form-control form-control-sm" name="name" required dir="auto" />
+        <div class="tx-form-grid">
+            <div class="tx-field">
+                <label class="tx-label">@T["tax.label_topic_name"]</label>
+                <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="نام موضوع" />
             </div>
-            <div class="col-md-5">
-                <label class="form-label">@T["tax.label_description"]</label>
-                <input class="form-control form-control-sm" name="description" dir="auto" />
+            <div class="tx-field tx-field-wide">
+                <label class="tx-label">@T["tax.label_description"]</label>
+                <input class="form-control form-control-sm" name="description" dir="auto" placeholder="توضیح (اختیاری)" />
             </div>
-            <div class="col-md-3">
+            <div class="tx-field tx-field-action">
                 <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_create_topic"]</button>
             </div>
         </div>
     </form>
 
-    <div class="admin-table-wrap">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>@T["tax.col_name"]</th>
-                    <th>@T["tax.col_slug"]</th>
-                    <th>@T["tax.col_items"]</th>
-                    <th>@T["tax.col_actions"]</th>
-                </tr>
-            </thead>
-            <tbody>
+    @if (Model.Topics.Count == 0)
+    {
+        <div class="tx-empty">
+            <div class="tx-empty-icon" aria-hidden="true">🗂</div>
+            <p class="tx-empty-title">موضوعی نیست</p>
+        </div>
+    }
+    else
+    {
+        <div class="tx-list">
             @foreach (var t in Model.Topics)
             {
-                <tr>
-                    <td dir="auto">@t.Name</td>
-                    <td><span class="ltr-field">@t.Slug</span></td>
-                    <td><span class="ltr-field">@t.ItemCount</span></td>
-                    <td>
-                        <div class="d-flex gap-1">
-                            <a class="icon-btn" asp-controller="Taxonomy" asp-action="EditTopic" asp-route-id="@t.Id">@T["tax.btn_edit"]</a>
-                            <a class="icon-btn" href="/topic/@t.Slug">@T["tax.btn_public"]</a>
-                            <form asp-controller="Taxonomy" asp-action="DeleteTopic" method="post"
-                                  onsubmit="return confirm('@T["tax.confirm_delete_topic"]');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@t.Id" />
-                                <button type="submit" class="icon-btn reject">@T["tax.btn_delete"]</button>
-                            </form>
+                <article class="tx-list-item">
+                    <div class="tx-list-text">
+                        <div class="tx-list-name" dir="auto">@t.Name</div>
+                        <div class="tx-list-meta">
+                            <span class="ltr-field">@t.Slug</span>
+                            <span class="tx-dot">·</span>
+                            <span class="ltr-field">@t.ItemCount مورد</span>
                         </div>
-                    </td>
-                </tr>
+                    </div>
+                    <div class="tx-list-actions">
+                        <a class="tx-act" asp-controller="Taxonomy" asp-action="EditTopic" asp-route-id="@t.Id">@T["tax.btn_edit"]</a>
+                        <a class="tx-act" href="/topic/@t.Slug">@T["tax.btn_public"]</a>
+                        <form asp-controller="Taxonomy" asp-action="DeleteTopic" method="post"
+                              onsubmit="return confirm('@T["tax.confirm_delete_topic"]');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
+                        </form>
+                    </div>
+                </article>
             }
-            </tbody>
-        </table>
-    </div>
+        </div>
+    }
 </section>
+
+<style>
+.tx-header { margin-bottom: 1.15rem; }
+.tx-title { font-size: 1.35rem; font-weight: 750; margin: 0 0 .3rem; letter-spacing: -0.01em; }
+.tx-sub { margin: 0; font-size: .86rem; color: var(--text-muted); line-height: 1.5; max-width: 32rem; }
+
+.tx-alert {
+  padding: .75rem 1rem; border-radius: 12px; font-size: .88rem;
+  border: 1px solid var(--border-soft);
+}
+.tx-alert-ok {
+  background: color-mix(in srgb, #9ecb8c 12%, transparent);
+  border-color: color-mix(in srgb, #9ecb8c 30%, var(--border-soft));
+  color: var(--success, #9ecb8c);
+}
+.tx-alert-err {
+  background: color-mix(in srgb, #e5637a 12%, transparent);
+  border-color: color-mix(in srgb, #e5637a 35%, var(--border-soft));
+  color: var(--danger);
+}
+
+/* KPI strip = also tabs */
+.tx-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .55rem;
+  margin-bottom: .85rem;
+}
+@@media (max-width: 720px) { .tx-kpis { grid-template-columns: 1fr 1fr; } }
+.tx-kpi {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: .85rem 1rem;
+  display: flex; flex-direction: column; gap: .3rem;
+  text-align: start; cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+  color: inherit;
+}
+.tx-kpi:hover { border-color: var(--border); }
+.tx-kpi.is-active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.tx-kpi-label { font-size: .72rem; color: var(--text-muted); font-weight: 550; }
+.tx-kpi-value {
+  font-size: 1.4rem; font-weight: 750; line-height: 1.1;
+  font-variant-numeric: tabular-nums; direction: ltr; text-align: start;
+}
+.tx-kpi.is-active .tx-kpi-value { color: var(--accent); }
+
+.tx-seg {
+  display: none; /* KPIs double as tabs on desktop; show seg on small if needed */
+}
+
+.tx-panel { animation: tx-in .18s ease; }
+.tx-panel[hidden] { display: none !important; }
+@@keyframes tx-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.tx-panel-head { margin-bottom: 1rem; }
+.tx-panel-title { font-size: 1.05rem; font-weight: 700; margin: 0 0 .25rem; }
+.tx-panel-desc { margin: 0; font-size: .82rem; color: var(--text-muted); }
+
+/* Forms */
+.tx-form-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+.tx-form-merge {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--surface));
+}
+.tx-merge-title {
+  font-size: .78rem; font-weight: 650; color: var(--text-muted);
+  margin-bottom: .65rem;
+}
+.tx-form-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1.4fr auto;
+  gap: .65rem .75rem;
+  align-items: end;
+}
+@@media (max-width: 900px) {
+  .tx-form-grid { grid-template-columns: 1fr 1fr; }
+  .tx-field-wide { grid-column: 1 / -1; }
+  .tx-field-action { grid-column: 1 / -1; }
+}
+.tx-label {
+  display: block; font-size: .72rem; font-weight: 600;
+  color: var(--text-muted); margin-bottom: .3rem;
+}
+.tx-field-action { min-width: 7rem; }
+
+/* Search */
+.tx-search-row { margin-bottom: .75rem; }
+.tx-search {
+  width: 100%; max-width: 20rem;
+  background: var(--bg); border: 1px solid var(--border-soft);
+  border-radius: 10px; padding: .5rem .85rem;
+  color: var(--text); font-size: .86rem; outline: none;
+}
+.tx-search:focus {
+  border-color: var(--accent-dim, var(--accent));
+  box-shadow: 0 0 0 3px var(--accent-soft, rgba(227,179,65,.15));
+}
+
+/* Category tree */
+.tx-tree {
+  display: flex; flex-direction: column; gap: .4rem;
+}
+.tx-tree-item {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .5rem .75rem;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: .7rem .9rem;
+  transition: border-color .12s, background .12s;
+}
+.tx-tree-item:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+.tx-tree-item.is-hidden { display: none !important; }
+.tx-tree-main {
+  display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1;
+}
+.tx-tree-indent {
+  width: calc(var(--depth, 0) * 1.15rem);
+  flex-shrink: 0;
+}
+.tx-tree-branch {
+  color: var(--text-faint); font-size: .85rem; flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+.tx-tree-root-dot {
+  width: .45rem; height: .45rem; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0; opacity: .85;
+}
+.tx-tree-text { min-width: 0; }
+.tx-tree-name {
+  font-weight: 650; font-size: .9rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tx-tree-meta, .tx-list-meta {
+  font-size: .72rem; color: var(--text-faint);
+  display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; margin-top: .1rem;
+}
+.tx-dot { opacity: .45; }
+.tx-tree-actions, .tx-list-actions {
+  display: flex; flex-wrap: wrap; gap: .3rem; flex-shrink: 0;
+}
+
+.tx-act {
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 7px;
+  padding: .28rem .55rem;
+  font-size: .74rem; font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+  display: inline-flex; align-items: center;
+}
+.tx-act:hover {
+  color: var(--text); border-color: var(--text-faint);
+  background: var(--surface-2);
+}
+.tx-act-danger:hover {
+  color: var(--danger); border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+form.tx-tree-actions, .tx-tree-actions form, .tx-list-actions form {
+  margin: 0; display: inline;
+}
+
+/* Tag cloud */
+.tx-tag-cloud {
+  display: flex; flex-wrap: wrap; gap: .5rem;
+}
+.tx-tag {
+  display: inline-flex; align-items: center; gap: .35rem;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: .3rem .35rem .3rem .75rem;
+  transition: border-color .12s, background .12s;
+}
+.tx-tag:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+.tx-tag.is-hidden { display: none !important; }
+.tx-tag[data-weight="xl"] .tx-tag-link { font-size: 1rem; font-weight: 700; }
+.tx-tag[data-weight="lg"] .tx-tag-link { font-size: .92rem; font-weight: 650; }
+.tx-tag[data-weight="md"] .tx-tag-link { font-size: .85rem; font-weight: 600; }
+.tx-tag[data-weight="sm"] .tx-tag-link { font-size: .8rem; font-weight: 550; }
+.tx-tag-link {
+  color: var(--text); text-decoration: none !important;
+}
+.tx-tag-link:hover { color: var(--accent); }
+.tx-tag-count {
+  font-size: .68rem; color: var(--text-faint);
+  background: var(--surface-2); border-radius: 999px;
+  padding: .05rem .4rem; font-variant-numeric: tabular-nums;
+}
+.tx-tag-del { margin: 0; display: inline; }
+.tx-tag-x {
+  border: 0; background: transparent; color: var(--text-faint);
+  width: 1.4rem; height: 1.4rem; border-radius: 50%;
+  font-size: 1rem; line-height: 1; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.tx-tag-x:hover {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+
+/* Series / Topics list */
+.tx-list {
+  display: flex; flex-direction: column; gap: .45rem;
+}
+.tx-list-item {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .5rem .75rem;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: .75rem 1rem;
+  transition: border-color .12s;
+}
+.tx-list-item:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+.tx-list-name { font-weight: 650; font-size: .92rem; }
+.tx-list-text { min-width: 0; flex: 1; }
+
+/* Empty */
+.tx-empty {
+  text-align: center; padding: 2.75rem 1.25rem;
+  background: var(--surface); border: 1px dashed var(--border);
+  border-radius: 16px;
+}
+.tx-empty-icon { font-size: 1.75rem; margin-bottom: .5rem; opacity: .5; }
+.tx-empty-title { font-weight: 650; margin: 0 0 .25rem; }
+.tx-empty-hint { margin: 0; font-size: .84rem; color: var(--text-muted); }
+</style>
+
+@section Scripts {
+<script>
+(function () {
+  function activate(tab) {
+    document.querySelectorAll('[data-tx-tab]').forEach(function (el) {
+      el.classList.toggle('is-active', el.getAttribute('data-tx-tab') === tab);
+      if (el.getAttribute('role') === 'tab') {
+        el.setAttribute('aria-selected', el.getAttribute('data-tx-tab') === tab ? 'true' : 'false');
+      }
+    });
+    document.querySelectorAll('.tx-panel').forEach(function (p) {
+      var on = p.getAttribute('data-panel') === tab;
+      p.classList.toggle('is-active', on);
+      p.hidden = !on;
+    });
+    try { localStorage.setItem('blog-tax-tab', tab); } catch (e) {}
+    if (location.hash !== '#' + tab) {
+      history.replaceState(null, '', '#' + tab);
+    }
+  }
+
+  document.querySelectorAll('[data-tx-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      activate(btn.getAttribute('data-tx-tab'));
+    });
+  });
+
+  var initial = (location.hash || '').replace('#', '');
+  if (!initial || !document.querySelector('.tx-panel[data-panel="' + initial + '"]')) {
+    try { initial = localStorage.getItem('blog-tax-tab') || 'cats'; } catch (e) { initial = 'cats'; }
+  }
+  activate(initial);
+
+  function bindSearch(inputId, itemSelector) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    input.addEventListener('input', function () {
+      var q = (input.value || '').trim().toLowerCase();
+      document.querySelectorAll(itemSelector).forEach(function (el) {
+        var name = el.getAttribute('data-name') || '';
+        el.classList.toggle('is-hidden', q && name.indexOf(q) === -1);
+      });
+    });
+  }
+  bindSearch('catSearch', '#catTree .tx-tree-item');
+  bindSearch('tagSearch', '#tagCloud .tx-tag');
+})();
+</script>
+}
