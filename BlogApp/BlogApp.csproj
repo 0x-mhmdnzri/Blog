@@ -9,6 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\src\Blog.Domain\Blog.Domain.csproj" />
+    <ProjectReference Include="..\src\Blog.Application\Blog.Application.csproj" />
+    <ProjectReference Include="..\src\Blog.Infrastructure\Blog.Infrastructure.csproj" />
+    <ProjectReference Include="..\src\Blog.Extensions.Sdk\Blog.Extensions.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
       <PrivateAssets>all</PrivateAssets>
@@ -26,7 +33,6 @@
     <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
 
-    <!-- API: free FluentValidation + RSS/Atom syndication -->
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
     <PackageReference Include="System.ServiceModel.Syndication" Version="9.0.0" />
@@ -40,12 +46,12 @@
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>
 
-  <!-- Theme packs: auto-imported on startup from ContentRoot/themes -->
   <ItemGroup>
     <Content Include="themes\**\*.blogtheme">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
+    <Content Include="plugins\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
