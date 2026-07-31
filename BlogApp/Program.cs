@@ -227,10 +227,10 @@ try
     builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("Ai"));
     builder.Services.AddHttpClient("AiContent");
 
-    // SEO — IndexNow ping + migration importer
+    // SEO — IndexNow ping + migration importer (Scoped: uses ISiteConfigService / DbContext)
     builder.Services.Configure<IndexNowOptions>(builder.Configuration.GetSection("IndexNow"));
     builder.Services.AddHttpClient("IndexNow");
-    builder.Services.AddSingleton<IIndexNowService, IndexNowService>();
+    builder.Services.AddScoped<IIndexNowService, IndexNowService>();
     builder.Services.AddScoped<IMigrationImportService, MigrationImportService>();
 
     builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
