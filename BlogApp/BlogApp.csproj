@@ -6,20 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>blogapp-dark-pro-secrets</UserSecretsId>
     <InvariantGlobalization>false</InvariantGlobalization>
+    <RootNamespace>BlogApp</RootNamespace>
+    <Description>Dark Pro Blog — single ASP.NET Core monolith (all features in-process)</Description>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\src\Blog.Infrastructure\Blog.Infrastructure.csproj" />
-    <ProjectReference Include="..\src\Core\Blog.Core.Domain\Blog.Core.Domain.csproj" />
-    <ProjectReference Include="..\src\Core\Blog.Core.Contract\Blog.Core.Contract.csproj" />
-    <ProjectReference Include="..\src\Core\Blog.Core.ApplicationService\Blog.Core.ApplicationService.csproj" />
-    <ProjectReference Include="..\src\Core\Blog.Core.DomainService\Blog.Core.DomainService.csproj" />
-    <ProjectReference Include="..\src\Infra\Blog.Infra.Messaging\Blog.Infra.Messaging.csproj" />
-    <ProjectReference Include="..\src\Infra\Blog.Infra.Observability\Blog.Infra.Observability.csproj" />
-    <ProjectReference Include="..\src\Infra\Blog.Infra.Plugins\Blog.Infra.Plugins.csproj" />
-    <ProjectReference Include="..\src\Utils\Blog.Utils\Blog.Utils.csproj" />
-    <ProjectReference Include="..\src\Blog.Extensions.Sdk\Blog.Extensions.Sdk.csproj" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
@@ -36,6 +25,10 @@
     <PackageReference Include="Markdig" Version="1.3.2" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.0" />
 
+    <!-- MassTransit EDD (InMemory + RabbitMQ) -->
+    <PackageReference Include="MassTransit" Version="8.3.6" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.3.6" />
+
     <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
 
@@ -50,6 +43,14 @@
     <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+
+    <!-- Observability -->
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.12.0-beta.1" />
   </ItemGroup>
 
   <ItemGroup>
