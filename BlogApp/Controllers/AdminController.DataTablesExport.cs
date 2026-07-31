@@ -115,7 +115,6 @@ public partial class AdminController
             {
                 c.Id,
                 c.AuthorName,
-                c.AuthorEmail,
                 c.Body,
                 PostTitle = c.Post.Title,
                 PostSlug = c.Post.Slug,
@@ -126,14 +125,13 @@ public partial class AdminController
 
         var headers = new[]
         {
-            "Id", "AuthorName", "AuthorEmail", "Body", "PostTitle", "PostSlug", "Status", "CreatedAtUtc"
+            "Id", "AuthorName", "Body", "PostTitle", "PostSlug", "Status", "CreatedAtUtc"
         };
 
         var rows = list.Select(c => new[]
         {
             CsvExport.Cell(c.Id),
             CsvExport.Cell(c.AuthorName),
-            CsvExport.Cell(c.AuthorEmail),
             CsvExport.Cell(c.Body),
             CsvExport.Cell(c.PostTitle),
             CsvExport.Cell(c.PostSlug),
