@@ -1,5 +1,6 @@
 @model Post
 @inject BlogApp.Services.IUiTranslator T
+@using BlogApp.Models.ViewModels
 @{
     ViewData["Title"] = Model.Title;
     var readingMinutes = ViewBag.ReadingTimeMinutes as int? ?? Math.Max(1, Model.ReadingTimeMinutes);
@@ -16,6 +17,8 @@
     var premiumLocked = ViewBag.PremiumLocked as bool? ?? false;
     var isSponsored = ViewBag.IsSponsoredPost as bool? ?? Model.IsSponsored;
     var sponsoredLabel = (ViewBag.SponsoredLabel as string) ?? Model.SponsoredLabel;
+    var tocHtml = ViewBag.TocHtml as string;
+    var related = ViewBag.RelatedPosts as IList<RelatedPostItem> ?? new List<RelatedPostItem>();
 
     IEnumerable<Comment> orderedComments = commentSort == "latest"
         ? Model.Comments.OrderByDescending(c => c.CreatedAtUtc)
@@ -26,226 +29,275 @@
     <script type="application/ld+json">@Html.Raw(ViewBag.PostJsonLd)</script>
     <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
     <link rel="stylesheet" href="~/css/post-toc.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/post-layout.css" asp-append-version="true" />
 }
 
-<article class="container py-5 post-article" style="max-width:780px;" data-analytics-post-id="@Model.Id">
-    @if (TempData["BookmarkMsg"] != null)
-    {
-        <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["BookmarkMsg"]</div>
-    }
-    @if (TempData["ReportMsg"] != null)
-    {
-        <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["ReportMsg"]</div>
-    }
-
-    @if (canEdit)
-    {
-        <div class="d-flex gap-2 mb-4 flex-wrap">
-            <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">ویرایش</a>
-            <form asp-action="Duplicate" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <button class="btn btn-ghost btn-sm" type="submit">کپی</button>
-            </form>
-            <form asp-action="Delete" method="post"
-                  onsubmit="return confirm('انتقال به سطل زباله؟');">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف نرم</button>
-            </form>
-        </div>
-    }
-
-    <div class="d-flex flex-wrap gap-2 mb-2">
-        @if (Model.IsFeatured) { <span class="badge-category">ویژه</span> }
-        @if (Model.IsSticky) { <span class="status-pill sticky">چسبان</span> }
-        @if (Model.IsPremium) { <span class="status-pill featured">@T["mon.premium_badge"]</span> }
-        @if (isSponsored)
-        {
-            <span class="status-pill scheduled">@(string.IsNullOrWhiteSpace(sponsoredLabel) ? T["mon.sponsored_default"] : sponsoredLabel)</span>
-        }
-    </div>
-
-    @if (Model.Category != null)
-    {
-        <span class="badge-category mb-3 d-inline-block" dir="@MarkdownService.DetectDir(Model.Category.Name)">@Model.Category.Name</span>
-    }
-
-    <div class="d-flex justify-content-between align-items-start gap-3 mb-3 flex-wrap">
-        <h1 class="post-title mb-0" dir="@titleDir">@Model.Title</h1>
-
-        <div class="d-flex gap-2 flex-wrap">
-            @if (canBookmark)
+<div class="post-layout" data-analytics-post-id="@Model.Id">
+    @* —— Left: related articles slider —— *@
+    <aside class="post-aside-related" aria-label="مطالب مرتبط">
+        <div class="post-aside-sticky">
+            @if (related.Count > 0)
             {
-                <form asp-controller="Bookmarks" asp-action="Toggle" method="post" class="d-inline">
+                <div class="related-rail" data-related-rail>
+                    <div class="related-rail-head">
+                        <h2 class="related-rail-title">مطالب مرتبط</h2>
+                        <div class="related-rail-nav">
+                            <button type="button" class="related-rail-btn" data-rail-prev aria-label="قبلی">‹</button>
+                            <button type="button" class="related-rail-btn" data-rail-next aria-label="بعدی">›</button>
+                        </div>
+                    </div>
+                    <div class="related-rail-viewport">
+                        <div class="related-rail-track" data-rail-track>
+                            @foreach (var r in related)
+                            {
+                                <div class="related-rail-card">
+                                    <a href="/@Model.LanguageCode/post/@r.Slug">
+                                        <p class="related-rail-card-title" dir="@MarkdownService.DetectDir(r.Title)">@r.Title</p>
+                                        @if (!string.IsNullOrWhiteSpace(r.Summary))
+                                        {
+                                            <p class="related-rail-card-sum" dir="@MarkdownService.DetectDir(r.Summary)">@r.Summary</p>
+                                        }
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </aside>
+
+    @* —— Center: article —— *@
+    <article class="post-main post-article">
+        @if (TempData["BookmarkMsg"] != null)
+        {
+            <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["BookmarkMsg"]</div>
+        }
+        @if (TempData["ReportMsg"] != null)
+        {
+            <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["ReportMsg"]</div>
+        }
+
+        @if (canEdit)
+        {
+            <div class="d-flex gap-2 mb-4 flex-wrap">
+                <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">ویرایش</a>
+                <form asp-action="Duplicate" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
-                    <input type="hidden" name="postId" value="@Model.Id" />
-                    <input type="hidden" name="returnUrl" value="@postUrl" />
-                    <button type="submit" class="btn btn-ghost btn-sm bookmark-btn @(isBookmarked ? "bookmarked" : "")"
-                            title="@(isBookmarked ? "برداشتن نشان" : "نشان‌گذاری")">
-                        @(isBookmarked ? "★ نشان‌شده" : "☆ نشان")
-                    </button>
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button class="btn btn-ghost btn-sm" type="submit">کپی</button>
                 </form>
-            }
-            else
-            {
-                <a class="btn btn-ghost btn-sm bookmark-btn"
-                   asp-controller="Account" asp-action="Login"
-                   asp-route-returnUrl="@postUrl"
-                   title="برای نشان‌گذاری وارد شوید">☆ نشان</a>
-            }
-            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('reportBox').hidden = !document.getElementById('reportBox').hidden">گزارش</button>
-        </div>
-    </div>
-
-    <div id="reportBox" class="card-surface p-3 mb-3" hidden>
-        <form asp-controller="Reports" asp-action="Submit" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="TargetType" value="post" />
-            <input type="hidden" name="TargetId" value="@Model.Id" />
-            <input type="hidden" name="returnUrl" value="@postUrl" />
-            <div class="mb-2">
-                <label class="form-label small">دلیل گزارش</label>
-                <select class="form-select form-select-sm" name="Reason" required>
-                    <option value="spam">هرزنامه</option>
-                    <option value="abuse">محتوای توهین‌آمیز</option>
-                    <option value="copyright">نقض حق نشر</option>
-                    <option value="other">سایر</option>
-                </select>
+                <form asp-action="Delete" method="post"
+                      onsubmit="return confirm('انتقال به سطل زباله؟');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف نرم</button>
+                </form>
             </div>
-            <div class="mb-2">
-                <textarea class="form-control form-control-sm" name="Details" dir="auto" rows="2" maxlength="1000" placeholder="توضیح اختیاری…"></textarea>
-            </div>
-            @if (User.Identity?.IsAuthenticated != true)
-            {
-                <div class="mb-2">
-                    <input class="form-control form-control-sm" name="ReporterName" dir="auto" maxlength="100" placeholder="نام شما (اختیاری)" />
-                </div>
-            }
-            <button type="submit" class="btn btn-outline-danger-dark btn-sm">ارسال گزارش</button>
-        </form>
-    </div>
-
-    <div class="post-meta-line mb-3 d-flex flex-wrap gap-2 align-items-center">
-        @if (Model.Author != null)
-        {
-            <a asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@Model.Author.UserName"
-               class="d-inline-flex align-items-center gap-2 text-decoration-none" style="color:inherit;">
-                <span dir="@MarkdownService.DetectDir(Model.Author.DisplayName)">@Model.Author.DisplayName</span>
-            </a>
-            <span class="meta-sep" aria-hidden="true">·</span>
         }
-        <span>
-            <span class="accent ltr-signature">$</span>
-            <time class="ltr-field" datetime="@PersianDate.Iso(published)">@PersianDate.Date(published)</time>
-        </span>
-        <span class="meta-sep" aria-hidden="true">·</span>
-        <span><span class="ltr-field">@readingMinutes</span> دقیقه مطالعه</span>
-        <span class="meta-sep" aria-hidden="true">·</span>
-        <span><span class="ltr-field">@Model.ViewCount</span> بازدید</span>
-        <span class="meta-sep" aria-hidden="true">·</span>
-        <span>♥ <span class="ltr-field">@Model.LikeCount</span></span>
-    </div>
 
-    <partial name="_ReaderToolbar" />
-
-    <div class="readme-content post-body-island">
-        @Html.Raw(ViewBag.RenderedHtml)
-    </div>
-
-    @if (premiumLocked)
-    {
-        <div class="card-surface p-4 mt-4 text-center">
-            <p class="mb-3">@T["mon.premium_locked"]</p>
-            <a class="btn btn-accent btn-sm" asp-controller="Monetization" asp-action="Membership">@T["mon.premium_cta"]</a>
-            <a class="btn btn-ghost btn-sm" asp-controller="Monetization" asp-action="Donate">@T["mon.donate_title"]</a>
-        </div>
-    }
-
-    @if (ViewBag.SocialPostId != null)
-    {
-        <partial name="_SocialBar" />
-    }
-
-    @if (Model.PostTags.Any())
-    {
-        <div class="d-flex gap-2 flex-wrap mt-5 pt-4" style="border-top:1px solid var(--border-soft);">
-            @foreach (var pt in Model.PostTags)
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            @if (Model.IsFeatured) { <span class="badge-category">ویژه</span> }
+            @if (Model.IsSticky) { <span class="status-pill sticky">چسبان</span> }
+            @if (Model.IsPremium) { <span class="status-pill featured">@T["mon.premium_badge"]</span> }
+            @if (isSponsored)
             {
-                <a class="tag-pill" dir="@MarkdownService.DetectDir(pt.Tag.Name)" asp-controller="Home" asp-action="Index" asp-route-tag="@pt.Tag.Slug">#@pt.Tag.Name</a>
+                <span class="status-pill scheduled">@(string.IsNullOrWhiteSpace(sponsoredLabel) ? T["mon.sponsored_default"] : sponsoredLabel)</span>
             }
         </div>
-    }
 
-    <section class="mt-5 pt-4 comments-section" style="border-top:1px solid var(--border-soft);">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <h2 class="h6 text-muted-dark mb-0">دیدگاه‌ها <span class="ltr-field">(@Model.Comments.Count)</span></h2>
-            <form method="get" asp-action="Details" asp-route-slug="@Model.Slug" class="d-flex align-items-center gap-2">
-                <label class="small text-muted-dark mb-0" for="commentSort">مرتب‌سازی</label>
-                <select class="form-select form-select-sm" id="commentSort" name="sort" style="width:auto;min-width:9rem;"
-                        onchange="this.form.submit()">
-                    <option value="relevant" selected="@(commentSort == "relevant")">مرتبط (پسندها)</option>
-                    <option value="latest" selected="@(commentSort == "latest")">جدیدترین</option>
-                </select>
+        @if (Model.Category != null)
+        {
+            <span class="badge-category mb-3 d-inline-block" dir="@MarkdownService.DetectDir(Model.Category.Name)">@Model.Category.Name</span>
+        }
+
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3 flex-wrap">
+            <h1 class="post-title mb-0" dir="@titleDir">@Model.Title</h1>
+
+            <div class="d-flex gap-2 flex-wrap">
+                @if (canBookmark)
+                {
+                    <form asp-controller="Bookmarks" asp-action="Toggle" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="postId" value="@Model.Id" />
+                        <input type="hidden" name="returnUrl" value="@postUrl" />
+                        <button type="submit" class="btn btn-ghost btn-sm bookmark-btn @(isBookmarked ? "bookmarked" : "")"
+                                title="@(isBookmarked ? "برداشتن نشان" : "نشان‌گذاری")">
+                            @(isBookmarked ? "★ نشان‌شده" : "☆ نشان")
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <a class="btn btn-ghost btn-sm bookmark-btn"
+                       asp-controller="Account" asp-action="Login"
+                       asp-route-returnUrl="@postUrl"
+                       title="برای نشان‌گذاری وارد شوید">☆ نشان</a>
+                }
+                <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('reportBox').hidden = !document.getElementById('reportBox').hidden">گزارش</button>
+            </div>
+        </div>
+
+        <div id="reportBox" class="card-surface p-3 mb-3" hidden>
+            <form asp-controller="Reports" asp-action="Submit" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="TargetType" value="post" />
+                <input type="hidden" name="TargetId" value="@Model.Id" />
+                <input type="hidden" name="returnUrl" value="@postUrl" />
+                <div class="mb-2">
+                    <label class="form-label small">دلیل گزارش</label>
+                    <select class="form-select form-select-sm" name="Reason" required>
+                        <option value="spam">هرزنامه</option>
+                        <option value="abuse">محتوای توهین‌آمیز</option>
+                        <option value="copyright">نقض حق نشر</option>
+                        <option value="other">سایر</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <textarea class="form-control form-control-sm" name="Details" dir="auto" rows="2" maxlength="1000" placeholder="توضیح اختیاری…"></textarea>
+                </div>
+                @if (User.Identity?.IsAuthenticated != true)
+                {
+                    <div class="mb-2">
+                        <input class="form-control form-control-sm" name="ReporterName" dir="auto" maxlength="100" placeholder="نام شما (اختیاری)" />
+                    </div>
+                }
+                <button type="submit" class="btn btn-outline-danger-dark btn-sm">ارسال گزارش</button>
             </form>
         </div>
 
-        @if (TempData["CommentSubmitted"] != null)
-        {
-            <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["CommentSubmitted"]</div>
-        }
+        <div class="post-meta-line mb-3 d-flex flex-wrap gap-2 align-items-center">
+            @if (Model.Author != null)
+            {
+                <a asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@Model.Author.UserName"
+                   class="d-inline-flex align-items-center gap-2 text-decoration-none" style="color:inherit;">
+                    <span dir="@MarkdownService.DetectDir(Model.Author.DisplayName)">@Model.Author.DisplayName</span>
+                </a>
+                <span class="meta-sep" aria-hidden="true">·</span>
+            }
+            <span>
+                <span class="accent ltr-signature">$</span>
+                <time class="ltr-field" datetime="@PersianDate.Iso(published)">@PersianDate.Date(published)</time>
+            </span>
+            <span class="meta-sep" aria-hidden="true">·</span>
+            <span><span class="ltr-field">@readingMinutes</span> دقیقه مطالعه</span>
+            <span class="meta-sep" aria-hidden="true">·</span>
+            <span><span class="ltr-field">@Model.ViewCount</span> بازدید</span>
+            <span class="meta-sep" aria-hidden="true">·</span>
+            <span>♥ <span class="ltr-field">@Model.LikeCount</span></span>
+        </div>
 
-        @foreach (var c in orderedComments)
+        <partial name="_ReaderToolbar" />
+
+        <div class="readme-content post-body-island">
+            @Html.Raw(ViewBag.RenderedHtml)
+        </div>
+
+        @if (premiumLocked)
         {
-            var liked = likedIds.Contains(c.Id);
-            <div class="card-surface p-3 mb-3">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                    <strong dir="@MarkdownService.DetectDir(c.AuthorName)" style="font-size:.9rem;">@c.AuthorName</strong>
-                    <span class="ltr-field small" style="color:var(--text-faint);">@PersianDate.DateTime(c.CreatedAtUtc)</span>
-                </div>
-                <p class="mb-2 mt-2 text-muted-dark" dir="@MarkdownService.DetectDir(c.Body)">@c.Body</p>
-                <div class="d-flex align-items-center gap-2">
-                    @if (canLike)
-                    {
-                        <form asp-controller="Comments" asp-action="ToggleLike" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="commentId" value="@c.Id" />
-                            <input type="hidden" name="returnUrl" value="@(postUrl + "?sort=" + commentSort)" />
-                            <button type="submit" class="btn btn-ghost btn-sm py-0 px-2"
-                                    title="@(liked ? "برداشتن پسند" : "پسندیدن")">
-                                @(liked ? "♥" : "♡")
-                                <span class="ltr-field">@c.LikeCount</span>
-                            </button>
-                        </form>
-                    }
-                    else
-                    {
-                        <a class="btn btn-ghost btn-sm py-0 px-2"
-                           asp-controller="Account" asp-action="Login"
-                           asp-route-returnUrl="@(postUrl + "?sort=" + commentSort)"
-                           title="برای پسندیدن وارد شوید">
-                            ♡ <span class="ltr-field">@c.LikeCount</span>
-                        </a>
-                    }
-                </div>
+            <div class="card-surface p-4 mt-4 text-center">
+                <p class="mb-3">@T["mon.premium_locked"]</p>
+                <a class="btn btn-accent btn-sm" asp-controller="Monetization" asp-action="Membership">@T["mon.premium_cta"]</a>
+                <a class="btn btn-ghost btn-sm" asp-controller="Monetization" asp-action="Donate">@T["mon.donate_title"]</a>
             </div>
         }
 
-        <form asp-action="AddComment" method="post" class="card-surface p-3 mt-3">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="postId" value="@Model.Id" />
-            <div class="mb-2">
-                <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" />
+        @if (ViewBag.SocialPostId != null)
+        {
+            <partial name="_SocialBar" />
+        }
+
+        @if (Model.PostTags.Any())
+        {
+            <div class="d-flex gap-2 flex-wrap mt-5 pt-4" style="border-top:1px solid var(--border-soft);">
+                @foreach (var pt in Model.PostTags)
+                {
+                    <a class="tag-pill" dir="@MarkdownService.DetectDir(pt.Tag.Name)" asp-controller="Home" asp-action="Index" asp-route-tag="@pt.Tag.Slug">#@pt.Tag.Name</a>
+                }
             </div>
-            <div class="mb-2">
-                <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" required maxlength="2000" placeholder="متن دیدگاه… می‌توانید با @@username منشن کنید"></textarea>
+        }
+
+        <section class="mt-5 pt-4 comments-section" style="border-top:1px solid var(--border-soft);">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h2 class="h6 text-muted-dark mb-0">دیدگاه‌ها <span class="ltr-field">(@Model.Comments.Count)</span></h2>
+                <form method="get" asp-action="Details" asp-route-slug="@Model.Slug" class="d-flex align-items-center gap-2">
+                    <label class="small text-muted-dark mb-0" for="commentSort">مرتب‌سازی</label>
+                    <select class="form-select form-select-sm" id="commentSort" name="sort" style="width:auto;min-width:9rem;"
+                            onchange="this.form.submit()">
+                        <option value="relevant" selected="@(commentSort == "relevant")">مرتبط (پسندها)</option>
+                        <option value="latest" selected="@(commentSort == "latest")">جدیدترین</option>
+                    </select>
+                </form>
             </div>
-            <button class="btn btn-accent btn-sm" type="submit">ارسال دیدگاه</button>
-        </form>
-    </section>
-</article>
+
+            @if (TempData["CommentSubmitted"] != null)
+            {
+                <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["CommentSubmitted"]</div>
+            }
+
+            @foreach (var c in orderedComments)
+            {
+                var liked = likedIds.Contains(c.Id);
+                <div class="card-surface p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <strong dir="@MarkdownService.DetectDir(c.AuthorName)" style="font-size:.9rem;">@c.AuthorName</strong>
+                        <span class="ltr-field small" style="color:var(--text-faint);">@PersianDate.DateTime(c.CreatedAtUtc)</span>
+                    </div>
+                    <p class="mb-2 mt-2 text-muted-dark" dir="@MarkdownService.DetectDir(c.Body)">@c.Body</p>
+                    <div class="d-flex align-items-center gap-2">
+                        @if (canLike)
+                        {
+                            <form asp-controller="Comments" asp-action="ToggleLike" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="commentId" value="@c.Id" />
+                                <input type="hidden" name="returnUrl" value="@(postUrl + "?sort=" + commentSort)" />
+                                <button type="submit" class="btn btn-ghost btn-sm py-0 px-2"
+                                        title="@(liked ? "برداشتن پسند" : "پسندیدن")">
+                                    @(liked ? "♥" : "♡")
+                                    <span class="ltr-field">@c.LikeCount</span>
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a class="btn btn-ghost btn-sm py-0 px-2"
+                               asp-controller="Account" asp-action="Login"
+                               asp-route-returnUrl="@(postUrl + "?sort=" + commentSort)"
+                               title="برای پسندیدن وارد شوید">
+                                ♡ <span class="ltr-field">@c.LikeCount</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
+            <form asp-action="AddComment" method="post" class="card-surface p-3 mt-3">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="postId" value="@Model.Id" />
+                <div class="mb-2">
+                    <input class="form-control form-control-sm" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" />
+                </div>
+                <div class="mb-2">
+                    <textarea class="form-control form-control-sm" name="body" dir="auto" rows="3" required maxlength="2000" placeholder="متن دیدگاه… می‌توانید با @@username منشن کنید"></textarea>
+                </div>
+                <button class="btn btn-accent btn-sm" type="submit">ارسال دیدگاه</button>
+            </form>
+        </section>
+    </article>
+
+    @* —— Right: sticky table of contents —— *@
+    <aside class="post-aside-toc" aria-label="فهرست مطالب">
+        <div class="post-aside-sticky">
+            @if (!string.IsNullOrWhiteSpace(tocHtml))
+            {
+                @Html.Raw(tocHtml)
+            }
+        </div>
+    </aside>
+</div>
 
 @section Scripts {
     <script src="~/js/analytics-beacon.js" asp-append-version="true"></script>
     <script src="~/js/post-toc.js" asp-append-version="true"></script>
+    <script src="~/js/related-rail.js" asp-append-version="true"></script>
 }
