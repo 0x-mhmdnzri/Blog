@@ -11,111 +11,296 @@
     var u = Model.Usage;
     var range = Model.RangeDays;
     var json = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    var isSuper = User.IsInRole("SuperAdmin");
 }
 
 <style>
-.pak { max-width: 960px; @(useAdmin ? "" : "margin: 0 auto;") }
-.pak-hero { display:flex; flex-wrap:wrap; gap:1rem; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
-.pak-hero h1 { font-size:1.15rem; font-weight:700; margin:0 0 .3rem; }
-.pak-hero p { font-size:.85rem; color:var(--text-muted); line-height:1.55; margin:0; max-width:36rem; }
-.pak-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.5rem; margin-bottom:1rem; }
-@@media (max-width:700px){ .pak-kpis { grid-template-columns:repeat(2,1fr); } }
-.pak-kpi { background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:.7rem .85rem; min-height:70px; display:flex; flex-direction:column; justify-content:center; }
-.pak-kpi .l { font-size:.7rem; color:var(--text-muted); }
-.pak-kpi .v { font-size:1.2rem; font-weight:700; font-variant-numeric:tabular-nums; }
-.pak-card { background:var(--surface); border:1px solid var(--border-soft); border-radius:14px; padding:1rem 1.1rem; margin-bottom:.65rem; }
-.pak-card.pending { border-color:color-mix(in srgb,#e3b341 45%,var(--border-soft)); }
-.pak-card.approved { border-color:color-mix(in srgb,#9ecb8c 35%,var(--border-soft)); }
-.pak-card.rejected, .pak-card.banned { border-color:color-mix(in srgb,#e5637a 40%,var(--border-soft)); }
-.pak-token { background:color-mix(in srgb,var(--accent) 10%,var(--surface)); border:1px solid color-mix(in srgb,var(--accent) 30%,var(--border-soft)); border-radius:12px; padding:1rem; margin-bottom:1rem; }
-.pak-token code { word-break:break-all; font-size:.85rem; direction:ltr; display:block; }
-.pak-pill { display:inline-flex; font-size:.7rem; font-weight:650; padding:.18rem .55rem; border-radius:999px; }
-.pak-pill.wait { background:color-mix(in srgb,#e3b341 22%,transparent); color:#b8860b; }
-.pak-pill.ok { background:color-mix(in srgb,#9ecb8c 22%,transparent); color:#3d6b3a; }
-.pak-pill.no { background:color-mix(in srgb,#e5637a 22%,transparent); color:#a33; }
-.pak-pill.off { background:color-mix(in srgb,var(--text-muted) 18%,transparent); color:var(--text-muted); }
-[data-theme="dark"] .pak-pill.wait, html.dark .pak-pill.wait { color:#e3b341; }
-[data-theme="dark"] .pak-pill.ok, html.dark .pak-pill.ok { color:#b6e0a8; }
-.pak-chart { height:160px; position:relative; }
-.pak-table-wrap { max-height:240px; overflow:auto; border:1px solid var(--border-soft); border-radius:10px; }
-.pak-table-wrap table { margin:0; width:100%; font-size:.8rem; }
-.pak-table-wrap th { position:sticky; top:0; background:var(--surface); font-size:.72rem; }
-.pak-range { display:flex; gap:.35rem; flex-wrap:wrap; align-items:center; }
-.pak-range a { font-size:.78rem; padding:.3rem .65rem; border-radius:8px; border:1px solid var(--border-soft); text-decoration:none; color:var(--text); }
-.pak-range a.active { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 12%,transparent); }
+.pak { max-width: 1040px; @(useAdmin ? "" : "margin: 0 auto;") }
+.pak-hero {
+  display: flex; flex-wrap: wrap; gap: 1rem 1.5rem;
+  justify-content: space-between; align-items: flex-start;
+  margin-bottom: 1.35rem; padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+.pak-hero h1 {
+  font-size: 1.25rem; font-weight: 700; margin: 0 0 .4rem;
+  letter-spacing: -0.01em;
+}
+.pak-hero .lead {
+  font-size: .88rem; color: var(--text-muted); line-height: 1.6;
+  margin: 0; max-width: 38rem;
+}
+.pak-hero .lead a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.pak-hero .lead a:hover { text-decoration: underline; }
+.pak-hero-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.pak-range {
+  display: inline-flex; gap: 0; border-radius: 10px;
+  border: 1px solid var(--border-soft); overflow: hidden; background: var(--surface);
+}
+.pak-range a {
+  font-size: .78rem; padding: .4rem .75rem; text-decoration: none;
+  color: var(--text-muted); border-left: 1px solid var(--border-soft);
+  transition: background .12s, color .12s;
+}
+.pak-range a:first-child { border-left: none; }
+.pak-range a:hover { color: var(--text); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.pak-range a.active {
+  color: var(--text); background: color-mix(in srgb, var(--accent) 16%, transparent);
+  font-weight: 600;
+}
+.pak-section {
+  margin-bottom: 1.75rem;
+}
+.pak-section-head {
+  display: flex; flex-wrap: wrap; gap: .5rem 1rem;
+  justify-content: space-between; align-items: center;
+  margin-bottom: .85rem;
+}
+.pak-section-title {
+  font-size: .95rem; font-weight: 700; margin: 0;
+  display: flex; align-items: center; gap: .45rem;
+}
+.pak-section-title .count {
+  font-size: .75rem; font-weight: 600; color: var(--text-muted);
+  background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+  padding: .15rem .5rem; border-radius: 999px;
+}
+.pak-kpis {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .65rem; margin-bottom: 1rem;
+}
+@@media (max-width: 700px) { .pak-kpis { grid-template-columns: repeat(2, 1fr); } }
+.pak-kpi {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 12px; padding: .85rem 1rem;
+  min-height: 76px; display: flex; flex-direction: column; justify-content: center;
+  transition: border-color .15s;
+}
+.pak-kpi:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--border-soft)); }
+.pak-kpi .l { font-size: .72rem; color: var(--text-muted); margin-bottom: .2rem; }
+.pak-kpi .v {
+  font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.pak-kpi.warn .v { color: #e5637a; }
+.pak-card {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 14px; padding: 1.1rem 1.2rem; margin-bottom: .7rem;
+}
+.pak-card.pending { border-color: color-mix(in srgb, #e3b341 50%, var(--border-soft)); }
+.pak-card.approved { border-color: color-mix(in srgb, #9ecb8c 40%, var(--border-soft)); }
+.pak-card.rejected, .pak-card.banned { border-color: color-mix(in srgb, #e5637a 45%, var(--border-soft)); }
+.pak-token {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-soft));
+  border-radius: 14px; padding: 1.15rem 1.25rem; margin-bottom: 1.25rem;
+}
+.pak-token code {
+  word-break: break-all; font-size: .88rem; direction: ltr;
+  display: block; margin-top: .35rem; line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.pak-token-warn {
+  font-size: .8rem; margin-top: .65rem; color: #b8860b;
+  display: flex; align-items: flex-start; gap: .4rem;
+}
+[data-theme="dark"] .pak-token-warn, html.dark .pak-token-warn { color: #e3b341; }
+.pak-pill {
+  display: inline-flex; align-items: center; font-size: .7rem; font-weight: 650;
+  padding: .2rem .55rem; border-radius: 999px; letter-spacing: .01em;
+}
+.pak-pill.wait { background: color-mix(in srgb, #e3b341 22%, transparent); color: #b8860b; }
+.pak-pill.ok { background: color-mix(in srgb, #9ecb8c 22%, transparent); color: #3d6b3a; }
+.pak-pill.no { background: color-mix(in srgb, #e5637a 22%, transparent); color: #a33; }
+.pak-pill.off { background: color-mix(in srgb, var(--text-muted) 18%, transparent); color: var(--text-muted); }
+[data-theme="dark"] .pak-pill.wait, html.dark .pak-pill.wait { color: #e3b341; }
+[data-theme="dark"] .pak-pill.ok, html.dark .pak-pill.ok { color: #b6e0a8; }
+[data-theme="dark"] .pak-pill.no, html.dark .pak-pill.no { color: #f5a3b0; }
+.pak-chart { height: 170px; position: relative; }
+.pak-table-wrap {
+  max-height: 220px; overflow: auto;
+  border: 1px solid var(--border-soft); border-radius: 10px;
+}
+.pak-table-wrap table { margin: 0; width: 100%; font-size: .8rem; }
+.pak-table-wrap th {
+  position: sticky; top: 0; background: var(--surface);
+  font-size: .72rem; font-weight: 600; color: var(--text-muted);
+  border-bottom: 1px solid var(--border-soft);
+}
+.pak-table-wrap td { vertical-align: middle; }
 .pak-copy {
-  width:2rem; height:2rem; border-radius:8px; border:1px solid var(--border-soft);
-  background:var(--surface); color:var(--text); cursor:pointer;
-  display:inline-flex; align-items:center; justify-content:center; padding:0;
+  width: 2rem; height: 2rem; border-radius: 8px;
+  border: 1px solid var(--border-soft); background: var(--surface);
+  color: var(--text); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  flex-shrink: 0; transition: border-color .12s, color .12s;
 }
-.pak-copy:hover { border-color:var(--accent); color:var(--accent); }
-.pak-copy.ok { border-color:#9ecb8c; color:#9ecb8c; }
-.pak-copy svg { width:1rem; height:1rem; }
+.pak-copy:hover { border-color: var(--accent); color: var(--accent); }
+.pak-copy.ok { border-color: #9ecb8c; color: #9ecb8c; }
+.pak-copy svg { width: 1rem; height: 1rem; }
 .pak-toast {
-  position:fixed; bottom:1.25rem; left:50%; transform:translateX(-50%);
-  background:var(--surface); border:1px solid var(--border-soft); color:var(--text);
-  padding:.55rem 1rem; border-radius:999px; font-size:.85rem; z-index:10050;
-  box-shadow:0 8px 24px rgba(0,0,0,.2); display:none;
+  position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%);
+  background: var(--surface); border: 1px solid var(--border-soft); color: var(--text);
+  padding: .55rem 1.15rem; border-radius: 999px; font-size: .85rem; z-index: 10050;
+  box-shadow: 0 8px 28px rgba(0,0,0,.22); display: none;
 }
-.pak-keys-head { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
+.pak-alert {
+  padding: .7rem 1rem; border-radius: 12px; margin-bottom: 1rem;
+  font-size: .85rem; line-height: 1.5;
+}
+.pak-alert.ok {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border-soft));
+}
+.pak-alert.err {
+  background: color-mix(in srgb, #e5637a 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, #e5637a 35%, var(--border-soft));
+  color: #c44;
+}
+[data-theme="dark"] .pak-alert.err, html.dark .pak-alert.err { color: #f5a3b0; }
+.pak-form-label {
+  font-size: .78rem; font-weight: 500; color: var(--text-muted);
+  margin-bottom: .3rem; display: block;
+}
+.pak-key-row {
+  display: flex; flex-wrap: wrap; justify-content: space-between;
+  gap: .75rem 1rem; align-items: flex-start;
+}
+.pak-key-main { flex: 1; min-width: 0; }
+.pak-key-title {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .55rem;
+  margin-bottom: .4rem;
+}
+.pak-key-name { font-weight: 650; font-size: .95rem; }
+.pak-key-meta {
+  font-size: .78rem; color: var(--text-muted);
+  display: flex; flex-wrap: wrap; gap: .35rem .9rem; align-items: center;
+}
+.pak-key-meta code {
+  font-size: .75rem; padding: .1rem .4rem; border-radius: 5px;
+  background: color-mix(in srgb, var(--text-muted) 10%, transparent);
+  border: 1px solid var(--border-soft); direction: ltr;
+}
+.pak-key-actions {
+  display: flex; flex-wrap: wrap; gap: .35rem; align-items: center;
+  flex-shrink: 0;
+}
+.pak-empty {
+  text-align: center; padding: 2rem 1rem; border-radius: 14px;
+  border: 1px dashed var(--border-soft); color: var(--text-muted); font-size: .88rem;
+}
+.pak-staff-banner {
+  display: flex; flex-wrap: wrap; gap: .75rem; align-items: center;
+  justify-content: space-between;
+  padding: .75rem 1rem; margin-bottom: 1.25rem; border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-soft));
+  font-size: .84rem;
+}
+.pak-staff-banner p { margin: 0; color: var(--text-muted); line-height: 1.45; }
+.pak-staff-banner strong { color: var(--text); }
+.pak-grid-2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .75rem;
+}
+@@media (max-width: 900px) { .pak-grid-2 { grid-template-columns: 1fr; } }
+.pak-subhead {
+  font-size: .82rem; font-weight: 600; margin: 0 0 .6rem;
+  color: var(--text-muted);
+}
 </style>
 
 <div class="@(useAdmin ? "" : "container py-4") pak">
+
+    @* ── Header ─────────────────────────────────────────── *@
     <div class="pak-hero">
         <div>
             <h1>کلیدهای API من</h1>
-            <p>
-                با آیکن کلیپبورد هر زمان توکن را کپی کنید. چند کلید دارید؟ خروجی CSV بگیرید.
+            <p class="lead">
+                توکن‌ها را با آیکن کلیپبورد کپی کنید. چند کلید دارید؟ خروجی CSV بگیرید.
                 راهنما: <a href="/developers">/developers</a>
             </p>
         </div>
-        <div class="pak-range">
-            <a class="@(range==7?"active":"")" asp-action="Index" asp-route-range="7">۷ روز</a>
-            <a class="@(range==30?"active":"")" asp-action="Index" asp-route-range="30">۳۰ روز</a>
-            <a class="@(range==90?"active":"")" asp-action="Index" asp-route-range="90">۹۰ روز</a>
+        <div class="pak-hero-actions">
+            <div class="pak-range" role="group" aria-label="بازه زمانی">
+                <a class="@(range==7?"active":"")" asp-action="Index" asp-route-range="7">۷ روز</a>
+                <a class="@(range==30?"active":"")" asp-action="Index" asp-route-range="30">۳۰ روز</a>
+                <a class="@(range==90?"active":"")" asp-action="Index" asp-route-range="90">۹۰ روز</a>
+            </div>
         </div>
     </div>
 
+    @if (useAdmin && isSuper)
+    {
+        <div class="pak-staff-banner">
+            <p>
+                <strong>نمای شخصی شماست.</strong>
+                برای تأیید / بن / مدیریت کلیدهای همهٔ کاربران به پنل ادمین بروید.
+            </p>
+            <a class="btn btn-accent btn-sm" href="/AdminApiKeys">مدیریت همه کلیدها</a>
+        </div>
+    }
+
     @if (TempData["Msg"] != null)
     {
-        <div class="pak-card small">@TempData["Msg"]</div>
+        <div class="pak-alert ok">@TempData["Msg"]</div>
     }
     @if (TempData["Err"] != null)
     {
-        <div class="pak-card small" style="border-color:var(--danger,#e5637a);">@TempData["Err"]</div>
+        <div class="pak-alert err">@TempData["Err"]</div>
     }
+
     @if (!string.IsNullOrEmpty(newToken))
     {
         <div class="pak-token">
-            <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
-                <div class="small text-muted-dark">توکن جدید</div>
-                <button type="button" class="pak-copy" data-copy-text="@newToken" title="کپی توکن">
+            <div class="d-flex justify-content-between align-items-center gap-2">
+                <div class="small fw-semibold" style="color:var(--text-muted);">توکن جدید — همین حالا کپی کنید</div>
+                <button type="button" class="pak-copy" data-copy-text="@newToken" title="کپی توکن" aria-label="کپی توکن">
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
                 </button>
             </div>
             <code class="ltr-field">@newToken</code>
-            <div class="small mt-2" style="color:#e3b341;">تا تأیید سوپرادمین قابل استفاده نیست — بعداً هم از لیست زیر کپی کنید.</div>
+            <div class="pak-token-warn">
+                <span aria-hidden="true">⚠</span>
+                <span>تا تأیید سوپرادمین قابل استفاده نیست. بعداً هم از لیست زیر می‌توانید دوباره کپی کنید.</span>
+            </div>
         </div>
     }
 
-    <div class="pak-kpis">
-        <div class="pak-kpi"><div class="l">درخواست‌های من</div><div class="v ltr-field">@u.TotalRequests</div></div>
-        <div class="pak-kpi"><div class="l">خطا</div><div class="v ltr-field">@u.ErrorCount</div></div>
-        <div class="pak-kpi"><div class="l">۴۲۹</div><div class="v ltr-field">@u.RateLimitedCount</div></div>
-        <div class="pak-kpi"><div class="l">میانگین ms</div><div class="v ltr-field">@u.AvgDurationMs</div></div>
-    </div>
-
-    <div class="pak-card mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong style="font-size:.9rem;">روند درخواست‌های من</strong>
+    @* ── Usage KPIs ─────────────────────────────────────── *@
+    <section class="pak-section" aria-labelledby="pak-usage-title">
+        <div class="pak-section-head">
+            <h2 id="pak-usage-title" class="pak-section-title">مصرف API من</h2>
         </div>
-        <div class="pak-chart"><canvas id="selfApiChart"></canvas></div>
-    </div>
+        <div class="pak-kpis">
+            <div class="pak-kpi">
+                <div class="l">درخواست‌ها</div>
+                <div class="v ltr-field">@u.TotalRequests</div>
+            </div>
+            <div class="pak-kpi @(u.ErrorCount > 0 ? "warn" : "")">
+                <div class="l">خطا</div>
+                <div class="v ltr-field">@u.ErrorCount</div>
+            </div>
+            <div class="pak-kpi @(u.RateLimitedCount > 0 ? "warn" : "")">
+                <div class="l">محدودیت (۴۲۹)</div>
+                <div class="v ltr-field">@u.RateLimitedCount</div>
+            </div>
+            <div class="pak-kpi">
+                <div class="l">میانگین پاسخ (ms)</div>
+                <div class="v ltr-field">@u.AvgDurationMs</div>
+            </div>
+        </div>
 
-    <div class="row g-2 mb-3">
-        <div class="col-lg-6">
-            <div class="pak-card h-100">
-                <strong class="d-block mb-2" style="font-size:.88rem;">Top endpoints</strong>
+        <div class="pak-card mb-0">
+            <div class="pak-subhead">روند درخواست‌ها</div>
+            <div class="pak-chart"><canvas id="selfApiChart" aria-label="نمودار درخواست‌های روزانه"></canvas></div>
+        </div>
+    </section>
+
+    @* ── Endpoints + recent ──────────────────────────────── *@
+    <section class="pak-section">
+        <div class="pak-grid-2">
+            <div class="pak-card h-100 mb-0">
+                <div class="pak-subhead">پرکاربردترین endpointها</div>
                 @if (u.TopEndpoints.Count == 0)
                 {
                     <p class="small text-muted-dark mb-0">هنوز فراخوانی ثبت نشده.</p>
@@ -124,7 +309,14 @@
                 {
                     <div class="pak-table-wrap">
                         <table class="table table-sm mb-0">
-                            <thead><tr><th>Endpoint</th><th class="ltr-field">N</th><th class="ltr-field">Err</th><th class="ltr-field">ms</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th class="ltr-field">N</th>
+                                    <th class="ltr-field">Err</th>
+                                    <th class="ltr-field">ms</th>
+                                </tr>
+                            </thead>
                             <tbody>
                             @foreach (var e in u.TopEndpoints)
                             {
@@ -140,10 +332,8 @@
                     </div>
                 }
             </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="pak-card h-100">
-                <strong class="d-block mb-2" style="font-size:.88rem;">آخرین فراخوانی‌ها</strong>
+            <div class="pak-card h-100 mb-0">
+                <div class="pak-subhead">آخرین فراخوانی‌ها</div>
                 @if (u.Recent.Count == 0)
                 {
                     <p class="small text-muted-dark mb-0">—</p>
@@ -152,7 +342,14 @@
                 {
                     <div class="pak-table-wrap">
                         <table class="table table-sm mb-0">
-                            <thead><tr><th>زمان</th><th>Path</th><th class="ltr-field">Code</th><th class="ltr-field">ms</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>زمان</th>
+                                    <th>Path</th>
+                                    <th class="ltr-field">Code</th>
+                                    <th class="ltr-field">ms</th>
+                                </tr>
+                            </thead>
                             <tbody>
                             @foreach (var r in u.Recent)
                             {
@@ -169,96 +366,117 @@
                 }
             </div>
         </div>
-    </div>
+    </section>
 
-    <form asp-action="Create" method="post" class="pak-card mb-4">
-        @Html.AntiForgeryToken()
-        <div class="fw-semibold mb-2" style="font-size:.9rem;">درخواست کلید جدید</div>
-        <div class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label small">نام</label>
-                <input class="form-control form-control-sm" name="name" required maxlength="120" placeholder="مثلاً CI / script" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label small">Scopes</label>
-                <input class="form-control form-control-sm ltr-field" name="scopes" value="read" placeholder="read,write,webhooks" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small">انقضا (روز)</label>
-                <input class="form-control form-control-sm ltr-field" name="expiresInDays" type="number" min="1" max="3650" placeholder="—" />
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-accent btn-sm w-100">درخواست</button>
-            </div>
+    @* ── Create key ─────────────────────────────────────── *@
+    <section class="pak-section" aria-labelledby="pak-create-title">
+        <div class="pak-section-head">
+            <h2 id="pak-create-title" class="pak-section-title">درخواست کلید جدید</h2>
         </div>
-    </form>
-
-    <div class="pak-keys-head">
-        <strong style="font-size:.9rem;">کلیدهای شما (@list.Count)</strong>
-        @if (list.Count > 0)
-        {
-            <div class="d-flex gap-2 flex-wrap">
-                <a class="btn btn-ghost btn-sm" asp-action="ExportCsv" asp-route-includeTokens="true" title="خروجی با توکن‌ها">خروجی CSV (+ توکن)</a>
-                <a class="btn btn-ghost btn-sm" asp-action="ExportCsv" asp-route-includeTokens="false" title="فقط متادیتا">CSV بدون توکن</a>
+        <form asp-action="Create" method="post" class="pak-card mb-0">
+            @Html.AntiForgeryToken()
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="pak-form-label" for="pak-name">نام</label>
+                    <input id="pak-name" class="form-control form-control-sm" name="name" required maxlength="120" placeholder="مثلاً CI / script" autocomplete="off" />
+                </div>
+                <div class="col-md-4">
+                    <label class="pak-form-label" for="pak-scopes">Scopes</label>
+                    <input id="pak-scopes" class="form-control form-control-sm ltr-field" name="scopes" value="read" placeholder="read,write,webhooks" />
+                </div>
+                <div class="col-md-2">
+                    <label class="pak-form-label" for="pak-exp">انقضا (روز)</label>
+                    <input id="pak-exp" class="form-control form-control-sm ltr-field" name="expiresInDays" type="number" min="1" max="3650" placeholder="—" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-accent btn-sm w-100">درخواست</button>
+                </div>
             </div>
-        }
-    </div>
+            <p class="small text-muted-dark mt-2 mb-0" style="line-height:1.5;">
+                کلید پس از ساخت در وضعیت «در انتظار تأیید» قرار می‌گیرد و تا تأیید سوپرادمین کار نمی‌کند.
+            </p>
+        </form>
+    </section>
 
-    @if (list.Count == 0)
-    {
-        <div class="pak-card text-center text-muted-dark small">هنوز کلیدی ندارید.</div>
-    }
-    else
-    {
-        @foreach (var k in list)
+    @* ── Key list ───────────────────────────────────────── *@
+    <section class="pak-section" aria-labelledby="pak-keys-title">
+        <div class="pak-section-head">
+            <h2 id="pak-keys-title" class="pak-section-title">
+                کلیدهای شما
+                <span class="count">@list.Count</span>
+            </h2>
+            @if (list.Count > 0)
+            {
+                <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-ghost btn-sm" asp-action="ExportCsv" asp-route-includeTokens="true" title="خروجی با توکن‌ها">CSV (+ توکن)</a>
+                    <a class="btn btn-ghost btn-sm" asp-action="ExportCsv" asp-route-includeTokens="false" title="فقط متادیتا">CSV بدون توکن</a>
+                </div>
+            }
+        </div>
+
+        @if (list.Count == 0)
         {
-            var stateClass = k.IsBanned ? "banned"
-                : k.ApprovalStatus == ApiKeyApprovalStatus.Pending ? "pending"
-                : k.ApprovalStatus == ApiKeyApprovalStatus.Rejected ? "rejected"
-                : k.IsUsable ? "approved" : "";
-            <article class="pak-card @stateClass">
-                <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
-                    <div class="flex-grow-1" style="min-width:0;">
-                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                            <strong>@k.Name</strong>
-                            @if (k.IsBanned) { <span class="pak-pill no">بن</span> }
-                            else if (k.ApprovalStatus == ApiKeyApprovalStatus.Pending) { <span class="pak-pill wait">در انتظار تأیید</span> }
-                            else if (k.ApprovalStatus == ApiKeyApprovalStatus.Rejected) { <span class="pak-pill no">رد شده</span> }
-                            else if (!k.IsActive) { <span class="pak-pill off">باطل</span> }
-                            else { <span class="pak-pill ok">تأیید و فعال</span> }
-                            <code class="ltr-field small">@k.KeyPrefix…</code>
-                            @if (k.CanRevealToken)
-                            {
-                                <button type="button" class="pak-copy" data-reveal-id="@k.Id" title="کپی توکن کامل">
-                                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                                </button>
-                            }
-                            else
-                            {
-                                <span class="small text-muted-dark" title="کلید قدیمی — توکن ذخیره نشده">بدون کپی</span>
-                            }
+            <div class="pak-empty">هنوز کلیدی ندارید. از فرم بالا درخواست دهید.</div>
+        }
+        else
+        {
+            @foreach (var k in list)
+            {
+                var stateClass = k.IsBanned ? "banned"
+                    : k.ApprovalStatus == ApiKeyApprovalStatus.Pending ? "pending"
+                    : k.ApprovalStatus == ApiKeyApprovalStatus.Rejected ? "rejected"
+                    : k.IsUsable ? "approved" : "";
+                <article class="pak-card @stateClass">
+                    <div class="pak-key-row">
+                        <div class="pak-key-main">
+                            <div class="pak-key-title">
+                                <span class="pak-key-name">@k.Name</span>
+                                @if (k.IsBanned) { <span class="pak-pill no">بن</span> }
+                                else if (k.ApprovalStatus == ApiKeyApprovalStatus.Pending) { <span class="pak-pill wait">در انتظار تأیید</span> }
+                                else if (k.ApprovalStatus == ApiKeyApprovalStatus.Rejected) { <span class="pak-pill no">رد شده</span> }
+                                else if (!k.IsActive) { <span class="pak-pill off">باطل</span> }
+                                else { <span class="pak-pill ok">تأیید و فعال</span> }
+                            </div>
+                            <div class="pak-key-meta">
+                                <code class="ltr-field">@k.KeyPrefix…</code>
+                                <span class="ltr-field">scopes: @k.Scopes</span>
+                                <span class="ltr-field">درخواست‌ها: @k.RequestCount</span>
+                                @if (k.ExpiresAtUtc is { } exp)
+                                {
+                                    <span class="ltr-field">انقضا: @exp.ToString("yyyy-MM-dd")</span>
+                                }
+                                @if (k.CanRevealToken)
+                                {
+                                    <button type="button" class="pak-copy" data-reveal-id="@k.Id" title="کپی توکن کامل" aria-label="کپی توکن کامل">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="small" title="کلید قدیمی — توکن ذخیره نشده">بدون کپی</span>
+                                }
+                            </div>
                         </div>
-                        <div class="small text-muted-dark ltr-field">scopes: @k.Scopes · lifetime req: @k.RequestCount</div>
-                    </div>
-                    <div class="d-flex gap-1">
-                        @if (k.IsActive && !k.IsBanned && k.ApprovalStatus != ApiKeyApprovalStatus.Rejected)
-                        {
-                            <form asp-action="Revoke" method="post">
+                        <div class="pak-key-actions">
+                            @if (k.IsActive && !k.IsBanned && k.ApprovalStatus != ApiKeyApprovalStatus.Rejected)
+                            {
+                                <form asp-action="Revoke" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@k.Id" />
+                                    <button class="btn btn-ghost btn-sm" type="submit">باطل</button>
+                                </form>
+                            }
+                            <form asp-action="Delete" method="post" onsubmit="return confirm('حذف دائمی این کلید؟');">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@k.Id" />
-                                <button class="btn btn-ghost btn-sm" type="submit">باطل</button>
+                                <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف</button>
                             </form>
-                        }
-                        <form asp-action="Delete" method="post" onsubmit="return confirm('حذف؟');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@k.Id" />
-                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف</button>
-                        </form>
+                        </div>
                     </div>
-                </div>
-            </article>
+                </article>
+            }
         }
-    }
+    </section>
 </div>
 
 <div class="pak-toast" id="pakToast" role="status"></div>
@@ -337,7 +555,10 @@
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
-          scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 4 } } }
+          scales: {
+            x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+            y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 4 } }
+          }
         }
       });
     }
