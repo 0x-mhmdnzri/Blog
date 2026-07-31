@@ -25,6 +25,7 @@
 @section Head {
     <script type="application/ld+json">@Html.Raw(ViewBag.PostJsonLd)</script>
     <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
+    <link rel="stylesheet" href="~/css/post-toc.css" asp-append-version="true" />
 }
 
 <article class="container py-5 post-article" style="max-width:780px;" data-analytics-post-id="@Model.Id">
@@ -161,7 +162,6 @@
         </div>
     }
 
-    @* Social Features: likes, reactions, share, follow *@
     @if (ViewBag.SocialPostId != null)
     {
         <partial name="_SocialBar" />
@@ -247,4 +247,5 @@
 
 @section Scripts {
     <script src="~/js/analytics-beacon.js" asp-append-version="true"></script>
+    <script src="~/js/post-toc.js" asp-append-version="true"></script>
 }
