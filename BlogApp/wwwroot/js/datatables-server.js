@@ -1,8 +1,6 @@
 /**
- * BlogApp — server-side DataTables helper (single entry point).
- *
- * Language strings come from window.__i18n (seeded by _AdminLayout from parrot DB).
- * Optional exportUrl: server endpoint that exports ALL matching rows as CSV (not page-limited).
+ * BlogApp — server-side DataTables helper.
+ * Alignment-safe table-layout, toolbar with CSV export, cell title tooltips.
  */
 window.BlogDT = (function () {
   function isRtl() {
@@ -39,7 +37,6 @@ window.BlogDT = (function () {
     };
   }
 
-  /** Build export URL with current DataTables search + optional extra query params. */
   function buildExportUrl(baseUrl, table, extraParams) {
     var url = new URL(baseUrl, window.location.origin);
     var search = '';
@@ -56,33 +53,85 @@ window.BlogDT = (function () {
     return url.pathname + url.search;
   }
 
-  function injectExportButton($table, table, exportUrl, exportParams) {
-    if (!exportUrl) return;
-    var wrap = $table.closest('.dataTables_wrapper');
-    if (!wrap.length) return;
-    var toolbar = wrap.find('.dt-toolbar, .row').first();
-    if (!toolbar.length) toolbar = wrap;
-
-    var label = i18n('dt.export_csv', 'خروجی CSV');
-    var btn = jQuery(
-      '<button type="button" class="btn btn-sm btn-ghost dt-export-csv" title="' +
-        label +
-        '">' +
-        '<span aria-hidden="true">↓</span> ' +
-        label +
-        '</button>'
+  function exportIconSvg() {
+    return (
+      '<svg class="dt-export-ico" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">' +
+      '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' +
+      '</svg>'
     );
-    btn.on('click', function () {
-      window.location.href = buildExportUrl(exportUrl, table, exportParams);
+  }
+
+  /** Build a clean toolbar: [Export] [Length] …… [Search] */
+  function buildToolbar(wrap, table, exportUrl, exportParams) {
+    if (wrap.find('.dt-toolbar-bar').length) return;
+
+    var bar = jQuery(
+      '<div class="dt-toolbar-bar" role="toolbar">' +
+        '<div class="dt-toolbar-start"></div>' +
+        '<div class="dt-toolbar-end"></div>' +
+      '</div>'
+    );
+
+    var length = wrap.find('.dataTables_length');
+    var filter = wrap.find('.dataTables_filter');
+    var start = bar.find('.dt-toolbar-start');
+    var end = bar.find('.dt-toolbar-end');
+
+    if (exportUrl) {
+      var label = i18n('dt.export_csv', 'خروجی CSV');
+      var btn = jQuery(
+        '<button type="button" class="dt-export-csv" title="' +
+          label +
+          ' — تمام نتایج فیلترشده">' +
+          exportIconSvg() +
+          '<span>' +
+          label +
+          '</span></button>'
+      );
+      btn.on('click', function () {
+        window.location.href = buildExportUrl(exportUrl, table, exportParams);
+      });
+      start.append(btn);
+    }
+
+    if (length.length) start.append(length);
+    if (filter.length) end.append(filter);
+
+    // Remove empty Bootstrap row that held length/filter
+    wrap.find('.row.dt-toolbar').remove();
+    wrap.find('> .row').each(function () {
+      var $r = jQuery(this);
+      if (!$r.find('table, .dataTables_info, .dataTables_paginate, .dt-scroll').length &&
+          !$r.find('.dataTables_length, .dataTables_filter').length) {
+        $r.remove();
+      }
     });
 
-    // Place next to length/search toolbar
-    var lengthDiv = wrap.find('.dataTables_length').parent();
-    if (lengthDiv.length) {
-      lengthDiv.prepend(btn.css({ marginInlineEnd: '0.5rem', marginBottom: '0.35rem' }));
-    } else {
-      toolbar.prepend(btn);
-    }
+    wrap.prepend(bar);
+  }
+
+  /** Wrap table in horizontal scroll container once. */
+  function ensureScroll($table) {
+    if ($table.parent().hasClass('dt-scroll')) return;
+    $table.wrap('<div class="dt-scroll"></div>');
+  }
+
+  /** Set title= plain text for truncated cells so hover shows full value. */
+  function decorateCells(selector) {
+    document.querySelectorAll(selector + ' tbody td').forEach(function (td) {
+      if (td.classList.contains('dt-actions') || td.classList.contains('dataTables_empty')) return;
+      // Skip cells that already have interactive content as primary
+      if (td.querySelector('form, button, a.btn, select')) {
+        td.classList.add('dt-actions');
+        return;
+      }
+      var text = (td.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text.length > 24) {
+        td.setAttribute('title', text);
+      } else {
+        td.removeAttribute('title');
+      }
+    });
   }
 
   function init(selector, options) {
@@ -107,7 +156,8 @@ window.BlogDT = (function () {
       pageLength: 25,
       lengthMenu: [10, 25, 50, 100],
       stateSave: true,
-      autoWidth: false,
+      autoWidth: false, // critical — with table-layout:fixed
+      scrollX: false,
       dom:
         "<'row dt-toolbar'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
         "<'row'<'col-sm-12'tr>>" +
@@ -121,11 +171,17 @@ window.BlogDT = (function () {
     if (!opts.columnDefs) opts.columnDefs = [];
 
     var $table = jQuery(selector);
+    // Drop legacy nowrap that fights ellipsis layout
+    $table.removeClass('nowrap');
+
     if (!$table.closest('.admin-table-wrap').length) {
       $table.wrap('<div class="admin-table-wrap"></div>');
     }
 
     var table = $table.DataTable(opts);
+    var wrap = $table.closest('.dataTables_wrapper');
+
+    ensureScroll($table);
 
     table.on('draw', function () {
       document.querySelectorAll(selector + ' form[data-confirm]').forEach(function (form) {
@@ -135,11 +191,13 @@ window.BlogDT = (function () {
           if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
         });
       });
+      decorateCells(selector);
     });
 
-    // Export button after first draw so wrapper exists
     table.one('draw', function () {
-      injectExportButton($table, table, exportUrl, exportParams);
+      buildToolbar(wrap, table, exportUrl, exportParams);
+      ensureScroll($table);
+      decorateCells(selector);
     });
 
     return table;

@@ -1,37 +1,62 @@
 /* =========================================================================
-   DataTables — single modular skin for all admin tables
-   Uses design tokens from dark-theme.css only (no hard-coded interrupt colors).
-   Edit THIS file to change every server-side table UI.
+   DataTables — admin skin (alignment-safe, RTL-aware, polished toolbar)
    ========================================================================= */
 
-/* ---- Wrapper shell ---- */
+/* ---- Card shell ---- */
 .admin-table-wrap {
   width: 100%;
-  overflow: hidden;
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
   background: var(--surface);
+  overflow: hidden; /* clip radius; scroll lives on .dt-scroll */
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
 }
 
 .admin-table-wrap .dataTables_wrapper {
   color: var(--text-muted);
   font-size: 0.9rem;
   padding: 0;
+  width: 100%;
 }
 
-/* ---- Top toolbar: length + search ---- */
-.admin-table-wrap .dataTables_wrapper > .row:first-child,
-.admin-table-wrap .dataTables_wrapper .dt-layout-row:first-child,
-.admin-table-wrap .dataTables_wrapper .top {
+/* Kill Bootstrap row negative margins that break alignment */
+.admin-table-wrap .dataTables_wrapper > .row,
+.admin-table-wrap .dataTables_wrapper .dt-layout-row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  --bs-gutter-x: 0;
+}
+
+.admin-table-wrap .dataTables_wrapper > .row > [class*="col-"],
+.admin-table-wrap .dataTables_wrapper .dt-layout-cell {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* ---- Unified toolbar (export · length · search) ---- */
+.admin-table-wrap .dt-toolbar-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem 1rem;
-  padding: 0.9rem 1.1rem;
+  padding: 0.85rem 1.15rem;
   border-bottom: 1px solid var(--border-soft);
-  background: var(--surface-2);
-  margin: 0 !important;
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+}
+
+.admin-table-wrap .dt-toolbar-start,
+.admin-table-wrap .dt-toolbar-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+}
+
+/* Hide default first/last DT rows when we use custom toolbar */
+.admin-table-wrap .dataTables_wrapper > .row.dt-toolbar,
+.admin-table-wrap .dataTables_wrapper > .row:first-of-type:not(.dt-footer) {
+  /* still used as source; content moved via JS into .dt-toolbar-bar */
 }
 
 .admin-table-wrap .dataTables_length,
@@ -61,18 +86,18 @@
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.7rem;
+  border-radius: 10px;
+  padding: 0.42rem 0.75rem;
   font-size: 0.86rem;
   line-height: 1.3;
   margin: 0 !important;
-  min-height: 2.1rem;
+  min-height: 2.15rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .admin-table-wrap .dataTables_filter input {
-  min-width: 11rem;
-  max-width: 16rem;
+  min-width: 12rem;
+  max-width: 18rem;
 }
 
 .admin-table-wrap .dataTables_length select {
@@ -92,13 +117,67 @@
   color: var(--text-faint);
 }
 
-/* ---- Table itself ---- */
+/* CSV export — primary toolbar action */
+.admin-table-wrap .dt-export-csv {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.15rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.admin-table-wrap .dt-export-csv:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.admin-table-wrap .dt-export-csv:active {
+  transform: translateY(1px);
+}
+
+.admin-table-wrap .dt-export-csv .dt-export-ico {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+/* ---- Scroll body: keeps header/body columns locked ---- */
+.admin-table-wrap .dt-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---- Table: fixed layout prevents column drift ---- */
 .admin-table-wrap table.dataTable {
   width: 100% !important;
   margin: 0 !important;
-  border-collapse: collapse;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
   border: none !important;
   background: transparent;
+  table-layout: fixed; /* critical for header ↔ body alignment */
+}
+
+/* Remove DataTables nowrap class effect when present */
+.admin-table-wrap table.dataTable.nowrap th,
+.admin-table-wrap table.dataTable.nowrap td {
+  white-space: normal;
 }
 
 .admin-table-wrap table.dataTable thead th {
@@ -111,35 +190,39 @@
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border) !important;
   border-top: none !important;
-  white-space: nowrap;
   vertical-align: middle;
   cursor: pointer;
   user-select: none;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  /* Truncate long headers */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-table-wrap table.dataTable thead th.sorting_disabled {
   cursor: default;
 }
 
-/* Kill default DataTables sort icons (arrows look noisy) */
+/* Sort icons */
 .admin-table-wrap table.dataTable thead th.sorting:before,
-.admin-table-wrap table.dataTable thead th.sorting:after,
 .admin-table-wrap table.dataTable thead th.sorting_asc:before,
-.admin-table-wrap table.dataTable thead th.sorting_asc:after,
 .admin-table-wrap table.dataTable thead th.sorting_desc:before,
+.admin-table-wrap table.dataTable thead th.sorting:after,
+.admin-table-wrap table.dataTable thead th.sorting_asc:after,
 .admin-table-wrap table.dataTable thead th.sorting_desc:after {
   display: none !important;
   content: none !important;
 }
 
-/* Clean custom sort marker */
 .admin-table-wrap table.dataTable thead th.sorting:after,
 .admin-table-wrap table.dataTable thead th.sorting_asc:after,
 .admin-table-wrap table.dataTable thead th.sorting_desc:after {
   display: inline !important;
   content: "" !important;
-  margin-inline-start: 0.4rem;
+  margin-inline-start: 0.35rem;
   font-size: 0.65rem;
   opacity: 0.45;
   vertical-align: middle;
@@ -161,7 +244,7 @@
 }
 
 .admin-table-wrap table.dataTable tbody td {
-  padding: 0.8rem 1rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border-soft) !important;
   border-top: none !important;
   font-size: 0.88rem;
@@ -169,6 +252,37 @@
   text-align: start;
   color: var(--text);
   background: transparent !important;
+  /* Prevent blowout — single line + ellipsis by default */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0; /* forces fixed-layout cells to respect column width */
+}
+
+/* Multi-line / rich cells (actions, badges, HTML blobs) */
+.admin-table-wrap table.dataTable tbody td.dt-wrap,
+.admin-table-wrap table.dataTable tbody td.dt-actions {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  max-width: none;
+}
+
+.admin-table-wrap table.dataTable tbody td.dt-actions {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* Soft clamp for detail-like columns (2 lines) */
+.admin-table-wrap table.dataTable tbody td.dt-clamp {
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-width: none;
+  line-height: 1.4;
 }
 
 .admin-table-wrap table.dataTable tbody tr:last-child td {
@@ -187,21 +301,34 @@
 .admin-table-wrap table.dataTable.display tbody tr.odd {
   background: transparent;
 }
-.admin-table-wrap table.dataTable.hover tbody tr:hover,
-.admin-table-wrap table.dataTable.display tbody tr:hover {
-  background: var(--surface-2) !important;
+
+/* Index column */
+.admin-table-wrap table.dataTable tbody td:first-child,
+.admin-table-wrap table.dataTable thead th:first-child {
+  width: 3.25rem;
+  min-width: 3.25rem;
+  max-width: 3.5rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
-/* ---- Bottom bar: info + pagination ---- */
-.admin-table-wrap .dataTables_wrapper > .row:last-child,
-.admin-table-wrap .dataTables_wrapper .dt-layout-row:last-child,
-.admin-table-wrap .dataTables_wrapper .bottom {
+/* LTR mono-ish fields */
+.admin-table-wrap .ltr-field {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Footer ---- */
+.admin-table-wrap .dataTables_wrapper > .row.dt-footer,
+.admin-table-wrap .dataTables_wrapper > .row:last-child {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem 1rem;
-  padding: 0.85rem 1.1rem;
+  padding: 0.85rem 1.15rem;
   border-top: 1px solid var(--border-soft);
   background: var(--surface-2);
   margin: 0 !important;
@@ -223,14 +350,13 @@
   flex-wrap: wrap;
 }
 
-/* Pagination buttons — kill Bootstrap primary blue */
 .admin-table-wrap .dataTables_paginate .paginate_button,
 .admin-table-wrap .dataTables_paginate .page-item .page-link,
 .admin-table-wrap .dataTables_paginate a.page-link {
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
   color: var(--text-muted) !important;
-  border-radius: var(--radius-sm) !important;
+  border-radius: 9px !important;
   padding: 0.35rem 0.75rem !important;
   margin: 0 !important;
   min-width: 2.1rem;
@@ -244,7 +370,7 @@
 
 .admin-table-wrap .dataTables_paginate .paginate_button:hover:not(.disabled),
 .admin-table-wrap .dataTables_paginate .page-item:not(.disabled):not(.active) .page-link:hover {
-  background: var(--surface-3) !important;
+  background: var(--surface-3, var(--surface-2)) !important;
   color: var(--text) !important;
   border-color: var(--text-faint) !important;
 }
@@ -262,11 +388,8 @@
   opacity: 0.35;
   cursor: default !important;
   pointer-events: none;
-  background: var(--surface) !important;
-  color: var(--text-faint) !important;
 }
 
-/* Bootstrap 5 DataTables uses ul.pagination */
 .admin-table-wrap .dataTables_paginate ul.pagination {
   margin: 0;
   gap: 0.3rem;
@@ -276,13 +399,9 @@
   list-style: none;
 }
 
-.admin-table-wrap .dataTables_paginate ul.pagination .page-item {
-  margin: 0;
-}
-
-/* ---- Processing overlay ---- */
+/* Processing */
 .admin-table-wrap .dataTables_processing {
-  background: rgba(18, 22, 31, 0.92) !important;
+  background: rgba(18, 22, 31, 0.94) !important;
   border: 1px solid var(--border) !important;
   color: var(--text) !important;
   border-radius: var(--radius) !important;
@@ -293,9 +412,10 @@
   left: 50% !important;
   transform: translate(-50%, -50%);
   margin: 0 !important;
+  z-index: 5;
 }
 
-/* ---- Action cell buttons inside rows ---- */
+/* Actions inside cells */
 .admin-table-wrap .icon-btn,
 .admin-table-wrap td form {
   display: inline-flex;
@@ -308,40 +428,35 @@
   display: inline;
 }
 
-.admin-table-wrap .icon-btn + .icon-btn,
-.admin-table-wrap td form + form,
-.admin-table-wrap td form + .icon-btn,
-.admin-table-wrap td .icon-btn + form {
-  margin-inline-start: 0.25rem;
-}
-
-/* Status pills already defined in admin-rtl.css — ensure contrast in cells */
 .admin-table-wrap .status-pill {
   font-size: 0.72rem;
 }
 
-/* Index / # column tighter */
-.admin-table-wrap table.dataTable tbody td:first-child,
-.admin-table-wrap table.dataTable thead th:first-child {
-  width: 3rem;
-  color: var(--text-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Empty / zero records */
 .admin-table-wrap table.dataTable tbody td.dataTables_empty {
   text-align: center !important;
   padding: 2.5rem 1rem !important;
   color: var(--text-faint);
   font-size: 0.9rem;
+  white-space: normal;
+  max-width: none;
+  overflow: visible;
 }
 
-/* ---- Responsive: stack toolbar on narrow screens ---- */
+/* Tooltip-friendly: show full text on hover via title attribute set in JS */
+.admin-table-wrap table.dataTable tbody td[title] {
+  cursor: default;
+}
+
 @media (max-width: 575.98px) {
-  .admin-table-wrap .dataTables_wrapper > .row:first-child,
-  .admin-table-wrap .dataTables_wrapper > .row:last-child {
+  .admin-table-wrap .dt-toolbar-bar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .admin-table-wrap .dt-toolbar-start,
+  .admin-table-wrap .dt-toolbar-end {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .admin-table-wrap .dataTables_filter input {
@@ -350,21 +465,18 @@
     max-width: none;
   }
 
-  .admin-table-wrap .dataTables_length,
   .admin-table-wrap .dataTables_filter {
     width: 100%;
   }
 
-  .admin-table-wrap .dataTables_length label,
   .admin-table-wrap .dataTables_filter label {
     width: 100%;
-    justify-content: space-between;
   }
 
   .admin-table-wrap table.dataTable thead th,
   .admin-table-wrap table.dataTable tbody td {
-    padding: 0.65rem 0.7rem;
-    font-size: 0.82rem;
+    padding: 0.6rem 0.65rem;
+    font-size: 0.8rem;
   }
 
   .admin-table-wrap .dataTables_paginate {
@@ -373,7 +485,6 @@
   }
 }
 
-/* ---- Kill any remaining Bootstrap primary / blue bleed ---- */
 .admin-table-wrap .page-link {
   color: var(--text-muted) !important;
 }
