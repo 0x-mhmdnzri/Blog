@@ -18,6 +18,9 @@ public class CommentSpamOptions
     public bool GuestCommentsEnabled { get; set; } = true;
     public bool AutoApproveAuthenticated { get; set; } = false;
 
+    /// <summary>Max nesting depth for Twitter-style reply threads (1 = only reply to root).</summary>
+    public int MaxReplyDepth { get; set; } = 5;
+
     /// <summary>Comma-separated blocked substrings (case-insensitive).</summary>
     public string BlockedKeywords { get; set; } =
         "viagra,cialis,casino,crypto-giveaway,click here now,free money,work from home $$$";
@@ -98,17 +101,6 @@ public sealed class CommentSpamService : ICommentSpamService
             reasons.Add("link_heavy_short");
         }
 
-        foreach (var kw in _blocked)
-        {
-            if (text.Contains(kw, StringComparison.OrdinalIgnoreCase)
-                || name.Contains(kw, StringComparison.OrdinalIgnoreCase))
-            {
-                score += 35;
-                reasons.Add($"blocked:{kw}");
-                break;
-            }
-        }
-
         if (RepeatedChars.IsMatch(text))
         {
             score += 15;
@@ -118,40 +110,29 @@ public sealed class CommentSpamService : ICommentSpamService
         if (MostlyNonLetter.IsMatch(text))
         {
             score += 25;
-            reasons.Add("gibberish");
+            reasons.Add("mostly_symbols");
         }
 
-        // ALL CAPS long body
-        var letters = text.Where(char.IsLetter).ToArray();
-        if (letters.Length > 20)
+        var lower = text.ToLowerInvariant();
+        foreach (var kw in _blocked)
         {
-            var upper = letters.Count(char.IsUpper);
-            if (upper * 100 / letters.Length >= 80)
+            if (lower.Contains(kw.ToLowerInvariant()))
             {
-                score += 15;
-                reasons.Add("all_caps");
+                score += 40;
+                reasons.Add($"blocked:{kw}");
             }
         }
 
-        if (isGuest)
+        if (isGuest && string.IsNullOrWhiteSpace(authorEmail) && links > 0)
         {
-            score += 5; // slight prior for guests
-            if (string.IsNullOrWhiteSpace(authorEmail))
-            {
-                // not required; no penalty
-            }
-            else if (!LooksLikeEmail(authorEmail))
-            {
-                score += 20;
-                reasons.Add("bad_email");
-            }
+            score += 10;
+            reasons.Add("guest_link_no_email");
         }
 
-        // Name looks like spam URL
-        if (UrlRegex.IsMatch(name))
+        if (name.Length < 2)
         {
-            score += 30;
-            reasons.Add("name_is_url");
+            score += 15;
+            reasons.Add("bad_name");
         }
 
         score = Math.Clamp(score, 0, 100);
@@ -161,12 +142,5 @@ public sealed class CommentSpamService : ICommentSpamService
             Reasons = reasons,
             IsSpam = score >= _opt.SpamThreshold
         };
-    }
-
-    private static bool LooksLikeEmail(string email)
-    {
-        if (string.IsNullOrWhiteSpace(email) || email.Length > 120) return false;
-        var at = email.IndexOf('@');
-        return at > 0 && at < email.Length - 3 && email.Contains('.');
     }
 }
