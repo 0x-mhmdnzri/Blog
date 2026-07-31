@@ -9,9 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Blog.Domain\Blog.Domain.csproj" />
-    <ProjectReference Include="..\src\Blog.Application\Blog.Application.csproj" />
-    <ProjectReference Include="..\src\Blog.Infrastructure\Blog.Infrastructure.csproj" />
+    <ProjectReference Include="..\src\Core\Blog.Core.Domain\Blog.Core.Domain.csproj" />
+    <ProjectReference Include="..\src\Core\Blog.Core.Contract\Blog.Core.Contract.csproj" />
+    <ProjectReference Include="..\src\Core\Blog.Core.ApplicationService\Blog.Core.ApplicationService.csproj" />
+    <ProjectReference Include="..\src\Core\Blog.Core.DomainService\Blog.Core.DomainService.csproj" />
+    <ProjectReference Include="..\src\Infra\Blog.Infra.Messaging\Blog.Infra.Messaging.csproj" />
+    <ProjectReference Include="..\src\Infra\Blog.Infra.Observability\Blog.Infra.Observability.csproj" />
+    <ProjectReference Include="..\src\Infra\Blog.Infra.Plugins\Blog.Infra.Plugins.csproj" />
+    <ProjectReference Include="..\src\Utils\Blog.Utils\Blog.Utils.csproj" />
     <ProjectReference Include="..\src\Blog.Extensions.Sdk\Blog.Extensions.Sdk.csproj" />
   </ItemGroup>
 
