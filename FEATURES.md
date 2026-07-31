@@ -1,208 +1,122 @@
-## Here are feature ideas you can implement for a production-grade blogging platform, excluding the ones you already listed.
+# Remaining features (not yet fully implemented)
+
+Items already shipped in `BlogApp` were removed from this list.
+Last reviewed against the monolith codebase on 2026-07-31.
+
+---
 
 ### Content Management
 
-* Drafts & Auto Save
-* Scheduled Publishing
-* Post Revisions & Version History
-* Soft Delete & Restore
-* Post Duplication
-* Featured Posts
-* Sticky Posts
-* Content Expiration
-* Markdown Editor
-* Rich Text Editor
-* Table of Contents Generation
-* Reading Time Estimation
-* AI-assisted Content Generation
-* AI Grammar & Spell Checking
-* AI Content Summarization
+* Drafts & Auto Save (continuous local + server autosave in editor)
+* Post Revisions UI (browse / diff / restore — `PostRevision` table exists)
+* Scheduled Publishing worker (always-on hosted service; do not rely on admin page hits)
+* Content Expiration worker (same as schedule — background, not request-path only)
+* Post Duplication (one-click if not already exposed in admin UI)
+* Featured / Sticky ordering on public home & feeds (fields exist; verify sort everywhere)
+* Rich Text Editor (optional alternative to Markdown)
+* Table of Contents Navigation (sticky TOC on post page)
+* AI-assisted Content Generation (wire real LLM; current helpers are local heuristics)
+* AI Grammar & Spell Checking (real checker / LLM)
+* AI Content Summarization (LLM-backed summary)
 
 ### SEO
 
-* SEO Metadata Management
-* Canonical URLs
-* XML Sitemap Generation
-* Robots.txt Management
-* Open Graph & Twitter Cards
-* Structured Data (JSON-LD)
-* Automatic Slug Generation
-* Custom Slug Support
-* Redirect Management (301/302)
-* Broken Link Detection
-
-### Categories & Tags
-
-* Nested Categories
-* Tag Management
-* Related Posts by Tags
-* Topic Collections
-* Series Management
+* Migration importer (WordPress WXR / Ghost JSON + auto 301s)
+* IndexNow / search-engine ping on publish
+* hreflang for multi-language post groups
 
 ### Media
 
-* Media Library
-* Image Compression
-* WebP/AVIF Conversion
-* CDN Integration
-* Image Lazy Loading
-* Responsive Images
-* Drag & Drop Upload
-* File Versioning
+* WebP/AVIF Conversion (ImageSharp or similar — current optimize only strips JPEG junk)
+* Responsive Images (`srcset` / multiple widths)
+* File Versioning (media history)
+* CDN URL applied on every public image/media link
 
 ### Comments
 
-* Threaded Comments
-* Comment Moderation
-* Spam Detection
-* Comment Reactions
-* Comment Editing
-* Comment Reporting
-* Guest Comments
+* Spam Detection (rules / ML)
+* Guest Comments (safe + rate-limited)
 * Pinned Comments
+* Comment Editing (author edit window)
 
 ### User Experience
 
-* Search
-* Advanced Search Filters
-* Full-Text Search
-* Search Suggestions
-* Bookmarks
-* Reading History
-* Recently Viewed Posts
-* Dark Mode
-* Reading Progress Bar
-* Font Size Preferences
-* Infinite Scrolling
-* Estimated Read Time
-* Table of Contents Navigation
+* Full-Text Search (SQLite FTS5 or equivalent)
+* Search Suggestions (typeahead)
+* Advanced Search Filters (date, tag, author, language)
+* Infinite Scrolling (optional)
+* Reading Progress Bar (verify on post page)
+* Font Size Preferences (persist reader preference)
 
 ### Social Features
 
-* Likes
-* Reactions
-* Share Buttons
-* Social Login
-* Follow Authors
-* Follow Categories
-* User Activity Feed
-* Mention Users (@mentions)
+* Social Login provider config docs + production hardening (callback exists; OAuth keys optional)
+* Follow Categories UX completeness on public taxonomy pages
 
 ### Notifications
 
-* Email Notifications
-* Push Notifications
-* In-App Notifications
-* New Comment Alerts
-* New Follower Alerts
-* Weekly Digest Emails
+* Push Notifications (real sender; replace NoOp)
+* Post → newsletter one-click send
 
 ### Analytics
 
-* Post View Analytics
-* Traffic Sources
-* Geographic Analytics
-* Device Analytics
-* Referral Analytics
-* Popular Posts Dashboard
-* Trending Posts
 * Search Keyword Analytics
-* Heatmaps
-* Average Reading Duration
+* Average Reading Duration (scroll/time tracking)
 * Bounce Rate Tracking
 
 ### Security
 
-* Two-Factor Authentication
-* Email Verification
-* Account Lockout
-* Audit Logs
-* Content Approval Workflow
-* IP Rate Limiting
-* CAPTCHA Integration
-* Session Management
+* Two-Factor Authentication (TOTP)
+* Email Verification flow (register → confirm link)
+* CAPTCHA Integration (login / register / comment / subscribe)
+* Content Approval Workflow (author submit → admin publish)
 
 ### Administration
 
-* Moderation Queue
-* User Management
-* Feature Flags
-* Site Settings
-* Maintenance Mode
-* Audit Dashboard
-* Announcement Banner
-* Content Reports
+* Announcement Banner (site-wide dismissible)
+* Moderation Queue polish (spam + reports in one inbox)
 
 ### API
 
-* REST API
-* GraphQL API
-* API Keys
-* Webhooks
-* API Rate Limiting
-* API Documentation
-* Public RSS Feed
-* Atom Feed
+* Real GraphQL engine (current `/api/graphql` is a minimal custom parser)
+* OpenAPI / Swagger documentation page completeness
 
 ### Performance
 
-* Response Caching
-* Output Caching
-* Redis Cache
-* CDN Support
-* Image Optimization Pipeline
-* Background Jobs
-* Search Indexing Worker
-* Queue-based Email Delivery
+* Output Caching (full HTML for home / post / taxonomy; invalidate on publish)
+* Redis as default distributed cache in production compose
+* Image Optimization Pipeline (real re-encode + WebP)
+* Queue-based Email Delivery reliability (retries, dead-letter UI)
 
 ### Internationalization
 
-* Multi-language Posts
-* Localized URLs
-* Language Switcher
-* RTL Support
-* Translation Workflow
+* Multi-language Posts product UX (link translations, switcher on post)
+* Localized URLs consistency (`/{lang}/post/{slug}` everywhere)
+* Translation Workflow (status, assignees, review)
 
 ### Monetization
 
-* Paid Memberships
-* Premium Articles
-* Subscription Plans
-* Donations
+* Stripe (or provider) Checkout for memberships
 * Advertisement Management
 * Affiliate Link Management
-* Sponsored Content Labels
+* Member-only Markdown blocks (`:::members`)
 
 ### Newsletter
 
-* Newsletter Subscription
-* Email Campaigns
-* Audience Segmentation
-* Double Opt-in
-* Scheduled Newsletters
+* Publish post as campaign (one action)
+* Subscriber CSV import with double opt-in rules
 
 ### Accessibility
 
-* WCAG Compliance
-* Keyboard Navigation
-* Screen Reader Optimization
-* High Contrast Mode
-* Accessibility Checker
+* Automated Accessibility Checker (beyond static checklist page)
+* Screen Reader Optimization audit of public templates
+* Keyboard Navigation pass on admin + public
+* High Contrast Mode completeness (theme + reader)
 
 ### Developer Features
 
-* Event Bus
-* Domain Events
-* Plugin Architecture
-* Theme System
-* Custom Widgets
-* Custom Middleware Pipeline
-* Extension SDK
-* Health Checks
-* Metrics Endpoint
-* Distributed Tracing
-* Structured Logging
-* OpenTelemetry Integration
+* Plugin sample DLL + docs for Extension SDK
+* Output-cache invalidation consumer on domain events
 
 ### Enterprise Features
 
@@ -210,24 +124,30 @@
 * Workspace Isolation
 * Custom Domains
 * SSO (OIDC/SAML)
-* Approval Workflow
+* Approval Workflow (formal states)
 * Content Lifecycle Management
 * Legal Hold
-* Data Export
-* GDPR Compliance
-* Backup & Restore
-* Disaster Recovery
-* Localization Management
+* Data Export (GDPR download-my-data)
+* GDPR Compliance (erase account, consent logs)
+* Backup & Restore UI
+* Disaster Recovery runbooks / automate
+* Localization Management (editorial)
 
 ### AI Features
 
 * Semantic Search
 * AI Recommendations
 * Similar Articles
-* Automatic Tag Generation
+* Automatic Tag Generation (LLM)
 * Automatic Category Classification
 * AI-generated Cover Images
 * Duplicate Content Detection
 * Content Quality Score
 * AI-powered Comment Moderation
 * Personalized Content Feed
+
+---
+
+### Implemented (removed from active backlog)
+
+Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (basic) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events.
