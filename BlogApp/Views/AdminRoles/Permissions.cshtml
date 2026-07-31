@@ -50,19 +50,19 @@
                         <span class="perm-group-count small text-muted-dark ltr-field">@group.Pages.Count</span>
                     </button>
                     <div class="perm-group-body" id="@groupId">
-                    @foreach (var page in group.Pages)
+                    @foreach (var navPage in group.Pages)
                     {
-                        var checkedAttr = Model.IsSuperAdmin || Model.SelectedPages.Contains(page.Key) ? "checked" : null;
+                        var checkedAttr = Model.IsSuperAdmin || Model.SelectedPages.Contains(navPage.Key) ? "checked" : null;
                         <label class="perm-page">
-                            <input type="checkbox" name="pages" value="@page.Key" @checkedAttr class="perm-check" data-perm-page />
+                            <input type="checkbox" name="pages" value="@navPage.Key" @checkedAttr class="perm-check" data-perm-page />
                             <span class="perm-page-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="@page.Icon"/></svg>
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="@navPage.Icon"/></svg>
                             </span>
                             <span class="perm-page-label">
-                                <span>@T[page.LabelKey]</span>
-                                <span class="perm-page-key ltr-field">@page.Key</span>
+                                <span>@T[navPage.LabelKey]</span>
+                                <span class="perm-page-key ltr-field">@navPage.Key</span>
                             </span>
-                            @if (page.SuperAdminOnly)
+                            @if (navPage.SuperAdminOnly)
                             {
                                 <span class="soon-tag">Super</span>
                             }
