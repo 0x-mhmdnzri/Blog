@@ -117,7 +117,7 @@ public partial class PostsController : Controller
             ("Home", baseUrl + "/" + post.LanguageCode + "/"),
             post.Category != null ? (post.Category.Name, $"{baseUrl}/{post.LanguageCode}/?category={post.Category.Slug}") : ("Posts", baseUrl + "/" + post.LanguageCode + "/"),
             (post.Title, canonicalUrl));
-        ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(post.ContentMarkdown, true);
+        ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(post.ContentMarkdown, true, post.LanguageCode);
         await ApplyPremiumGateAsync(post);
         ViewBag.ReadingTimeMinutes = post.ReadingTimeMinutes > 0
             ? post.ReadingTimeMinutes
