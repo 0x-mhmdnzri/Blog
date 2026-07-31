@@ -243,7 +243,6 @@ try
     builder.Services.AddScoped<INewsletterService, NewsletterService>();
     builder.Services.AddScoped<MentionsService>();
 
-    // API work pipeline: topic exchange + sequential consumer (prefetch=1)
     builder.Services.AddApiTopicBus(builder.Configuration);
 
     builder.Services.AddControllersWithViews(options =>
@@ -315,15 +314,16 @@ try
         }
     }
 
+    // Only redirect to HTTPS when explicitly enabled (Docker/standalone is plain HTTP).
     var forceHttps = builder.Configuration.GetValue("ForceHttps", false);
 
     app.UseExceptionHandler("/Home/Error?statusCode=500");
     app.UseStatusCodePagesWithReExecute("/Home/Error", "?statusCode={0}");
 
-    if (!app.Environment.IsDevelopment())
+    if (forceHttps && !app.Environment.IsDevelopment())
         app.UseHsts();
 
-    if (forceHttps || !app.Environment.IsDevelopment())
+    if (forceHttps)
         app.UseHttpsRedirection();
 
     app.UseMiddleware<SecurityHeadersMiddleware>();
@@ -382,6 +382,25 @@ try
 
     app.UseMiddleware<MaintenanceMiddleware>();
 
+    // Liveness: process is up (used by Docker HEALTHCHECK — keep cheap).
+    app.MapGet("/health", () => Results.Text("ok", "text/plain; charset=utf-8"))
+        .AllowAnonymous()
+        .DisableRateLimiting();
+
+    // Readiness: SQLite reachable.
+    app.MapGet("/ready", async (ApplicationDbContext db) =>
+        {
+            try
+            {
+                if (await db.Database.CanConnectAsync())
+                    return Results.Text("ready", "text/plain; charset=utf-8");
+            }
+            catch { /* fall through */ }
+            return Results.Text("not-ready", "text/plain; charset=utf-8", statusCode: 503);
+        })
+        .AllowAnonymous()
+        .DisableRateLimiting();
+
     app.MapControllers().RequireRateLimiting("global");
 
     app.MapControllerRoute(
@@ -401,7 +420,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening (API v1 + GraphQL + RSS/Atom + PAT keys + API analytics + topic bus)");
+    Log.Information("BlogApp listening ForceHttps={ForceHttps} (health=/health ready=/ready)", forceHttps);
     app.Run();
 }
 catch (Exception ex)
