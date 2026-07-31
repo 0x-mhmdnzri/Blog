@@ -1,12 +1,12 @@
 /**
- * BlogApp — server-side DataTables helper (all admin tables).
- * Global search + per-column filters (text / status select).
- * Stable layout: width 100%, columns.adjust after draw.
+ * BlogApp — server-side DataTables (all admin tables)
+ *
+ * Column filters live OUTSIDE <thead> in a dedicated bar so they never
+ * fight DataTables column-width calculation (the previous thead approach
+ * caused the RTL / sparse / stacked layout you saw).
  */
 window.BlogDT = (function () {
-  function isRtl() {
-    return (document.documentElement.getAttribute('dir') || 'rtl') === 'rtl';
-  }
+  var STATE_VERSION = 3; // bump to invalidate broken localStorage state
 
   function csrfToken() {
     var el = document.querySelector('input[name="__RequestVerificationToken"]');
@@ -20,32 +20,30 @@ window.BlogDT = (function () {
 
   function languagePack() {
     return {
-      processing: i18n('dt.processing', 'Loading…'),
-      // empty label — input already has placeholder (avoids "جست‌وجو جست‌وجو…")
+      processing: i18n('dt.processing', 'Loading\u2026'),
       search: '',
-      searchPlaceholder: i18n('dt.search_placeholder', 'جست‌وجو…'),
-      lengthMenu: i18n('dt.length_menu', 'نمایش _MENU_'),
-      info: i18n('dt.info', 'نمایش _START_ تا _END_ از _TOTAL_'),
-      infoEmpty: i18n('dt.info_empty', 'موردی نیست'),
-      infoFiltered: i18n('dt.info_filtered', '(فیلتر از _MAX_)'),
-      zeroRecords: i18n('dt.zero_records', 'نتیجه‌ای یافت نشد'),
-      emptyTable: i18n('dt.empty_table', 'داده‌ای نیست'),
+      searchPlaceholder: i18n('dt.search_placeholder', '\u062c\u0633\u062a\u200c\u0648\u062c\u0648\u2026'),
+      lengthMenu: i18n('dt.length_menu', '\u0646\u0645\u0627\u06cc\u0634 _MENU_'),
+      info: i18n('dt.info', '\u0646\u0645\u0627\u06cc\u0634 _START_ \u062a\u0627 _END_ \u0627\u0632 _TOTAL_'),
+      infoEmpty: i18n('dt.info_empty', '\u0645\u0648\u0631\u062f\u06cc \u0646\u06cc\u0633\u062a'),
+      infoFiltered: i18n('dt.info_filtered', '(\u0641\u06cc\u0644\u062a\u0631 \u0627\u0632 _MAX_)'),
+      zeroRecords: i18n('dt.zero_records', '\u0646\u062a\u06cc\u062c\u0647\u200c\u0627\u06cc \u06cc\u0627\u0641\u062a \u0646\u0634\u062f'),
+      emptyTable: i18n('dt.empty_table', '\u062f\u0627\u062f\u0647\u200c\u0627\u06cc \u0646\u06cc\u0633\u062a'),
       paginate: {
-        first: i18n('dt.paginate_first', 'اول'),
-        last: i18n('dt.paginate_last', 'آخر'),
-        next: i18n('dt.paginate_next', 'بعدی'),
-        previous: i18n('dt.paginate_previous', 'قبلی')
+        first: i18n('dt.paginate_first', '\u0627\u0648\u0644'),
+        last: i18n('dt.paginate_last', '\u0622\u062e\u0631'),
+        next: i18n('dt.paginate_next', '\u0628\u0639\u062f\u06cc'),
+        previous: i18n('dt.paginate_previous', '\u0642\u0628\u0644\u06cc')
       }
     };
   }
 
   function buildExportUrl(baseUrl, table, extraParams) {
     var url = new URL(baseUrl, window.location.origin);
-    var search = '';
     try {
-      search = table.search() || '';
+      var search = table.search() || '';
+      if (search) url.searchParams.set('search', search);
     } catch (_) {}
-    if (search) url.searchParams.set('search', search);
     if (extraParams && typeof extraParams === 'object') {
       Object.keys(extraParams).forEach(function (k) {
         if (extraParams[k] != null && extraParams[k] !== '')
@@ -78,14 +76,113 @@ window.BlogDT = (function () {
         if (this.search()) any = true;
       });
     } catch (_) {}
-    btn.toggleClass('is-visible', any);
+    btn.toggleClass('is-visible', !!any);
   }
 
-  function markActiveFilters($row) {
-    $row.find('.dt-col-filter').each(function () {
+  function markActiveFilters(bar) {
+    if (!bar || !bar.length) return;
+    bar.find('.dt-col-filter').each(function () {
       var v = (this.value || '').trim();
       this.classList.toggle('is-active', v.length > 0);
     });
+  }
+
+  /**
+   * Build a filter BAR above the table (not inside thead).
+   * Each control maps to a column index via data-col.
+   */
+  function buildFilterBar(wrap, table, columnFilters, headerLabels) {
+    if (!columnFilters || !columnFilters.length) return null;
+
+    var hasAny = columnFilters.some(function (c) {
+      return !!c;
+    });
+    if (!hasAny) return null;
+    if (wrap.find('.dt-filter-bar').length) return wrap.find('.dt-filter-bar');
+
+    var bar = jQuery('<div class="dt-filter-bar" role="search"></div>');
+    var inner = jQuery('<div class="dt-filter-bar-inner"></div>');
+
+    columnFilters.forEach(function (cfg, i) {
+      if (!cfg) return;
+
+      var label =
+        (headerLabels && headerLabels[i]) ||
+        (typeof cfg === 'object' && cfg.placeholder) ||
+        '';
+
+      var cell = jQuery(
+        '<div class="dt-filter-item" data-col="' + i + '"></div>'
+      );
+      if (label) {
+        cell.append(
+          jQuery('<label class="dt-filter-label"></label>').text(label)
+        );
+      }
+
+      if (typeof cfg === 'object' && cfg.type === 'select') {
+        var $sel = jQuery(
+          '<select class="dt-col-filter dt-col-select" data-col="' +
+            i +
+            '"></select>'
+        );
+        $sel.append(
+          jQuery('<option value=""></option>').text(
+            cfg.placeholder || i18n('dt.all', '\u0647\u0645\u0647')
+          )
+        );
+        (cfg.options || []).forEach(function (o) {
+          $sel.append(
+            jQuery('<option></option>').attr('value', o.value).text(o.label)
+          );
+        });
+        cell.append($sel);
+      } else {
+        var ph =
+          (typeof cfg === 'object' && cfg.placeholder) ||
+          i18n('dt.filter', '\u0641\u06cc\u0644\u062a\u0631\u2026');
+        var $inp = jQuery(
+          '<input type="search" class="dt-col-filter dt-col-input" data-col="' +
+            i +
+            '" placeholder="' +
+            ph +
+            '" autocomplete="off" />'
+        );
+        cell.append($inp);
+      }
+
+      inner.append(cell);
+    });
+
+    bar.append(inner);
+
+    // Place filter bar after toolbar, before the table scroll area
+    var toolbar = wrap.find('.dt-toolbar-bar');
+    if (toolbar.length) toolbar.after(bar);
+    else wrap.prepend(bar);
+
+    var timers = {};
+    function applyCol(col, val) {
+      table.column(col).search(val).draw();
+      markActiveFilters(bar);
+      updateClearButton(wrap, table);
+    }
+
+    bar.on('input', 'input.dt-col-input', function () {
+      var col = parseInt(this.getAttribute('data-col'), 10);
+      var val = this.value;
+      clearTimeout(timers[col]);
+      timers[col] = setTimeout(function () {
+        applyCol(col, val);
+      }, 350);
+    });
+
+    bar.on('change', 'select.dt-col-select', function () {
+      var col = parseInt(this.getAttribute('data-col'), 10);
+      applyCol(col, this.value);
+    });
+
+    return bar;
   }
 
   function buildToolbar(wrap, table, exportUrl, exportParams) {
@@ -104,7 +201,7 @@ window.BlogDT = (function () {
     var end = bar.find('.dt-toolbar-end');
 
     if (exportUrl) {
-      var label = i18n('dt.export_csv', 'خروجی CSV');
+      var label = i18n('dt.export_csv', '\u062e\u0631\u0648\u062c\u06cc CSV');
       var btn = jQuery(
         '<button type="button" class="dt-export-csv" title="' +
           label +
@@ -120,7 +217,7 @@ window.BlogDT = (function () {
       start.append(btn);
     }
 
-    var clearLbl = i18n('dt.clear_filters', 'پاک‌کردن فیلترها');
+    var clearLbl = i18n('dt.clear_filters', '\u067e\u0627\u06a9\u200c\u06a9\u0631\u062f\u0646 \u0641\u06cc\u0644\u062a\u0631\u0647\u0627');
     var clearBtn = jQuery(
       '<button type="button" class="dt-clear-filters" title="' +
         clearLbl +
@@ -145,7 +242,8 @@ window.BlogDT = (function () {
     wrap.find('> .row').each(function () {
       var $r = jQuery(this);
       if (
-        !$r.find('table, .dataTables_info, .dataTables_paginate, .dt-scroll').length &&
+        !$r.find('table, .dataTables_info, .dataTables_paginate, .dt-scroll')
+          .length &&
         !$r.find('.dataTables_length, .dataTables_filter').length
       ) {
         $r.remove();
@@ -169,82 +267,16 @@ window.BlogDT = (function () {
     });
   }
 
-  function buildColumnFilters($table, table, columnFilters, wrap) {
-    if (!columnFilters || !columnFilters.length) return;
-    if ($table.find('thead tr.dt-col-filters').length) return;
-
-    var $head = $table.find('thead');
-    var colCount = $table.find('thead tr').first().children('th').length;
-    var $row = jQuery('<tr class="dt-col-filters" role="row"></tr>');
-
-    for (var i = 0; i < colCount; i++) {
-      var cfg = columnFilters[i];
-      var $th = jQuery('<th class="dt-filter-cell sorting_disabled"></th>');
-
-      if (!cfg) {
-        $th.html('<span class="dt-filter-empty" aria-hidden="true"></span>');
-        $row.append($th);
-        continue;
-      }
-
-      if (typeof cfg === 'object' && cfg.type === 'select') {
-        var $sel = jQuery(
-          '<select class="dt-col-filter dt-col-select" data-col="' +
-            i +
-            '" aria-label="' +
-            (cfg.placeholder || i18n('col.status', 'وضعیت')) +
-            '"></select>'
-        );
-        $sel.append(
-          jQuery('<option value=""></option>').text(cfg.placeholder || i18n('dt.all', 'همه'))
-        );
-        (cfg.options || []).forEach(function (o) {
-          $sel.append(jQuery('<option></option>').attr('value', o.value).text(o.label));
-        });
-        $th.append($sel);
-      } else {
-        var ph =
-          (typeof cfg === 'object' && cfg.placeholder) || i18n('dt.filter', 'فیلتر…');
-        var $inp = jQuery(
-          '<input type="search" class="dt-col-filter dt-col-input" data-col="' +
-            i +
-            '" placeholder="' +
-            ph +
-            '" autocomplete="off" aria-label="' +
-            ph +
-            '" />'
-        );
-        $th.append($inp);
-      }
-      $row.append($th);
-    }
-
-    $head.append($row);
-
-    var timers = {};
-    function applyCol(col, val) {
-      table.column(col).search(val).draw();
-      markActiveFilters($row);
-      updateClearButton(wrap, table);
-    }
-
-    $row.on('input', 'input.dt-col-input', function () {
-      var col = parseInt(this.getAttribute('data-col'), 10);
-      var val = this.value;
-      clearTimeout(timers[col]);
-      timers[col] = setTimeout(function () {
-        applyCol(col, val);
-      }, 350);
-    });
-
-    $row.on('change', 'select.dt-col-select', function () {
-      var col = parseInt(this.getAttribute('data-col'), 10);
-      applyCol(col, this.value);
-    });
-
-    $row.on('click mousedown', 'input, select, th', function (e) {
-      e.stopPropagation();
-    });
+  function readHeaderLabels($table) {
+    var labels = [];
+    $table
+      .find('thead tr')
+      .first()
+      .children('th')
+      .each(function () {
+        labels.push(jQuery(this).text().trim());
+      });
+    return labels;
   }
 
   function init(selector, options) {
@@ -272,6 +304,14 @@ window.BlogDT = (function () {
         pageLength: 25,
         lengthMenu: [10, 25, 50, 100],
         stateSave: true,
+        stateDuration: 60 * 60 * 24 * 7,
+        stateSaveParams: function (_s, data) {
+          data.blogDtVersion = STATE_VERSION;
+        },
+        stateLoadParams: function (_s, data) {
+          // Drop corrupted state from older broken layouts
+          if (!data || data.blogDtVersion !== STATE_VERSION) return false;
+        },
         autoWidth: false,
         scrollX: false,
         dom:
@@ -291,24 +331,29 @@ window.BlogDT = (function () {
     var $table = jQuery(selector);
     $table.addClass('nowrap');
 
+    // Strip any leftover filter rows from previous broken builds
+    $table.find('thead tr.dt-col-filters').remove();
+
     if (!$table.closest('.admin-table-wrap').length) {
       $table.wrap('<div class="admin-table-wrap"></div>');
     }
 
+    var headerLabels = readHeaderLabels($table);
     var table = $table.DataTable(opts);
     var wrap = $table.closest('.dataTables_wrapper');
 
     ensureScroll($table);
-    buildColumnFilters($table, table, columnFilters, wrap);
 
     function afterDraw() {
-      document.querySelectorAll(selector + ' form[data-confirm]').forEach(function (form) {
-        if (form.dataset.bound) return;
-        form.dataset.bound = '1';
-        form.addEventListener('submit', function (e) {
-          if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
+      document
+        .querySelectorAll(selector + ' form[data-confirm]')
+        .forEach(function (form) {
+          if (form.dataset.bound) return;
+          form.dataset.bound = '1';
+          form.addEventListener('submit', function (e) {
+            if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
+          });
         });
-      });
       markActionCells(selector);
       updateClearButton(wrap, table);
       try {
@@ -320,12 +365,13 @@ window.BlogDT = (function () {
 
     table.one('draw', function () {
       buildToolbar(wrap, table, exportUrl, exportParams);
+      var filterBar = buildFilterBar(wrap, table, columnFilters, headerLabels);
       ensureScroll($table);
       afterDraw();
 
-      var $row = $table.find('thead tr.dt-col-filters');
-      if ($row.length) {
-        $row.find('.dt-col-filter').each(function () {
+      // Restore column filter values from state
+      if (filterBar) {
+        filterBar.find('.dt-col-filter').each(function () {
           var col = parseInt(this.getAttribute('data-col'), 10);
           try {
             var s = table.column(col).search();
@@ -339,7 +385,6 @@ window.BlogDT = (function () {
       }
     });
 
-    // Recalc when sidebar / window size changes
     var resizeTimer;
     jQuery(window).on('resize.blogdt', function () {
       clearTimeout(resizeTimer);
@@ -353,5 +398,5 @@ window.BlogDT = (function () {
     return table;
   }
 
-  return { init: init, csrfToken: csrfToken, isRtl: isRtl, i18n: i18n };
+  return { init: init, csrfToken: csrfToken, i18n: i18n };
 })();

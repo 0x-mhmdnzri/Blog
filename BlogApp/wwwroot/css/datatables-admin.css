@@ -1,6 +1,6 @@
 /* =========================================================================
    DataTables — admin skin (all tables)
-   Stable full-width grid · horizontal scroll only when needed · calm filters
+   Fixed full-width grid. Filters are OUTSIDE thead (see .dt-filter-bar).
    ========================================================================= */
 
 .admin-table-wrap {
@@ -67,16 +67,11 @@
 .admin-table-wrap .dataTables_filter label {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0;
   margin: 0;
   font-weight: 500;
   color: var(--text-muted);
   white-space: nowrap;
-}
-
-/* hide empty search label text node gap */
-.admin-table-wrap .dataTables_filter label {
-  gap: 0;
 }
 
 .admin-table-wrap .dataTables_filter input,
@@ -129,7 +124,7 @@
   font-weight: 600;
   line-height: 1.2;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   white-space: nowrap;
 }
 
@@ -137,24 +132,17 @@
   background: var(--accent-soft);
   border-color: var(--accent-dim, var(--accent));
   color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.admin-table-wrap .dt-export-csv:active {
-  transform: translateY(1px);
 }
 
 .admin-table-wrap .dt-export-csv .dt-export-ico {
   width: 1rem;
   height: 1rem;
   flex-shrink: 0;
-  opacity: 0.9;
 }
 
 .admin-table-wrap .dt-clear-filters {
   display: none;
   align-items: center;
-  gap: 0.35rem;
   min-height: 2.15rem;
   padding: 0.35rem 0.85rem;
   border-radius: 999px;
@@ -164,7 +152,6 @@
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
 }
 .admin-table-wrap .dt-clear-filters.is-visible {
   display: inline-flex;
@@ -173,175 +160,60 @@
   background: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* ---- Scroll: only when content wider than card ---- */
-.admin-table-wrap .dt-scroll {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-  -webkit-overflow-scrolling: touch;
+/* ---- Filter bar (OUTSIDE table) ---- */
+.admin-table-wrap .dt-filter-bar {
+  padding: 0.75rem 1.15rem;
+  border-bottom: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--surface-2) 80%, var(--bg));
 }
 
-.admin-table-wrap .dt-scroll::-webkit-scrollbar {
-  height: 8px;
-}
-.admin-table-wrap .dt-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.admin-table-wrap .dt-scroll::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
+.admin-table-wrap .dt-filter-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 0.85rem;
+  align-items: flex-end;
 }
 
-/* ---- Table: FULL WIDTH, columns share space evenly enough ---- */
-.admin-table-wrap table.dataTable {
-  width: 100% !important;
-  min-width: 100%;
-  margin: 0 !important;
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-  border: none !important;
-  background: transparent;
-  table-layout: auto;
+.admin-table-wrap .dt-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 7.5rem;
+  max-width: 14rem;
+  flex: 1 1 7.5rem;
 }
 
-.admin-table-wrap table.dataTable thead th,
-.admin-table-wrap table.dataTable tbody td {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 18rem;
-  box-sizing: border-box;
-}
-
-/* Header labels */
-.admin-table-wrap table.dataTable thead tr:first-child th {
-  background: var(--surface-2);
-  color: var(--text-muted);
+.admin-table-wrap .dt-filter-label {
+  font-size: 0.7rem;
   font-weight: 600;
-  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0;
   letter-spacing: 0.01em;
-  text-align: start;
-  padding: 0.7rem 0.85rem;
-  border-bottom: 1px solid var(--border) !important;
-  border-top: none !important;
-  vertical-align: middle;
-  cursor: pointer;
-  user-select: none;
-  /* no sticky — sticky + overflow-x breaks column sync in WebKit */
-  position: relative;
-  z-index: 1;
-  min-width: 3.5rem;
-}
-
-.admin-table-wrap table.dataTable thead th.sorting_disabled {
-  cursor: default;
-}
-
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting:before,
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:before,
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:before,
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting:after,
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:after,
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:after {
-  display: none !important;
-  content: none !important;
-}
-
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting:after,
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:after,
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:after {
-  display: inline !important;
-  content: "" !important;
-  margin-inline-start: 0.3rem;
-  font-size: 0.65rem;
-  opacity: 0.45;
-  vertical-align: middle;
-}
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting:after {
-  content: "↕" !important;
-}
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:after {
-  content: "▲" !important;
-  opacity: 0.9;
-  color: var(--accent);
-}
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:after {
-  content: "▼" !important;
-  opacity: 0.9;
-  color: var(--accent);
-}
-
-.admin-table-wrap table.dataTable thead tr:first-child th:hover {
-  color: var(--text);
-}
-
-/* Column filter row */
-.admin-table-wrap table.dataTable thead tr.dt-col-filters th,
-.admin-table-wrap table.dataTable thead tr.dt-col-filters td {
-  background: color-mix(in srgb, var(--surface-2) 65%, var(--bg)) !important;
-  border-bottom: 1px solid var(--border-soft) !important;
-  border-top: none !important;
-  padding: 0.4rem 0.5rem !important;
-  vertical-align: middle;
-  cursor: default !important;
-  user-select: auto;
-  position: relative;
-  z-index: 1;
-  font-weight: 400;
-  white-space: nowrap;
-  overflow: visible;
-  max-width: none;
-}
-
-.admin-table-wrap table.dataTable thead tr.dt-col-filters th:before,
-.admin-table-wrap table.dataTable thead tr.dt-col-filters th:after {
-  display: none !important;
-  content: none !important;
-}
-
-.admin-table-wrap .dt-filter-cell {
-  min-width: 4.5rem;
-}
-
-.admin-table-wrap .dt-filter-empty {
-  display: block;
-  height: 1px;
 }
 
 .admin-table-wrap .dt-col-filter {
   width: 100%;
-  min-width: 4.25rem;
-  max-width: 12rem;
   box-sizing: border-box;
   margin: 0;
-  padding: 0.36rem 0.55rem;
-  font-size: 0.78rem;
-  line-height: 1.25;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.3;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   background: var(--bg);
   color: var(--text);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
-}
-
-.admin-table-wrap .dt-col-input {
-  min-height: 2rem;
+  min-height: 2.1rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .admin-table-wrap .dt-col-select {
-  min-height: 2rem;
   cursor: pointer;
   appearance: auto;
-  padding-inline-end: 1.25rem;
 }
 
 .admin-table-wrap .dt-col-filter::placeholder {
   color: var(--text-faint);
-  opacity: 0.9;
 }
 
 .admin-table-wrap .dt-col-filter:hover {
@@ -351,7 +223,6 @@
 .admin-table-wrap .dt-col-filter:focus {
   border-color: var(--accent-dim, var(--accent));
   box-shadow: 0 0 0 2px var(--accent-soft, rgba(227, 179, 65, 0.18));
-  background: var(--surface);
 }
 
 .admin-table-wrap .dt-col-filter.is-active {
@@ -359,14 +230,104 @@
   background: color-mix(in srgb, var(--accent) 8%, var(--bg));
 }
 
-/* Body cells */
+/* ---- Scroll ---- */
+.admin-table-wrap .dt-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.admin-table-wrap .dt-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.admin-table-wrap .dt-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* ---- Table: fixed layout, one clean grid ---- */
+.admin-table-wrap table.dataTable {
+  width: 100% !important;
+  min-width: 640px;
+  margin: 0 !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  border: none !important;
+  background: transparent;
+  table-layout: fixed !important;
+}
+
+.admin-table-wrap table.dataTable thead th,
 .admin-table-wrap table.dataTable tbody td {
-  padding: 0.7rem 0.85rem;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  text-align: start;
+}
+
+.admin-table-wrap table.dataTable thead th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--border) !important;
+  border-top: none !important;
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-table-wrap table.dataTable thead th.sorting_disabled {
+  cursor: default;
+}
+
+/* Hide default DT sort icons; use simple markers */
+.admin-table-wrap table.dataTable thead th.sorting:before,
+.admin-table-wrap table.dataTable thead th.sorting_asc:before,
+.admin-table-wrap table.dataTable thead th.sorting_desc:before,
+.admin-table-wrap table.dataTable thead th.sorting:after,
+.admin-table-wrap table.dataTable thead th.sorting_asc:after,
+.admin-table-wrap table.dataTable thead th.sorting_desc:after {
+  display: none !important;
+  content: none !important;
+}
+
+.admin-table-wrap table.dataTable thead th.sorting:after,
+.admin-table-wrap table.dataTable thead th.sorting_asc:after,
+.admin-table-wrap table.dataTable thead th.sorting_desc:after {
+  display: inline !important;
+  margin-inline-start: 0.3rem;
+  font-size: 0.65rem;
+  opacity: 0.45;
+}
+.admin-table-wrap table.dataTable thead th.sorting:after {
+  content: "\2195" !important;
+}
+.admin-table-wrap table.dataTable thead th.sorting_asc:after {
+  content: "\25B2" !important;
+  opacity: 0.9;
+  color: var(--accent);
+}
+.admin-table-wrap table.dataTable thead th.sorting_desc:after {
+  content: "\25BC" !important;
+  opacity: 0.9;
+  color: var(--accent);
+}
+
+.admin-table-wrap table.dataTable thead th:hover {
+  color: var(--text);
+}
+
+.admin-table-wrap table.dataTable tbody td {
+  padding: 0.7rem 0.9rem;
   border-bottom: 1px solid var(--border-soft) !important;
   border-top: none !important;
   font-size: 0.88rem;
-  vertical-align: middle;
-  text-align: start;
   color: var(--text);
   background: transparent !important;
 }
@@ -375,7 +336,7 @@
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
-  max-width: 22rem;
+  word-break: break-word;
 }
 
 .admin-table-wrap table.dataTable tbody td.dt-actions,
@@ -383,7 +344,6 @@
   white-space: nowrap;
   overflow: visible;
   text-overflow: clip;
-  max-width: none;
 }
 
 .admin-table-wrap table.dataTable tbody tr:last-child td {
@@ -403,36 +363,15 @@
   background: transparent;
 }
 
-/* Narrow utility columns */
-.admin-table-wrap table.dataTable tbody td.col-idx,
-.admin-table-wrap table.dataTable thead tr:first-child th.col-idx,
-.admin-table-wrap table.dataTable tbody td:first-child,
-.admin-table-wrap table.dataTable thead tr:first-child th:first-child {
-  min-width: 2.75rem;
-  width: 2.75rem;
+/* Index column */
+.admin-table-wrap table.dataTable thead th:first-child,
+.admin-table-wrap table.dataTable tbody td:first-child {
+  width: 3rem;
+  min-width: 3rem;
   max-width: 3.5rem;
+  text-align: center;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-.admin-table-wrap table.dataTable tbody td.col-num,
-.admin-table-wrap table.dataTable thead tr:first-child th.col-num {
-  min-width: 3.5rem;
-  max-width: 5rem;
-  text-align: center;
-}
-
-.admin-table-wrap table.dataTable tbody td.col-date,
-.admin-table-wrap table.dataTable thead tr:first-child th.col-date {
-  min-width: 6rem;
-  max-width: 9rem;
-}
-
-.admin-table-wrap table.dataTable tbody td.col-status,
-.admin-table-wrap table.dataTable thead tr:first-child th.col-status {
-  min-width: 5.5rem;
-  max-width: 8rem;
 }
 
 .admin-table-wrap .ltr-field {
@@ -484,16 +423,13 @@
   text-align: center;
   font-size: 0.82rem;
   font-weight: 500;
-  line-height: 1.3;
   box-shadow: none !important;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 
 .admin-table-wrap .dataTables_paginate .paginate_button:hover:not(.disabled),
 .admin-table-wrap .dataTables_paginate .page-item:not(.disabled):not(.active) .page-link:hover {
   background: var(--surface-3, var(--surface-2)) !important;
   color: var(--text) !important;
-  border-color: var(--text-faint) !important;
 }
 
 .admin-table-wrap .dataTables_paginate .paginate_button.current,
@@ -507,7 +443,6 @@
 .admin-table-wrap .dataTables_paginate .paginate_button.disabled,
 .admin-table-wrap .dataTables_paginate .page-item.disabled .page-link {
   opacity: 0.35;
-  cursor: default !important;
   pointer-events: none;
 }
 
@@ -524,8 +459,7 @@
   background: rgba(18, 22, 31, 0.94) !important;
   border: 1px solid var(--border) !important;
   color: var(--text) !important;
-  border-radius: var(--radius, 10px) !important;
-  box-shadow: var(--shadow-soft, 0 8px 24px rgba(0, 0, 0, 0.25));
+  border-radius: 10px !important;
   padding: 0.85rem 1.4rem !important;
   font-size: 0.88rem;
   top: 50% !important;
@@ -555,9 +489,7 @@
   text-align: center !important;
   padding: 2.5rem 1rem !important;
   color: var(--text-faint);
-  font-size: 0.9rem;
   white-space: normal;
-  max-width: none;
   overflow: visible;
 }
 
@@ -579,23 +511,14 @@
     max-width: none;
   }
 
-  .admin-table-wrap .dataTables_filter {
-    width: 100%;
-  }
-
+  .admin-table-wrap .dataTables_filter,
   .admin-table-wrap .dataTables_filter label {
     width: 100%;
   }
 
-  .admin-table-wrap table.dataTable thead tr:first-child th,
-  .admin-table-wrap table.dataTable tbody td {
-    padding: 0.55rem 0.65rem;
-    font-size: 0.8rem;
-  }
-
-  .admin-table-wrap .dt-col-filter {
-    max-width: 8rem;
-    font-size: 0.74rem;
+  .admin-table-wrap .dt-filter-item {
+    flex: 1 1 100%;
+    max-width: none;
   }
 
   .admin-table-wrap .dataTables_paginate {
@@ -611,7 +534,4 @@
   background-color: var(--accent-soft) !important;
   border-color: var(--accent-dim, var(--accent)) !important;
   color: var(--accent) !important;
-}
-.admin-table-wrap .page-link:focus {
-  box-shadow: 0 0 0 3px var(--accent-soft) !important;
 }
