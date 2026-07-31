@@ -4,6 +4,7 @@
     <AssemblyName>Blog.Core.Contract</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\Blog.Core.Domain\Blog.Core.Domain.csproj" />
   </ItemGroup>
 </Project>
