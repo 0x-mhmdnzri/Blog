@@ -14,6 +14,24 @@ public partial class AccountController
     public IActionResult ExternalLogin(string provider, string? returnUrl = null)
     {
         returnUrl = SanitizeReturnUrl(returnUrl) ?? "/";
+        provider = (provider ?? string.Empty).Trim();
+        // Only allow schemes that were registered (keys present in config)
+        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(_config["Authentication:Google:ClientId"])
+            && !string.IsNullOrWhiteSpace(_config["Authentication:Google:ClientSecret"]))
+            allowed.Add("Google");
+        if (!string.IsNullOrWhiteSpace(_config["Authentication:GitHub:ClientId"])
+            && !string.IsNullOrWhiteSpace(_config["Authentication:GitHub:ClientSecret"]))
+            allowed.Add("GitHub");
+
+        if (string.IsNullOrEmpty(provider) || !allowed.Contains(provider))
+        {
+            ModelState.AddModelError(string.Empty, "ارائه‌دهنده ورود اجتماعی فعال نیست یا نامعتبر است.");
+            ViewBag.GoogleLoginEnabled = allowed.Contains("Google");
+            ViewBag.GitHubLoginEnabled = allowed.Contains("GitHub");
+            return View("Login");
+        }
+
         var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Account", new { returnUrl });
         var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
         return Challenge(properties, provider);
