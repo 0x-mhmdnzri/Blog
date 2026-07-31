@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using BlogApp.Data;
+using BlogApp.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
