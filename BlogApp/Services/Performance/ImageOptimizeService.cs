@@ -2,18 +2,22 @@ using BlogApp.Data;
 using BlogApp.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 
 namespace BlogApp.Services.Performance;
 
 /// <summary>
-/// Lightweight image pipeline without native deps:
-/// downscales very large JPEG/PNG headers via re-encode of raw bytes is limited;
-/// here we strip EXIF by re-saving JPEG SOI..EOI when possible and convert large PNGs
-/// to JPEG when PreferWebP is false. Full WebP needs ImageSharp in production deploy.
-/// When optimization cannot improve, marks SizeBytes unchanged and returns.
+/// Image pipeline using ImageSharp: optional version snapshot, max-width resize,
+/// WebP (or JPEG) re-encode, and responsive width variants for srcset.
 /// </summary>
 public sealed class ImageOptimizeService
 {
+    private static readonly int[] DefaultVariantWidths = [480, 800, 1280];
+
     private readonly ApplicationDbContext _db;
     private readonly ImageOptimizeOptions _opt;
     private readonly ILogger<ImageOptimizeService> _logger;
@@ -32,73 +36,215 @@ public sealed class ImageOptimizeService
     {
         if (!_opt.Enabled) return;
 
-        // Tracking needed for update
         var asset = await _db.MediaAssets
             .AsTracking()
+            .Include(m => m.Variants)
             .FirstOrDefaultAsync(m => m.Id == mediaId, ct);
 
         if (asset is null || asset.Kind != MediaKind.Image || asset.Content.Length == 0)
             return;
 
-        var original = asset.SizeBytes;
-        var optimized = TryOptimizeBytes(asset.Content, asset.ContentType, out var newCt, out var newBytes);
-        if (!optimized || newBytes is null || newBytes.Length == 0 || newBytes.Length >= asset.Content.Length)
+        // Skip GIF/SVG/ICO — keep animated GIF and vector intact
+        if (asset.ContentType.Contains("gif", StringComparison.OrdinalIgnoreCase)
+            || asset.ContentType.Contains("svg", StringComparison.OrdinalIgnoreCase)
+            || asset.ContentType.Contains("icon", StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogDebug("Image optimize skip MediaId={Id} (no gain)", mediaId);
+            _logger.LogDebug("Image optimize skip MediaId={Id} CT={CT}", mediaId, asset.ContentType);
             return;
         }
 
-        asset.Content = newBytes;
-        asset.SizeBytes = newBytes.LongLength;
-        asset.ContentType = newCt;
-        await _db.SaveChangesAsync(ct);
-
-        _logger.LogInformation(
-            "Image optimized MediaId={Id} {From}→{To} bytes CT={CT}",
-            mediaId, original, asset.SizeBytes, asset.ContentType);
-    }
-
-    private static bool TryOptimizeBytes(byte[] input, string contentType, out string newCt, out byte[]? output)
-    {
-        newCt = contentType;
-        output = null;
-
-        // JPEG: strip trailing data after EOI (0xFF 0xD9), common camera junk
-        if (IsJpeg(input))
+        try
         {
-            var eoi = FindJpegEoi(input);
-            if (eoi > 0 && eoi + 2 < input.Length)
+            await using var input = new MemoryStream(asset.Content);
+            using var image = await Image.LoadAsync(input, ct);
+
+            var originalW = image.Width;
+            var originalH = image.Height;
+
+            // Snapshot current bytes as a version before first successful rewrite
+            if (asset.OptimizedAtUtc is null)
             {
-                output = input.AsSpan(0, eoi + 2).ToArray();
-                newCt = "image/jpeg";
-                return true;
+                _db.MediaVersions.Add(new MediaVersion
+                {
+                    MediaAssetId = asset.Id,
+                    VersionNumber = asset.Version,
+                    ContentType = asset.ContentType,
+                    SizeBytes = asset.SizeBytes,
+                    Content = asset.Content,
+                    Width = originalW,
+                    Height = originalH,
+                    Note = "original-upload",
+                    CreatedAtUtc = DateTime.UtcNow
+                });
             }
-            return false;
-        }
 
-        // PNG under size threshold — leave as-is (lossless recompress needs encoder)
-        if (IsPng(input) && input.Length > 1_500_000)
+            var maxW = Math.Max(320, _opt.MaxWidth);
+            if (image.Width > maxW)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Size = new Size(maxW, 0),
+                    Mode = ResizeMode.Max,
+                    Sampler = KnownResamplers.Lanczos3
+                }));
+            }
+
+            // Strip EXIF / metadata by not copying
+            image.Metadata.ExifProfile = null;
+            image.Metadata.IccProfile = null;
+            image.Metadata.XmpProfile = null;
+
+            var useWebP = _opt.PreferWebP;
+            byte[] primaryBytes;
+            string primaryCt;
+            await using (var outMs = new MemoryStream())
+            {
+                if (useWebP)
+                {
+                    await image.SaveAsWebpAsync(outMs, new WebpEncoder
+                    {
+                        Quality = Math.Clamp(_opt.JpegQuality, 40, 100),
+                        FileFormat = WebpFileFormatType.Lossy
+                    }, ct);
+                    primaryCt = "image/webp";
+                }
+                else
+                {
+                    await image.SaveAsJpegAsync(outMs, new JpegEncoder
+                    {
+                        Quality = Math.Clamp(_opt.JpegQuality, 40, 100)
+                    }, ct);
+                    primaryCt = "image/jpeg";
+                }
+
+                primaryBytes = outMs.ToArray();
+            }
+
+            // Only replace if smaller or format changed usefully
+            if (primaryBytes.Length > 0 && (primaryBytes.Length < asset.Content.Length || useWebP))
+            {
+                asset.Content = primaryBytes;
+                asset.SizeBytes = primaryBytes.LongLength;
+                asset.ContentType = primaryCt;
+                if (!asset.FileName.EndsWith(".webp", StringComparison.OrdinalIgnoreCase) && useWebP)
+                {
+                    var baseName = Path.GetFileNameWithoutExtension(asset.FileName);
+                    if (string.IsNullOrWhiteSpace(baseName)) baseName = "image";
+                    asset.FileName = baseName + ".webp";
+                }
+            }
+
+            asset.Width = image.Width;
+            asset.Height = image.Height;
+            asset.Version = Math.Max(1, asset.Version) + 1;
+            asset.OptimizedAtUtc = DateTime.UtcNow;
+
+            // Responsive variants
+            var widths = (_opt.VariantWidths is { Length: > 0 } ? _opt.VariantWidths : DefaultVariantWidths)
+                .Where(w => w > 0 && w < originalW)
+                .Distinct()
+                .OrderBy(w => w)
+                .ToArray();
+
+            if (asset.Variants.Count > 0)
+                _db.MediaVariants.RemoveRange(asset.Variants);
+
+            foreach (var targetW in widths)
+            {
+                using var clone = image.Clone(ctx => ctx.Resize(new ResizeOptions
+                {
+                    Size = new Size(targetW, 0),
+                    Mode = ResizeMode.Max,
+                    Sampler = KnownResamplers.Lanczos3
+                }));
+
+                await using var vms = new MemoryStream();
+                string vCt;
+                if (useWebP)
+                {
+                    await clone.SaveAsWebpAsync(vms, new WebpEncoder
+                    {
+                        Quality = Math.Clamp(_opt.JpegQuality, 40, 100),
+                        FileFormat = WebpFileFormatType.Lossy
+                    }, ct);
+                    vCt = "image/webp";
+                }
+                else
+                {
+                    await clone.SaveAsJpegAsync(vms, new JpegEncoder
+                    {
+                        Quality = Math.Clamp(_opt.JpegQuality, 40, 100)
+                    }, ct);
+                    vCt = "image/jpeg";
+                }
+
+                var vBytes = vms.ToArray();
+                _db.MediaVariants.Add(new MediaVariant
+                {
+                    MediaAssetId = asset.Id,
+                    Width = clone.Width,
+                    Height = clone.Height,
+                    ContentType = vCt,
+                    SizeBytes = vBytes.LongLength,
+                    Content = vBytes,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+            }
+
+            await _db.SaveChangesAsync(ct);
+
+            _logger.LogInformation(
+                "Image optimized MediaId={Id} {Ow}x{Oh}→{W}x{H} bytes={Bytes} variants={V} CT={CT}",
+                mediaId, originalW, originalH, asset.Width, asset.Height, asset.SizeBytes, widths.Length, asset.ContentType);
+        }
+        catch (UnknownImageFormatException ex)
         {
-            // Without ImageSharp we cannot safely recompress; skip.
-            return false;
+            _logger.LogWarning(ex, "Image optimize unknown format MediaId={Id}", mediaId);
         }
-
-        return false;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Image optimize failed MediaId={Id}", mediaId);
+            throw;
+        }
     }
 
-    private static bool IsJpeg(byte[] b) =>
-        b.Length > 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF;
-
-    private static bool IsPng(byte[] b) =>
-        b.Length > 8 && b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47;
-
-    private static int FindJpegEoi(byte[] b)
+    /// <summary>Restore a prior MediaVersion snapshot onto the live asset and clear variants.</summary>
+    public async Task RestoreVersionAsync(int mediaId, int versionId, CancellationToken ct = default)
     {
-        for (var i = b.Length - 2; i >= 2; i--)
+        var asset = await _db.MediaAssets.AsTracking()
+            .Include(m => m.Variants)
+            .FirstOrDefaultAsync(m => m.Id == mediaId, ct);
+        if (asset is null) return;
+
+        var ver = await _db.MediaVersions.AsNoTracking()
+            .FirstOrDefaultAsync(v => v.Id == versionId && v.MediaAssetId == mediaId, ct);
+        if (ver is null) return;
+
+        // Snapshot current before overwrite
+        _db.MediaVersions.Add(new MediaVersion
         {
-            if (b[i] == 0xFF && b[i + 1] == 0xD9)
-                return i;
-        }
-        return -1;
+            MediaAssetId = asset.Id,
+            VersionNumber = asset.Version,
+            ContentType = asset.ContentType,
+            SizeBytes = asset.SizeBytes,
+            Content = asset.Content,
+            Width = asset.Width,
+            Height = asset.Height,
+            Note = "pre-restore",
+            CreatedAtUtc = DateTime.UtcNow
+        });
+
+        asset.Content = ver.Content;
+        asset.ContentType = ver.ContentType;
+        asset.SizeBytes = ver.SizeBytes;
+        asset.Width = ver.Width;
+        asset.Height = ver.Height;
+        asset.Version = Math.Max(1, asset.Version) + 1;
+        asset.OptimizedAtUtc = null;
+
+        if (asset.Variants.Count > 0)
+            _db.MediaVariants.RemoveRange(asset.Variants);
+
+        await _db.SaveChangesAsync(ct);
     }
 }
