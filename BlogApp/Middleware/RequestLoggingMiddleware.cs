@@ -26,7 +26,7 @@ public sealed class RequestLoggingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (IsStatic(context.Request.Path))
+        if (IsStatic(context.Request.Path) || IsSse(context.Request.Path))
         {
             await _next(context);
             return;
@@ -92,4 +92,12 @@ public sealed class RequestLoggingMiddleware
         || path.StartsWithSegments(Js)
         || path.StartsWithSegments(Lib)
         || path.StartsWithSegments(Favicon);
+
+    /// <summary>Long-lived SSE — skip summary log so connection lifetime is not misreported as latency.</summary>
+    private static bool IsSse(PathString path)
+    {
+        var v = path.Value ?? "";
+        return v.Equals("/Notifications/Stream", StringComparison.OrdinalIgnoreCase)
+            || v.Equals("/Admin/Stream", StringComparison.OrdinalIgnoreCase);
+    }
 }
