@@ -38,6 +38,8 @@
         "btn.approve", "btn.reject", "btn.delete", "btn.edit", "btn.duplicate", "btn.restore",
         "msg.confirm_delete", "msg.confirm_trash", "msg.confirm_delete_comment"
     };
+
+    var searchPlaceholder = lang == "fa" ? "جستجو در پنل مدیریت…" : "Search admin panel…";
 }
 <!DOCTYPE html>
 <html lang="@lang" dir="@dir" data-bs-theme="@themeMode" data-theme="@themeMode" data-culture="@lang">
@@ -73,6 +75,7 @@
     <link rel="stylesheet" href="~/css/theme-system.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/datepicker.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/a11y.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin-search.css" asp-append-version="true" />
     <script>
       (function () {
         try {
@@ -169,6 +172,23 @@
                         <h1>@(pageTitle ?? panelTitle)</h1>
                     </div>
                 </div>
+
+                @* Wide Spotlight search field — click opens modal *@
+                <div class="admin-topbar-search">
+                    <button type="button"
+                            class="admin-search-field"
+                            id="adminSearchOpen"
+                            data-admin-search-open
+                            aria-label="@searchPlaceholder"
+                            title="@searchPlaceholder (⌘K / Ctrl+K)">
+                        <svg class="admin-search-field-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                            <path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                        </svg>
+                        <span class="admin-search-field-text">@searchPlaceholder</span>
+                        <kbd class="admin-search-field-kbd">⌘K</kbd>
+                    </button>
+                </div>
+
                 <div class="admin-topbar-end d-flex align-items-center gap-2 flex-wrap">
                     <partial name="_ThemePicker" />
                     <partial name="_NotificationBell" />
@@ -184,6 +204,8 @@
             </div>
         </main>
     </div>
+
+    <partial name="~/Views/Shared/_AdminSearch.cshtml" />
 
     <div id="a11y-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
@@ -204,6 +226,7 @@
     <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
     <script src="~/js/datepicker.js" asp-append-version="true"></script>
     <script src="~/js/a11y.js" asp-append-version="true"></script>
+    <script src="~/js/admin-search.js" asp-append-version="true"></script>
     <script>
         (function () {
             document.documentElement.classList.remove('sidebar-lock-pending');
