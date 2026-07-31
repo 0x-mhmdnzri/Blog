@@ -5,13 +5,6 @@ Last reviewed against the monolith codebase on 2026-07-31.
 
 ---
 
-### Comments
-
-* Spam Detection (rules / ML)
-* Guest Comments (safe + rate-limited)
-* Pinned Comments
-* Comment Editing (author edit window)
-
 ### User Experience
 
 * Full-Text Search (SQLite FTS5 or equivalent)
@@ -121,6 +114,8 @@ Last reviewed against the monolith codebase on 2026-07-31.
 ---
 
 ### Implemented (removed from active backlog)
+
+**Comments** (rule-based spam detection with score/reasons + `CommentStatus.Spam`; guest comments with honeypot, optional email, IP hash, rate limit policy `comment`; pinned comments for post authors/admins; author edit window via `Comments:EditWindowMinutes`; Admin → Comments spam tab + pin/mark-spam actions; merged into existing Admin Comments — no new sidebar).
 
 **Media** (ImageSharp WebP/JPEG re-encode + max-width resize + EXIF strip via background job; responsive variants at configurable widths served from `/media/{id}/w/{width}`; `srcset`/`sizes` injected by MarkdownService; `MediaVersions` history + restore; CDN base URL rewrite on upload JSON, markdown images, and video embeds; Admin → Media re-optimize + versions API).
 
