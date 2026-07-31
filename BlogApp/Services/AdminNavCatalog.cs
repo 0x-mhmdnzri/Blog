@@ -43,6 +43,7 @@ public sealed class AdminNavItem
             "apikeys" => string.Equals(controller, "AdminApiKeys", StringComparison.OrdinalIgnoreCase),
             "myapikeys" => string.Equals(controller, "AccountApiKeys", StringComparison.OrdinalIgnoreCase),
             "accessibility" => string.Equals(controller, "AdminAccessibility", StringComparison.OrdinalIgnoreCase),
+            "themes" => string.Equals(controller, "AdminThemes", StringComparison.OrdinalIgnoreCase),
             "dashboard" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
                            && action is "Index",
             "seo" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
@@ -83,6 +84,10 @@ public static class AdminNavCatalog
         new() { Key = "notifications", GroupKey = "admin.group.general", LabelKey = "nav.notifications",
             Controller = "AdminNotifications", Action = "Index",
             Icon = "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" },
+
+        new() { Key = "themes", GroupKey = "admin.group.content", LabelKey = "admin.nav.themes",
+            Controller = "AdminThemes", Action = "Index", StaffOnly = true, ShowPendingBadge = false,
+            Icon = "M12 3a9 9 0 1 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16a5 5 0 0 0 0-10h-4zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" },
 
         new() { Key = "media", GroupKey = "admin.group.content", LabelKey = "admin.nav.media",
             Controller = "Admin", Action = "Media",
