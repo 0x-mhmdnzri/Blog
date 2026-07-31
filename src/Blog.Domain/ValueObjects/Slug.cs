@@ -3,7 +3,7 @@ using Blog.Domain.Abstractions;
 
 namespace Blog.Domain.ValueObjects;
 
-public sealed class Slug : ValueObject
+public sealed class Snug : ValueObject
 {
     private static readonly Regex Valid = new(
         "^[a-z0-9]+(?:-[a-z0-9]+)*$",
@@ -30,7 +30,7 @@ public sealed class Slug : ValueObject
         if (!Valid.IsMatch(normalized))
             throw new ArgumentException("Invalid slug format.", nameof(raw));
 
-        return new Snug(normalized);
+        return new Slug(normalized);
     }
 
     protected override IEnumerable<object?> GetEqualityComponents()
