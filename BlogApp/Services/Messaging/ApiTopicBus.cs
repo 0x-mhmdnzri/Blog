@@ -79,8 +79,8 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
     private readonly ConcurrentDictionary<string, TaskCompletionSource<ApiWorkResult>> _waiters = new();
 
     private IConnection? _conn;
-    private IModel? _pub;
-    private IModel? _sub;
+    private IChannel? _pub;
+    private IChannel? _sub;
     private CancellationTokenSource? _cts;
     private Task? _localWorker;
     private bool _rabbitReady;
@@ -103,7 +103,7 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
         _localWorker = Task.Run(() => RunLocalWorkerAsync(_cts.Token), _cts.Token);
 
         if (_opts.UseRabbit && _rmq.Enabled)
-            TryConnectRabbit();
+            _ = TryConnectRabbitAsync();
 
         _log.LogInformation(
             "ApiTopicBus started Rabbit={Rabbit} Exchange={Ex} Queue={Q} Prefetch={P}",
@@ -157,25 +157,34 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
 
     private async Task PublishCoreAsync(ApiWorkRequest request, CancellationToken ct)
     {
-        if (_rabbitReady && _pub is { IsOpen: true })
+        var pub = _pub;
+        if (_rabbitReady && pub is { IsOpen: true })
         {
             try
             {
                 var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request));
-                var props = _pub.CreateBasicProperties();
-                props.ContentType = "application/json";
-                props.DeliveryMode = 2; // persistent
-                props.MessageId = request.CorrelationId;
-                props.CorrelationId = request.CorrelationId;
-                props.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-                props.Headers = new Dictionary<string, object>
+                var props = new BasicProperties
                 {
-                    ["x-kind"] = request.Kind,
-                    ["x-path"] = request.Path
+                    ContentType = "application/json",
+                    DeliveryMode = DeliveryModes.Persistent,
+                    MessageId = request.CorrelationId,
+                    CorrelationId = request.CorrelationId,
+                    Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
+                    Headers = new Dictionary<string, object?>
+                    {
+                        ["x-kind"] = request.Kind,
+                        ["x-path"] = request.Path
+                    }
                 };
 
                 var rk = $"{_opts.RoutingPrefix}.{request.Kind}";
-                _pub.BasicPublish(_opts.TopicExchange, rk, props, body);
+                await pub.BasicPublishAsync(
+                    exchange: _opts.TopicExchange,
+                    routingKey: rk,
+                    mandatory: false,
+                    basicProperties: props,
+                    body: body,
+                    cancellationToken: ct);
                 return;
             }
             catch (Exception ex)
@@ -184,13 +193,11 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
             }
         }
 
-        // In-process durable-enough buffer (bounded wait, never drop by default)
         await _local.Writer.WriteAsync(request, ct);
     }
 
     private async Task RunLocalWorkerAsync(CancellationToken ct)
     {
-        // Single reader → one-by-one
         await foreach (var req in _local.Reader.ReadAllAsync(ct))
         {
             try
@@ -212,7 +219,7 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
         }
     }
 
-    private void TryConnectRabbit()
+    private async Task TryConnectRabbitAsync()
     {
         try
         {
@@ -223,38 +230,33 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
                 UserName = _rmq.UserName,
                 Password = _rmq.Password,
                 VirtualHost = _rmq.VirtualHost,
-                DispatchConsumersAsync = true,
                 AutomaticRecoveryEnabled = true,
                 TopologyRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
             };
 
-            _conn = factory.CreateConnection("blogapp-api-work");
-            _pub = _conn.CreateModel();
-            _sub = _conn.CreateModel();
+            _conn = await factory.CreateConnectionAsync("blogapp-api-work");
+            _pub = await _conn.CreateChannelAsync();
+            _sub = await _conn.CreateChannelAsync();
 
-            _pub.ExchangeDeclare(_opts.TopicExchange, ExchangeType.Topic, durable: true, autoDelete: false);
+            await _pub.ExchangeDeclareAsync(_opts.TopicExchange, ExchangeType.Topic, durable: true, autoDelete: false);
 
-            // Durable work queue — survives broker restart
-            _sub.QueueDeclare(
+            await _sub.QueueDeclareAsync(
                 queue: _opts.WorkQueue,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: new Dictionary<string, object>
+                arguments: new Dictionary<string, object?>
                 {
-                    // dead-letter after poison (optional DLX name)
                     ["x-queue-type"] = "classic"
                 });
 
-            // Bind all api.* messages into sequential work queue
-            _sub.QueueBind(_opts.WorkQueue, _opts.TopicExchange, routingKey: _opts.RoutingPrefix + ".#");
+            await _sub.QueueBindAsync(_opts.WorkQueue, _opts.TopicExchange, routingKey: _opts.RoutingPrefix + ".#");
 
-            // ONE message at a time → ordered, no parallel stampede on SQLite
-            _sub.BasicQos(0, _opts.Prefetch, false);
+            await _sub.BasicQosAsync(0, _opts.Prefetch, global: false);
 
             var consumer = new AsyncEventingBasicConsumer(_sub);
-            consumer.Received += async (_, ea) =>
+            consumer.ReceivedAsync += async (_, ea) =>
             {
                 ApiWorkRequest? req = null;
                 try
@@ -263,13 +265,13 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
                     req = JsonSerializer.Deserialize<ApiWorkRequest>(json);
                     if (req is null)
                     {
-                        _sub.BasicAck(ea.DeliveryTag, false);
+                        await _sub.BasicAckAsync(ea.DeliveryTag, multiple: false);
                         return;
                     }
 
                     var result = await ExecuteAsync(req, _cts?.Token ?? CancellationToken.None);
                     CompleteWaiter(result);
-                    _sub.BasicAck(ea.DeliveryTag, false);
+                    await _sub.BasicAckAsync(ea.DeliveryTag, multiple: false);
                 }
                 catch (Exception ex)
                 {
@@ -284,12 +286,11 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
                             Error = "work_failed"
                         });
                     }
-                    // requeue once-ish: false → avoid infinite poison loop; message is logged
-                    try { _sub.BasicNack(ea.DeliveryTag, false, requeue: false); } catch { }
+                    try { await _sub.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false); } catch { }
                 }
             };
 
-            _sub.BasicConsume(_opts.WorkQueue, autoAck: false, consumer);
+            await _sub.BasicConsumeAsync(_opts.WorkQueue, autoAck: false, consumer);
             _rabbitReady = true;
             _log.LogInformation("ApiTopicBus Rabbit connected Host={Host} Queue={Q}", _rmq.HostName, _opts.WorkQueue);
         }
@@ -297,9 +298,9 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
         {
             _log.LogWarning(ex, "ApiTopicBus Rabbit unavailable — in-process sequential channel only");
             _rabbitReady = false;
-            try { _sub?.Dispose(); } catch { }
-            try { _pub?.Dispose(); } catch { }
-            try { _conn?.Dispose(); } catch { }
+            try { if (_sub is not null) await _sub.DisposeAsync(); } catch { }
+            try { if (_pub is not null) await _pub.DisposeAsync(); } catch { }
+            try { if (_conn is not null) await _conn.DisposeAsync(); } catch { }
             _sub = null;
             _pub = null;
             _conn = null;
@@ -308,7 +309,6 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
 
     private async Task<ApiWorkResult> ExecuteAsync(ApiWorkRequest req, CancellationToken ct)
     {
-        // Handlers registered via scoped services — keep work isolated
         await using var scope = _scopes.CreateAsyncScope();
         var registry = scope.ServiceProvider.GetRequiredService<ApiWorkHandlerRegistry>();
         return await registry.DispatchAsync(req, ct);
@@ -320,15 +320,14 @@ public sealed class ApiTopicBus : IApiTopicBus, IHostedService, IAsyncDisposable
             tcs.TrySetResult(result);
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        try { _sub?.Close(); } catch { }
-        try { _pub?.Close(); } catch { }
-        try { _conn?.Close(); } catch { }
-        _sub?.Dispose();
-        _pub?.Dispose();
-        _conn?.Dispose();
-        return ValueTask.CompletedTask;
+        try { if (_sub is not null) await _sub.CloseAsync(); } catch { }
+        try { if (_pub is not null) await _pub.CloseAsync(); } catch { }
+        try { if (_conn is not null) await _conn.CloseAsync(); } catch { }
+        if (_sub is not null) await _sub.DisposeAsync();
+        if (_pub is not null) await _pub.DisposeAsync();
+        if (_conn is not null) await _conn.DisposeAsync();
     }
 }
 
@@ -354,7 +353,6 @@ public sealed class ApiWorkHandlerRegistry
         if (_map.TryGetValue(req.Kind, out var handler))
             return await handler(req, ct);
 
-        // passthrough / no-op kinds (used for load-smoothing reads)
         if (string.Equals(req.Kind, "passthrough", StringComparison.OrdinalIgnoreCase))
         {
             return new ApiWorkResult
