@@ -1,0 +1,17 @@
+{
+  "id": "material-palenight",
+  "name": "Material Palenight",
+  "description": "Material Theme Palenight — official palette (material-theme.com)",
+  "mode": "dark",
+  "bg": "#292D3E",
+  "surface": "#303348",
+  "surface2": "#34324A",
+  "border": "#2B2A3E",
+  "text": "#EEFFFF",
+  "textMuted": "#A6ACCD",
+  "accent": "#AB47BC",
+  "danger": "#FF5370",
+  "success": "#C3E88D",
+  "isSystem": true,
+  "activate": false
+}

@@ -1,0 +1,17 @@
+{
+  "id": "material-oceanic",
+  "name": "Material Oceanic",
+  "description": "Material Theme Oceanic — official palette (material-theme.com)",
+  "mode": "dark",
+  "bg": "#263238",
+  "surface": "#2E3C43",
+  "surface2": "#32424A",
+  "border": "#2A373E",
+  "text": "#EEFFFF",
+  "textMuted": "#B0BEC5",
+  "accent": "#009688",
+  "danger": "#FF5370",
+  "success": "#C3E88D",
+  "isSystem": true,
+  "activate": false
+}

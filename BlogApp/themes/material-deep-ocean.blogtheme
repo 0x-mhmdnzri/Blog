@@ -1,0 +1,17 @@
+{
+  "id": "material-deep-ocean",
+  "name": "Material Deep Ocean",
+  "description": "Material Theme Deep Ocean — official palette (material-theme.com)",
+  "mode": "dark",
+  "bg": "#0F111A",
+  "surface": "#181A1F",
+  "surface2": "#1A1C25",
+  "border": "#1F2233",
+  "text": "#EEFFFF",
+  "textMuted": "#8F93A2",
+  "accent": "#84FFFF",
+  "danger": "#FF5370",
+  "success": "#C3E88D",
+  "isSystem": true,
+  "activate": false
+}
