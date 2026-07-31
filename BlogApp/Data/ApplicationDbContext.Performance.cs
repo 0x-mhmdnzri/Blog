@@ -25,8 +25,11 @@ public partial class ApplicationDbContext
         {
             e.HasIndex(s => s.PostId).IsUnique();
             e.HasIndex(s => new { s.LanguageCode, s.IsPublished });
+            e.HasIndex(s => s.AuthorUserId);
             e.Property(s => s.BodyText).HasColumnType("TEXT");
             e.Property(s => s.Summary).HasColumnType("TEXT");
+            e.Property(s => s.AuthorUserId).HasMaxLength(450);
+            e.Property(s => s.AuthorName).HasMaxLength(200);
             e.HasOne(s => s.Post).WithMany().HasForeignKey(s => s.PostId).OnDelete(DeleteBehavior.Cascade);
         });
 
