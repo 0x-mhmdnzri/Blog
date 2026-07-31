@@ -2,7 +2,7 @@
  * BlogApp — server-side DataTables helper (single entry point).
  *
  * Language strings come from window.__i18n (seeded by _AdminLayout from parrot DB).
- * Fallback English if missing.
+ * Optional exportUrl: server endpoint that exports ALL matching rows as CSV (not page-limited).
  */
 window.BlogDT = (function () {
   function isRtl() {
@@ -39,10 +39,63 @@ window.BlogDT = (function () {
     };
   }
 
+  /** Build export URL with current DataTables search + optional extra query params. */
+  function buildExportUrl(baseUrl, table, extraParams) {
+    var url = new URL(baseUrl, window.location.origin);
+    var search = '';
+    try {
+      search = table.search() || '';
+    } catch (_) {}
+    if (search) url.searchParams.set('search', search);
+    if (extraParams && typeof extraParams === 'object') {
+      Object.keys(extraParams).forEach(function (k) {
+        if (extraParams[k] != null && extraParams[k] !== '')
+          url.searchParams.set(k, extraParams[k]);
+      });
+    }
+    return url.pathname + url.search;
+  }
+
+  function injectExportButton($table, table, exportUrl, exportParams) {
+    if (!exportUrl) return;
+    var wrap = $table.closest('.dataTables_wrapper');
+    if (!wrap.length) return;
+    var toolbar = wrap.find('.dt-toolbar, .row').first();
+    if (!toolbar.length) toolbar = wrap;
+
+    var label = i18n('dt.export_csv', 'خروجی CSV');
+    var btn = jQuery(
+      '<button type="button" class="btn btn-sm btn-ghost dt-export-csv" title="' +
+        label +
+        '">' +
+        '<span aria-hidden="true">↓</span> ' +
+        label +
+        '</button>'
+    );
+    btn.on('click', function () {
+      window.location.href = buildExportUrl(exportUrl, table, exportParams);
+    });
+
+    // Place next to length/search toolbar
+    var lengthDiv = wrap.find('.dataTables_length').parent();
+    if (lengthDiv.length) {
+      lengthDiv.prepend(btn.css({ marginInlineEnd: '0.5rem', marginBottom: '0.35rem' }));
+    } else {
+      toolbar.prepend(btn);
+    }
+  }
+
   function init(selector, options) {
     if (!window.jQuery || !jQuery.fn.DataTable) {
       console.error('DataTables not loaded');
       return null;
+    }
+
+    var exportUrl = options && options.exportUrl;
+    var exportParams = (options && options.exportParams) || {};
+    if (options) {
+      delete options.exportUrl;
+      delete options.exportParams;
     }
 
     var opts = Object.assign({
@@ -82,6 +135,11 @@ window.BlogDT = (function () {
           if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
         });
       });
+    });
+
+    // Export button after first draw so wrapper exists
+    table.one('draw', function () {
+      injectExportButton($table, table, exportUrl, exportParams);
     });
 
     return table;

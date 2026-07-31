@@ -36,6 +36,7 @@
 <script>
 BlogDT.init('#auditTable', {
     ajax: { url: '@Url.Action("Data", "AdminAudit")', type: 'GET' },
+    exportUrl: '@Url.Action("ExportCsv", "AdminAudit")',
     columns: [
         { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
         { data: 1, className: 'ltr-field small' },

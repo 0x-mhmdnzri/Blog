@@ -34,6 +34,7 @@
 <script>
 BlogDT.init('#usersTable', {
     ajax: { url: '@Url.Action("Data", "AdminUsers")', type: 'GET' },
+    exportUrl: '@Url.Action("ExportCsv", "AdminUsers")',
     columns: [
         { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
         { data: 1 },

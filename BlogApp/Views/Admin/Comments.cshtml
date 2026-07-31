@@ -45,6 +45,8 @@ BlogDT.init('#commentsTable', {
         type: 'GET',
         data: function (d) { d.status = '@current'; }
     },
+    exportUrl: '@Url.Action("CommentsExportCsv", "Admin")',
+    exportParams: { status: '@current' },
     columns: [
         { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
         { data: 1 },

@@ -57,6 +57,7 @@
     var dateCol = 7 + offset;
     BlogDT.init('#postsTable', {
         ajax: { url: '@Url.Action("PostsData", "Admin")', type: 'GET' },
+        exportUrl: '@Url.Action("PostsExportCsv", "Admin")',
         columns: columns,
         order: [[dateCol, 'desc']],
         columnDefs: [{ orderable: false, targets: [0, columns.length - 1] }]

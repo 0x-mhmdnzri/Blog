@@ -37,6 +37,8 @@ BlogDT.init('#reportsTable', {
         type: 'GET',
         data: function (d) { d.status = '@current'; }
     },
+    exportUrl: '@Url.Action("ExportCsv", "AdminReports")',
+    exportParams: { status: '@current' },
     columns: [
         { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
         { data: 1 },
