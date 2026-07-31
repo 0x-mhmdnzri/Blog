@@ -1,6 +1,6 @@
 /**
  * BlogApp — server-side DataTables helper.
- * Horizontal scroll for wide rows; no text cut-off / no column stacking.
+ * Supports global search + per-column filters (input or select for status).
  */
 window.BlogDT = (function () {
   function isRtl() {
@@ -50,6 +50,13 @@ window.BlogDT = (function () {
           url.searchParams.set(k, extraParams[k]);
       });
     }
+    // include column filters
+    try {
+      table.columns().every(function (i) {
+        var v = this.search();
+        if (v) url.searchParams.set('col' + i, v);
+      });
+    } catch (_) {}
     return url.pathname + url.search;
   }
 
@@ -81,7 +88,7 @@ window.BlogDT = (function () {
       var btn = jQuery(
         '<button type="button" class="dt-export-csv" title="' +
           label +
-          ' — تمام نتایج فیلترشده">' +
+          '">' +
           exportIconSvg() +
           '<span>' +
           label +
@@ -122,6 +129,75 @@ window.BlogDT = (function () {
     });
   }
 
+  /**
+   * columnFilters: array parallel to columns, each item:
+   *   false / null  → no filter
+   *   true / 'text' → text input
+   *   { type: 'select', options: [{value, label}, ...] } → dropdown
+   */
+  function buildColumnFilters($table, table, columnFilters) {
+    if (!columnFilters || !columnFilters.length) return;
+    if ($table.find('thead tr.dt-col-filters').length) return;
+
+    var $head = $table.find('thead');
+    var colCount = $table.find('thead tr').first().children('th').length;
+    var $row = jQuery('<tr class="dt-col-filters" role="row"></tr>');
+
+    for (var i = 0; i < colCount; i++) {
+      var cfg = columnFilters[i];
+      var $th = jQuery('<th class="dt-filter-cell"></th>');
+
+      if (!cfg) {
+        $th.html('<span class="dt-filter-empty"></span>');
+        $row.append($th);
+        continue;
+      }
+
+      if (typeof cfg === 'object' && cfg.type === 'select') {
+        var $sel = jQuery('<select class="dt-col-filter dt-col-select" data-col="' + i + '"></select>');
+        $sel.append(jQuery('<option value=""></option>').text(cfg.placeholder || i18n('dt.all', 'همه')));
+        (cfg.options || []).forEach(function (o) {
+          $sel.append(jQuery('<option></option>').attr('value', o.value).text(o.label));
+        });
+        $th.append($sel);
+      } else {
+        var ph = (typeof cfg === 'object' && cfg.placeholder) || i18n('dt.filter', 'فیلتر…');
+        var $inp = jQuery(
+          '<input type="search" class="dt-col-filter dt-col-input" data-col="' +
+            i +
+            '" placeholder="' +
+            ph +
+            '" autocomplete="off" />'
+        );
+        $th.append($inp);
+      }
+      $row.append($th);
+    }
+
+    $head.append($row);
+
+    // debounce text inputs
+    var timers = {};
+    $row.on('input', 'input.dt-col-input', function () {
+      var col = parseInt(this.getAttribute('data-col'), 10);
+      var val = this.value;
+      clearTimeout(timers[col]);
+      timers[col] = setTimeout(function () {
+        table.column(col).search(val).draw();
+      }, 350);
+    });
+
+    $row.on('change', 'select.dt-col-select', function () {
+      var col = parseInt(this.getAttribute('data-col'), 10);
+      table.column(col).search(this.value).draw();
+    });
+
+    // stop sort when clicking filter controls
+    $row.on('click mousedown', 'input, select', function (e) {
+      e.stopPropagation();
+    });
+  }
+
   function init(selector, options) {
     if (!window.jQuery || !jQuery.fn.DataTable) {
       console.error('DataTables not loaded');
@@ -130,9 +206,11 @@ window.BlogDT = (function () {
 
     var exportUrl = options && options.exportUrl;
     var exportParams = (options && options.exportParams) || {};
+    var columnFilters = options && options.columnFilters;
     if (options) {
       delete options.exportUrl;
       delete options.exportParams;
+      delete options.columnFilters;
     }
 
     var opts = Object.assign({
@@ -145,7 +223,7 @@ window.BlogDT = (function () {
       lengthMenu: [10, 25, 50, 100],
       stateSave: true,
       autoWidth: true,
-      scrollX: false, /* we own horizontal scroll via .dt-scroll */
+      scrollX: false,
       dom:
         "<'row dt-toolbar'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
         "<'row'<'col-sm-12'tr>>" +
@@ -169,6 +247,7 @@ window.BlogDT = (function () {
     var wrap = $table.closest('.dataTables_wrapper');
 
     ensureScroll($table);
+    buildColumnFilters($table, table, columnFilters);
 
     table.on('draw', function () {
       document.querySelectorAll(selector + ' form[data-confirm]').forEach(function (form) {

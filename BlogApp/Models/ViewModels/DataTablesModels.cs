@@ -10,6 +10,9 @@ public class DataTablesRequest
     public int OrderColumn { get; set; }
     public string OrderDir { get; set; } = "desc";
 
+    /// <summary>Per-column search values keyed by column index (columns[i][search][value]).</summary>
+    public Dictionary<int, string> ColumnSearches { get; set; } = new();
+
     public static DataTablesRequest From(HttpRequest request)
     {
         var q = request.Query;
@@ -23,6 +26,18 @@ public class DataTablesRequest
         var orderDir = (q["order[0][dir]"].ToString() ?? "desc").ToLowerInvariant();
         if (orderDir is not ("asc" or "desc")) orderDir = "desc";
 
+        var colSearches = new Dictionary<int, string>();
+        // DataTables sends columns[0][search][value], columns[1][search][value], ...
+        for (var i = 0; i < 40; i++)
+        {
+            var key = $"columns[{i}][search][value]";
+            if (!q.ContainsKey(key)) continue;
+            var val = q[key].ToString()?.Trim();
+            if (string.IsNullOrEmpty(val)) continue;
+            if (val.Length > 120) val = val[..120];
+            colSearches[i] = val;
+        }
+
         return new DataTablesRequest
         {
             Draw = draw,
@@ -30,11 +45,15 @@ public class DataTablesRequest
             Length = length,
             SearchValue = q["search[value]"].ToString()?.Trim(),
             OrderColumn = orderCol,
-            OrderDir = orderDir
+            OrderDir = orderDir,
+            ColumnSearches = colSearches
         };
     }
 
     public bool Asc => OrderDir == "asc";
+
+    public string? Col(int index) =>
+        ColumnSearches.TryGetValue(index, out var v) && !string.IsNullOrWhiteSpace(v) ? v : null;
 }
 
 public class DataTablesResponse
