@@ -2,6 +2,7 @@
     Layout = "_AdminLayout";
     ViewData["Title"] = T["page.posts"];
     var showAuthor = ViewBag.ShowAuthorColumn as bool? ?? false;
+    var j = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -40,38 +41,36 @@
 (function () {
     var showAuthor = @(showAuthor ? "true" : "false");
     var columns = [
-        { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
-        { data: 1 },
+        { data: 0, orderable: false, searchable: false, className: 'ltr-field col-idx' },
+        { data: 1, className: 'col-title' },
     ];
-    if (showAuthor) columns.push({ data: 2 });
+    if (showAuthor) columns.push({ data: 2, className: 'col-author' });
     var offset = showAuthor ? 1 : 0;
     columns.push(
-        { data: 2 + offset },
-        { data: 3 + offset, orderable: true },
-        { data: 4 + offset, orderable: false, searchable: false },
-        { data: 5 + offset, className: 'ltr-field' },
-        { data: 6 + offset, className: 'ltr-field' },
-        { data: 7 + offset, className: 'ltr-field' },
-        { data: 8 + offset, orderable: false, searchable: false }
+        { data: 2 + offset, className: 'col-category' },
+        { data: 3 + offset, orderable: true, className: 'col-status' },
+        { data: 4 + offset, orderable: false, searchable: false, className: 'col-features' },
+        { data: 5 + offset, className: 'ltr-field col-num' },
+        { data: 6 + offset, className: 'ltr-field col-num' },
+        { data: 7 + offset, className: 'ltr-field col-date' },
+        { data: 8 + offset, orderable: false, searchable: false, className: 'col-actions' }
     );
     var dateCol = 7 + offset;
-    var statusCol = 3 + offset;
 
-    // Per-column filters: text inputs; status = dropdown
-    var columnFilters = [false, true]; // idx, title
-    if (showAuthor) columnFilters.push(true); // author
-    columnFilters.push(true); // category
+    var columnFilters = [false, true];
+    if (showAuthor) columnFilters.push(true);
+    columnFilters.push(true);
     columnFilters.push({
         type: 'select',
-        placeholder: '@T["col.status"]',
+        placeholder: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["col.status"].ToString(), j)),
         options: [
-            { value: 'published', label: '@T["status.published_full"]' },
-            { value: 'draft', label: '@T["status.draft"]' },
-            { value: 'scheduled', label: '@T["status.scheduled"]' },
-            { value: 'deleted', label: '@T["status.deleted"]' }
+            { value: 'published', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.published_full"].ToString(), j)) },
+            { value: 'draft', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.draft"].ToString(), j)) },
+            { value: 'scheduled', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.scheduled"].ToString(), j)) },
+            { value: 'deleted', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.deleted"].ToString(), j)) }
         ]
     });
-    columnFilters.push(false, false, false, false, false); // features, views, comments, date, actions
+    columnFilters.push(false, false, false, false, false);
 
     BlogDT.init('#postsTable', {
         ajax: { url: '@Url.Action("PostsData", "Admin")', type: 'GET' },

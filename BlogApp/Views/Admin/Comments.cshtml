@@ -2,6 +2,7 @@
     Layout = "_AdminLayout";
     ViewData["Title"] = T["page.comments"];
     var current = ViewBag.CurrentStatus as string ?? "pending";
+    var j = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 }
 
 <div class="admin-tabs">
@@ -48,13 +49,13 @@ BlogDT.init('#commentsTable', {
     exportUrl: '@Url.Action("CommentsExportCsv", "Admin")',
     exportParams: { status: '@current' },
     columns: [
-        { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
+        { data: 0, orderable: false, searchable: false, className: 'ltr-field col-idx' },
         { data: 1 },
-        { data: 2 },
+        { data: 2, className: 'dt-wrap' },
         { data: 3 },
-        { data: 4, className: 'ltr-field' },
-        { data: 5 },
-        { data: 6, orderable: false, searchable: false }
+        { data: 4, className: 'ltr-field col-date' },
+        { data: 5, className: 'col-status' },
+        { data: 6, orderable: false, searchable: false, className: 'col-actions' }
     ],
     order: [[4, 'desc']],
     columnDefs: [{ orderable: false, targets: [0, 6] }],
@@ -66,11 +67,11 @@ BlogDT.init('#commentsTable', {
         false,
         {
             type: 'select',
-            placeholder: '@T["col.status"]',
+            placeholder: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["col.status"].ToString(), j)),
             options: [
-                { value: 'pending', label: '@T["status.pending"]' },
-                { value: 'approved', label: '@T["status.approved"]' },
-                { value: 'rejected', label: '@T["status.rejected"]' }
+                { value: 'pending', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.pending"].ToString(), j)) },
+                { value: 'approved', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.approved"].ToString(), j)) },
+                { value: 'rejected', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.rejected"].ToString(), j)) }
             ]
         },
         false

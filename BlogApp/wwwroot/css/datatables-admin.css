@@ -1,13 +1,12 @@
 /* =========================================================================
-   DataTables — admin skin
-   Wide content → horizontal scroll (never truncate / never stack columns)
+   DataTables — admin skin (all tables)
+   Stable full-width grid · horizontal scroll only when needed · calm filters
    ========================================================================= */
 
-/* ---- Card shell ---- */
 .admin-table-wrap {
   width: 100%;
   border: 1px solid var(--border-soft);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg, 14px);
   background: var(--surface);
   overflow: hidden;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
@@ -75,6 +74,11 @@
   white-space: nowrap;
 }
 
+/* hide empty search label text node gap */
+.admin-table-wrap .dataTables_filter label {
+  gap: 0;
+}
+
 .admin-table-wrap .dataTables_filter input,
 .admin-table-wrap .dataTables_length select {
   background: var(--bg);
@@ -103,15 +107,14 @@
 .admin-table-wrap .dataTables_filter input:focus,
 .admin-table-wrap .dataTables_length select:focus {
   outline: none;
-  border-color: var(--accent-dim);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--accent-dim, var(--accent));
+  box-shadow: 0 0 0 3px var(--accent-soft, rgba(227, 179, 65, 0.18));
 }
 
 .admin-table-wrap .dataTables_filter input::placeholder {
   color: var(--text-faint);
 }
 
-/* CSV export */
 .admin-table-wrap .dt-export-csv {
   display: inline-flex;
   align-items: center;
@@ -132,7 +135,7 @@
 
 .admin-table-wrap .dt-export-csv:hover {
   background: var(--accent-soft);
-  border-color: var(--accent-dim);
+  border-color: var(--accent-dim, var(--accent));
   color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
@@ -148,7 +151,6 @@
   opacity: 0.9;
 }
 
-/* Clear column filters chip */
 .admin-table-wrap .dt-clear-filters {
   display: none;
   align-items: center;
@@ -171,7 +173,7 @@
   background: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* ---- Horizontal scroll ---- */
+/* ---- Scroll: only when content wider than card ---- */
 .admin-table-wrap .dt-scroll {
   width: 100%;
   max-width: 100%;
@@ -192,13 +194,10 @@
   background: var(--border);
   border-radius: 4px;
 }
-.admin-table-wrap .dt-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--text-faint);
-}
 
-/* ---- Table ---- */
+/* ---- Table: FULL WIDTH, columns share space evenly enough ---- */
 .admin-table-wrap table.dataTable {
-  width: max-content !important;
+  width: 100% !important;
   min-width: 100%;
   margin: 0 !important;
   border-collapse: separate !important;
@@ -211,12 +210,13 @@
 .admin-table-wrap table.dataTable thead th,
 .admin-table-wrap table.dataTable tbody td {
   white-space: nowrap;
-  overflow: visible;
-  text-overflow: clip;
-  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 18rem;
+  box-sizing: border-box;
 }
 
-/* Header labels only (first thead row) */
+/* Header labels */
 .admin-table-wrap table.dataTable thead tr:first-child th {
   background: var(--surface-2);
   color: var(--text-muted);
@@ -224,23 +224,22 @@
   font-size: 0.78rem;
   letter-spacing: 0.01em;
   text-align: start;
-  padding: 0.7rem 1rem;
+  padding: 0.7rem 0.85rem;
   border-bottom: 1px solid var(--border) !important;
   border-top: none !important;
   vertical-align: middle;
   cursor: pointer;
   user-select: none;
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  min-width: 4rem;
+  /* no sticky — sticky + overflow-x breaks column sync in WebKit */
+  position: relative;
+  z-index: 1;
+  min-width: 3.5rem;
 }
 
 .admin-table-wrap table.dataTable thead th.sorting_disabled {
   cursor: default;
 }
 
-/* Sort icons — only on label row */
 .admin-table-wrap table.dataTable thead tr:first-child th.sorting:before,
 .admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:before,
 .admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:before,
@@ -256,12 +255,14 @@
 .admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:after {
   display: inline !important;
   content: "" !important;
-  margin-inline-start: 0.35rem;
+  margin-inline-start: 0.3rem;
   font-size: 0.65rem;
   opacity: 0.45;
   vertical-align: middle;
 }
-.admin-table-wrap table.dataTable thead tr:first-child th.sorting:after { content: "↕" !important; }
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting:after {
+  content: "↕" !important;
+}
 .admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:after {
   content: "▲" !important;
   opacity: 0.9;
@@ -277,24 +278,24 @@
   color: var(--text);
 }
 
-/* ========== Column filter row — calm, compact ========== */
+/* Column filter row */
 .admin-table-wrap table.dataTable thead tr.dt-col-filters th,
 .admin-table-wrap table.dataTable thead tr.dt-col-filters td {
-  background: color-mix(in srgb, var(--surface-2) 70%, var(--bg)) !important;
+  background: color-mix(in srgb, var(--surface-2) 65%, var(--bg)) !important;
   border-bottom: 1px solid var(--border-soft) !important;
   border-top: none !important;
-  padding: 0.45rem 0.55rem !important;
+  padding: 0.4rem 0.5rem !important;
   vertical-align: middle;
   cursor: default !important;
   user-select: auto;
-  position: sticky;
-  top: 2.6rem; /* sit under label row when scrolling */
-  z-index: 2;
+  position: relative;
+  z-index: 1;
   font-weight: 400;
   white-space: nowrap;
+  overflow: visible;
+  max-width: none;
 }
 
-/* Kill sort arrows on filter cells */
 .admin-table-wrap table.dataTable thead tr.dt-col-filters th:before,
 .admin-table-wrap table.dataTable thead tr.dt-col-filters th:after {
   display: none !important;
@@ -302,7 +303,7 @@
 }
 
 .admin-table-wrap .dt-filter-cell {
-  min-width: 5.5rem;
+  min-width: 4.5rem;
 }
 
 .admin-table-wrap .dt-filter-empty {
@@ -312,11 +313,11 @@
 
 .admin-table-wrap .dt-col-filter {
   width: 100%;
-  min-width: 5rem;
-  max-width: 14rem;
+  min-width: 4.25rem;
+  max-width: 12rem;
   box-sizing: border-box;
   margin: 0;
-  padding: 0.38rem 0.6rem;
+  padding: 0.36rem 0.55rem;
   font-size: 0.78rem;
   line-height: 1.25;
   border: 1px solid var(--border-soft);
@@ -335,7 +336,7 @@
   min-height: 2rem;
   cursor: pointer;
   appearance: auto;
-  padding-inline-end: 1.4rem;
+  padding-inline-end: 1.25rem;
 }
 
 .admin-table-wrap .dt-col-filter::placeholder {
@@ -353,14 +354,14 @@
   background: var(--surface);
 }
 
-/* Active filter highlight */
 .admin-table-wrap .dt-col-filter.is-active {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
   background: color-mix(in srgb, var(--accent) 8%, var(--bg));
 }
 
+/* Body cells */
 .admin-table-wrap table.dataTable tbody td {
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 0.85rem;
   border-bottom: 1px solid var(--border-soft) !important;
   border-top: none !important;
   font-size: 0.88rem;
@@ -372,11 +373,17 @@
 
 .admin-table-wrap table.dataTable tbody td.dt-wrap {
   white-space: normal;
-  max-width: 28rem;
+  overflow: visible;
+  text-overflow: clip;
+  max-width: 22rem;
 }
 
-.admin-table-wrap table.dataTable tbody td.dt-actions {
+.admin-table-wrap table.dataTable tbody td.dt-actions,
+.admin-table-wrap table.dataTable tbody td.col-actions {
   white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  max-width: none;
 }
 
 .admin-table-wrap table.dataTable tbody tr:last-child td {
@@ -396,14 +403,36 @@
   background: transparent;
 }
 
-/* Index column */
+/* Narrow utility columns */
+.admin-table-wrap table.dataTable tbody td.col-idx,
+.admin-table-wrap table.dataTable thead tr:first-child th.col-idx,
 .admin-table-wrap table.dataTable tbody td:first-child,
 .admin-table-wrap table.dataTable thead tr:first-child th:first-child {
-  min-width: 3.25rem;
-  width: 3.25rem;
+  min-width: 2.75rem;
+  width: 2.75rem;
+  max-width: 3.5rem;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
   text-align: center;
+}
+
+.admin-table-wrap table.dataTable tbody td.col-num,
+.admin-table-wrap table.dataTable thead tr:first-child th.col-num {
+  min-width: 3.5rem;
+  max-width: 5rem;
+  text-align: center;
+}
+
+.admin-table-wrap table.dataTable tbody td.col-date,
+.admin-table-wrap table.dataTable thead tr:first-child th.col-date {
+  min-width: 6rem;
+  max-width: 9rem;
+}
+
+.admin-table-wrap table.dataTable tbody td.col-status,
+.admin-table-wrap table.dataTable thead tr:first-child th.col-status {
+  min-width: 5.5rem;
+  max-width: 8rem;
 }
 
 .admin-table-wrap .ltr-field {
@@ -412,7 +441,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- Footer ---- */
+/* Footer */
 .admin-table-wrap .dataTables_wrapper > .row.dt-footer,
 .admin-table-wrap .dataTables_wrapper > .row:last-child {
   display: flex;
@@ -471,7 +500,7 @@
 .admin-table-wrap .dataTables_paginate .page-item.active .page-link {
   background: var(--accent-soft) !important;
   color: var(--accent) !important;
-  border-color: var(--accent-dim) !important;
+  border-color: var(--accent-dim, var(--accent)) !important;
   font-weight: 600;
 }
 
@@ -495,8 +524,8 @@
   background: rgba(18, 22, 31, 0.94) !important;
   border: 1px solid var(--border) !important;
   color: var(--text) !important;
-  border-radius: var(--radius) !important;
-  box-shadow: var(--shadow-soft);
+  border-radius: var(--radius, 10px) !important;
+  box-shadow: var(--shadow-soft, 0 8px 24px rgba(0, 0, 0, 0.25));
   padding: 0.85rem 1.4rem !important;
   font-size: 0.88rem;
   top: 50% !important;
@@ -528,6 +557,8 @@
   color: var(--text-faint);
   font-size: 0.9rem;
   white-space: normal;
+  max-width: none;
+  overflow: visible;
 }
 
 @media (max-width: 575.98px) {
@@ -558,17 +589,12 @@
 
   .admin-table-wrap table.dataTable thead tr:first-child th,
   .admin-table-wrap table.dataTable tbody td {
-    padding: 0.6rem 0.75rem;
+    padding: 0.55rem 0.65rem;
     font-size: 0.8rem;
   }
 
-  .admin-table-wrap table.dataTable thead tr.dt-col-filters th {
-    top: 2.35rem;
-    padding: 0.35rem 0.4rem !important;
-  }
-
   .admin-table-wrap .dt-col-filter {
-    max-width: 9rem;
+    max-width: 8rem;
     font-size: 0.74rem;
   }
 
@@ -583,7 +609,7 @@
 }
 .admin-table-wrap .page-item.active .page-link {
   background-color: var(--accent-soft) !important;
-  border-color: var(--accent-dim) !important;
+  border-color: var(--accent-dim, var(--accent)) !important;
   color: var(--accent) !important;
 }
 .admin-table-wrap .page-link:focus {

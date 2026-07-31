@@ -1,6 +1,7 @@
 /**
- * BlogApp — server-side DataTables helper.
- * Global search + calm per-column filters (text / status select).
+ * BlogApp — server-side DataTables helper (all admin tables).
+ * Global search + per-column filters (text / status select).
+ * Stable layout: width 100%, columns.adjust after draw.
  */
 window.BlogDT = (function () {
   function isRtl() {
@@ -20,19 +21,20 @@ window.BlogDT = (function () {
   function languagePack() {
     return {
       processing: i18n('dt.processing', 'Loading…'),
-      search: i18n('dt.search', 'Search'),
-      searchPlaceholder: i18n('dt.search_placeholder', 'Search…'),
-      lengthMenu: i18n('dt.length_menu', 'Show _MENU_'),
-      info: i18n('dt.info', 'Showing _START_ to _END_ of _TOTAL_'),
-      infoEmpty: i18n('dt.info_empty', 'No entries'),
-      infoFiltered: i18n('dt.info_filtered', '(filtered from _MAX_)'),
-      zeroRecords: i18n('dt.zero_records', 'No matching records'),
-      emptyTable: i18n('dt.empty_table', 'No data'),
+      // empty label — input already has placeholder (avoids "جست‌وجو جست‌وجو…")
+      search: '',
+      searchPlaceholder: i18n('dt.search_placeholder', 'جست‌وجو…'),
+      lengthMenu: i18n('dt.length_menu', 'نمایش _MENU_'),
+      info: i18n('dt.info', 'نمایش _START_ تا _END_ از _TOTAL_'),
+      infoEmpty: i18n('dt.info_empty', 'موردی نیست'),
+      infoFiltered: i18n('dt.info_filtered', '(فیلتر از _MAX_)'),
+      zeroRecords: i18n('dt.zero_records', 'نتیجه‌ای یافت نشد'),
+      emptyTable: i18n('dt.empty_table', 'داده‌ای نیست'),
       paginate: {
-        first: i18n('dt.paginate_first', 'First'),
-        last: i18n('dt.paginate_last', 'Last'),
-        next: i18n('dt.paginate_next', 'Next'),
-        previous: i18n('dt.paginate_previous', 'Previous')
+        first: i18n('dt.paginate_first', 'اول'),
+        last: i18n('dt.paginate_last', 'آخر'),
+        next: i18n('dt.paginate_next', 'بعدی'),
+        previous: i18n('dt.paginate_previous', 'قبلی')
       }
     };
   }
@@ -118,7 +120,6 @@ window.BlogDT = (function () {
       start.append(btn);
     }
 
-    // Clear column filters
     var clearLbl = i18n('dt.clear_filters', 'پاک‌کردن فیلترها');
     var clearBtn = jQuery(
       '<button type="button" class="dt-clear-filters" title="' +
@@ -143,8 +144,10 @@ window.BlogDT = (function () {
     wrap.find('.row.dt-toolbar').remove();
     wrap.find('> .row').each(function () {
       var $r = jQuery(this);
-      if (!$r.find('table, .dataTables_info, .dataTables_paginate, .dt-scroll').length &&
-          !$r.find('.dataTables_length, .dataTables_filter').length) {
+      if (
+        !$r.find('table, .dataTables_info, .dataTables_paginate, .dt-scroll').length &&
+        !$r.find('.dataTables_length, .dataTables_filter').length
+      ) {
         $r.remove();
       }
     });
@@ -166,12 +169,6 @@ window.BlogDT = (function () {
     });
   }
 
-  /**
-   * columnFilters: parallel to columns
-   *   false/null → empty cell
-   *   true/'text' → text input
-   *   { type:'select', options:[{value,label}], placeholder? } → dropdown
-   */
   function buildColumnFilters($table, table, columnFilters, wrap) {
     if (!columnFilters || !columnFilters.length) return;
     if ($table.find('thead tr.dt-col-filters').length) return;
@@ -195,7 +192,7 @@ window.BlogDT = (function () {
           '<select class="dt-col-filter dt-col-select" data-col="' +
             i +
             '" aria-label="' +
-            (cfg.placeholder || i18n('col.status', 'Status')) +
+            (cfg.placeholder || i18n('col.status', 'وضعیت')) +
             '"></select>'
         );
         $sel.append(
@@ -245,7 +242,6 @@ window.BlogDT = (function () {
       applyCol(col, this.value);
     });
 
-    // Don't trigger column sort when using filters
     $row.on('click mousedown', 'input, select, th', function (e) {
       e.stopPropagation();
     });
@@ -276,7 +272,7 @@ window.BlogDT = (function () {
         pageLength: 25,
         lengthMenu: [10, 25, 50, 100],
         stateSave: true,
-        autoWidth: true,
+        autoWidth: false,
         scrollX: false,
         dom:
           "<'row dt-toolbar'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
@@ -305,7 +301,7 @@ window.BlogDT = (function () {
     ensureScroll($table);
     buildColumnFilters($table, table, columnFilters, wrap);
 
-    table.on('draw', function () {
+    function afterDraw() {
       document.querySelectorAll(selector + ' form[data-confirm]').forEach(function (form) {
         if (form.dataset.bound) return;
         form.dataset.bound = '1';
@@ -315,13 +311,18 @@ window.BlogDT = (function () {
       });
       markActionCells(selector);
       updateClearButton(wrap, table);
-    });
+      try {
+        table.columns.adjust();
+      } catch (_) {}
+    }
+
+    table.on('draw', afterDraw);
 
     table.one('draw', function () {
       buildToolbar(wrap, table, exportUrl, exportParams);
       ensureScroll($table);
-      markActionCells(selector);
-      // restore active state from saved column searches
+      afterDraw();
+
       var $row = $table.find('thead tr.dt-col-filters');
       if ($row.length) {
         $row.find('.dt-col-filter').each(function () {
@@ -336,6 +337,17 @@ window.BlogDT = (function () {
         });
         updateClearButton(wrap, table);
       }
+    });
+
+    // Recalc when sidebar / window size changes
+    var resizeTimer;
+    jQuery(window).on('resize.blogdt', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        try {
+          table.columns.adjust();
+        } catch (_) {}
+      }, 120);
     });
 
     return table;

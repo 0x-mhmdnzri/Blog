@@ -2,6 +2,7 @@
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = T["page.reports"];
     var current = ViewBag.CurrentStatus as string ?? "open";
+    var j = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 }
 
 <div class="admin-tabs">
@@ -40,16 +41,33 @@ BlogDT.init('#reportsTable', {
     exportUrl: '@Url.Action("ExportCsv", "AdminReports")',
     exportParams: { status: '@current' },
     columns: [
-        { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
+        { data: 0, orderable: false, searchable: false, className: 'ltr-field col-idx' },
         { data: 1 },
-        { data: 2 },
+        { data: 2, className: 'dt-wrap' },
         { data: 3 },
-        { data: 4, className: 'ltr-field' },
-        { data: 5 },
-        { data: 6, orderable: false, searchable: false }
+        { data: 4, className: 'ltr-field col-date' },
+        { data: 5, className: 'col-status' },
+        { data: 6, orderable: false, searchable: false, className: 'col-actions' }
     ],
     order: [[4, 'desc']],
-    columnDefs: [{ orderable: false, targets: [0, 6] }]
+    columnDefs: [{ orderable: false, targets: [0, 6] }],
+    columnFilters: [
+        false,
+        true,
+        true,
+        true,
+        false,
+        {
+            type: 'select',
+            placeholder: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["col.status"].ToString(), j)),
+            options: [
+                { value: 'open', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["tab.open"].ToString(), j)) },
+                { value: 'resolved', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["tab.resolved"].ToString(), j)) },
+                { value: 'dismissed', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["tab.dismissed"].ToString(), j)) }
+            ]
+        },
+        false
+    ]
 });
 </script>
 }

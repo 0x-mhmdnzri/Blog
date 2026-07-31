@@ -4,17 +4,20 @@
     var topActions = ViewBag.TopActions as List<NamedCount> ?? new();
 }
 
-<div class="row g-3 mb-4">
-    @foreach (var a in topActions)
-    {
-        <div class="col-6 col-md-3 col-lg-2">
-            <div class="kpi-card">
-                <div class="kpi-label ltr-field">@a.Name</div>
-                <div class="kpi-value ltr-field">@a.Count</div>
+@if (topActions.Count > 0)
+{
+    <div class="row g-3 mb-4">
+        @foreach (var a in topActions)
+        {
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="kpi-card">
+                    <div class="kpi-label ltr-field">@a.Name</div>
+                    <div class="kpi-value ltr-field">@a.Count</div>
+                </div>
             </div>
-        </div>
-    }
-</div>
+        }
+    </div>
+}
 
 <div class="admin-table-wrap">
     <table id="auditTable" class="admin-table display nowrap" style="width:100%">
@@ -38,16 +41,17 @@ BlogDT.init('#auditTable', {
     ajax: { url: '@Url.Action("Data", "AdminAudit")', type: 'GET' },
     exportUrl: '@Url.Action("ExportCsv", "AdminAudit")',
     columns: [
-        { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
-        { data: 1, className: 'ltr-field small' },
-        { data: 2, className: 'ltr-field small' },
-        { data: 3, className: 'ltr-field small' },
-        { data: 4, className: 'ltr-field small' },
-        { data: 5, className: 'small' },
-        { data: 6, className: 'ltr-field small' }
+        { data: 0, orderable: false, searchable: false, className: 'ltr-field col-idx' },
+        { data: 1, className: 'ltr-field col-date' },
+        { data: 2, className: 'ltr-field' },
+        { data: 3, className: 'ltr-field' },
+        { data: 4, className: 'ltr-field' },
+        { data: 5, className: 'dt-wrap' },
+        { data: 6, className: 'ltr-field' }
     ],
     order: [[1, 'desc']],
-    columnDefs: [{ orderable: false, targets: [0] }]
+    columnDefs: [{ orderable: false, targets: [0] }],
+    columnFilters: [false, false, true, true, true, true, true]
 });
 </script>
 }

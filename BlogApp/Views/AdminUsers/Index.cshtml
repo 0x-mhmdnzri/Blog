@@ -1,6 +1,7 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = T["page.users"];
+    var j = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 }
 
 @if (TempData["Saved"] != null)
@@ -44,16 +45,32 @@ BlogDT.init('#usersTable', {
     ajax: { url: '@Url.Action("Data", "AdminUsers")', type: 'GET' },
     exportUrl: '@Url.Action("ExportCsv", "AdminUsers")',
     columns: [
-        { data: 0, orderable: false, searchable: false, className: 'ltr-field' },
+        { data: 0, orderable: false, searchable: false, className: 'ltr-field col-idx' },
         { data: 1 },
         { data: 2, className: 'ltr-field small' },
-        { data: 3, className: 'ltr-field' },
-        { data: 4, className: 'ltr-field' },
-        { data: 5 },
-        { data: 6, orderable: false, searchable: false }
+        { data: 3, className: 'ltr-field col-num' },
+        { data: 4, className: 'ltr-field col-date' },
+        { data: 5, className: 'col-status' },
+        { data: 6, orderable: false, searchable: false, className: 'col-actions' }
     ],
     order: [[4, 'desc']],
-    columnDefs: [{ orderable: false, targets: [0, 6] }]
+    columnDefs: [{ orderable: false, targets: [0, 6] }],
+    columnFilters: [
+        false,
+        true,
+        true,
+        false,
+        false,
+        {
+            type: 'select',
+            placeholder: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["col.status"].ToString(), j)),
+            options: [
+                { value: 'active', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.active"]?.ToString() ?? "فعال", j)) },
+                { value: 'locked', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.locked"]?.ToString() ?? "قفل", j)) }
+            ]
+        },
+        false
+    ]
 });
 </script>
 }
