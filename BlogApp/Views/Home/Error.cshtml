@@ -2,20 +2,20 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["NoIndex"] = true;
-    var code = (int)(ViewBag.StatusCode ?? 500);
+    var statusCode = (int)(ViewBag.StatusCode ?? 500);
     var title = (string)(ViewBag.ErrorTitle ?? T["err.generic.title"]);
     var message = (string)(ViewBag.ErrorMessage ?? T["err.generic.msg"]);
-    ViewData["Title"] = $"{code} · {title}";
+    ViewData["Title"] = $"{statusCode} · {title}";
 }
 
 <div class="err-page">
     <div class="err-card">
-        <div class="err-code ltr-field" aria-hidden="true">@code</div>
+        <div class="err-code ltr-field" aria-hidden="true">@statusCode</div>
         <h1 class="err-title">@title</h1>
         <p class="err-msg">@message</p>
         <p class="err-hint">@T["err.support"]</p>
         <div class="err-actions">
-            @if (code is 401)
+            @if (statusCode is 401)
             {
                 <a class="btn btn-accent" asp-controller="Account" asp-action="Login">@T["err.login"]</a>
             }
