@@ -5,20 +5,6 @@ Last reviewed against the monolith codebase on 2026-07-31.
 
 ---
 
-### Content Management
-
-* Drafts & Auto Save (continuous local + server autosave in editor)
-* Post Revisions UI (browse / diff / restore — `PostRevision` table exists)
-* Scheduled Publishing worker (always-on hosted service; do not rely on admin page hits)
-* Content Expiration worker (same as schedule — background, not request-path only)
-* Post Duplication (one-click if not already exposed in admin UI)
-* Featured / Sticky ordering on public home & feeds (fields exist; verify sort everywhere)
-* Rich Text Editor (optional alternative to Markdown)
-* Table of Contents Navigation (sticky TOC on post page)
-* AI-assisted Content Generation (wire real LLM; current helpers are local heuristics)
-* AI Grammar & Spell Checking (real checker / LLM)
-* AI Content Summarization (LLM-backed summary)
-
 ### SEO
 
 * Migration importer (WordPress WXR / Ghost JSON + auto 301s)
@@ -149,5 +135,7 @@ Last reviewed against the monolith codebase on 2026-07-31.
 ---
 
 ### Implemented (removed from active backlog)
+
+**Content Management** (drafts & continuous autosave local+server, post revisions browse/diff/restore, scheduled publish + expiration always-on hosted worker, post duplication, featured/sticky ordering on home feeds, rich-text editor toggle, sticky TOC navigation, AI summarize/grammar/assist with optional OpenAI-compatible LLM fallback).
 
 Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (basic) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events.

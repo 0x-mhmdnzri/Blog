@@ -223,6 +223,10 @@ try
     builder.Services.Configure<DigestOptions>(builder.Configuration.GetSection("Digest"));
     builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
 
+    // Content Management — AI assist (optional OpenAI-compatible endpoint)
+    builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("Ai"));
+    builder.Services.AddHttpClient("AiContent");
+
     builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
     builder.Services.AddSingleton<ISmsSender, ConfigurableSmsSender>();
     builder.Services.AddSingleton<IPushSender, NoOpPushSender>();
@@ -234,6 +238,9 @@ try
     builder.Services.AddHostedService<NotificationRealtimeHostedService>();
     builder.Services.AddHostedService<NotificationSchedulerHostedService>();
     builder.Services.AddHostedService<NewsletterCampaignHostedService>();
+
+    // Content Management — always-on scheduled publish + expiration (not request-path only)
+    builder.Services.AddHostedService<ContentScheduleHostedService>();
 
     builder.Services.AddSingleton<MarkdownService>();
     builder.Services.AddSingleton<SeoService>();
@@ -442,7 +449,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp monolith listening ForceHttps={ForceHttps} MassTransit EDD enabled",
+    Log.Information("BlogApp monolith listening ForceHttps={ForceHttps} MassTransit EDD enabled; ContentSchedule worker registered",
         forceHttps);
     app.Run();
 }
