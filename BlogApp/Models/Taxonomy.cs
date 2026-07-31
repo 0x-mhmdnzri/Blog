@@ -117,32 +117,3 @@ public class TopicCollectionItem
 
     public int SortOrder { get; set; }
 }
-
-public class Comment
-{
-    public int Id { get; set; }
-
-    public int PostId { get; set; }
-    public Post Post { get; set; } = null!;
-
-    [Required, MaxLength(80)]
-    public string AuthorName { get; set; } = string.Empty;
-
-    [Required, MaxLength(2000)]
-    public string Body { get; set; } = string.Empty;
-
-    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
-
-    public CommentStatus Status { get; set; } = CommentStatus.Pending;
-
-    public int LikeCount { get; set; }
-
-    public ICollection<CommentLike> Likes { get; set; } = new List<CommentLike>();
-}
-
-public enum CommentStatus
-{
-    Pending,
-    Approved,
-    Rejected
-}

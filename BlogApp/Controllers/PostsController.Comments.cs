@@ -43,7 +43,8 @@ public partial class PostsController
         body = (body ?? string.Empty).Trim();
         authorEmail = string.IsNullOrWhiteSpace(authorEmail) ? null : authorEmail.Trim();
 
-        if (authorName.Length is < 2 or > 80 || body.Length is < 2 or > spamOpt.MaxBodyLength)
+        if (authorName.Length < 2 || authorName.Length > 80 || 
+            body.Length < 2 || body.Length > spamOpt.MaxBodyLength)
         {
             TempData["CommentSubmitted"] = "نام یا متن دیدگاه معتبر نیست.";
             var bad = await _db.Posts.AsNoTracking()
