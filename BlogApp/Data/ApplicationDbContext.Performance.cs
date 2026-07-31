@@ -7,6 +7,7 @@ public partial class ApplicationDbContext
 {
     public DbSet<BackgroundJob> BackgroundJobs => Set<BackgroundJob>();
     public DbSet<SearchIndexEntry> SearchIndexEntries => Set<SearchIndexEntry>();
+    public DbSet<AdminSearchDocument> AdminSearchDocuments => Set<AdminSearchDocument>();
 
     private void ConfigurePerformance(ModelBuilder modelBuilder)
     {
@@ -25,6 +26,15 @@ public partial class ApplicationDbContext
             e.Property(s => s.BodyText).HasColumnType("TEXT");
             e.Property(s => s.Summary).HasColumnType("TEXT");
             e.HasOne(s => s.Post).WithMany().HasForeignKey(s => s.PostId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AdminSearchDocument>(e =>
+        {
+            e.HasIndex(d => new { d.EntityType, d.EntityKey }).IsUnique();
+            e.HasIndex(d => d.EntityType);
+            e.HasIndex(d => d.UpdatedAtUtc);
+            e.Property(d => d.BodyText).HasColumnType("TEXT");
+            e.Property(d => d.FacetsJson).HasColumnType("TEXT");
         });
     }
 }
