@@ -24,6 +24,10 @@ public class MediaLibraryItem
     public DateTime UploadedAtUtc { get; set; }
     public int? PostId { get; set; }
     public string? PostTitle { get; set; }
+    public int? Width { get; set; }
+    public int? Height { get; set; }
+    public int Version { get; set; }
+    public DateTime? OptimizedAtUtc { get; set; }
 
     public string Url => $"/media/{Id}";
 
