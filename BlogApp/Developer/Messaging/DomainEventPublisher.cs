@@ -1,4 +1,5 @@
 using BlogApp.Developer.Domain;
+using BlogApp.Developer.Observability;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
@@ -79,6 +80,7 @@ public sealed class MassTransitDomainEventPublisher : IDomainEventPublisher
         }
 
         await _bus.Publish(integration, ct);
+        BlogMetrics.DomainEventsPublished.Add(1);
         _log.LogInformation("Published {Event} via MassTransit EventId={Id}",
             domainEvent.EventName, domainEvent.EventId);
     }
@@ -87,6 +89,7 @@ public sealed class MassTransitDomainEventPublisher : IDomainEventPublisher
         where T : class, IIntegrationEvent
     {
         await _bus.Publish(message, ct);
+        BlogMetrics.DomainEventsPublished.Add(1);
         _log.LogInformation("Published integration {Type} EventId={Id}", typeof(T).Name, message.EventId);
     }
 }
