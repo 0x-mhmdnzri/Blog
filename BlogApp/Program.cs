@@ -5,12 +5,14 @@ using BlogApp;
 using BlogApp.Api.Auth;
 using BlogApp.Api.Validation;
 using BlogApp.Data;
+using BlogApp.Developer;
 using BlogApp.Logging;
 using BlogApp.Middleware;
 using BlogApp.Models;
 using BlogApp.Services;
 using BlogApp.Services.Analytics;
 using BlogApp.Services.Messaging;
+using Blog.Infrastructure.Middleware;
 using FluentValidation;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -63,6 +65,9 @@ try
     builder.Services.AddSingleton<IApiTokenProtector, ApiTokenProtector>();
 
     builder.Services.AddBlogPerformance(builder.Configuration);
+
+    // Clean architecture layers: Domain / Application / Infrastructure (Developer Features)
+    builder.Services.AddDeveloperFeatures(builder.Configuration);
 
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
@@ -319,6 +324,9 @@ try
         }
     }
 
+    // Plugins, widgets, extension pipeline bootstrap
+    await app.UseDeveloperFeaturesAsync();
+
     var forceHttps = builder.Configuration.GetValue("ForceHttps", false);
 
     app.UseExceptionHandler("/Home/Error?statusCode=500");
@@ -329,6 +337,8 @@ try
 
     if (forceHttps)
         app.UseHttpsRedirection();
+
+    app.UseBlogExtensionSlot("early");
 
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseResponseCompression();
@@ -376,15 +386,22 @@ try
 
     app.UseRouting();
 
+    app.UseBlogExtensionSlot("pre-auth");
+
     app.UseMiddleware<RedirectMiddleware>();
 
     app.UseAuthentication();
     app.UseAuthorization();
+
+    app.UseBlogExtensionSlot("post-auth");
+
     app.UseRateLimiter();
 
     app.UseMiddleware<ApiRequestLoggingMiddleware>();
 
     app.UseMiddleware<MaintenanceMiddleware>();
+
+    app.UseBlogExtensionSlot("pre-endpoint");
 
     app.MapGet("/health", () => Results.Text("ok", "text/plain; charset=utf-8"))
         .AllowAnonymous()
@@ -402,6 +419,9 @@ try
         })
         .AllowAnonymous()
         .DisableRateLimiting();
+
+    // /healthz, /healthz/ready, /metrics, /widgets/{zone}, /dev/*
+    app.MapDeveloperEndpoints();
 
     app.MapControllers().RequireRateLimiting("global");
 
@@ -422,7 +442,8 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening ForceHttps={ForceHttps} (health=/health ready=/ready)", forceHttps);
+    Log.Information("BlogApp listening ForceHttps={ForceHttps} health=/health|/healthz metrics=/metrics",
+        forceHttps);
     app.Run();
 }
 catch (Exception ex)
