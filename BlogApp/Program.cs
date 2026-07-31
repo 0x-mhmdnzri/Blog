@@ -227,6 +227,12 @@ try
     builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("Ai"));
     builder.Services.AddHttpClient("AiContent");
 
+    // SEO — IndexNow ping + migration importer
+    builder.Services.Configure<IndexNowOptions>(builder.Configuration.GetSection("IndexNow"));
+    builder.Services.AddHttpClient("IndexNow");
+    builder.Services.AddSingleton<IIndexNowService, IndexNowService>();
+    builder.Services.AddScoped<IMigrationImportService, MigrationImportService>();
+
     builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
     builder.Services.AddSingleton<ISmsSender, ConfigurableSmsSender>();
     builder.Services.AddSingleton<IPushSender, NoOpPushSender>();
@@ -449,7 +455,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp monolith listening ForceHttps={ForceHttps} MassTransit EDD enabled; ContentSchedule worker registered",
+    Log.Information("BlogApp monolith listening ForceHttps={ForceHttps} MassTransit EDD enabled; ContentSchedule + IndexNow registered",
         forceHttps);
     app.Run();
 }
