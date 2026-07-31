@@ -242,6 +242,7 @@ try
     builder.Services.AddScoped<IMembershipService, MembershipService>();
     builder.Services.AddScoped<INewsletterService, NewsletterService>();
     builder.Services.AddScoped<MentionsService>();
+    builder.Services.AddScoped<IThemeService, ThemeService>();
 
     builder.Services.AddApiTopicBus(builder.Configuration);
 
@@ -297,6 +298,7 @@ try
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         var siteConfig = scope.ServiceProvider.GetRequiredService<ISiteConfigService>();
         var uiT = scope.ServiceProvider.GetRequiredService<IUiTranslator>();
+        var themes = scope.ServiceProvider.GetRequiredService<IThemeService>();
 
         try
         {
@@ -305,6 +307,7 @@ try
             await DbSeeder.SeedAsync(db, userManager, roleManager, config);
             await siteConfig.EnsureDefaultsAsync();
             await uiT.EnsureSeedAsync();
+            await themes.EnsureSystemThemesAsync();
             Log.Information("Database ready Path={DbPath}", connectionString);
         }
         catch (Exception ex)
@@ -314,7 +317,6 @@ try
         }
     }
 
-    // Only redirect to HTTPS when explicitly enabled (Docker/standalone is plain HTTP).
     var forceHttps = builder.Configuration.GetValue("ForceHttps", false);
 
     app.UseExceptionHandler("/Home/Error?statusCode=500");
@@ -382,12 +384,10 @@ try
 
     app.UseMiddleware<MaintenanceMiddleware>();
 
-    // Liveness: process is up (used by Docker HEALTHCHECK — keep cheap).
     app.MapGet("/health", () => Results.Text("ok", "text/plain; charset=utf-8"))
         .AllowAnonymous()
         .DisableRateLimiting();
 
-    // Readiness: SQLite reachable.
     app.MapGet("/ready", async (ApplicationDbContext db) =>
         {
             try
