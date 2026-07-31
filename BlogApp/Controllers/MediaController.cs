@@ -41,7 +41,42 @@ public class MediaController : Controller
 
         if (asset is null) return NotFound();
 
-        var ct = string.IsNullOrWhiteSpace(asset.ContentType) ? "application/octet-stream" : asset.ContentType;
+        return StreamBytes(asset.Id, asset.ContentType, asset.Content, asset.SizeBytes);
+    }
+
+    /// <summary>Nearest responsive variant ≤ requested width (or primary if none).</summary>
+    [HttpGet("{id:int}/w/{width:int}")]
+    [ResponseCache(Duration = 604800, Location = ResponseCacheLocation.Any, NoStore = false)]
+    public async Task<IActionResult> GetWidth(int id, int width)
+    {
+        if (width < 32) width = 32;
+        if (width > 4096) width = 4096;
+
+        var variant = await _db.MediaVariants.AsNoTracking()
+            .Where(v => v.MediaAssetId == id && v.Width <= width)
+            .OrderByDescending(v => v.Width)
+            .Select(v => new { v.ContentType, v.Content, v.SizeBytes, v.Width })
+            .FirstOrDefaultAsync();
+
+        if (variant is not null)
+            return StreamBytes(id, variant.ContentType, variant.Content, variant.SizeBytes, variant.Width);
+
+        // Fall back to next larger variant, then primary
+        var larger = await _db.MediaVariants.AsNoTracking()
+            .Where(v => v.MediaAssetId == id && v.Width > width)
+            .OrderBy(v => v.Width)
+            .Select(v => new { v.ContentType, v.Content, v.SizeBytes, v.Width })
+            .FirstOrDefaultAsync();
+
+        if (larger is not null)
+            return StreamBytes(id, larger.ContentType, larger.Content, larger.SizeBytes, larger.Width);
+
+        return await Get(id);
+    }
+
+    private IActionResult StreamBytes(int id, string contentType, byte[] content, long sizeBytes, int? variantWidth = null)
+    {
+        var ct = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType;
         if (ct.Contains("svg", StringComparison.OrdinalIgnoreCase)
             || ct.Contains("javascript", StringComparison.OrdinalIgnoreCase)
             || ct.Contains("html", StringComparison.OrdinalIgnoreCase))
@@ -50,7 +85,10 @@ public class MediaController : Controller
             Response.Headers[HeaderNames.ContentDisposition] = "attachment";
         }
 
-        var etag = $"\"media-{asset.Id}-{asset.SizeBytes}\"";
+        var etag = variantWidth is int vw
+            ? $"\"media-{id}-w{vw}-{sizeBytes}\""
+            : $"\"media-{id}-{sizeBytes}\"";
+
         if (Request.Headers.TryGetValue(HeaderNames.IfNoneMatch, out var inm)
             && inm.ToString().Contains(etag, StringComparison.Ordinal))
         {
@@ -62,7 +100,7 @@ public class MediaController : Controller
         Response.Headers[HeaderNames.AcceptRanges] = "bytes";
         Response.Headers["X-Content-Type-Options"] = "nosniff";
 
-        return File(asset.Content, ct, enableRangeProcessing: true);
+        return File(content, ct, enableRangeProcessing: true);
     }
 
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
@@ -101,10 +139,10 @@ public class MediaController : Controller
             SizeBytes = bytes.LongLength,
             Content = bytes,
             Kind = check.Kind,
-            PostId = postId
+            PostId = postId,
+            Version = 1
         };
 
-        // Tracking required for insert
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
         _db.MediaAssets.Add(asset);
         await _db.SaveChangesAsync();
