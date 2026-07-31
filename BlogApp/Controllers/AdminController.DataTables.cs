@@ -31,6 +31,7 @@ public partial class AdminController
 
         var total = await query.CountAsync();
 
+        // Global search
         if (!string.IsNullOrWhiteSpace(req.SearchValue))
         {
             var term = req.SearchValue;
@@ -40,6 +41,11 @@ public partial class AdminController
                 || (p.Category != null && p.Category.Name.Contains(term))
                 || p.Author.DisplayName.Contains(term));
         }
+
+        // Per-column filters (indices match table columns)
+        // seeAll: 0 idx, 1 title, 2 author, 3 category, 4 status, 5 features, 6 views, 7 comments, 8 date, 9 actions
+        // author: 0 idx, 1 title, 2 category, 3 status, 4 features, 5 views, 6 comments, 7 date, 8 actions
+        query = ApplyPostsColumnFilters(query, req, seeAll);
 
         var filtered = await query.CountAsync();
         query = ApplyPostsOrder(query, req, seeAll);
@@ -107,6 +113,44 @@ public partial class AdminController
         }).ToList();
 
         return Json(DataTablesResponse.Ok(req.Draw, total, filtered, rows));
+    }
+
+    private static IQueryable<Post> ApplyPostsColumnFilters(IQueryable<Post> query, DataTablesRequest req, bool seeAll)
+    {
+        // title
+        if (req.Col(1) is { } title)
+            query = query.Where(p => p.Title.Contains(title) || p.Slug.Contains(title));
+
+        if (seeAll)
+        {
+            if (req.Col(2) is { } author)
+                query = query.Where(p => p.Author.DisplayName.Contains(author) || (p.Author.UserName != null && p.Author.UserName.Contains(author)));
+            if (req.Col(3) is { } cat)
+                query = query.Where(p => p.Category != null && p.Category.Name.Contains(cat));
+            if (req.Col(4) is { } status)
+                query = ApplyPostStatusFilter(query, status);
+        }
+        else
+        {
+            if (req.Col(2) is { } cat2)
+                query = query.Where(p => p.Category != null && p.Category.Name.Contains(cat2));
+            if (req.Col(3) is { } status2)
+                query = ApplyPostStatusFilter(query, status2);
+        }
+
+        return query;
+    }
+
+    private static IQueryable<Post> ApplyPostStatusFilter(IQueryable<Post> query, string status)
+    {
+        return status.ToLowerInvariant() switch
+        {
+            "published" => query.Where(p => p.IsPublished && !p.IsDeleted),
+            "draft" => query.Where(p => !p.IsPublished && !p.IsDeleted && p.ScheduledPublishAtUtc == null),
+            "scheduled" => query.Where(p => !p.IsPublished && !p.IsDeleted && p.ScheduledPublishAtUtc != null),
+            "deleted" => query.Where(p => p.IsDeleted),
+            _ => query
+        };
     }
 
     private static IQueryable<Post> ApplyPostsOrder(IQueryable<Post> query, DataTablesRequest req, bool seeAll)
@@ -236,6 +280,24 @@ public partial class AdminController
                 c.AuthorName.Contains(term)
                 || c.Body.Contains(term)
                 || c.Post.Title.Contains(term));
+        }
+
+        // Per-column: 0 idx, 1 author, 2 body, 3 post, 4 date, 5 status, 6 actions
+        if (req.Col(1) is { } author)
+            query = query.Where(c => c.AuthorName.Contains(author));
+        if (req.Col(2) is { } body)
+            query = query.Where(c => c.Body.Contains(body));
+        if (req.Col(3) is { } post)
+            query = query.Where(c => c.Post.Title.Contains(post));
+        if (req.Col(5) is { } st)
+        {
+            query = st.ToLowerInvariant() switch
+            {
+                "pending" => query.Where(c => c.Status == CommentStatus.Pending),
+                "approved" => query.Where(c => c.Status == CommentStatus.Approved),
+                "rejected" => query.Where(c => c.Status == CommentStatus.Rejected),
+                _ => query
+            };
         }
 
         var filtered = await query.CountAsync();

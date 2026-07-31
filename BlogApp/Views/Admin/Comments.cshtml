@@ -57,7 +57,24 @@ BlogDT.init('#commentsTable', {
         { data: 6, orderable: false, searchable: false }
     ],
     order: [[4, 'desc']],
-    columnDefs: [{ orderable: false, targets: [0, 6] }]
+    columnDefs: [{ orderable: false, targets: [0, 6] }],
+    columnFilters: [
+        false,
+        true,
+        true,
+        true,
+        false,
+        {
+            type: 'select',
+            placeholder: '@T["col.status"]',
+            options: [
+                { value: 'pending', label: '@T["status.pending"]' },
+                { value: 'approved', label: '@T["status.approved"]' },
+                { value: 'rejected', label: '@T["status.rejected"]' }
+            ]
+        },
+        false
+    ]
 });
 </script>
 }

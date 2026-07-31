@@ -55,12 +55,31 @@
         { data: 8 + offset, orderable: false, searchable: false }
     );
     var dateCol = 7 + offset;
+    var statusCol = 3 + offset;
+
+    // Per-column filters: text inputs; status = dropdown
+    var columnFilters = [false, true]; // idx, title
+    if (showAuthor) columnFilters.push(true); // author
+    columnFilters.push(true); // category
+    columnFilters.push({
+        type: 'select',
+        placeholder: '@T["col.status"]',
+        options: [
+            { value: 'published', label: '@T["status.published_full"]' },
+            { value: 'draft', label: '@T["status.draft"]' },
+            { value: 'scheduled', label: '@T["status.scheduled"]' },
+            { value: 'deleted', label: '@T["status.deleted"]' }
+        ]
+    });
+    columnFilters.push(false, false, false, false, false); // features, views, comments, date, actions
+
     BlogDT.init('#postsTable', {
         ajax: { url: '@Url.Action("PostsData", "Admin")', type: 'GET' },
         exportUrl: '@Url.Action("PostsExportCsv", "Admin")',
         columns: columns,
         order: [[dateCol, 'desc']],
-        columnDefs: [{ orderable: false, targets: [0, columns.length - 1] }]
+        columnDefs: [{ orderable: false, targets: [0, columns.length - 1] }],
+        columnFilters: columnFilters
     });
 })();
 </script>
