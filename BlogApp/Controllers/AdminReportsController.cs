@@ -125,6 +125,55 @@ public class AdminReportsController : Controller
         return Json(DataTablesResponse.Ok(req.Draw, total, filtered, rows));
     }
 
+    /// <summary>Export ALL content reports for status + optional search (no page limit).</summary>
+    [HttpGet]
+    public async Task<IActionResult> ExportCsv(string status = "open", string? search = null)
+    {
+        var query = ScopeQuery(_db.ContentReports.AsNoTracking());
+
+        query = status switch
+        {
+            "resolved" => query.Where(r => r.Status == ContentReportStatus.Resolved),
+            "dismissed" => query.Where(r => r.Status == ContentReportStatus.Dismissed),
+            "all" => query,
+            _ => query.Where(r => r.Status == ContentReportStatus.Open)
+        };
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(r =>
+                r.Reason.Contains(term)
+                || (r.TargetTitle != null && r.TargetTitle.Contains(term))
+                || (r.ReporterName != null && r.ReporterName.Contains(term))
+                || (r.Details != null && r.Details.Contains(term)));
+        }
+
+        var list = await query.OrderByDescending(r => r.CreatedAtUtc).ToListAsync();
+
+        var headers = new[]
+        {
+            "Id", "TargetType", "TargetId", "TargetTitle", "Reason", "Details",
+            "ReporterName", "Status", "CreatedAtUtc", "ResolvedAtUtc"
+        };
+
+        var rows = list.Select(r => new[]
+        {
+            CsvExport.Cell(r.Id),
+            r.TargetType.ToString(),
+            CsvExport.Cell(r.TargetId),
+            CsvExport.Cell(r.TargetTitle),
+            CsvExport.Cell(r.Reason),
+            CsvExport.Cell(r.Details),
+            CsvExport.Cell(r.ReporterName),
+            r.Status.ToString(),
+            CsvExport.Cell(r.CreatedAtUtc),
+            CsvExport.Cell(r.ResolvedAtUtc)
+        });
+
+        return CsvExport.File($"reports-{status}-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv", headers, rows);
+    }
+
     private IQueryable<ContentReport> ScopeQuery(IQueryable<ContentReport> query)
     {
         if (AuthorAccess.IsSuperAdmin(User)) return query;

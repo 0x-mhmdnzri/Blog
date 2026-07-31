@@ -120,6 +120,54 @@ public class AdminUsersController : Controller
         return Json(DataTablesResponse.Ok(req.Draw, total, filtered, rows));
     }
 
+    /// <summary>Export ALL users matching optional search (no page limit).</summary>
+    [HttpGet]
+    public async Task<IActionResult> ExportCsv(string? search = null, string? role = null)
+    {
+        var all = await _users.Users.AsNoTracking().ToListAsync();
+        var rowsList = new List<string[]>();
+
+        foreach (var u in all.OrderByDescending(x => x.CreatedAtUtc))
+        {
+            var roles = (await _users.GetRolesAsync(u)).ToList();
+            if (!string.IsNullOrWhiteSpace(role) && !roles.Contains(role))
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                var hit =
+                    (u.UserName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (u.Email?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || u.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || roles.Any(r => r.Contains(term, StringComparison.OrdinalIgnoreCase));
+                if (!hit) continue;
+            }
+
+            var posts = await _db.Posts.CountAsync(p => p.AuthorId == u.Id);
+            var locked = u.LockoutEnd.HasValue && u.LockoutEnd > DateTimeOffset.UtcNow;
+
+            rowsList.Add(new[]
+            {
+                CsvExport.Cell(u.Id),
+                CsvExport.Cell(u.UserName),
+                CsvExport.Cell(u.Email),
+                CsvExport.Cell(u.DisplayName),
+                string.Join("; ", roles),
+                CsvExport.Cell(posts),
+                locked ? "Locked" : "Active",
+                CsvExport.Cell(u.CreatedAtUtc)
+            });
+        }
+
+        var headers = new[]
+        {
+            "Id", "UserName", "Email", "DisplayName", "Roles", "PostCount", "Status", "CreatedAtUtc"
+        };
+
+        return CsvExport.File($"users-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv", headers, rowsList);
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SetRole(string userId, string role)
     {

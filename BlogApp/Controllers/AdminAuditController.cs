@@ -82,4 +82,44 @@ public class AdminAuditController : Controller
 
         return Json(DataTablesResponse.Ok(req.Draw, total, filtered, rows));
     }
+
+    /// <summary>Export ALL audit logs matching optional search (no page limit).</summary>
+    [HttpGet]
+    public async Task<IActionResult> ExportCsv(string? search = null)
+    {
+        var query = _db.AuditLogs.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(a =>
+                a.Action.Contains(term)
+                || (a.ActorUserName != null && a.ActorUserName.Contains(term))
+                || (a.EntityType != null && a.EntityType.Contains(term))
+                || (a.EntityId != null && a.EntityId.Contains(term))
+                || (a.Details != null && a.Details.Contains(term))
+                || (a.IpAddress != null && a.IpAddress.Contains(term)));
+        }
+
+        var list = await query.OrderByDescending(a => a.CreatedAtUtc).ToListAsync();
+
+        var headers = new[]
+        {
+            "Id", "CreatedAtUtc", "ActorUserName", "Action", "EntityType", "EntityId", "Details", "IpAddress"
+        };
+
+        var rows = list.Select(a => new[]
+        {
+            CsvExport.Cell(a.Id),
+            CsvExport.Cell(a.CreatedAtUtc),
+            CsvExport.Cell(a.ActorUserName),
+            CsvExport.Cell(a.Action),
+            CsvExport.Cell(a.EntityType),
+            CsvExport.Cell(a.EntityId),
+            CsvExport.Cell(a.Details),
+            CsvExport.Cell(a.IpAddress)
+        });
+
+        return CsvExport.File($"audit-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv", headers, rows);
+    }
 }
