@@ -5,12 +5,6 @@ Last reviewed against the monolith codebase on 2026-07-31.
 
 ---
 
-### SEO
-
-* Migration importer (WordPress WXR / Ghost JSON + auto 301s)
-* IndexNow / search-engine ping on publish
-* hreflang for multi-language post groups
-
 ### Media
 
 * WebP/AVIF Conversion (ImageSharp or similar — current optimize only strips JPEG junk)
@@ -135,6 +129,8 @@ Last reviewed against the monolith codebase on 2026-07-31.
 ---
 
 ### Implemented (removed from active backlog)
+
+**SEO** (WordPress WXR + Ghost JSON migration importer with auto-301 redirects in Admin → SEO Tools → Import; IndexNow + Bing ping on `post.published` via MassTransit consumer + manual submit-all; key verification at `/{key}.txt`; hreflang alternate links on post pages from translation groups + sitemap `xhtml:link` alternates + x-default).
 
 **Content Management** (drafts & continuous autosave local+server, post revisions browse/diff/restore, scheduled publish + expiration always-on hosted worker, post duplication, featured/sticky ordering on home feeds, rich-text editor toggle, sticky TOC navigation, AI summarize/grammar/assist with optional OpenAI-compatible LLM fallback).
 

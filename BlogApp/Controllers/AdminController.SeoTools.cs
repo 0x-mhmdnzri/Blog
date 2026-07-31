@@ -4,6 +4,7 @@ using BlogApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace BlogApp.Controllers;
 
@@ -13,6 +14,7 @@ public partial class AdminController
     public async Task<IActionResult> SeoTools(string? tab = null)
     {
         var site = HttpContext.RequestServices.GetRequiredService<ISiteConfigService>();
+        var indexOpt = HttpContext.RequestServices.GetRequiredService<IOptions<IndexNowOptions>>().Value;
 
         var redirects = await _db.RedirectRules
             .OrderByDescending(r => r.IsActive)
@@ -47,7 +49,7 @@ public partial class AdminController
             };
         }).OrderBy(h => h.Score).ThenBy(h => h.Title).Take(40).ToList();
 
-        var baseUrl = await site.GetAsync(SiteSettingKeys.BaseUrl) ?? $"{Request.Scheme}://{Request.Host}";
+        var baseUrl = (await site.GetAsync(SiteSettingKeys.BaseUrl) ?? $"{Request.Scheme}://{Request.Host}").TrimEnd('/');
 
         var vm = new SeoToolsViewModel
         {
@@ -68,10 +70,16 @@ public partial class AdminController
             MissingCoverCount = posts.Count(p => p.CoverMediaAssetId is null or 0),
             SitemapUrl = "/sitemap.xml",
             RobotsUrl = "/robots.txt",
-            ActiveTab = tab ?? "overview"
+            ActiveTab = tab ?? "overview",
+            IndexNowEnabled = indexOpt.Enabled,
+            IndexNowHasKey = !string.IsNullOrWhiteSpace(indexOpt.Key),
+            IndexNowKeyHint = string.IsNullOrWhiteSpace(indexOpt.Key)
+                ? null
+                : (indexOpt.Key.Length <= 8 ? indexOpt.Key : indexOpt.Key[..4] + "…" + indexOpt.Key[^4..]),
+            IndexNowKeyUrl = string.IsNullOrWhiteSpace(indexOpt.Key) ? null : $"{baseUrl}/{indexOpt.Key}.txt"
         };
 
-        ViewBag.BaseUrlPreview = baseUrl.TrimEnd('/');
+        ViewBag.BaseUrlPreview = baseUrl;
         return View("SeoTools", vm);
     }
 
@@ -174,6 +182,77 @@ public partial class AdminController
         var count = await scanner.ScanAsync();
         TempData["SeoOk"] = string.Format(_t["seo.scan_done"], count);
         return RedirectToAction(nameof(SeoTools), new { tab = "broken" });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.SuperAdmin)]
+    [RequestSizeLimit(52_428_800)] // 50 MB
+    public async Task<IActionResult> SeoImport(
+        IFormFile? file,
+        string format = "wordpress",
+        string languageCode = "fa",
+        bool createRedirects = true,
+        bool publishImmediately = true)
+    {
+        if (file is null || file.Length == 0)
+        {
+            TempData["SeoErr"] = _t["seo.import_no_file"];
+            return RedirectToAction(nameof(SeoTools), new { tab = "import" });
+        }
+
+        if (file.Length > 50 * 1024 * 1024)
+        {
+            TempData["SeoErr"] = _t["seo.import_too_large"];
+            return RedirectToAction(nameof(SeoTools), new { tab = "import" });
+        }
+
+        var importer = HttpContext.RequestServices.GetRequiredService<IMigrationImportService>();
+        var authorId = AuthorAccess.UserId(User)!;
+
+        await using var stream = file.OpenReadStream();
+        MigrationImportResult result;
+        try
+        {
+            if (string.Equals(format, "ghost", StringComparison.OrdinalIgnoreCase))
+            {
+                result = await importer.ImportGhostJsonAsync(
+                    stream, authorId, languageCode, createRedirects, publishImmediately);
+            }
+            else
+            {
+                result = await importer.ImportWordPressWxrAsync(
+                    stream, authorId, languageCode, createRedirects, publishImmediately);
+            }
+        }
+        catch (Exception ex)
+        {
+            TempData["SeoErr"] = string.Format(_t["seo.import_failed"], ex.Message);
+            return RedirectToAction(nameof(SeoTools), new { tab = "import" });
+        }
+
+        var msg = string.Format(_t["seo.import_done"],
+            result.PostsCreated, result.PostsSkipped, result.RedirectsCreated);
+        if (result.Warnings.Count > 0)
+            msg += " · " + string.Join("; ", result.Warnings.Take(5));
+        TempData["SeoOk"] = msg;
+        return RedirectToAction(nameof(SeoTools), new { tab = "import" });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.SuperAdmin)]
+    public async Task<IActionResult> SeoIndexNowSubmitAll()
+    {
+        var indexNow = HttpContext.RequestServices.GetRequiredService<IIndexNowService>();
+        try
+        {
+            var count = await indexNow.SubmitAllPublishedAsync();
+            TempData["SeoOk"] = string.Format(_t["seo.indexnow_done"], count);
+        }
+        catch (Exception ex)
+        {
+            TempData["SeoErr"] = string.Format(_t["seo.indexnow_failed"], ex.Message);
+        }
+        return RedirectToAction(nameof(SeoTools), new { tab = "indexnow" });
     }
 
     private static string NormalizeFromPath(string? raw)
