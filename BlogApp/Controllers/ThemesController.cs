@@ -1,6 +1,7 @@
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Services;
+using BlogApp.Services.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
