@@ -1,25 +1,40 @@
 using BlogApp.Developer.Domain;
 using BlogApp.Developer.Observability;
+using BlogApp.Services;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace BlogApp.Developer.Messaging;
 
-/// <summary>Reacts to post.published — search index, metrics, structured log.</summary>
+/// <summary>Reacts to post.published — metrics, IndexNow ping, structured log.</summary>
 public sealed class PostPublishedConsumer : IConsumer<PostPublishedIntegrationEvent>
 {
     private readonly ILogger<PostPublishedConsumer> _log;
+    private readonly IIndexNowService _indexNow;
 
-    public PostPublishedConsumer(ILogger<PostPublishedConsumer> log) => _log = log;
+    public PostPublishedConsumer(ILogger<PostPublishedConsumer> log, IIndexNowService indexNow)
+    {
+        _log = log;
+        _indexNow = indexNow;
+    }
 
-    public Task Consume(ConsumeContext<PostPublishedIntegrationEvent> context)
+    public async Task Consume(ConsumeContext<PostPublishedIntegrationEvent> context)
     {
         var m = context.Message;
         BlogMetrics.PostsPublished.Add(1);
         _log.LogInformation(
             "EDD PostPublished PostId={PostId} Slug={Slug} Author={Author} At={At:o}",
             m.PostId, m.Slug, m.AuthorId, m.PublishedAtUtc);
-        return Task.CompletedTask;
+
+        try
+        {
+            // Language not on integration event — IndexNow builds URL with default path helpers
+            await _indexNow.NotifyPostAsync(m.PostId, m.Slug, languageCode: null, context.CancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "IndexNow ping failed PostId={Id}", m.PostId);
+        }
     }
 }
 
