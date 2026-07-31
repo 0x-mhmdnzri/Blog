@@ -9,7 +9,7 @@
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  overflow: hidden; /* clip radius; scroll lives on .dt-scroll */
+  overflow: hidden;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
 }
 
@@ -20,7 +20,6 @@
   width: 100%;
 }
 
-/* Kill Bootstrap row negative margins */
 .admin-table-wrap .dataTables_wrapper > .row,
 .admin-table-wrap .dataTables_wrapper .dt-layout-row {
   margin-left: 0 !important;
@@ -149,7 +148,30 @@
   opacity: 0.9;
 }
 
-/* ---- Horizontal scroll container (all breakpoints) ---- */
+/* Clear column filters chip */
+.admin-table-wrap .dt-clear-filters {
+  display: none;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.admin-table-wrap .dt-clear-filters.is-visible {
+  display: inline-flex;
+}
+.admin-table-wrap .dt-clear-filters:hover {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* ---- Horizontal scroll ---- */
 .admin-table-wrap .dt-scroll {
   width: 100%;
   max-width: 100%;
@@ -163,21 +185,18 @@
 .admin-table-wrap .dt-scroll::-webkit-scrollbar {
   height: 8px;
 }
-
 .admin-table-wrap .dt-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
-
 .admin-table-wrap .dt-scroll::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
 }
-
 .admin-table-wrap .dt-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--text-faint);
 }
 
-/* ---- Table: expand to content, never compress/stack ---- */
+/* ---- Table ---- */
 .admin-table-wrap table.dataTable {
   width: max-content !important;
   min-width: 100%;
@@ -197,14 +216,15 @@
   max-width: none;
 }
 
-.admin-table-wrap table.dataTable thead th {
+/* Header labels only (first thead row) */
+.admin-table-wrap table.dataTable thead tr:first-child th {
   background: var(--surface-2);
   color: var(--text-muted);
   font-weight: 600;
   font-size: 0.78rem;
   letter-spacing: 0.01em;
   text-align: start;
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 1rem;
   border-bottom: 1px solid var(--border) !important;
   border-top: none !important;
   vertical-align: middle;
@@ -212,7 +232,7 @@
   user-select: none;
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
   min-width: 4rem;
 }
 
@@ -220,20 +240,20 @@
   cursor: default;
 }
 
-/* Sort icons */
-.admin-table-wrap table.dataTable thead th.sorting:before,
-.admin-table-wrap table.dataTable thead th.sorting_asc:before,
-.admin-table-wrap table.dataTable thead th.sorting_desc:before,
-.admin-table-wrap table.dataTable thead th.sorting:after,
-.admin-table-wrap table.dataTable thead th.sorting_asc:after,
-.admin-table-wrap table.dataTable thead th.sorting_desc:after {
+/* Sort icons — only on label row */
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting:before,
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:before,
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:before,
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting:after,
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:after,
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:after {
   display: none !important;
   content: none !important;
 }
 
-.admin-table-wrap table.dataTable thead th.sorting:after,
-.admin-table-wrap table.dataTable thead th.sorting_asc:after,
-.admin-table-wrap table.dataTable thead th.sorting_desc:after {
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting:after,
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:after,
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:after {
   display: inline !important;
   content: "" !important;
   margin-inline-start: 0.35rem;
@@ -241,20 +261,102 @@
   opacity: 0.45;
   vertical-align: middle;
 }
-.admin-table-wrap table.dataTable thead th.sorting:after { content: "↕" !important; }
-.admin-table-wrap table.dataTable thead th.sorting_asc:after {
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting:after { content: "↕" !important; }
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting_asc:after {
   content: "▲" !important;
   opacity: 0.9;
   color: var(--accent);
 }
-.admin-table-wrap table.dataTable thead th.sorting_desc:after {
+.admin-table-wrap table.dataTable thead tr:first-child th.sorting_desc:after {
   content: "▼" !important;
   opacity: 0.9;
   color: var(--accent);
 }
 
-.admin-table-wrap table.dataTable thead th:hover {
+.admin-table-wrap table.dataTable thead tr:first-child th:hover {
   color: var(--text);
+}
+
+/* ========== Column filter row — calm, compact ========== */
+.admin-table-wrap table.dataTable thead tr.dt-col-filters th,
+.admin-table-wrap table.dataTable thead tr.dt-col-filters td {
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--bg)) !important;
+  border-bottom: 1px solid var(--border-soft) !important;
+  border-top: none !important;
+  padding: 0.45rem 0.55rem !important;
+  vertical-align: middle;
+  cursor: default !important;
+  user-select: auto;
+  position: sticky;
+  top: 2.6rem; /* sit under label row when scrolling */
+  z-index: 2;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Kill sort arrows on filter cells */
+.admin-table-wrap table.dataTable thead tr.dt-col-filters th:before,
+.admin-table-wrap table.dataTable thead tr.dt-col-filters th:after {
+  display: none !important;
+  content: none !important;
+}
+
+.admin-table-wrap .dt-filter-cell {
+  min-width: 5.5rem;
+}
+
+.admin-table-wrap .dt-filter-empty {
+  display: block;
+  height: 1px;
+}
+
+.admin-table-wrap .dt-col-filter {
+  width: 100%;
+  min-width: 5rem;
+  max-width: 14rem;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.38rem 0.6rem;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.admin-table-wrap .dt-col-input {
+  min-height: 2rem;
+}
+
+.admin-table-wrap .dt-col-select {
+  min-height: 2rem;
+  cursor: pointer;
+  appearance: auto;
+  padding-inline-end: 1.4rem;
+}
+
+.admin-table-wrap .dt-col-filter::placeholder {
+  color: var(--text-faint);
+  opacity: 0.9;
+}
+
+.admin-table-wrap .dt-col-filter:hover {
+  border-color: var(--border);
+}
+
+.admin-table-wrap .dt-col-filter:focus {
+  border-color: var(--accent-dim, var(--accent));
+  box-shadow: 0 0 0 2px var(--accent-soft, rgba(227, 179, 65, 0.18));
+  background: var(--surface);
+}
+
+/* Active filter highlight */
+.admin-table-wrap .dt-col-filter.is-active {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
 }
 
 .admin-table-wrap table.dataTable tbody td {
@@ -268,7 +370,6 @@
   background: transparent !important;
 }
 
-/* Optional wrap only when explicitly marked */
 .admin-table-wrap table.dataTable tbody td.dt-wrap {
   white-space: normal;
   max-width: 28rem;
@@ -297,7 +398,7 @@
 
 /* Index column */
 .admin-table-wrap table.dataTable tbody td:first-child,
-.admin-table-wrap table.dataTable thead th:first-child {
+.admin-table-wrap table.dataTable thead tr:first-child th:first-child {
   min-width: 3.25rem;
   width: 3.25rem;
   color: var(--text-faint);
@@ -305,7 +406,6 @@
   text-align: center;
 }
 
-/* LTR fields */
 .admin-table-wrap .ltr-field {
   direction: ltr;
   unicode-bidi: isolate;
@@ -391,7 +491,6 @@
   list-style: none;
 }
 
-/* Processing */
 .admin-table-wrap .dataTables_processing {
   background: rgba(18, 22, 31, 0.94) !important;
   border: 1px solid var(--border) !important;
@@ -407,7 +506,6 @@
   z-index: 5;
 }
 
-/* Actions */
 .admin-table-wrap .icon-btn,
 .admin-table-wrap td form {
   display: inline-flex;
@@ -432,7 +530,6 @@
   white-space: normal;
 }
 
-/* Toolbar stacks on narrow screens; table always scrolls horizontally */
 @media (max-width: 575.98px) {
   .admin-table-wrap .dt-toolbar-bar {
     flex-direction: column;
@@ -459,10 +556,20 @@
     width: 100%;
   }
 
-  .admin-table-wrap table.dataTable thead th,
+  .admin-table-wrap table.dataTable thead tr:first-child th,
   .admin-table-wrap table.dataTable tbody td {
     padding: 0.6rem 0.75rem;
     font-size: 0.8rem;
+  }
+
+  .admin-table-wrap table.dataTable thead tr.dt-col-filters th {
+    top: 2.35rem;
+    padding: 0.35rem 0.4rem !important;
+  }
+
+  .admin-table-wrap .dt-col-filter {
+    max-width: 9rem;
+    font-size: 0.74rem;
   }
 
   .admin-table-wrap .dataTables_paginate {

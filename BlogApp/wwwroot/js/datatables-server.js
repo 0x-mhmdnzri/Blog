@@ -1,6 +1,6 @@
 /**
  * BlogApp — server-side DataTables helper.
- * Supports global search + per-column filters (input or select for status).
+ * Global search + calm per-column filters (text / status select).
  */
 window.BlogDT = (function () {
   function isRtl() {
@@ -50,7 +50,6 @@ window.BlogDT = (function () {
           url.searchParams.set(k, extraParams[k]);
       });
     }
-    // include column filters
     try {
       table.columns().every(function (i) {
         var v = this.search();
@@ -66,6 +65,25 @@ window.BlogDT = (function () {
       '<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>' +
       '</svg>'
     );
+  }
+
+  function updateClearButton(wrap, table) {
+    var btn = wrap.find('.dt-clear-filters');
+    if (!btn.length) return;
+    var any = false;
+    try {
+      table.columns().every(function () {
+        if (this.search()) any = true;
+      });
+    } catch (_) {}
+    btn.toggleClass('is-visible', any);
+  }
+
+  function markActiveFilters($row) {
+    $row.find('.dt-col-filter').each(function () {
+      var v = (this.value || '').trim();
+      this.classList.toggle('is-active', v.length > 0);
+    });
   }
 
   function buildToolbar(wrap, table, exportUrl, exportParams) {
@@ -100,6 +118,25 @@ window.BlogDT = (function () {
       start.append(btn);
     }
 
+    // Clear column filters
+    var clearLbl = i18n('dt.clear_filters', 'پاک‌کردن فیلترها');
+    var clearBtn = jQuery(
+      '<button type="button" class="dt-clear-filters" title="' +
+        clearLbl +
+        '">' +
+        clearLbl +
+        '</button>'
+    );
+    clearBtn.on('click', function () {
+      table.columns().search('').draw();
+      wrap.find('.dt-col-filter').each(function () {
+        this.value = '';
+        this.classList.remove('is-active');
+      });
+      clearBtn.removeClass('is-visible');
+    });
+    start.append(clearBtn);
+
     if (length.length) start.append(length);
     if (filter.length) end.append(filter);
 
@@ -130,12 +167,12 @@ window.BlogDT = (function () {
   }
 
   /**
-   * columnFilters: array parallel to columns, each item:
-   *   false / null  → no filter
-   *   true / 'text' → text input
-   *   { type: 'select', options: [{value, label}, ...] } → dropdown
+   * columnFilters: parallel to columns
+   *   false/null → empty cell
+   *   true/'text' → text input
+   *   { type:'select', options:[{value,label}], placeholder? } → dropdown
    */
-  function buildColumnFilters($table, table, columnFilters) {
+  function buildColumnFilters($table, table, columnFilters, wrap) {
     if (!columnFilters || !columnFilters.length) return;
     if ($table.find('thead tr.dt-col-filters').length) return;
 
@@ -145,29 +182,40 @@ window.BlogDT = (function () {
 
     for (var i = 0; i < colCount; i++) {
       var cfg = columnFilters[i];
-      var $th = jQuery('<th class="dt-filter-cell"></th>');
+      var $th = jQuery('<th class="dt-filter-cell sorting_disabled"></th>');
 
       if (!cfg) {
-        $th.html('<span class="dt-filter-empty"></span>');
+        $th.html('<span class="dt-filter-empty" aria-hidden="true"></span>');
         $row.append($th);
         continue;
       }
 
       if (typeof cfg === 'object' && cfg.type === 'select') {
-        var $sel = jQuery('<select class="dt-col-filter dt-col-select" data-col="' + i + '"></select>');
-        $sel.append(jQuery('<option value=""></option>').text(cfg.placeholder || i18n('dt.all', 'همه')));
+        var $sel = jQuery(
+          '<select class="dt-col-filter dt-col-select" data-col="' +
+            i +
+            '" aria-label="' +
+            (cfg.placeholder || i18n('col.status', 'Status')) +
+            '"></select>'
+        );
+        $sel.append(
+          jQuery('<option value=""></option>').text(cfg.placeholder || i18n('dt.all', 'همه'))
+        );
         (cfg.options || []).forEach(function (o) {
           $sel.append(jQuery('<option></option>').attr('value', o.value).text(o.label));
         });
         $th.append($sel);
       } else {
-        var ph = (typeof cfg === 'object' && cfg.placeholder) || i18n('dt.filter', 'فیلتر…');
+        var ph =
+          (typeof cfg === 'object' && cfg.placeholder) || i18n('dt.filter', 'فیلتر…');
         var $inp = jQuery(
           '<input type="search" class="dt-col-filter dt-col-input" data-col="' +
             i +
             '" placeholder="' +
             ph +
-            '" autocomplete="off" />'
+            '" autocomplete="off" aria-label="' +
+            ph +
+            '" />'
         );
         $th.append($inp);
       }
@@ -176,24 +224,29 @@ window.BlogDT = (function () {
 
     $head.append($row);
 
-    // debounce text inputs
     var timers = {};
+    function applyCol(col, val) {
+      table.column(col).search(val).draw();
+      markActiveFilters($row);
+      updateClearButton(wrap, table);
+    }
+
     $row.on('input', 'input.dt-col-input', function () {
       var col = parseInt(this.getAttribute('data-col'), 10);
       var val = this.value;
       clearTimeout(timers[col]);
       timers[col] = setTimeout(function () {
-        table.column(col).search(val).draw();
+        applyCol(col, val);
       }, 350);
     });
 
     $row.on('change', 'select.dt-col-select', function () {
       var col = parseInt(this.getAttribute('data-col'), 10);
-      table.column(col).search(this.value).draw();
+      applyCol(col, this.value);
     });
 
-    // stop sort when clicking filter controls
-    $row.on('click mousedown', 'input, select', function (e) {
+    // Don't trigger column sort when using filters
+    $row.on('click mousedown', 'input, select, th', function (e) {
       e.stopPropagation();
     });
   }
@@ -213,26 +266,29 @@ window.BlogDT = (function () {
       delete options.columnFilters;
     }
 
-    var opts = Object.assign({
-      processing: true,
-      serverSide: true,
-      searching: true,
-      ordering: true,
-      paging: true,
-      pageLength: 25,
-      lengthMenu: [10, 25, 50, 100],
-      stateSave: true,
-      autoWidth: true,
-      scrollX: false,
-      dom:
-        "<'row dt-toolbar'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
-        "<'row'<'col-sm-12'tr>>" +
-        "<'row dt-footer'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-      language: languagePack(),
-      classes: {
-        sTable: 'admin-table dataTable'
-      }
-    }, options || {});
+    var opts = Object.assign(
+      {
+        processing: true,
+        serverSide: true,
+        searching: true,
+        ordering: true,
+        paging: true,
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        stateSave: true,
+        autoWidth: true,
+        scrollX: false,
+        dom:
+          "<'row dt-toolbar'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+          "<'row'<'col-sm-12'tr>>" +
+          "<'row dt-footer'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+        language: languagePack(),
+        classes: {
+          sTable: 'admin-table dataTable'
+        }
+      },
+      options || {}
+    );
 
     if (!opts.columnDefs) opts.columnDefs = [];
 
@@ -247,7 +303,7 @@ window.BlogDT = (function () {
     var wrap = $table.closest('.dataTables_wrapper');
 
     ensureScroll($table);
-    buildColumnFilters($table, table, columnFilters);
+    buildColumnFilters($table, table, columnFilters, wrap);
 
     table.on('draw', function () {
       document.querySelectorAll(selector + ' form[data-confirm]').forEach(function (form) {
@@ -258,12 +314,28 @@ window.BlogDT = (function () {
         });
       });
       markActionCells(selector);
+      updateClearButton(wrap, table);
     });
 
     table.one('draw', function () {
       buildToolbar(wrap, table, exportUrl, exportParams);
       ensureScroll($table);
       markActionCells(selector);
+      // restore active state from saved column searches
+      var $row = $table.find('thead tr.dt-col-filters');
+      if ($row.length) {
+        $row.find('.dt-col-filter').each(function () {
+          var col = parseInt(this.getAttribute('data-col'), 10);
+          try {
+            var s = table.column(col).search();
+            if (s) {
+              this.value = s;
+              this.classList.add('is-active');
+            }
+          } catch (_) {}
+        });
+        updateClearButton(wrap, table);
+      }
     });
 
     return table;
