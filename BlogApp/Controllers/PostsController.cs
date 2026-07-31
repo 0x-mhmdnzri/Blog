@@ -1,4 +1,6 @@
 using BlogApp.Data;
+using BlogApp.Developer.Domain;
+using BlogApp.Developer.Messaging;
 using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
@@ -21,6 +23,7 @@ public partial class PostsController : Controller
     private readonly INotificationService _notify;
     private readonly IAnalyticsTracker _analytics;
     private readonly ICultureService _culture;
+    private readonly IDomainEventPublisher _events;
     private readonly ILogger<PostsController> _logger;
 
     public PostsController(
@@ -32,6 +35,7 @@ public partial class PostsController : Controller
         INotificationService notify,
         IAnalyticsTracker analytics,
         ICultureService culture,
+        IDomainEventPublisher events,
         ILogger<PostsController> logger)
     {
         _db = db;
@@ -42,6 +46,7 @@ public partial class PostsController : Controller
         _notify = notify;
         _analytics = analytics;
         _culture = culture;
+        _events = events;
         _logger = logger;
     }
 
@@ -118,7 +123,6 @@ public partial class PostsController : Controller
             post.Category != null ? (post.Category.Name, $"{baseUrl}/{post.LanguageCode}/?category={post.Category.Slug}") : ("Posts", baseUrl + "/" + post.LanguageCode + "/"),
             (post.Title, canonicalUrl));
 
-        // Body without embedded TOC — TOC renders in sticky right sidebar
         ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(post.ContentMarkdown, includeToc: false, cultureCode: post.LanguageCode);
         ViewBag.TocHtml = _markdown.GenerateTableOfContents(post.ContentMarkdown, "post-toc post-toc--sidebar", post.LanguageCode);
 
@@ -214,6 +218,21 @@ public partial class PostsController : Controller
         post.TranslationGroupId = post.Id;
         await _db.SaveChangesAsync();
         await SaveRevisionAsync(post, authorId, "initial");
+
+        try
+        {
+            await _events.PublishAsync(new PostCreatedDomainEvent(post.Id, post.Title, post.Slug, post.AuthorId));
+            if (post.IsPublished && post.PublishedAtUtc.HasValue)
+            {
+                await _events.PublishAsync(new PostPublishedDomainEvent(
+                    post.Id, post.Title, post.Slug, post.AuthorId, post.PublishedAtUtc.Value));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Domain event publish failed after Create PostId={Id}", post.Id);
+        }
+
         return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
     }
 
@@ -301,6 +320,24 @@ public partial class PostsController : Controller
         await ApplyTagsAsync(post, vm.TagsCsv);
         await _db.SaveChangesAsync();
         if (changed) await SaveRevisionAsync(post, authorId, "after-edit");
+
+        try
+        {
+            if (!wasPublished && post.IsPublished && post.PublishedAtUtc.HasValue)
+            {
+                await _events.PublishAsync(new PostPublishedDomainEvent(
+                    post.Id, post.Title, post.Slug, post.AuthorId, post.PublishedAtUtc.Value));
+            }
+            else if (wasPublished && !post.IsPublished)
+            {
+                await _events.PublishAsync(new PostUnpublishedDomainEvent(post.Id, post.Slug));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Domain event publish failed after Edit PostId={Id}", post.Id);
+        }
+
         return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
     }
 
