@@ -3,36 +3,69 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = "تم‌ها";
+    var isSuper = ViewBag.IsSuper as bool? ?? User.IsInRole(AppRoles.SuperAdmin);
     var pending = (int)(ViewBag.PendingCount ?? 0);
 }
 <div style="max-width:960px">
     <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
-        <p class="small text-muted-dark mb-0">فقط تم‌های با کنتراست کافی تأیید شوند. فعال‌سازی روی کل سایت و پنل اعمال می‌شود. فایل‌های <code>.blogtheme</code> از پوشه <code>themes/</code> در استارت‌آپ وارد می‌شوند.</p>
+        <p class="small text-muted-dark mb-0">
+            @if (isSuper)
+            {
+                <text>سوپرادمین: تأیید / رد / فعال‌سازی سایت. نویسندگان فقط تم خود را می‌سازند و آپلود می‌کنند.</text>
+            }
+            else
+            {
+                <text>شما می‌توانید تم بسازید یا فایل <code>.blogtheme</code> آپلود کنید. پس از تأیید سوپرادمین در گالری عمومی ظاهر می‌شود.</text>
+            }
+        </p>
         <div class="d-flex gap-1 flex-wrap">
-            <a class="btn btn-ghost btn-sm" asp-route-status="">همه</a>
-            <a class="btn btn-accent btn-sm" asp-route-status="pending">در انتظار (@pending)</a>
-            <a class="btn btn-ghost btn-sm" asp-route-status="approved">تأییدشده</a>
+            @if (isSuper)
+            {
+                <a class="btn btn-ghost btn-sm" asp-route-status="">همه</a>
+                <a class="btn btn-accent btn-sm" asp-route-status="pending">در انتظار (@pending)</a>
+                <a class="btn btn-ghost btn-sm" asp-route-status="approved">تأییدشده</a>
+            }
+            <a class="btn btn-accent btn-sm" asp-action="Create">تم جدید</a>
         </div>
     </div>
 
     <div class="card-surface p-3 mb-3">
         <div class="d-flex flex-wrap gap-2 align-items-end justify-content-between">
-            <form asp-action="ImportFile" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-center">
+            <form asp-action="ImportFile" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
                 @Html.AntiForgeryToken()
                 <div>
-                    <label class="form-label small mb-1">واردات فایل .blogtheme</label>
-                    <input type="file" name="file" accept=".blogtheme,application/json" class="form-control form-control-sm" required />
+                    <label class="form-label small mb-1">آپلود تم شخصی (.blogtheme)</label>
+                    <input type="file" name="file" accept=".blogtheme,application/json,.json" class="form-control form-control-sm" required />
                 </div>
-                <button type="submit" class="btn btn-accent btn-sm">آپلود و واردات</button>
+                <button type="submit" name="action" value="submit" class="btn btn-accent btn-sm">آپلود و ارسال برای تأیید</button>
+                <button type="submit" name="action" value="draft" class="btn btn-ghost btn-sm">آپلود پیش‌نویس</button>
             </form>
-            <form asp-action="Reimport" method="post">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-ghost btn-sm" title="اسکن مجدد themes/*.blogtheme">اسکن مجدد پوشه themes</button>
-            </form>
+            @if (isSuper)
+            {
+                <div class="d-flex flex-wrap gap-2 align-items-end">
+                    <form asp-action="ImportSystemPack" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <div>
+                            <label class="form-label small mb-1">واردات سیستمی (تأیید خودکار)</label>
+                            <input type="file" name="file" accept=".blogtheme" class="form-control form-control-sm" required />
+                        </div>
+                        <button type="submit" class="btn btn-ghost btn-sm">واردات سیستم</button>
+                    </form>
+                    <form asp-action="Reimport" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-ghost btn-sm" title="اسکن مجدد themes/*.blogtheme">اسکن پوشه themes</button>
+                    </form>
+                </div>
+            }
         </div>
     </div>
 
     @if (TempData["Msg"] != null) { <div class="card-surface p-2 px-3 mb-3 small">@TempData["Msg"]</div> }
+
+    @if (Model.Count == 0)
+    {
+        <p class="text-muted-dark small">تمی نیست. «تم جدید» یا آپلود فایل را امتحان کنید.</p>
+    }
 
     @foreach (var t in Model)
     {
@@ -40,9 +73,22 @@
             <div class="d-flex flex-wrap justify-content-between gap-2">
                 <div>
                     <strong>@t.Name</strong>
-                    @if (t.IsActive) { <span class="badge-category">فعال</span> }
+                    @if (t.IsActive) { <span class="badge-category">فعال سایت</span> }
                     @if (t.IsSystem) { <span class="small text-muted-dark">سیستم</span> }
-                    <div class="small text-muted-dark">@(t.Owner?.UserName ?? t.OwnerUserId ?? "—") · @t.Status · contrast @t.ContrastTextOnBg:1</div>
+                    <div class="small text-muted-dark">
+                        @(t.Owner?.UserName ?? t.OwnerUserId ?? "—") ·
+                        @(t.Status switch {
+                            ThemeApprovalStatus.Pending => "در انتظار تأیید",
+                            ThemeApprovalStatus.Approved => "تأییدشده",
+                            ThemeApprovalStatus.Rejected => "رد شده",
+                            _ => "پیش‌نویس"
+                        })
+                        · contrast @t.ContrastTextOnBg:1
+                    </div>
+                    @if (t.Status == ThemeApprovalStatus.Rejected && !string.IsNullOrEmpty(t.RejectionReason))
+                    {
+                        <div class="small" style="color:var(--danger)">@t.RejectionReason</div>
+                    }
                     <div class="d-flex gap-1 mt-1">
                         @foreach (var c in new[]{ t.Bg, t.Text, t.Accent, t.Surface })
                         {
@@ -51,7 +97,7 @@
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-1">
-                    @if (t.Status == ThemeApprovalStatus.Pending)
+                    @if (isSuper && t.Status == ThemeApprovalStatus.Pending)
                     {
                         <form asp-action="Approve" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@t.Id" /><button class="btn btn-accent btn-sm" type="submit">تأیید</button></form>
                         <form asp-action="Reject" method="post" onsubmit="var r=prompt('دلیل رد:'); if(r===null)return false; this.querySelector('[name=reason]').value=r;">
@@ -60,11 +106,21 @@
                             <button class="btn btn-outline-danger-dark btn-sm" type="submit">رد</button>
                         </form>
                     }
-                    else if (t.Status == ThemeApprovalStatus.Approved && !t.IsActive)
+                    else if (isSuper && t.Status == ThemeApprovalStatus.Approved && !t.IsActive)
                     {
-                        <form asp-action="Activate" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@t.Id" /><button class="btn btn-accent btn-sm" type="submit">فعال‌سازی</button></form>
+                        <form asp-action="Activate" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@t.Id" /><button class="btn btn-accent btn-sm" type="submit">فعال‌سازی سایت</button></form>
                     }
-                    @if (!t.IsSystem)
+
+                    @if (!isSuper && t.Status is ThemeApprovalStatus.Draft or ThemeApprovalStatus.Rejected)
+                    {
+                        <form asp-action="Submit" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <button class="btn btn-accent btn-sm" type="submit">ارسال برای تأیید</button>
+                        </form>
+                    }
+
+                    @if (!t.IsSystem && !t.IsActive)
                     {
                         <form asp-action="Delete" method="post" onsubmit="return confirm('حذف؟');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@t.Id" /><button class="btn btn-ghost btn-sm" type="submit">حذف</button></form>
                     }

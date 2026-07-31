@@ -1,0 +1,46 @@
+@model BlogApp.Models.CustomTheme
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "تم جدید";
+    var isSuper = User.IsInRole(BlogApp.Models.AppRoles.SuperAdmin);
+}
+<div style="max-width:720px">
+    <p class="small text-muted-dark mb-3">حداقل کنتراست متن روی پس‌زمینه ۴٫۵:۱ و اکسنت ۳:۱. پس از ساخت، سوپرادمین باید تأیید کند تا در گالری عمومی دیده شود.</p>
+
+    <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+    <form method="post" class="card-surface p-3">
+        @Html.AntiForgeryToken()
+        <div class="mb-2">
+            <label class="form-label" asp-for="Name">نام</label>
+            <input class="form-control form-control-sm" asp-for="Name" required maxlength="80" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" asp-for="Description">توضیح</label>
+            <input class="form-control form-control-sm" asp-for="Description" maxlength="240" />
+        </div>
+        <div class="row g-2">
+            @foreach (var f in new (string Prop, string Label)[] {
+                ("Bg","پس‌زمینه"), ("Surface","Surface"), ("Surface2","Surface 2"),
+                ("Border","حاشیه"), ("Text","متن"), ("TextMuted","متن کم‌رنگ"),
+                ("Accent","اکسنت"), ("Danger","خطر"), ("Success","موفقیت")
+            })
+            {
+                <div class="col-6 col-md-4">
+                    <label class="form-label small">@f.Label</label>
+                    <input class="form-control form-control-sm ltr-field" name="@f.Prop" type="color"
+                           value="@(typeof(BlogApp.Models.CustomTheme).GetProperty(f.Prop)!.GetValue(Model))" />
+                </div>
+            }
+        </div>
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+            <button class="btn btn-ghost btn-sm" type="submit" name="action" value="draft">ذخیره پیش‌نویس</button>
+            <button class="btn btn-accent btn-sm" type="submit" name="action" value="submit">ارسال برای تأیید</button>
+            @if (isSuper)
+            {
+                <button class="btn btn-accent btn-sm" type="submit" name="action" value="approve">ساخت و تأیید</button>
+            }
+            <a class="btn btn-ghost btn-sm" asp-action="Index">بازگشت</a>
+        </div>
+    </form>
+</div>
