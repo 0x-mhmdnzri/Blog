@@ -1,12 +1,12 @@
 using System.IO.Compression;
 using System.Text;
 using System.Threading.RateLimiting;
-using Blog.Infrastructure.Middleware;
 using BlogApp;
 using BlogApp.Api.Auth;
 using BlogApp.Api.Validation;
 using BlogApp.Data;
 using BlogApp.Developer;
+using BlogApp.Developer.Middleware;
 using BlogApp.Logging;
 using BlogApp.Middleware;
 using BlogApp.Models;
@@ -67,7 +67,7 @@ try
 
     builder.Services.AddBlogPerformance(builder.Configuration);
 
-    // Clean architecture layers: Domain / Application / Infrastructure (Developer Features)
+    // Developer Features (MassTransit EDD, health, metrics, plugins, widgets) — monolith
     builder.Services.AddDeveloperFeatures(builder.Configuration);
 
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -325,7 +325,6 @@ try
         }
     }
 
-    // Plugins, widgets, extension pipeline bootstrap
     await app.UseDeveloperFeaturesAsync();
 
     var forceHttps = builder.Configuration.GetValue("ForceHttps", false);
@@ -443,7 +442,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp listening ForceHttps={ForceHttps} health=/health|/healthz metrics=/metrics",
+    Log.Information("BlogApp monolith listening ForceHttps={ForceHttps} MassTransit EDD enabled",
         forceHttps);
     app.Run();
 }
