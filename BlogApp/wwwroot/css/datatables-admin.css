@@ -1,5 +1,6 @@
 /* =========================================================================
-   DataTables — admin skin (alignment-safe, RTL-aware, polished toolbar)
+   DataTables — admin skin
+   Wide content → horizontal scroll (never truncate / never stack columns)
    ========================================================================= */
 
 /* ---- Card shell ---- */
@@ -19,7 +20,7 @@
   width: 100%;
 }
 
-/* Kill Bootstrap row negative margins that break alignment */
+/* Kill Bootstrap row negative margins */
 .admin-table-wrap .dataTables_wrapper > .row,
 .admin-table-wrap .dataTables_wrapper .dt-layout-row {
   margin-left: 0 !important;
@@ -33,7 +34,7 @@
   padding-right: 0 !important;
 }
 
-/* ---- Unified toolbar (export · length · search) ---- */
+/* ---- Toolbar ---- */
 .admin-table-wrap .dt-toolbar-bar {
   display: flex;
   flex-wrap: wrap;
@@ -51,12 +52,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.55rem 0.75rem;
-}
-
-/* Hide default first/last DT rows when we use custom toolbar */
-.admin-table-wrap .dataTables_wrapper > .row.dt-toolbar,
-.admin-table-wrap .dataTables_wrapper > .row:first-of-type:not(.dt-footer) {
-  /* still used as source; content moved via JS into .dt-toolbar-bar */
 }
 
 .admin-table-wrap .dataTables_length,
@@ -117,7 +112,7 @@
   color: var(--text-faint);
 }
 
-/* CSV export — primary toolbar action */
+/* CSV export */
 .admin-table-wrap .dt-export-csv {
   display: inline-flex;
   align-items: center;
@@ -154,30 +149,52 @@
   opacity: 0.9;
 }
 
-/* ---- Scroll body: keeps header/body columns locked ---- */
+/* ---- Horizontal scroll container (all breakpoints) ---- */
 .admin-table-wrap .dt-scroll {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: visible;
   scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
   -webkit-overflow-scrolling: touch;
 }
 
-/* ---- Table: fixed layout prevents column drift ---- */
+.admin-table-wrap .dt-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.admin-table-wrap .dt-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-table-wrap .dt-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.admin-table-wrap .dt-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}
+
+/* ---- Table: expand to content, never compress/stack ---- */
 .admin-table-wrap table.dataTable {
-  width: 100% !important;
+  width: max-content !important;
+  min-width: 100%;
   margin: 0 !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
   border: none !important;
   background: transparent;
-  table-layout: fixed; /* critical for header ↔ body alignment */
+  table-layout: auto;
 }
 
-/* Remove DataTables nowrap class effect when present */
-.admin-table-wrap table.dataTable.nowrap th,
-.admin-table-wrap table.dataTable.nowrap td {
-  white-space: normal;
+.admin-table-wrap table.dataTable thead th,
+.admin-table-wrap table.dataTable tbody td {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  max-width: none;
 }
 
 .admin-table-wrap table.dataTable thead th {
@@ -196,10 +213,7 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  /* Truncate long headers */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 4rem;
 }
 
 .admin-table-wrap table.dataTable thead th.sorting_disabled {
@@ -252,37 +266,16 @@
   text-align: start;
   color: var(--text);
   background: transparent !important;
-  /* Prevent blowout — single line + ellipsis by default */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 0; /* forces fixed-layout cells to respect column width */
 }
 
-/* Multi-line / rich cells (actions, badges, HTML blobs) */
-.admin-table-wrap table.dataTable tbody td.dt-wrap,
-.admin-table-wrap table.dataTable tbody td.dt-actions {
+/* Optional wrap only when explicitly marked */
+.admin-table-wrap table.dataTable tbody td.dt-wrap {
   white-space: normal;
-  overflow: visible;
-  text-overflow: unset;
-  max-width: none;
+  max-width: 28rem;
 }
 
 .admin-table-wrap table.dataTable tbody td.dt-actions {
   white-space: nowrap;
-  overflow: visible;
-}
-
-/* Soft clamp for detail-like columns (2 lines) */
-.admin-table-wrap table.dataTable tbody td.dt-clamp {
-  white-space: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  max-width: none;
-  line-height: 1.4;
 }
 
 .admin-table-wrap table.dataTable tbody tr:last-child td {
@@ -305,15 +298,14 @@
 /* Index column */
 .admin-table-wrap table.dataTable tbody td:first-child,
 .admin-table-wrap table.dataTable thead th:first-child {
-  width: 3.25rem;
   min-width: 3.25rem;
-  max-width: 3.5rem;
+  width: 3.25rem;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
-/* LTR mono-ish fields */
+/* LTR fields */
 .admin-table-wrap .ltr-field {
   direction: ltr;
   unicode-bidi: isolate;
@@ -415,7 +407,7 @@
   z-index: 5;
 }
 
-/* Actions inside cells */
+/* Actions */
 .admin-table-wrap .icon-btn,
 .admin-table-wrap td form {
   display: inline-flex;
@@ -438,15 +430,9 @@
   color: var(--text-faint);
   font-size: 0.9rem;
   white-space: normal;
-  max-width: none;
-  overflow: visible;
 }
 
-/* Tooltip-friendly: show full text on hover via title attribute set in JS */
-.admin-table-wrap table.dataTable tbody td[title] {
-  cursor: default;
-}
-
+/* Toolbar stacks on narrow screens; table always scrolls horizontally */
 @media (max-width: 575.98px) {
   .admin-table-wrap .dt-toolbar-bar {
     flex-direction: column;
@@ -475,7 +461,7 @@
 
   .admin-table-wrap table.dataTable thead th,
   .admin-table-wrap table.dataTable tbody td {
-    padding: 0.6rem 0.65rem;
+    padding: 0.6rem 0.75rem;
     font-size: 0.8rem;
   }
 

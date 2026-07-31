@@ -1,6 +1,6 @@
 /**
  * BlogApp — server-side DataTables helper.
- * Alignment-safe table-layout, toolbar with CSV export, cell title tooltips.
+ * Horizontal scroll for wide rows; no text cut-off / no column stacking.
  */
 window.BlogDT = (function () {
   function isRtl() {
@@ -61,7 +61,6 @@ window.BlogDT = (function () {
     );
   }
 
-  /** Build a clean toolbar: [Export] [Length] …… [Search] */
   function buildToolbar(wrap, table, exportUrl, exportParams) {
     if (wrap.find('.dt-toolbar-bar').length) return;
 
@@ -97,7 +96,6 @@ window.BlogDT = (function () {
     if (length.length) start.append(length);
     if (filter.length) end.append(filter);
 
-    // Remove empty Bootstrap row that held length/filter
     wrap.find('.row.dt-toolbar').remove();
     wrap.find('> .row').each(function () {
       var $r = jQuery(this);
@@ -110,26 +108,16 @@ window.BlogDT = (function () {
     wrap.prepend(bar);
   }
 
-  /** Wrap table in horizontal scroll container once. */
   function ensureScroll($table) {
     if ($table.parent().hasClass('dt-scroll')) return;
     $table.wrap('<div class="dt-scroll"></div>');
   }
 
-  /** Set title= plain text for truncated cells so hover shows full value. */
-  function decorateCells(selector) {
+  function markActionCells(selector) {
     document.querySelectorAll(selector + ' tbody td').forEach(function (td) {
-      if (td.classList.contains('dt-actions') || td.classList.contains('dataTables_empty')) return;
-      // Skip cells that already have interactive content as primary
-      if (td.querySelector('form, button, a.btn, select')) {
+      if (td.classList.contains('dataTables_empty')) return;
+      if (td.querySelector('form, button, a.btn, select, .icon-btn')) {
         td.classList.add('dt-actions');
-        return;
-      }
-      var text = (td.textContent || '').replace(/\s+/g, ' ').trim();
-      if (text.length > 24) {
-        td.setAttribute('title', text);
-      } else {
-        td.removeAttribute('title');
       }
     });
   }
@@ -156,8 +144,8 @@ window.BlogDT = (function () {
       pageLength: 25,
       lengthMenu: [10, 25, 50, 100],
       stateSave: true,
-      autoWidth: false, // critical — with table-layout:fixed
-      scrollX: false,
+      autoWidth: true,
+      scrollX: false, /* we own horizontal scroll via .dt-scroll */
       dom:
         "<'row dt-toolbar'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
         "<'row'<'col-sm-12'tr>>" +
@@ -171,8 +159,7 @@ window.BlogDT = (function () {
     if (!opts.columnDefs) opts.columnDefs = [];
 
     var $table = jQuery(selector);
-    // Drop legacy nowrap that fights ellipsis layout
-    $table.removeClass('nowrap');
+    $table.addClass('nowrap');
 
     if (!$table.closest('.admin-table-wrap').length) {
       $table.wrap('<div class="admin-table-wrap"></div>');
@@ -191,13 +178,13 @@ window.BlogDT = (function () {
           if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
         });
       });
-      decorateCells(selector);
+      markActionCells(selector);
     });
 
     table.one('draw', function () {
       buildToolbar(wrap, table, exportUrl, exportParams);
       ensureScroll($table);
-      decorateCells(selector);
+      markActionCells(selector);
     });
 
     return table;
