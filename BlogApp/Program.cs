@@ -233,6 +233,10 @@ try
     builder.Services.AddScoped<IIndexNowService, IndexNowService>();
     builder.Services.AddScoped<IMigrationImportService, MigrationImportService>();
 
+    // Comments — spam rules, guest policy, edit window
+    builder.Services.Configure<CommentSpamOptions>(builder.Configuration.GetSection(CommentSpamOptions.Section));
+    builder.Services.AddSingleton<ICommentSpamService, CommentSpamService>();
+
     builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
     builder.Services.AddSingleton<ISmsSender, ConfigurableSmsSender>();
     builder.Services.AddSingleton<IPushSender, NoOpPushSender>();
@@ -455,7 +459,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp monolith listening ForceHttps={ForceHttps} MassTransit EDD enabled; ContentSchedule + IndexNow registered",
+    Log.Information("BlogApp monolith listening ForceHttps={ForceHttps} MassTransit EDD enabled; ContentSchedule + IndexNow + Comments spam registered",
         forceHttps);
     app.Run();
 }
