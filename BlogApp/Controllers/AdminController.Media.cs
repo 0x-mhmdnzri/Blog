@@ -2,6 +2,7 @@ using System.Text;
 using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
+using BlogApp.Services.Performance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -31,7 +32,6 @@ public partial class AdminController
             query = query.Where(m => m.FileName.Contains(term) || m.ContentType.Contains(term));
         }
 
-        // Never select Content BLOB for listing
         var items = await query
             .OrderByDescending(m => m.UploadedAtUtc)
             .Take(120)
@@ -44,7 +44,11 @@ public partial class AdminController
                 Kind = m.Kind,
                 UploadedAtUtc = m.UploadedAtUtc,
                 PostId = m.PostId,
-                PostTitle = m.Post != null ? m.Post.Title : null
+                PostTitle = m.Post != null ? m.Post.Title : null,
+                Width = m.Width,
+                Height = m.Height,
+                Version = m.Version,
+                OptimizedAtUtc = m.OptimizedAtUtc
             })
             .ToListAsync();
 
@@ -115,7 +119,11 @@ public partial class AdminController
                 uploadedAt = m.UploadedAtUtc,
                 postId = m.PostId,
                 postTitle = m.Post != null ? m.Post.Title : null,
-                url = "/media/" + m.Id
+                url = "/media/" + m.Id,
+                width = m.Width,
+                height = m.Height,
+                version = m.Version,
+                optimized = m.OptimizedAtUtc != null
             })
             .ToListAsync();
 
@@ -163,11 +171,18 @@ public partial class AdminController
             Content = bytes,
             Kind = check.Kind,
             PostId = postId,
-            UploadedAtUtc = DateTime.UtcNow
+            UploadedAtUtc = DateTime.UtcNow,
+            Version = 1
         };
 
         _db.MediaAssets.Add(asset);
         await _db.SaveChangesAsync();
+
+        if (check.Kind == MediaKind.Image)
+        {
+            var jobs = HttpContext.RequestServices.GetRequiredService<IBackgroundJobQueue>();
+            await jobs.EnqueueImageOptimizeAsync(asset.Id);
+        }
 
         TempData["MediaOk"] = string.Format(_t["media.uploaded"], asset.Id);
         return RedirectToAction(nameof(Media));
@@ -182,7 +197,6 @@ public partial class AdminController
         if (!await CanManageMediaAsync(asset))
             return Forbid();
 
-        // Unlink covers pointing at this asset
         await _db.Posts.Where(p => p.CoverMediaAssetId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.CoverMediaAssetId, (int?)null));
 
@@ -250,10 +264,86 @@ public partial class AdminController
         });
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MediaReoptimize(int id)
+    {
+        var asset = await _db.MediaAssets.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id);
+        if (asset is null) return RedirectToAction(nameof(Media));
+        if (!await CanManageMediaAsync(asset)) return Forbid();
+        if (asset.Kind != MediaKind.Image)
+        {
+            TempData["MediaErr"] = _t["media.err_not_image"];
+            return RedirectToAction(nameof(Media));
+        }
+
+        var jobs = HttpContext.RequestServices.GetRequiredService<IBackgroundJobQueue>();
+        await jobs.EnqueueImageOptimizeAsync(id);
+        TempData["MediaOk"] = string.Format(_t["media.reoptimize_queued"], id);
+        return RedirectToAction(nameof(Media));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> MediaVersions(int id)
+    {
+        var asset = await _db.MediaAssets.AsNoTracking()
+            .Select(m => new { m.Id, m.FileName, m.Kind, m.Version })
+            .FirstOrDefaultAsync(m => m.Id == id);
+        if (asset is null) return NotFound();
+
+        var full = await _db.MediaAssets.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id);
+        if (full is null || !await CanManageMediaAsync(full)) return Forbid();
+
+        var versions = await _db.MediaVersions.AsNoTracking()
+            .Where(v => v.MediaAssetId == id)
+            .OrderByDescending(v => v.CreatedAtUtc)
+            .Select(v => new
+            {
+                v.Id,
+                v.VersionNumber,
+                v.ContentType,
+                v.SizeBytes,
+                v.Width,
+                v.Height,
+                v.Note,
+                v.CreatedAtUtc
+            })
+            .Take(50)
+            .ToListAsync();
+
+        var variants = await _db.MediaVariants.AsNoTracking()
+            .Where(v => v.MediaAssetId == id)
+            .OrderBy(v => v.Width)
+            .Select(v => new { v.Id, v.Width, v.Height, v.ContentType, v.SizeBytes })
+            .ToListAsync();
+
+        return Json(new
+        {
+            id = asset.Id,
+            fileName = asset.FileName,
+            currentVersion = asset.Version,
+            versions,
+            variants
+        });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MediaRestoreVersion(int id, int versionId)
+    {
+        var asset = await _db.MediaAssets.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id);
+        if (asset is null) return RedirectToAction(nameof(Media));
+        if (!await CanManageMediaAsync(asset)) return Forbid();
+
+        var optimizer = HttpContext.RequestServices.GetRequiredService<ImageOptimizeService>();
+        await optimizer.RestoreVersionAsync(id, versionId);
+
+        TempData["MediaOk"] = string.Format(_t["media.version_restored"], versionId);
+        return RedirectToAction(nameof(Media));
+    }
+
     private async Task<bool> CanManageMediaAsync(MediaAsset asset)
     {
         if (AuthorAccess.IsSuperAdmin(User)) return true;
-        if (asset.PostId is null) return true; // orphan upload by author
+        if (asset.PostId is null) return true;
         var post = await _db.Posts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == asset.PostId);
         return post is not null && AuthorAccess.OwnsPost(User, post);
     }
