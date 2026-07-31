@@ -16,8 +16,7 @@ Last reviewed against the monolith codebase on 2026-07-31.
 
 ### Social Features
 
-* Social Login provider config docs + production hardening (callback exists; OAuth keys optional)
-* Follow Categories UX completeness on public taxonomy pages
+*(shipped — see `SOCIAL.md`: OAuth Google/GitHub with production hardening, follow categories on Home + post bar, likes/reactions/share/follow authors/activity feed/@mentions)*
 
 ### Notifications
 
