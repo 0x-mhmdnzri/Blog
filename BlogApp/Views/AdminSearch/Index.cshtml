@@ -1,0 +1,54 @@
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "Search";
+}
+<link rel="stylesheet" href="~/css/admin-search.css" asp-append-version="true" />
+
+<div class="admin-search-page">
+    <div class="as-hero">
+        <input type="search" id="pageSearchInput" placeholder="Search everything in admin…" autofocus />
+        @if (User.IsInRole("SuperAdmin"))
+        {
+            <form asp-action="Reindex" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Rebuild index</button>
+            </form>
+        }
+    </div>
+    <div class="as-stats" id="pageSearchStats">Start typing — results stream with skeleton loading.</div>
+    <div id="pageSearchSkeleton" class="admin-search-skeleton" hidden>
+        <div class="sk-row"></div><div class="sk-row"></div><div class="sk-row"></div>
+    </div>
+    <ul class="admin-search-list" id="pageSearchList"></ul>
+</div>
+
+@section Scripts {
+<script src="~/js/admin-search.js" asp-append-version="true"></script>
+<script>
+(function () {
+  const input = document.getElementById('pageSearchInput');
+  const list = document.getElementById('pageSearchList');
+  const stats = document.getElementById('pageSearchStats');
+  const sk = document.getElementById('pageSearchSkeleton');
+  let t;
+  input?.addEventListener('input', () => {
+    clearTimeout(t);
+    const q = input.value.trim();
+    if (!q) { list.innerHTML = ''; stats.textContent = 'Start typing…'; return; }
+    sk.hidden = false;
+    t = setTimeout(async () => {
+      const res = await fetch('/AdminSearch/api?q=' + encodeURIComponent(q) + '&take=50');
+      const data = await res.json();
+      sk.hidden = true;
+      stats.textContent = (data.totalHitsLabel || '') + ' · ' + (data.tookMs || 0) + ' ms' + (data.fromCache ? ' · cache' : '');
+      list.innerHTML = (data.hits || []).map(h =>
+        `<li><a class="admin-search-item" href="${h.url || '#'}">` +
+        `<span class="as-icon">${(h.entityType || '').slice(0,2)}</span>` +
+        `<span class="as-main"><div class="as-title">${h.title}</div><div class="as-sub">${h.subtitle || h.snippet || ''}</div></span>` +
+        `<span class="as-meta"><span class="as-badge">${h.entityType}</span><span>${h.relativeTime || ''}</span></span></a></li>`
+      ).join('');
+    }, 160);
+  });
+})();
+</script>
+}
