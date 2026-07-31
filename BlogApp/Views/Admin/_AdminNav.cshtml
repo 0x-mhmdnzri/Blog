@@ -8,11 +8,15 @@
 
     string Label(BlogApp.Services.AdminNavItem item)
     {
-        // Known missing seed keys with FA fallback
         if (item.Key == "apikeys")
         {
             var v = T["admin.nav.apikeys"];
             return v == "admin.nav.apikeys" ? "کلیدهای API" : v;
+        }
+        if (item.Key == "roles")
+        {
+            var v = T["admin.nav.roles"];
+            return v == "admin.nav.roles" ? "نقش‌ها و مجوزها" : v;
         }
         return T[item.LabelKey];
     }
