@@ -5,13 +5,6 @@ Last reviewed against the monolith codebase on 2026-07-31.
 
 ---
 
-### Media
-
-* WebP/AVIF Conversion (ImageSharp or similar — current optimize only strips JPEG junk)
-* Responsive Images (`srcset` / multiple widths)
-* File Versioning (media history)
-* CDN URL applied on every public image/media link
-
 ### Comments
 
 * Spam Detection (rules / ML)
@@ -65,7 +58,6 @@ Last reviewed against the monolith codebase on 2026-07-31.
 
 * Output Caching (full HTML for home / post / taxonomy; invalidate on publish)
 * Redis as default distributed cache in production compose
-* Image Optimization Pipeline (real re-encode + WebP)
 * Queue-based Email Delivery reliability (retries, dead-letter UI)
 
 ### Internationalization
@@ -129,6 +121,8 @@ Last reviewed against the monolith codebase on 2026-07-31.
 ---
 
 ### Implemented (removed from active backlog)
+
+**Media** (ImageSharp WebP/JPEG re-encode + max-width resize + EXIF strip via background job; responsive variants at configurable widths served from `/media/{id}/w/{width}`; `srcset`/`sizes` injected by MarkdownService; `MediaVersions` history + restore; CDN base URL rewrite on upload JSON, markdown images, and video embeds; Admin → Media re-optimize + versions API).
 
 **SEO** (WordPress WXR + Ghost JSON migration importer with auto-301 redirects in Admin → SEO Tools → Import; IndexNow + Bing ping on `post.published` via MassTransit consumer + manual submit-all; key verification at `/{key}.txt`; hreflang alternate links on post pages from translation groups + sitemap `xhtml:link` alternates + x-default).
 
