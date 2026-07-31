@@ -1,13 +1,18 @@
 # =============================================================================
-# Dark Pro Blog — standalone Compose (fast cold start)
+# Dark Pro Blog — Docker Compose
 #
-#   cp .env.example .env   # optional; defaults below work without it
+#   cp .env.example .env   # REQUIRED — all config lives in .env
+#   # edit Admin__Password, Seo__BaseUrl, …
 #   docker compose up --build -d
-#   open http://localhost:8080
+#   open http://localhost:${BLOG_HTTP_PORT}
 #
-# RabbitMQ is opt-in (profile) so a single-node launch never waits on a broker.
+# Compose only interpolates infrastructure vars (${BLOG_HTTP_PORT}, image names,
+# resource limits). Application settings are injected via env_file → container
+# environment (ASP.NET Core env vars map to appsettings with __ nesting).
+#
+# RabbitMQ is opt-in:
 #   docker compose --profile rabbitmq up -d
-#   then set RabbitMq__HostName=rabbitmq in .env and recreate blog.
+#   set RabbitMq__HostName=rabbitmq in .env, then: docker compose up -d blog
 # =============================================================================
 
 name: dark-pro-blog
@@ -18,49 +23,19 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        DOTNET_VERSION: "10.0"
-    image: ${IMAGE_NAME:-dark-pro-blog}:${IMAGE_TAG:-latest}
-    container_name: ${CONTAINER_NAME:-dark-pro-blog}
+        DOTNET_VERSION: "${DOTNET_VERSION}"
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
+    container_name: ${CONTAINER_NAME}
     restart: unless-stopped
     env_file:
-      - path: .env
-        required: false
-    environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
-      ASPNETCORE_HTTP_PORTS: "8080"
-      ASPNETCORE_URLS: http://+:8080
-      ForceHttps: ${ForceHttps:-false}
-      AllowedHosts: ${AllowedHosts:-*}
-      ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Data Source=/app/data/blog.db;Cache=Shared;Pooling=True;Default Timeout=30}
-      Admin__Username: ${Admin__Username:-admin}
-      Admin__Password: ${Admin__Password:-ChangeMe_Use_A_Strong_Password_123!}
-      Admin__Email: ${Admin__Email:-admin@localhost}
-      Seo__BaseUrl: ${Seo__BaseUrl:-http://localhost:8080}
-      # Empty HostName = in-process notification/API bus (no broker required)
-      RabbitMq__HostName: ${RabbitMq__HostName:-}
-      RabbitMq__Port: ${RabbitMq__Port:-5672}
-      RabbitMq__UserName: ${RabbitMq__UserName:-blog}
-      RabbitMq__Password: ${RabbitMq__Password:-blog_change_me}
-      RabbitMq__VirtualHost: ${RabbitMq__VirtualHost:-/}
-      RabbitMq__FanoutExchange: ${RabbitMq__FanoutExchange:-blog.notifications.fanout}
-      RabbitMq__TopicExchange: ${RabbitMq__TopicExchange:-blog.notifications.topic}
-      RabbitMq__ClientProvidedName: ${RabbitMq__ClientProvidedName:-blogapp-notifications}
-      RabbitMq__AutomaticRecoveryEnabled: ${RabbitMq__AutomaticRecoveryEnabled:-true}
-      RabbitMq__NetworkRecoverySeconds: ${RabbitMq__NetworkRecoverySeconds:-10}
-      RabbitMq__RequestedHeartbeatSeconds: ${RabbitMq__RequestedHeartbeatSeconds:-30}
-      RabbitMq__RequestedConnectionTimeoutSeconds: ${RabbitMq__RequestedConnectionTimeoutSeconds:-5}
-      ApiTopicBus__UseRabbit: ${ApiTopicBus__UseRabbit:-true}
-      DOTNET_EnableDiagnostics: "0"
-      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "false"
-      TZ: Asia/Tehran
+      - .env
     ports:
-      - "${BLOG_HTTP_PORT:-8080}:8080"
+      - "${BLOG_HTTP_PORT}:8080"
     volumes:
       - blog_data:/app/data
       - blog_logs:/app/logs
     networks:
       - blog_net
-    # Do NOT depend on rabbitmq by default — standalone must start alone.
     security_opt:
       - no-new-privileges:true
     tmpfs:
@@ -68,11 +43,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "${BLOG_CPU_LIMIT:-1.0}"
-          memory: ${BLOG_MEMORY_LIMIT:-512M}
+          cpus: "${BLOG_CPU_LIMIT}"
+          memory: ${BLOG_MEMORY_LIMIT}
         reservations:
-          cpus: "${BLOG_CPU_RESERVE:-0.10}"
-          memory: ${BLOG_MEMORY_RESERVE:-128M}
+          cpus: "${BLOG_CPU_RESERVE}"
+          memory: ${BLOG_MEMORY_RESERVE}
     logging:
       driver: json-file
       options:
@@ -88,15 +63,18 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
-    container_name: ${RABBITMQ_CONTAINER:-dark-pro-rabbitmq}
+    container_name: ${RABBITMQ_CONTAINER}
     restart: unless-stopped
     profiles: ["rabbitmq"]
+    env_file:
+      - .env
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-blog}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-blog_change_me}
+      # Official image only accepts these specific names (not RabbitMq__*)
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
     ports:
-      - "${RABBITMQ_PORT:-5672}:5672"
-      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MGMT_PORT}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
@@ -110,13 +88,13 @@ services:
 
 volumes:
   blog_data:
-    name: ${VOLUME_DATA_NAME:-dark-pro-blog-data}
+    name: ${VOLUME_DATA_NAME}
   blog_logs:
-    name: ${VOLUME_LOGS_NAME:-dark-pro-blog-logs}
+    name: ${VOLUME_LOGS_NAME}
   rabbitmq_data:
-    name: ${VOLUME_RABBIT_NAME:-dark-pro-rabbitmq-data}
+    name: ${VOLUME_RABBIT_NAME}
 
 networks:
   blog_net:
-    name: ${NETWORK_NAME:-dark-pro-blog-net}
+    name: ${NETWORK_NAME}
     driver: bridge
