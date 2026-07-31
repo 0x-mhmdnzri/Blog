@@ -2,7 +2,7 @@ namespace Blog.Core.Domain.Entities.Post.ValueObjects;
 
 using Common;
 
-public sealed class Spug : ValueObject
+public sealed class Slug : ValueObject
 {
     public string Value { get; }
 

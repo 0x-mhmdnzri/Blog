@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Blog.Utils</RootNamespace>
+    <AssemblyName>Blog.Utils</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Blog.Core.Domain\Blog.Core.Domain.csproj" />
+  </ItemGroup>
+</Project>
