@@ -31,7 +31,6 @@ public class AdminThemesController : Controller
     public async Task<IActionResult> Index(string? status)
     {
         ViewData["Title"] = "تم‌ها";
-        Layout = null;
         var q = _db.CustomThemes.AsNoTracking().Include(t => t.Owner).AsQueryable();
         if (status == "pending")
             q = q.Where(t => t.Status == ThemeApprovalStatus.Pending);
