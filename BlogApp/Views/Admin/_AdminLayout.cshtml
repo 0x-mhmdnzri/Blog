@@ -44,6 +44,18 @@
     <title>@fullTitle</title>
     <meta name="robots" content="noindex, nofollow" />
 
+    <script>
+      (function () {
+        try {
+          var ap = JSON.parse(localStorage.getItem('blog-a11y-prefs') || '{}');
+          if (ap.contrast === 'high') document.documentElement.setAttribute('data-a11y-contrast', 'high');
+          if (ap.motion === 'reduce') document.documentElement.setAttribute('data-a11y-motion', 'reduce');
+          if (ap.underline === 'on') document.documentElement.setAttribute('data-a11y-underline', 'on');
+          if (ap.text === 'large' || ap.text === 'xlarge') document.documentElement.setAttribute('data-a11y-text', ap.text);
+        } catch (e) {}
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="@culture.BootstrapCss" rel="stylesheet">
@@ -55,8 +67,8 @@
     <link rel="stylesheet" href="~/css/datatables-admin.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/datepicker.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/a11y.css" asp-append-version="true" />
     <script>
-      // Apply locked sidebar before paint to avoid width jump
       (function () {
         try {
           var m = document.cookie.match(/(?:^|; )Blog\.AdminSidebarLocked=([^;]*)/);
@@ -76,12 +88,13 @@
     </style>
 </head>
 <body class="admin-body sidebar-collapsed">
+    <a class="skip-link" href="#admin-main-content">پرش به محتوا</a>
     <div id="adminPageOverlay" class="admin-page-overlay" aria-hidden="true">
         <div class="admin-page-spinner" role="status"></div>
     </div>
     <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop"></div>
     <div class="admin-shell">
-        <aside class="admin-sidebar is-collapsed" id="adminSidebar">
+        <aside class="admin-sidebar is-collapsed" id="adminSidebar" aria-label="منوی مدیریت">
             <div class="admin-brand">
                 <span class="brand-cursor"></span>
                 <span class="brand-text">@T["admin.brand"]</span>
@@ -119,10 +132,10 @@
             </div>
         </aside>
 
-        <main class="admin-main">
+        <main class="admin-main" id="admin-main-content" role="main" tabindex="-1">
             <header class="admin-topbar">
                 <div class="admin-topbar-start d-flex align-items-start gap-2">
-                    <button class="btn btn-ghost btn-sm admin-menu-toggle d-md-none" type="button" data-admin-toggle title="Menu">☰</button>
+                    <button class="btn btn-ghost btn-sm admin-menu-toggle d-md-none" type="button" data-admin-toggle title="Menu" aria-label="باز کردن منو">☰</button>
                     <div class="admin-topbar-titles">
                         <nav class="admin-breadcrumb" aria-label="breadcrumb">
                             <a asp-controller="Admin" asp-action="Index" class="bc-link">@panelTitle</a>
@@ -165,6 +178,8 @@
         </main>
     </div>
 
+    <div id="a11y-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
     <script>
         window.__i18n = {
 @foreach (var k in dtKeys)
@@ -181,6 +196,7 @@
     <script src="~/js/notifications-bell.js" asp-append-version="true"></script>
     <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
     <script src="~/js/datepicker.js" asp-append-version="true"></script>
+    <script src="~/js/a11y.js" asp-append-version="true"></script>
     <script>
         (function () {
             document.documentElement.classList.remove('sidebar-lock-pending');
