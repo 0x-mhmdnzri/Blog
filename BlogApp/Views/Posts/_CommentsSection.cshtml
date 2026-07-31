@@ -35,7 +35,7 @@
         return (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
     }
 
-    void RenderThread(Comment c, int depth)
+    async Task RenderThread(Comment c, int depth)
     {
         var liked = likedIds.Contains(c.Id);
         var isOwner = !string.IsNullOrEmpty(c.UserId) && c.UserId == currentUserId;
@@ -80,8 +80,8 @@
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="commentId" value="@c.Id" />
                             <input type="hidden" name="returnUrl" value="@(postUrl + sortQs + "#comment-" + c.Id)" />
-                            <button type="submit" class="cmt-act @(liked ? "is-liked" : "")" title="@(liked ? "برداشتن پسند" : "پسندیدن")">
-                                <span aria-hidden="true">@(liked ? "♥" : "♡")</span>
+                            <button type="submit" class="cmt-act @(liked ? "is-on" : "")" title="پسند">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="@(liked ? "currentColor" : "none")" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                                 <span class="ltr-field">@c.LikeCount</span>
                             </button>
                         </form>
@@ -90,14 +90,12 @@
                     {
                         <a class="cmt-act" asp-controller="Account" asp-action="Login"
                            asp-route-returnUrl="@(postUrl + sortQs + "#comment-" + c.Id)" title="برای پسندیدن وارد شوید">
-                            <span aria-hidden="true">♡</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                             <span class="ltr-field">@c.LikeCount</span>
                         </a>
                     }
 
-                    <button type="button" class="cmt-act cmt-reply-btn" data-reply-to="@c.Id" data-reply-name="@c.AuthorName">
-                        <span aria-hidden="true">↩</span> پاسخ
-                    </button>
+                    <button type="button" class="cmt-act" data-reply-to="@c.Id" data-reply-name="@c.AuthorName">پاسخ</button>
 
                     @if (canEditPost)
                     {
@@ -140,7 +138,7 @@
                     <div class="cmt-thread">
                         @foreach (var r in replies)
                         {
-                            RenderThread(r, depth + 1);
+                            await RenderThread(r, depth + 1);
                         }
                     </div>
                 }
@@ -153,39 +151,26 @@
     <header class="cmt-section-head">
         <h2 class="cmt-section-title">
             دیدگاه‌ها
-            <span class="cmt-count ltr-field">@all.Count</span>
+            <span class="cmt-count ltr-field">@Model.Comments.Count</span>
         </h2>
         <form method="get" asp-action="Details" asp-route-slug="@Model.Slug" class="cmt-sort">
-            <label class="visually-hidden" for="commentSort">مرتب‌سازی</label>
-            <select class="form-select form-select-sm" id="commentSort" name="sort" onchange="this.form.submit()">
-                <option value="relevant" selected="@(commentSort == "relevant")">مرتبط</option>
+            <label class="visually-hidden" for="cmtSort">مرتب‌سازی</label>
+            <select id="cmtSort" name="sort" onchange="this.form.submit()">
+                <option value="relevant" selected="@(commentSort == "relevant")">مرتبط‌ترین</option>
                 <option value="latest" selected="@(commentSort == "latest")">جدیدترین</option>
             </select>
         </form>
     </header>
 
-    @if (TempData["CommentSubmitted"] != null)
-    {
-        <div class="cmt-flash" data-toast-message="@TempData["CommentSubmitted"]" role="status">@TempData["CommentSubmitted"]</div>
-    }
-
-    @* —— Top-level composer (Twitter-style) —— *@
     <form asp-action="AddComment" method="post" class="cmt-composer" id="cmtMainComposer" autocomplete="off" data-toast-success="دیدگاه ثبت شد">
         @Html.AntiForgeryToken()
         <input type="hidden" name="postId" value="@Model.Id" />
-        <input type="hidden" name="parentId" id="cmtParentId" value="" />
         <div class="cmt-honeypot" aria-hidden="true">
-            <label>Website</label>
             <input type="text" name="website" tabindex="-1" autocomplete="off" />
         </div>
-
         <div class="cmt-composer-row">
             <div class="cmt-avatar cmt-avatar-self" aria-hidden="true">@(string.IsNullOrEmpty(defaultName) ? "+" : Initials(defaultName))</div>
             <div class="cmt-composer-body">
-                <div class="cmt-reply-banner" id="cmtReplyBanner" hidden>
-                    <span>در پاسخ به <strong id="cmtReplyName"></strong></span>
-                    <button type="button" class="cmt-reply-cancel" id="cmtReplyCancel" aria-label="لغو پاسخ">×</button>
-                </div>
                 <input class="cmt-input cmt-input-name" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" value="@defaultName" />
                 @if (!isAuth)
                 {
@@ -239,7 +224,7 @@
         {
             @foreach (var c in roots)
             {
-                RenderThread(c, 0);
+                await RenderThread(c, 0);
             }
         }
     </div>
