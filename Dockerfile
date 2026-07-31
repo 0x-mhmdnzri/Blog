@@ -40,6 +40,8 @@ RUN apt-get update \
     && mkdir -p /app/data /app/logs \
     && chown -R appuser:appgroup /app
 
+# Image defaults only — Compose injects full config via env_file (.env).
+# Never bake secrets here; override with .env / -e at runtime.
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
