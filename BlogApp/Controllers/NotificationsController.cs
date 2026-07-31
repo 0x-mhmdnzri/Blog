@@ -4,6 +4,7 @@ using BlogApp.Services;
 using BlogApp.Services.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
@@ -33,7 +34,6 @@ public class NotificationsController : Controller
         return View(items);
     }
 
-    /// <summary>Bell dropdown payload.</summary>
     [HttpGet]
     public async Task<IActionResult> Recent(int take = 12)
     {
@@ -66,14 +66,16 @@ public class NotificationsController : Controller
         return Json(new { count });
     }
 
-    /// <summary>Realtime SSE: event stream of new notifications for current user.</summary>
     [HttpGet]
+    [DisableRateLimiting]
     public async Task Stream(CancellationToken cancellationToken)
     {
         var userId = AuthorAccess.UserId(User)!;
-        Response.ContentType = "text/event-stream";
-        Response.Headers["Cache-Control"] = "no-cache";
+        Response.ContentType = "text/event-stream; charset=utf-8";
+        Response.Headers["Cache-Control"] = "no-cache, no-store";
+        Response.Headers["Connection"] = "keep-alive";
         Response.Headers["X-Accel-Buffering"] = "no";
+        Response.Headers["Content-Encoding"] = "identity";
 
         var buffering = HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>();
         buffering?.DisableBuffering();
@@ -81,17 +83,17 @@ public class NotificationsController : Controller
         var (id, reader) = _hub.Subscribe(userId);
         try
         {
+            await Response.WriteAsync("retry: 3000\n\n", cancellationToken);
             await Response.WriteAsync(": connected\n\n", cancellationToken);
             await Response.Body.FlushAsync(cancellationToken);
 
-            // Initial unread so client can sync badge without extra round-trip
             var unread = await _db.AppNotifications.CountAsync(n => n.UserId == userId && !n.IsRead, cancellationToken);
             await Response.WriteAsync($"data: {{\"type\":\"unread\",\"count\":{unread}}}\n\n", cancellationToken);
             await Response.Body.FlushAsync(cancellationToken);
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                using var heartbeat = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+                using var heartbeat = new CancellationTokenSource(TimeSpan.FromSeconds(20));
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, heartbeat.Token);
 
                 string? message = null;
@@ -103,7 +105,7 @@ public class NotificationsController : Controller
                 if (message is not null)
                     await Response.WriteAsync($"data: {message}\n\n", cancellationToken);
                 else
-                    await Response.WriteAsync(": ping\n\n", cancellationToken);
+                    await Response.WriteAsync($": ping {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}\n\n", cancellationToken);
 
                 await Response.Body.FlushAsync(cancellationToken);
             }
