@@ -46,5 +46,12 @@ public static partial class UiTranslationCatalog
         ("media.bulk_deleted", "media", "{0} مورد حذف شد.", "{0} item(s) deleted.", "تم حذف {0}."),
         ("media.err_post", "media", "نوشته معتبر نیست یا دسترسی ندارید.", "Invalid post or access denied.", "مقال غير صالح أو لا صلاحية."),
         ("media.err_exec", "media", "نوع فایل اجرایی مجاز نیست.", "Executable files are not allowed.", "الملفات التنفيذية غير مسموحة."),
+
+        ("media.reoptimize", "media", "بهینه‌سازی مجدد", "Re-optimize", "إعادة التحسين"),
+        ("media.reoptimize_queued", "media", "بهینه‌سازی تصویر #{0} در صف قرار گرفت.", "Image #{0} queued for optimize.", "تمت جدولة تحسين الصورة #{0}."),
+        ("media.err_not_image", "media", "فقط تصاویر قابل بهینه‌سازی هستند.", "Only images can be optimized.", "يمكن تحسين الصور فقط."),
+        ("media.versions", "media", "نسخه‌ها", "Versions", "الإصدارات"),
+        ("media.version_restored", "media", "نسخه #{0} بازیابی شد.", "Version #{0} restored.", "تم استعادة الإصدار #{0}."),
+        ("media.variants", "media", "عرض‌های واکنش‌گرا", "Responsive widths", "عروض متجاوبة"),
     };
 }
