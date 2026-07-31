@@ -1,0 +1,71 @@
+@model BlogApp.Controllers.AssignRoleVm
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "اختصاص نقش به کاربر";
+}
+
+@if (TempData["Saved"] != null)
+{
+    <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="card-surface p-3 mb-3 small" style="border-color:var(--danger,#e5637a);">@TempData["Error"]</div>
+}
+
+<div class="mb-4">
+    <a class="small text-muted-dark" asp-action="Index">← نقش‌ها</a>
+    <h1 class="h5 mb-1 mt-1">اختصاص نقش به کاربر</h1>
+    <p class="small text-muted-dark mb-0">چند نقش را همزمان انتخاب کنید؛ claimهای نقش‌ها با هم ترکیب (union) می‌شوند.</p>
+</div>
+
+<form method="get" class="card-surface p-3 mb-3 d-flex flex-wrap gap-2 align-items-end">
+    <div class="flex-grow-1" style="min-width:14rem;">
+        <label class="form-label small mb-1" for="userId">کاربر</label>
+        <select id="userId" name="userId" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">— انتخاب —</option>
+            @foreach (var u in Model.Users)
+            {
+                <option value="@u.Id" selected="@(Model.UserId == u.Id)">@u.DisplayName (@u.UserName)</option>
+            }
+        </select>
+    </div>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.UserId))
+{
+    <form asp-action="Assign" method="post" class="card-surface p-3">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="userId" value="@Model.UserId" />
+        <div class="assign-roles">
+        @foreach (var role in Model.AllRoles)
+        {
+            var isOn = Model.CurrentRoles.Contains(role, StringComparer.OrdinalIgnoreCase);
+            <label class="assign-role">
+                <input type="checkbox" name="roles" value="@role" checked="@isOn" />
+                <span class="ltr-field">@role</span>
+                @if (AppRoles.IsBuiltIn(role))
+                {
+                    <span class="soon-tag">سیستمی</span>
+                }
+            </label>
+        }
+        </div>
+        <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-accent btn-sm">ذخیره نقش‌ها</button>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminUsers" asp-action="Index">لیست کاربران</a>
+        </div>
+    </form>
+}
+
+<style>
+.assign-roles { display: flex; flex-direction: column; gap: .45rem; }
+.assign-role {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .55rem .75rem; border-radius: 10px;
+  border: 1px solid var(--border-soft, #1e2430);
+  cursor: pointer;
+}
+.assign-role:hover { background: var(--surface-2, #171c27); }
+.assign-role input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent, #e3b341); }
+</style>
