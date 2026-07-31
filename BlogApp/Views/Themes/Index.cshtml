@@ -1,0 +1,100 @@
+@model List<BlogApp.Models.CustomTheme>
+@using BlogApp.Models
+@{
+    ViewData["Title"] = "تم‌های من";
+    var approved = ViewBag.Approved as IReadOnlyList<CustomTheme> ?? Array.Empty<CustomTheme>();
+    var activeId = ViewBag.ActiveId as int?;
+    var isSuper = User.IsInRole(AppRoles.SuperAdmin);
+}
+<div class="container py-4" style="max-width:960px">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h1 class="h5 mb-1">تم‌های سفارشی</h1>
+            <p class="small text-muted-dark mb-0">تم‌ها پس از بررسی کنتراست و تأیید سوپرادمین در کل سایت (و داشبورد) اعمال می‌شوند تا هرج‌ومرج رنگی پیش نیاید.</p>
+        </div>
+        <a class="btn btn-accent btn-sm" asp-action="Create">تم جدید</a>
+    </div>
+
+    @if (TempData["Msg"] != null) { <div class="card-surface p-2 px-3 mb-3 small">@TempData["Msg"]</div> }
+    @if (TempData["Err"] != null) { <div class="card-surface p-2 px-3 mb-3 small" style="border-color:var(--danger)">@TempData["Err"]</div> }
+
+    <h2 class="h6 text-muted-dark mb-2">تم‌های تأییدشده (قابل فعال‌سازی)</h2>
+    <div class="row g-2 mb-4">
+        @foreach (var t in approved)
+        {
+            <div class="col-md-6">
+                <div class="card-surface p-3 h-100">
+                    <div class="d-flex justify-content-between gap-2">
+                        <strong>@t.Name</strong>
+                        @if (t.IsActive || t.Id == activeId) { <span class="badge-category">فعال</span> }
+                        else if (t.IsSystem) { <span class="small text-muted-dark">سیستم</span> }
+                    </div>
+                    <div class="d-flex gap-1 mt-2" aria-hidden="true">
+                        @foreach (var c in new[]{ t.Bg, t.Surface, t.Text, t.Accent })
+                        {
+                            <span style="width:1.25rem;height:1.25rem;border-radius:4px;background:@c;border:1px solid var(--border)"></span>
+                        }
+                    </div>
+                    <div class="small text-muted-dark mt-2 ltr-field">contrast text @t.ContrastTextOnBg:1 · @t.Mode</div>
+                    @if (isSuper && !t.IsActive)
+                    {
+                        <form asp-action="Activate" method="post" class="mt-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <button class="btn btn-ghost btn-sm" type="submit">فعال‌سازی سایت</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <h2 class="h6 text-muted-dark mb-2">تم‌های شما</h2>
+    @if (Model.Count == 0)
+    {
+        <p class="text-muted-dark small">هنوز تم نساخته‌اید.</p>
+    }
+    else
+    {
+        @foreach (var t in Model)
+        {
+            <div class="card-surface p-3 mb-2">
+                <div class="d-flex flex-wrap justify-content-between gap-2">
+                    <div>
+                        <strong>@t.Name</strong>
+                        <span class="small text-muted-dark ms-2">
+                            @(t.Status switch {
+                                ThemeApprovalStatus.Pending => "در انتظار تأیید",
+                                ThemeApprovalStatus.Approved => "تأییدشده",
+                                ThemeApprovalStatus.Rejected => "رد شده",
+                                _ => "پیش‌نویس"
+                            })
+                        </span>
+                        @if (t.Status == ThemeApprovalStatus.Rejected && !string.IsNullOrEmpty(t.RejectionReason))
+                        {
+                            <div class="small" style="color:var(--danger)">@t.RejectionReason</div>
+                        }
+                    </div>
+                    <div class="d-flex gap-1">
+                        @if (t.Status is ThemeApprovalStatus.Draft or ThemeApprovalStatus.Rejected)
+                        {
+                            <form asp-action="Submit" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@t.Id" />
+                                <button class="btn btn-accent btn-sm" type="submit">ارسال برای تأیید</button>
+                            </form>
+                        }
+                        @if (!t.IsSystem && !t.IsActive)
+                        {
+                            <form asp-action="Delete" method="post" onsubmit="return confirm('حذف؟');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@t.Id" />
+                                <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
