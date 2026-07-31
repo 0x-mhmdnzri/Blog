@@ -308,7 +308,9 @@ try
             await siteConfig.EnsureDefaultsAsync();
             await uiT.EnsureSeedAsync();
             await themes.EnsureSystemThemesAsync();
-            Log.Information("Database ready Path={DbPath}", connectionString);
+            var packResult = await themes.ImportFromDirectoryAsync();
+            Log.Information("Database ready Path={DbPath}; theme packs +{Imported} ~{Updated} skip={Skipped}",
+                connectionString, packResult.Imported, packResult.Updated, packResult.Skipped);
         }
         catch (Exception ex)
         {
