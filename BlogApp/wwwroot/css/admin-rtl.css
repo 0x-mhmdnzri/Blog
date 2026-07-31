@@ -195,7 +195,7 @@ html[dir="ltr"] .admin-shell { direction: ltr; }
 
 .admin-content {
   padding: 1.5rem;
-  max-width: 1200px;
+  max-width: 1400px;
   width: 100%;
   text-align: start;
 }
@@ -246,7 +246,8 @@ html[dir="ltr"] .admin-shell { direction: ltr; }
 .trend-badge.down { background: rgba(229, 99, 122, 0.15); color: var(--danger); }
 .trend-badge.flat { background: var(--surface-3); color: var(--text-muted); }
 
-.admin-table-wrap {
+/* Non-DataTables simple tables */
+.admin-table-wrap:not(:has(.dataTables_wrapper)) {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -472,14 +473,36 @@ html[dir="ltr"] .admin-shell { direction: ltr; }
 }
 
 .admin-body [dir="auto"] { unicode-bidi: plaintext; }
+
+/*
+ * CRITICAL: never use display:inline-block on .ltr-field globally.
+ * That rule destroyed every admin DataTable (td became inline-block → collapsed grid).
+ * Only apply inline-block outside tables.
+ */
 .ltr-field {
   direction: ltr !important;
   unicode-bidi: isolate;
   text-align: left !important;
-  display: inline-block;
   font-family: var(--font-mono);
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+/* inline-block only when NOT a table cell */
+span.ltr-field,
+div.ltr-field,
+p.ltr-field,
+a.ltr-field,
+code.ltr-field {
+  display: inline-block;
+}
+/* table cells must stay table-cell */
+td.ltr-field,
+th.ltr-field,
+.admin-table-wrap td.ltr-field,
+.admin-table-wrap th.ltr-field,
+table.dataTable td.ltr-field,
+table.dataTable th.ltr-field {
+  display: table-cell !important;
 }
 
 /* ---- Form wizard (shared) ---- */
