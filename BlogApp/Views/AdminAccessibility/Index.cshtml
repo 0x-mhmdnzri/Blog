@@ -1,0 +1,137 @@
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "دسترسی‌پذیری";
+}
+
+<style>
+.a11y-admin { max-width: 920px; }
+.a11y-admin .lead {
+  font-size: .88rem; color: var(--text-muted); line-height: 1.55; margin: 0 0 1.25rem;
+}
+.a11y-admin h2 {
+  font-size: 1rem; font-weight: 700; margin: 1.5rem 0 .75rem;
+}
+.a11y-admin .checklist {
+  list-style: none; padding: 0; margin: 0 0 1rem;
+}
+.a11y-admin .checklist li {
+  padding: .55rem .85rem; margin-bottom: .4rem;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 10px; font-size: .85rem; line-height: 1.5;
+}
+.a11y-admin .checklist li strong { display: block; margin-bottom: .15rem; }
+.a11y-admin .checklist .tag {
+  display: inline-block; font-size: .68rem; font-weight: 650;
+  padding: .1rem .45rem; border-radius: 999px; margin-inline-end: .35rem;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.a11y-summary {
+  padding: .75rem 1rem; border-radius: 12px; margin-bottom: 1rem;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border-soft));
+  font-size: .9rem;
+}
+.a11y-admin .kbd {
+  font-family: ui-monospace, monospace; font-size: .78rem;
+  padding: .1rem .4rem; border-radius: 4px;
+  border: 1px solid var(--border-soft); background: var(--surface-2, var(--surface));
+  direction: ltr; display: inline-block;
+}
+</style>
+
+<div class="a11y-admin">
+    <p class="lead">
+        این بخش مطابق FEATURES.md پیاده‌سازی شده است:
+        <strong>WCAG</strong>، <strong>ناوبری صفحه‌کلید</strong>، <strong>بهینه‌سازی صفحه‌خوان</strong>،
+        <strong>حالت کنتراست بالا</strong> و <strong>Accessibility Checker</strong>.
+        کاربران نهایی از دکمه ثابت <span class="kbd">A♿</span> در گوشه صفحه تنظیمات را تغییر می‌دهند.
+    </p>
+
+    <h2>بررسی زندهٔ این صفحه</h2>
+    <div class="a11y-summary" id="a11y-checker-summary">در حال بررسی…</div>
+    <div class="a11y-check-grid" id="a11y-checker-results"></div>
+
+    <h2>WCAG — پایه‌های پیاده‌سازی‌شده</h2>
+    <ul class="checklist">
+        <li>
+            <strong><span class="tag">1.1</span> متن جایگزین</strong>
+            تصاویر بدون <code class="ltr-field">alt</code> در چک‌کننده گزارش می‌شوند؛ تصاویر تزئینی باید <code class="ltr-field">alt=""</code> داشته باشند.
+        </li>
+        <li>
+            <strong><span class="tag">1.3</span> ساختار معنایی</strong>
+            نقاط عطف <code class="ltr-field">header / nav / main / footer</code>، عناوین، و <code class="ltr-field">lang</code> روی <code class="ltr-field">html</code>.
+        </li>
+        <li>
+            <strong><span class="tag">1.4</span> قابل‌دیدن</strong>
+            حالت کنتراست بالا، زیرخط لینک‌ها، مقیاس متن، و احترام به <code class="ltr-field">prefers-reduced-motion</code>.
+        </li>
+        <li>
+            <strong><span class="tag">2.1</span> صفحه‌کلید</strong>
+            Skip link، <code class="ltr-field">:focus-visible</code>، فلش‌چپ/راست در منوی اصلی، تلهٔ فوکوس در جست‌وجو، Esc برای بستن.
+        </li>
+        <li>
+            <strong><span class="tag">2.4</span> قابل‌پیمایش</strong>
+            عنوان سند، لینک پرش، ترتیب فوکوس منطقی، برچسب‌های <code class="ltr-field">aria-*</code> روی کنترل‌های آیکونی.
+        </li>
+        <li>
+            <strong><span class="tag">4.1</span> سازگاری</strong>
+            نقش‌های ARIA روی دیالوگ جست‌وجو، نوار پیشرفت مطالعه، toast با <code class="ltr-field">aria-live</code>، و اعلان زنده تنظیمات.
+        </li>
+    </ul>
+
+    <h2>ناوبری صفحه‌کلید</h2>
+    <ul class="checklist">
+        <li><strong>Tab / Shift+Tab</strong> — حرکت بین عناصر تعاملی با حلقهٔ واضح فوکوس.</li>
+        <li><strong>پرش به محتوا</strong> — اولین Tab از ابتدای صفحه روی Skip link.</li>
+        <li><strong>Ctrl+K / ⌘K</strong> — باز کردن جست‌وجو؛ Esc بستن؛ فوکوس به دامنهٔ دیالوگ محدود می‌شود.</li>
+        <li><strong>Alt+0</strong> — باز/بسته کردن پنل دسترسی‌پذیری.</li>
+        <li><strong>← → در منوی اصلی</strong> — جابه‌جایی بین آیتم‌های ناوبری (با پشتیبانی RTL).</li>
+    </ul>
+
+    <h2>صفحه‌خوان</h2>
+    <ul class="checklist">
+        <li>نقاط عطف معنایی و برچسب‌های فارسی روی دکمه‌های آیکونی.</li>
+        <li>منطقهٔ زندهٔ مخفی برای اعلان تغییر تنظیمات (<code class="ltr-field">aria-live="polite"</code>).</li>
+        <li>نوار پیشرفت مطالعه با <code class="ltr-field">role="progressbar"</code> و به‌روزرسانی <code class="ltr-field">aria-valuenow</code>.</li>
+        <li>دیالوگ جست‌وجو با <code class="ltr-field">role="dialog"</code> و <code class="ltr-field">aria-modal</code>.</li>
+    </ul>
+
+    <h2>حالت کنتراست بالا</h2>
+    <ul class="checklist">
+        <li>فعال از پنل کاربر یا <code class="ltr-field">localStorage</code> کلید <code class="ltr-field">blog-a11y-prefs</code>.</li>
+        <li>پس‌زمینه سیاه، متن سفید، تأکید زرد، حاشیهٔ ضخیم روی کنترل‌ها — مناسب کم‌بینایی.</li>
+    </ul>
+
+    <p class="small text-muted-dark mt-4 mb-0">
+        چک‌کنندهٔ سمت‌کلاینت جایگزین ممیزی کامل WCAG (مثل axe/Lighthouse) نیست؛ برای CI از ابزارهای خودکار استفاده کنید.
+        این صفحه همان چک‌ها را روی DOM فعلی اجرا می‌کند.
+    </p>
+</div>
+
+@section Scripts {
+<script>
+  // Results rendered by a11y.js when #a11y-checker-results is present
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.blogA11y && !document.getElementById('a11y-checker-results').children.length) {
+      var results = window.blogA11y.runChecker();
+      var host = document.getElementById('a11y-checker-results');
+      var summary = document.getElementById('a11y-checker-summary');
+      var pass = results.filter(function (r) { return r.level === 'pass'; }).length;
+      var fail = results.filter(function (r) { return r.level === 'fail'; }).length;
+      var warn = results.filter(function (r) { return r.level === 'warn'; }).length;
+      if (summary) {
+        summary.innerHTML = '<strong class="ltr-field">' + pass + '</strong> قبول · ' +
+          '<strong class="ltr-field">' + warn + '</strong> هشدار · ' +
+          '<strong class="ltr-field">' + fail + '</strong> رد';
+      }
+      host.innerHTML = results.map(function (r) {
+        return '<article class="a11y-check-item">' +
+          '<span class="status ' + r.level + '">' +
+          (r.level === 'pass' ? 'قبول' : r.level === 'fail' ? 'رد' : 'هشدار') +
+          '</span>' +
+          '<div><h3>' + r.title + '</h3><p>' + r.detail + '</p></div></article>';
+      }).join('');
+    }
+  });
+</script>
+}
