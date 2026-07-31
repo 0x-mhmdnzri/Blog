@@ -12,7 +12,8 @@ public interface IThemeService
 {
     Task<CustomTheme?> GetActiveAsync(CancellationToken ct = default);
     Task<CustomTheme?> GetApprovedByIdAsync(int id, CancellationToken ct = default);
-    /// <summary>Preferred cookie theme if approved, otherwise site-wide active.</summary>
+    Task<CustomTheme?> GetByIdAsync(int id, CancellationToken ct = default);
+    /// <summary>Preferred cookie theme if found, otherwise site-wide active.</summary>
     Task<CustomTheme?> ResolveForVisitorAsync(int? preferredId, CancellationToken ct = default);
     Task<IReadOnlyList<CustomTheme>> ListApprovedAsync(CancellationToken ct = default);
     Task EnsureSystemThemesAsync(CancellationToken ct = default);
@@ -107,11 +108,15 @@ public sealed class ThemeService : IThemeService
         await _db.CustomThemes.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id && t.Status == ThemeApprovalStatus.Approved, ct);
 
+    public async Task<CustomTheme?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        await _db.CustomThemes.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id, ct);
+
     public async Task<CustomTheme?> ResolveForVisitorAsync(int? preferredId, CancellationToken ct = default)
     {
         if (preferredId is > 0)
         {
-            var preferred = await GetApprovedByIdAsync(preferredId.Value, ct);
+            // Cookie preference: any theme the visitor selected (approved or own draft preview)
+            var preferred = await GetByIdAsync(preferredId.Value, ct);
             if (preferred is not null)
                 return preferred;
         }
