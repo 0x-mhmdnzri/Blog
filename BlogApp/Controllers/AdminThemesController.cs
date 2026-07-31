@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Services;
@@ -14,6 +16,13 @@ public class AdminThemesController : Controller
     private readonly IThemeService _themes;
     private readonly INotificationService _notify;
     private readonly IAuditService _audit;
+
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true
+    };
 
     public AdminThemesController(
         ApplicationDbContext db,
@@ -46,6 +55,73 @@ public class AdminThemesController : Controller
         ViewBag.PendingCount = await _db.CustomThemes.CountAsync(t => t.Status == ThemeApprovalStatus.Pending);
         ViewBag.Status = status;
         return View(list);
+    }
+
+    /// <summary>Re-scan ContentRoot/themes/*.blogtheme into DB.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reimport()
+    {
+        var result = await _themes.ImportFromDirectoryAsync();
+        await _audit.LogAsync("theme.reimport", "CustomTheme", null,
+            $"+{result.Imported} ~{result.Updated} skip {result.Skipped}", HttpContext);
+        TempData["Msg"] =
+            $"واردات فایل‌ها: جدید {result.Imported}، به‌روز {result.Updated}، رد {result.Skipped}.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>Upload one .blogtheme file and import.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    [RequestSizeLimit(64 * 1024)]
+    public async Task<IActionResult> ImportFile(IFormFile? file)
+    {
+        if (file is null || file.Length == 0)
+        {
+            TempData["Msg"] = "فایلی انتخاب نشده.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var name = file.FileName ?? "";
+        if (!name.EndsWith(ThemeService.FileExtension, StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Msg"] = $"فقط فایل {ThemeService.FileExtension} مجاز است.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (file.Length > 64 * 1024)
+        {
+            TempData["Msg"] = "حجم فایل زیاد است (حداکثر ۶۴KB).";
+            return RedirectToAction(nameof(Index));
+        }
+
+        await using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        var json = await reader.ReadToEndAsync();
+
+        ThemePack? pack;
+        try
+        {
+            pack = JsonSerializer.Deserialize<ThemePack>(json, JsonOpts);
+        }
+        catch (Exception ex)
+        {
+            TempData["Msg"] = "JSON نامعتبر: " + ex.Message;
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (pack is null)
+        {
+            TempData["Msg"] = "JSON خالی است.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var key = !string.IsNullOrWhiteSpace(pack.Id)
+            ? pack.Id.Trim()
+            : Path.GetFileNameWithoutExtension(name);
+
+        var result = await _themes.ImportPackAsync(pack, key);
+        await _audit.LogAsync("theme.import_file", "CustomTheme", result.ThemeId?.ToString(), result.Message, HttpContext);
+        TempData["Msg"] = result.Ok ? result.Message : "خطا: " + result.Message;
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost, ValidateAntiForgeryToken]

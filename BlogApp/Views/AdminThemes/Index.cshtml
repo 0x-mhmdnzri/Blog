@@ -7,13 +7,31 @@
 }
 <div style="max-width:960px">
     <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
-        <p class="small text-muted-dark mb-0">فقط تم‌های با کنتراست کافی تأیید شوند. فعال‌سازی روی کل سایت و پنل اعمال می‌شود.</p>
-        <div class="d-flex gap-1">
+        <p class="small text-muted-dark mb-0">فقط تم‌های با کنتراست کافی تأیید شوند. فعال‌سازی روی کل سایت و پنل اعمال می‌شود. فایل‌های <code>.blogtheme</code> از پوشه <code>themes/</code> در استارت‌آپ وارد می‌شوند.</p>
+        <div class="d-flex gap-1 flex-wrap">
             <a class="btn btn-ghost btn-sm" asp-route-status="">همه</a>
             <a class="btn btn-accent btn-sm" asp-route-status="pending">در انتظار (@pending)</a>
             <a class="btn btn-ghost btn-sm" asp-route-status="approved">تأییدشده</a>
         </div>
     </div>
+
+    <div class="card-surface p-3 mb-3">
+        <div class="d-flex flex-wrap gap-2 align-items-end justify-content-between">
+            <form asp-action="ImportFile" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-center">
+                @Html.AntiForgeryToken()
+                <div>
+                    <label class="form-label small mb-1">واردات فایل .blogtheme</label>
+                    <input type="file" name="file" accept=".blogtheme,application/json" class="form-control form-control-sm" required />
+                </div>
+                <button type="submit" class="btn btn-accent btn-sm">آپلود و واردات</button>
+            </form>
+            <form asp-action="Reimport" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-ghost btn-sm" title="اسکن مجدد themes/*.blogtheme">اسکن مجدد پوشه themes</button>
+            </form>
+        </div>
+    </div>
+
     @if (TempData["Msg"] != null) { <div class="card-surface p-2 px-3 mb-3 small">@TempData["Msg"]</div> }
 
     @foreach (var t in Model)

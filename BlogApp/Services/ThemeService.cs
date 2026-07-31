@@ -103,11 +103,9 @@ public sealed class ThemeService : IThemeService
 
     public async Task<ThemeImportResult> ImportFromDirectoryAsync(string? directory = null, CancellationToken ct = default)
     {
-        var dir = directory;
-        if (string.IsNullOrWhiteSpace(dir))
-        {
-            dir = Path.Combine(_env.ContentRootPath, "themes");
-        }
+        var dir = string.IsNullOrWhiteSpace(directory)
+            ? Path.Combine(_env.ContentRootPath, "themes")
+            : directory;
 
         var messages = new List<string>();
         if (!Directory.Exists(dir))
@@ -162,7 +160,8 @@ public sealed class ThemeService : IThemeService
             }
         }
 
-        _log.Information("Theme packs: imported={Imported} updated={Updated} skipped={Skipped} dir={Dir}",
+        _log.LogInformation(
+            "Theme packs: imported={Imported} updated={Updated} skipped={Skipped} dir={Dir}",
             imported, updated, skipped, dir);
         return new ThemeImportResult(imported, updated, skipped, messages);
     }
@@ -196,17 +195,16 @@ public sealed class ThemeService : IThemeService
         if (!v.Ok)
             return new ThemeImportItemResult(false, "contrast failed: " + string.Join("; ", v.Errors));
 
-        // Upsert key: pack id in description prefix, or exact name among owner-less themes
         var key = (sourceKey ?? pack.Id ?? pack.Name).Trim();
         var marker = "[pack:" + key + "]";
 
         var existing = await _db.CustomThemes
             .FirstOrDefaultAsync(t =>
                 t.OwnerUserId == null &&
-                (t.Description != null && t.Description.Contains(marker) || t.Name == entity.Name),
+                t.Description != null &&
+                t.Description.Contains(marker),
                 ct);
 
-        // Prefer description marker match if multiple name collisions
         if (existing is null)
         {
             existing = await _db.CustomThemes
