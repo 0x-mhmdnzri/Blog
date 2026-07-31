@@ -92,9 +92,9 @@ public sealed class MigrationImportService : IMigrationImportService
 
             var slugRaw = ((string?)item.Element(Wp + "post_name") ?? "").Trim();
             if (string.IsNullOrEmpty(slugRaw))
-                slugRaw = SlugHelper.Slugify(title);
+                slugRaw = Services.SlugHelper.Slugify(title);
             else
-                slugRaw =SlugHelper.Slugify(Uri.UnescapeDataString(slugRaw));
+                slugRaw = Services.SlugHelper.Slugify(Uri.UnescapeDataString(slugRaw));
 
             var content = ((string?)item.Element(Content + "encoded") ?? "").Trim();
             var markdown = HtmlToRoughMarkdown(content);
@@ -160,7 +160,6 @@ public sealed class MigrationImportService : IMigrationImportService
 
         using (doc)
         {
-            // Ghost export: { db: [ { data: { posts: [...] } } ] } or flat { posts: [...] }
             var postsEl = FindPostsArray(doc.RootElement);
             if (postsEl is null || postsEl.Value.ValueKind != JsonValueKind.Array)
             {
@@ -180,16 +179,12 @@ public sealed class MigrationImportService : IMigrationImportService
                 }
 
                 var status = (GetStr(p, "status") ?? "").ToLowerInvariant();
-                if (status is "draft" && !publishImmediately)
-                {
-                    // still import as draft
-                }
 
                 var title = (GetStr(p, "title") ?? "Untitled").Trim();
                 if (title.Length > 200) title = title[..200];
 
-                var slugRaw = GetStr(p, "slug") ?? SlugHelper.Slugify(title);
-                slugRaw = SlugHelper.Slugify(slugRaw);
+                var slugRaw = GetStr(p, "slug") ?? Services.SlugHelper.Slugify(title);
+                slugRaw = Services.SlugHelper.Slugify(slugRaw);
 
                 var markdown = GetStr(p, "markdown")
                                ?? GetStr(p, "mobiledoc")
@@ -231,7 +226,6 @@ public sealed class MigrationImportService : IMigrationImportService
                     }
                     else
                     {
-                        // Ghost default path /slug/
                         var from = NormalizePath("/" + slugRaw + "/");
                         var to = $"/{lang}/post/{created.Slug}";
                         if (from != to && await EnsureRedirectAsync(from, to, $"ghost-import:{created.Slug}", ct))
@@ -257,17 +251,10 @@ public sealed class MigrationImportService : IMigrationImportService
         DateTime? publishedAt,
         CancellationToken ct)
     {
-        var slug = await MakeUniqueSlugAsync(slugBase, lang, ct);
-        if (slug != slugBase
-            && await _db.Posts.AnyAsync(p => p.Slug == slugBase && p.LanguageCode == lang && !p.IsDeleted, ct))
-        {
-            // existing — skip
-            return (false, slugBase);
-        }
-
-        // if base exists with exact match, skip
         if (await _db.Posts.AnyAsync(p => p.Slug == slugBase && p.LanguageCode == lang && !p.IsDeleted, ct))
             return (false, slugBase);
+
+        var slug = await MakeUniqueSlugAsync(slugBase, lang, ct);
 
         var now = DateTime.UtcNow;
         var post = new Post
@@ -383,31 +370,32 @@ public sealed class MigrationImportService : IMigrationImportService
     {
         if (string.IsNullOrWhiteSpace(html)) return string.Empty;
         var s = html;
-        s = Regex.Replace(s, @"(?is)<script[^>]*>.*?</script>", "");
-        s = Regex.Replace(s, @"(?is)<style[^>]*>.*?</style>", "");
-        s = Regex.Replace(s, @"(?i)<h1[^>]*>(.*?)</h1>", "\n# $1\n");
-        s = Regex.Replace(s, @"(?i)<h2[^>]*>(.*?)</h2>", "\n## $1\n");
-        s = Regex.Replace(s, @"(?i)<h3[^>]*>(.*?)</h3>", "\n### $1\n");
-        s = Regex.Replace(s, @"(?i)<strong[^>]*>(.*?)</strong>", "**$1**");
-        s = Regex.Replace(s, @"(?i)<b[^>]*>(.*?)</b>", "**$1**");
-        s = Regex.Replace(s, @"(?i)<em[^>]*>(.*?)</em>", "_$1_");
-        s = Regex.Replace(s, @"(?i)<i[^>]*>(.*?)</i>", "_$1_");
-        s = Regex.Replace(s, @"(?i)<code[^>]*>(.*?)</code>", "`$1`");
-        s = Regex.Replace(s, @"(?i)<a[^>]+href=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>", "[$2]($1)");
-        s = Regex.Replace(s, @"(?i)<img[^>]+src=[\"']([^\"']+)[\"'][^>]*/?>", "![]($1)");
-        s = Regex.Replace(s, @"(?i)<br\s*/?>", "\n");
-        s = Regex.Replace(s, @"(?i)</p>", "\n\n");
-        s = Regex.Replace(s, @"(?i)<li[^>]*>(.*?)</li>", "- $1\n");
-        s = Regex.Replace(s, @"(?i)<[^>]+>", "");
+        s = Regex.Replace(s, "(?is)<script[^>]*>.*?</script>", "");
+        s = Regex.Replace(s, "(?is)<style[^>]*>.*?</style>", "");
+        s = Regex.Replace(s, "(?i)<h1[^>]*>(.*?)</h1>", "\n# $1\n");
+        s = Regex.Replace(s, "(?i)<h2[^>]*>(.*?)</h2>", "\n## $1\n");
+        s = Regex.Replace(s, "(?i)<h3[^>]*>(.*?)</h3>", "\n### $1\n");
+        s = Regex.Replace(s, "(?i)<strong[^>]*>(.*?)</strong>", "**$1**");
+        s = Regex.Replace(s, "(?i)<b[^>]*>(.*?)</b>", "**$1**");
+        s = Regex.Replace(s, "(?i)<em[^>]*>(.*?)</em>", "_$1_");
+        s = Regex.Replace(s, "(?i)<i[^>]*>(.*?)</i>", "_$1_");
+        s = Regex.Replace(s, "(?i)<code[^>]*>(.*?)</code>", "`$1`");
+        // Match href='...' or href="..." without breaking C# string literals
+        s = Regex.Replace(s, "(?i)<a[^>]+href=['\"]([^'\"]+)['\"][^>]*>(.*?)</a>", "[$2]($1)");
+        s = Regex.Replace(s, "(?i)<img[^>]+src=['\"]([^'\"]+)['\"][^>]*/?>", "![]($1)");
+        s = Regex.Replace(s, "(?i)<br\\s*/?>", "\n");
+        s = Regex.Replace(s, "(?i)</p>", "\n\n");
+        s = Regex.Replace(s, "(?i)<li[^>]*>(.*?)</li>", "- $1\n");
+        s = Regex.Replace(s, "(?i)<[^>]+>", "");
         s = System.Net.WebUtility.HtmlDecode(s);
-        s = Regex.Replace(s, @"\n{3,}", "\n\n");
+        s = Regex.Replace(s, "\n{3,}", "\n\n");
         return s.Trim();
     }
 
     private static string StripPlain(string md)
     {
-        var s = Regex.Replace(md, @"[#>*\`\[\]\(\)_~-]+", " ");
-        return Regex.Replace(s, @"\s+", " ").Trim();
+        var s = Regex.Replace(md, "[#>*`\\[\\]()_~-]+", " ");
+        return Regex.Replace(s, "\\s+", " ").Trim();
     }
 
     private static string Truncate(string s, int max)
