@@ -9,6 +9,8 @@ public static partial class UiTranslationCatalog
         ("seo.tab_redirects", "seo", "ریدایرکت‌ها", "Redirects", "إعادة التوجيه"),
         ("seo.tab_broken", "seo", "لینک‌های شکسته", "Broken links", "روابط معطلة"),
         ("seo.tab_health", "seo", "سلامت نوشته‌ها", "Post health", "صحة المقالات"),
+        ("seo.tab_import", "seo", "ورود داده", "Import", "استيراد"),
+        ("seo.tab_indexnow", "seo", "IndexNow", "IndexNow", "IndexNow"),
 
         ("seo.kpi_published", "seo", "منتشرشده", "Published", "منشور"),
         ("seo.kpi_redirects", "seo", "ریدایرکت", "Redirects", "تحويلات"),
@@ -23,6 +25,9 @@ public static partial class UiTranslationCatalog
         ("seo.cap_broken", "seo", "اسکن لینک‌های داخلی شکسته در مارک‌داون", "Broken internal link scan in Markdown", "فحص الروابط الداخلية المعطلة"),
         ("seo.cap_sitemap", "seo", "sitemap.xml پویا برای نوشته‌ها و دسته‌ها", "Dynamic sitemap for posts and categories", "خريطة موقع ديناميكية"),
         ("seo.cap_og", "seo", "Open Graph / Twitter Cards و JSON-LD در صفحات عمومی", "Open Graph / Twitter Cards and JSON-LD on public pages", "Open Graph و JSON-LD في الصفحات العامة"),
+        ("seo.cap_import", "seo", "ورود WordPress WXR / Ghost JSON با ریدایرکت خودکار", "WordPress WXR / Ghost JSON import with auto-301s", "استيراد WXR/Ghost مع تحويلات تلقائية"),
+        ("seo.cap_indexnow", "seo", "IndexNow و پینگ موتور جست‌وجو هنگام انتشار", "IndexNow + search engine ping on publish", "IndexNow وإشعار محركات البحث عند النشر"),
+        ("seo.cap_hreflang", "seo", "hreflang برای گروه‌های ترجمه در صفحه و sitemap", "hreflang for translation groups on page + sitemap", "hreflang لمجموعات الترجمة"),
 
         ("seo.meta_super_only", "seo", "ویرایش متادیتای سایت فقط برای سوپرادمین است.", "Site meta can only be edited by SuperAdmin.", "تعديل بيانات الموقع لـ SuperAdmin فقط."),
         ("seo.site_name", "seo", "نام سایت", "Site name", "اسم الموقع"),
@@ -64,5 +69,26 @@ public static partial class UiTranslationCatalog
         ("seo.err_redirect_form", "seo", "فرم ریدایرکت نامعتبر است.", "Invalid redirect form.", "نموذج التحويل غير صالح."),
         ("seo.err_from_path", "seo", "مسیر مبدأ نامعتبر است.", "Invalid from path.", "مسار المصدر غير صالح."),
         ("seo.err_to_url", "seo", "مقصد نامعتبر است.", "Invalid destination URL.", "الوجهة غير صالحة."),
+
+        ("seo.import_title", "seo", "ورود از WordPress / Ghost", "Import from WordPress / Ghost", "استيراد من WordPress / Ghost"),
+        ("seo.import_hint", "seo", "فایل WXR یا JSON را آپلود کنید. ریدایرکت ۳۰۱ برای مسیرهای قدیمی ساخته می‌شود.", "Upload a WXR or Ghost JSON export. Optional 301s map old paths to new posts.", "ارفع ملف WXR أو JSON. يمكن إنشاء تحويلات 301."),
+        ("seo.import_file", "seo", "فایل", "File", "ملف"),
+        ("seo.import_format", "seo", "فرمت", "Format", "التنسيق"),
+        ("seo.import_lang", "seo", "زبان", "Language", "اللغة"),
+        ("seo.import_redirects", "seo", "ساخت ریدایرکت ۳۰۱", "Create 301 redirects", "إنشاء تحويلات 301"),
+        ("seo.import_publish", "seo", "انتشار فوری (اگر در مبدأ منتشر بود)", "Publish immediately (if source published)", "نشر فورًا إن كان منشورًا"),
+        ("seo.import_run", "seo", "شروع ورود", "Run import", "بدء الاستيراد"),
+        ("seo.import_no_file", "seo", "فایلی انتخاب نشده است.", "No file selected.", "لم يتم اختيار ملف."),
+        ("seo.import_too_large", "seo", "حجم فایل بیش از ۵۰ مگابایت است.", "File exceeds 50 MB.", "الملف أكبر من 50 ميجابايت."),
+        ("seo.import_failed", "seo", "ورود ناموفق: {0}", "Import failed: {0}", "فشل الاستيراد: {0}"),
+        ("seo.import_done", "seo", "ورود تمام شد — ایجاد: {0} · ردشده: {1} · ریدایرکت: {2}", "Import done — created: {0} · skipped: {1} · redirects: {2}", "تم الاستيراد — أنشئ: {0} · تخطي: {1} · تحويلات: {2}"),
+
+        ("seo.indexnow_title", "seo", "IndexNow / پینگ موتور جست‌وجو", "IndexNow / search engine ping", "IndexNow / إشعار محركات البحث"),
+        ("seo.indexnow_hint", "seo", "با انتشار نوشته، آدرس به‌صورت خودکار به IndexNow و Bing ارسال می‌شود (اگر فعال باشد).", "On publish, the post URL is submitted to IndexNow and Bing when enabled.", "عند النشر يُرسل الرابط إلى IndexNow وBing إن فُعّل."),
+        ("seo.indexnow_status", "seo", "وضعیت", "Status", "الحالة"),
+        ("seo.indexnow_config", "seo", "در appsettings بخش IndexNow را تنظیم کنید (Enabled + Key). فایل تأیید در /{key}.txt سرو می‌شود.", "Configure IndexNow in appsettings (Enabled + Key). Verification file is served at /{key}.txt.", "اضبط IndexNow في appsettings. ملف التحقق على /{key}.txt."),
+        ("seo.indexnow_submit_all", "seo", "ارسال همه نوشته‌های منتشرشده", "Submit all published URLs", "إرسال كل الروابط المنشورة"),
+        ("seo.indexnow_done", "seo", "IndexNow: {0} نوشته ارسال شد.", "IndexNow: submitted {0} post URL(s).", "IndexNow: أُرسل {0} رابطًا."),
+        ("seo.indexnow_failed", "seo", "IndexNow ناموفق: {0}", "IndexNow failed: {0}", "فشل IndexNow: {0}"),
     };
 }
