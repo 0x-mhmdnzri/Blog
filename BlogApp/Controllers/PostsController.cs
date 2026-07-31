@@ -117,7 +117,11 @@ public partial class PostsController : Controller
             ("Home", baseUrl + "/" + post.LanguageCode + "/"),
             post.Category != null ? (post.Category.Name, $"{baseUrl}/{post.LanguageCode}/?category={post.Category.Slug}") : ("Posts", baseUrl + "/" + post.LanguageCode + "/"),
             (post.Title, canonicalUrl));
-        ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(post.ContentMarkdown, true, post.LanguageCode);
+
+        // Body without embedded TOC — TOC renders in sticky right sidebar
+        ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(post.ContentMarkdown, includeToc: false, cultureCode: post.LanguageCode);
+        ViewBag.TocHtml = _markdown.GenerateTableOfContents(post.ContentMarkdown, "post-toc post-toc--sidebar", post.LanguageCode);
+
         await ApplyPremiumGateAsync(post);
         ViewBag.ReadingTimeMinutes = post.ReadingTimeMinutes > 0
             ? post.ReadingTimeMinutes
