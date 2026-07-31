@@ -1,11 +1,13 @@
 /**
- * Post TOC — accordion + scroll-spy + smooth jump.
- * Sidebar mode (.post-toc--sidebar) stays open and highlights the active section.
+ * Post TOC — floating sticky sidebar + scroll-spy + smooth section jump.
+ * Never scrolls the page when updating the active TOC link.
  */
 (function () {
   'use strict';
 
-  var HEADER_OFFSET = 96;
+  var HEADER_OFFSET = 100;
+  var clicking = false;
+  var clickTimer = null;
 
   function initOne(nav) {
     if (!nav || nav.dataset.tocReady) return;
@@ -14,6 +16,7 @@
     var isSidebar = nav.classList.contains('post-toc--sidebar');
     var toggle = nav.querySelector('[data-toc-toggle]');
     var body = nav.querySelector('.toc-body');
+    var sticky = nav.closest('.post-aside-sticky');
 
     function setOpen(open) {
       if (!toggle || !body) return;
@@ -28,7 +31,6 @@
     }
 
     if (toggle && body) {
-      // Sidebar: always open; mobile accordion: open on desktop only
       if (isSidebar) setOpen(true);
       else setOpen(window.matchMedia('(min-width: 768px)').matches);
 
@@ -40,7 +42,8 @@
 
     var links = Array.prototype.slice.call(nav.querySelectorAll('a.toc-link[href^="#"]'));
     var map = links.map(function (a) {
-      var id = decodeURIComponent((a.getAttribute('href') || '').slice(1));
+      var raw = (a.getAttribute('href') || '').slice(1);
+      var id = raw ? decodeURIComponent(raw) : '';
       return { a: a, id: id, el: id ? document.getElementById(id) : null };
     }).filter(function (x) { return x.el; });
 
@@ -49,31 +52,56 @@
       map.forEach(function (m) { m.el.classList.remove('is-section-active'); });
     }
 
+    /** Highlight active link WITHOUT scrolling the window. */
     function setActive(item) {
-      clearActive();
       if (!item) return;
+      clearActive();
       item.a.classList.add('is-active');
       item.el.classList.add('is-section-active');
-      try {
-        item.a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-      } catch (_) {}
+
+      // Keep active link visible inside TOC only (never the page)
+      var scrollParent = sticky || body;
+      if (scrollParent && item.a) {
+        var linkRect = item.a.getBoundingClientRect();
+        var parentRect = scrollParent.getBoundingClientRect();
+        if (linkRect.top < parentRect.top + 8) {
+          scrollParent.scrollTop -= (parentRect.top + 8 - linkRect.top);
+        } else if (linkRect.bottom > parentRect.bottom - 8) {
+          scrollParent.scrollTop += (linkRect.bottom - parentRect.bottom + 8);
+        }
+      }
     }
 
-    // Smooth scroll on click
+    // Smooth scroll on click — never jumps to top
     links.forEach(function (a) {
       a.addEventListener('click', function (e) {
-        var id = decodeURIComponent((a.getAttribute('href') || '').slice(1));
+        e.preventDefault();
+        e.stopPropagation();
+
+        var raw = (a.getAttribute('href') || '').slice(1);
+        var id = raw ? decodeURIComponent(raw) : '';
         var target = id ? document.getElementById(id) : null;
         if (!target) return;
-        e.preventDefault();
+
+        clicking = true;
+        if (clickTimer) clearTimeout(clickTimer);
 
         var top = target.getBoundingClientRect().top + window.pageYOffset - HEADER_OFFSET;
+        if (top < 0) top = 0;
+
         window.scrollTo({ top: top, behavior: 'smooth' });
 
-        try { history.replaceState(null, '', '#' + id); } catch (_) {}
+        try {
+          history.replaceState(null, '', '#' + encodeURIComponent(id));
+        } catch (_) {}
 
         var hit = map.find(function (m) { return m.id === id; });
         if (hit) setActive(hit);
+
+        // Ignore scroll-spy while smooth scroll is running
+        clickTimer = setTimeout(function () {
+          clicking = false;
+        }, 800);
 
         if (!isSidebar && window.matchMedia('(max-width: 767px)').matches) setOpen(false);
       });
@@ -81,34 +109,48 @@
 
     if (!map.length) return;
 
+    // Scroll spy via IntersectionObserver — more reliable than offsetTop
+    var currentId = null;
+
+    function pickFromScroll() {
+      if (clicking) return;
+      var y = window.scrollY + HEADER_OFFSET + 12;
+      var active = map[0];
+      for (var i = 0; i < map.length; i++) {
+        var rect = map[i].el.getBoundingClientRect();
+        var top = rect.top + window.pageYOffset;
+        if (top <= y) active = map[i];
+      }
+      if (active && active.id !== currentId) {
+        currentId = active.id;
+        setActive(active);
+      }
+    }
+
     var ticking = false;
     function onScroll() {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(function () {
         ticking = false;
-        var y = window.scrollY + HEADER_OFFSET + 8;
-        var active = map[0];
-        for (var i = 0; i < map.length; i++) {
-          if (map[i].el.offsetTop <= y) active = map[i];
-        }
-        setActive(active);
+        pickFromScroll();
       });
     }
 
     window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+    pickFromScroll();
 
-    // Honor hash on load
+    // Hash on load
     if (location.hash) {
       var hid = decodeURIComponent(location.hash.slice(1));
       var h = map.find(function (m) { return m.id === hid; });
       if (h) {
         setTimeout(function () {
           var top = h.el.getBoundingClientRect().top + window.pageYOffset - HEADER_OFFSET;
-          window.scrollTo({ top: top, behavior: 'smooth' });
+          window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
           setActive(h);
-        }, 80);
+          currentId = h.id;
+        }, 100);
       }
     }
   }

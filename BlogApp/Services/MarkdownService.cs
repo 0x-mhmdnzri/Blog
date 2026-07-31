@@ -143,7 +143,7 @@ public class MarkdownService
     {
         if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
 
-        var headings = new List<(int Level, string Text, stringSlug, string Dir)>();
+        var headings = new List<(int Level, string Text, string Slug, string Dir)>();
         foreach (Match m in HeadingRegex.Matches(markdown))
         {
             var level = m.Groups[1].Value.Length;
@@ -152,7 +152,7 @@ public class MarkdownService
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text) || text.Length < 2) continue;
 
-            headings.Add((level, text,SlugifyHeading(text), DetectDir(text)));
+            headings.Add((level, text, SlugifyHeading(text), DetectDir(text)));
         }
 
         if (headings.Count < 2) return string.Empty;
@@ -250,7 +250,7 @@ public class MarkdownService
             var inner = m.Groups[3].Value;
             var plain = StripTags(inner).Trim();
             var dir = DetectDir(plain);
-            var id =SlugifyHeading(plain);
+            var id = slugifyHeading(plain);
             attrs = Regex.Replace(attrs, "\\s*id\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
             attrs = Regex.Replace(attrs, "\\s*dir\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
             return $"<h{level} id=\"{id}\" dir=\"{dir}\" class=\"md-heading\"{attrs}>{inner}</h{level}>";
@@ -308,11 +308,15 @@ public class MarkdownService
     private static bool IsVideoPlaceholder(string plain) =>
         plain.StartsWith("[[VIDEO_EMBED_", StringComparison.Ordinal);
 
-    private static stringSlugifyHeading(string text)
+    // Keep both casings used in this file consistent
+    private static string SlugifyHeading(string text) => slugifyHeading(text);
+
+    private static string slugifyHeading(string text)
     {
         var s = text.ToLowerInvariant().Trim();
         s = Regex.Replace(s, @"\s+", "-");
-        s = Regex.Replace(s, "[^\\w\u0600-\u06FF\\-]", "");
+        s = Regex.Replace(s, @"[^\w\u0600-\u06FF\-]", "");
+        if (string.IsNullOrEmpty(s)) s = "section";
         return s.Length > 80 ? s[..80] : s;
     }
 }
