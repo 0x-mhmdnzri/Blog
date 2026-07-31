@@ -94,7 +94,6 @@
             try {
                 var fs = localStorage.getItem('blog-font-scale');
                 if (fs) document.documentElement.style.setProperty('--reader-font-scale', fs);
-                // Accessibility prefs (FOUC-safe)
                 var ap = JSON.parse(localStorage.getItem('blog-a11y-prefs') || '{}');
                 if (ap.contrast === 'high') document.documentElement.setAttribute('data-a11y-contrast', 'high');
                 if (ap.motion === 'reduce') document.documentElement.setAttribute('data-a11y-motion', 'reduce');
@@ -114,6 +113,7 @@
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/media-blur.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/toastify-stack.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ux.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/a11y.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/persona.css" asp-append-version="true" />
@@ -322,13 +322,13 @@
             </div>
         </div>
     </div>
-    <div id="toast-host" aria-live="polite" aria-relevant="additions"></div>
     <div id="a11y-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     <button type="button" id="back-to-top" class="back-to-top" aria-label="بازگشت به بالا">↑</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
     <script src="~/js/media-blur.js" asp-append-version="true" defer></script>
+    <script src="~/js/toastify-stack.js" asp-append-version="true" defer></script>
     <script src="~/js/notifications-bell.js" asp-append-version="true" defer></script>
     <script src="~/js/site.js" asp-append-version="true" defer></script>
     <script src="~/js/ux.js" asp-append-version="true" defer></script>
@@ -336,6 +336,16 @@
     <script src="~/js/datepicker.js" asp-append-version="true" defer></script>
     <script defer>
         document.addEventListener('DOMContentLoaded', function () {
+            // Prefer ToastifyStack as single toast entry point
+            if (window.ToastifyStack && !window.__blogToastBridged) {
+                window.__blogToastBridged = true;
+                window.blogToast = function (message, type) {
+                    var kind = type === 'success' ? 'success'
+                      : (type === 'error' || type === 'danger') ? 'error'
+                      : 'info';
+                    return ToastifyStack.push({ title: message, kind: kind, duration: 3200, linkUrl: null });
+                };
+            }
             if (window.hljs) hljs.highlightAll();
             var header = document.getElementById('site-header');
             if (header) {
