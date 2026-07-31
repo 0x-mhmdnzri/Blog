@@ -92,14 +92,6 @@
     <script>
         (function () {
             try {
-                var t = localStorage.getItem('blog-theme');
-                if (t === 'light' || t === 'dark') {
-                    document.documentElement.setAttribute('data-theme', t);
-                    document.documentElement.setAttribute('data-bs-theme', t);
-                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-                    document.documentElement.setAttribute('data-theme', 'light');
-                    document.documentElement.setAttribute('data-bs-theme', 'light');
-                }
                 var fs = localStorage.getItem('blog-font-scale');
                 if (fs) document.documentElement.style.setProperty('--reader-font-scale', fs);
                 // Accessibility prefs (FOUC-safe)
@@ -164,10 +156,6 @@
                     <button type="button" class="btn btn-nav-icon" data-search-open title="جست‌وجو (Ctrl+K)" aria-label="جست‌وجو">
                         <span aria-hidden="true">⌕</span>
                         <span class="d-none d-xl-inline nav-icon-label">جست‌وجو</span>
-                    </button>
-                    <button type="button" class="btn btn-nav-icon" data-theme-toggle title="تم روشن/تاریک" aria-label="تغییر تم">
-                        <span class="theme-icon-dark" aria-hidden="true">☾</span>
-                        <span class="theme-icon-light" aria-hidden="true">☀</span>
                     </button>
                     <partial name="_ThemePicker" />
                     <div class="d-none d-lg-block">

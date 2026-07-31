@@ -1,23 +1,9 @@
 /**
- * User Experience: theme, search, progress, font scale, history, infinite scroll, TOC, toasts
+ * User Experience: search, progress, font scale, history, infinite scroll, TOC, toasts
+ * Theme switching is only via /Themes (theme-picker-btn) — no light/dark toggle.
  */
 (function () {
   'use strict';
-
-  function currentTheme() {
-    return document.documentElement.getAttribute('data-theme') || 'dark';
-  }
-  function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.setAttribute('data-bs-theme', theme);
-    try { localStorage.setItem('blog-theme', theme); } catch (_) {}
-    var meta = document.getElementById('meta-theme-color');
-    if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f5f8' : '#0b0e14');
-  }
-  function toggleTheme() {
-    setTheme(currentTheme() === 'dark' ? 'light' : 'dark');
-    toast(currentTheme() === 'light' ? 'تم روشن' : 'تم تاریک', 'success');
-  }
 
   function toast(message, type) {
     var host = document.getElementById('toast-host');
@@ -207,9 +193,6 @@
   }
 
   function bind() {
-    document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) { e.preventDefault(); toggleTheme(); });
-    });
     document.querySelectorAll('[data-search-open]').forEach(function (btn) {
       btn.addEventListener('click', function (e) { e.preventDefault(); openSearch(); });
     });
