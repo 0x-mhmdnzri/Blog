@@ -38,14 +38,39 @@ public class MarkdownService
     private static readonly Regex ImgHtmlRegex =
         new(@"<img\s+([^>]*?)\s*/?>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
+    // Non-verbatim: avoid quote-escape issues inside character classes
     private static readonly Regex MediaPathRegex =
-        new(@"(?:https?://[^/\s\"']+)?/media/(\d+)(?:/w/\d+)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        new("(?:https?://[^/\\s\"']+)?/media/(\\d+)(?:/w/\\d+)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex VideoEmbedDirRegex =
-        new("<p dir=\"(?:ltr|rtl|auto)\" class=\"md-p\">\\[\\[VIDEO_EMBED_(\\d+)\\]\\]</p>", RegexOptions.Compiled);
+        new(@"<p dir=""(?:ltr|rtl|auto)"" class=""md-p"">\[\[VIDEO_EMBED_(\d+)\]\]</p>", RegexOptions.Compiled);
 
     private static readonly Regex VideoEmbedPlainRegex =
-        new("<p>\\[\\[VIDEO_EMBED_(\\d+)\\]\\]</p>", RegexOptions.Compiled);
+        new(@"<p>\[\[VIDEO_EMBED_(\d+)\]\]</p>", RegexOptions.Compiled);
+
+    private static readonly Regex AttrLoadingRegex =
+        new(@"\s*loading\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex AttrDecodingRegex =
+        new(@"\s*decoding\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex AttrSrcsetRegex =
+        new(@"\s*srcset\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex AttrSizesRegex =
+        new(@"\s*sizes\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex AttrSrcRegex =
+        new(@"src\s*=\s*[""']([^""']+)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex AttrClassRegex =
+        new(@"class\s*=\s*[""']([^""']*)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex AttrIdRegex =
+        new(@"\s*id\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex AttrDirRegex =
+        new(@"\s*dir\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly int[] SrcsetWidths = [480, 800, 1280];
 
@@ -118,12 +143,12 @@ public class MarkdownService
             && attrs.Contains("srcset", StringComparison.OrdinalIgnoreCase))
             return $"<span class=\"media-blur-wrap\"><img {attrs} /></span>";
 
-        attrs = Regex.Replace(attrs, "\\s*loading\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
-        attrs = Regex.Replace(attrs, "\\s*decoding\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
-        attrs = Regex.Replace(attrs, "\\s*srcset\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
-        attrs = Regex.Replace(attrs, "\\s*sizes\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
+        attrs = AttrLoadingRegex.Replace(attrs, "");
+        attrs = AttrDecodingRegex.Replace(attrs, "");
+        attrs = AttrSrcsetRegex.Replace(attrs, "");
+        attrs = AttrSizesRegex.Replace(attrs, "");
 
-        var srcMatch = Regex.Match(attrs, "src\\s*=\\s*[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase);
+        var srcMatch = AttrSrcRegex.Match(attrs);
         if (srcMatch.Success)
         {
             var src = srcMatch.Groups[1].Value;
@@ -139,8 +164,8 @@ public class MarkdownService
             }
         }
 
-        if (Regex.IsMatch(attrs, "\\bclass\\s*=", RegexOptions.IgnoreCase))
-            attrs = Regex.Replace(attrs, "class\\s*=\\s*[\"']([^\"']*)[\"']", "class=\"$1 media-blur\"", RegexOptions.IgnoreCase);
+        if (AttrClassRegex.IsMatch(attrs))
+            attrs = AttrClassRegex.Replace(attrs, "class=\"$1 media-blur\"");
         else
             attrs += " class=\"media-blur\"";
 
@@ -298,8 +323,8 @@ public class MarkdownService
             var plain = StripTags(inner).Trim();
             var dir = DetectDir(plain);
             var id = slugifyHeading(plain);
-            attrs = Regex.Replace(attrs, "\\s*id\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
-            attrs = Regex.Replace(attrs, "\\s*dir\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
+            attrs = AttrIdRegex.Replace(attrs, "");
+            attrs = AttrDirRegex.Replace(attrs, "");
             return $"<h{level} id=\"{id}\" dir=\"{dir}\" class=\"md-heading\"{attrs}>{inner}</h{level}>";
         });
 
