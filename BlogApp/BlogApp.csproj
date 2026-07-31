@@ -40,4 +40,12 @@
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>
 
+  <!-- Theme packs: auto-imported on startup from ContentRoot/themes -->
+  <ItemGroup>
+    <Content Include="themes\**\*.blogtheme">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
