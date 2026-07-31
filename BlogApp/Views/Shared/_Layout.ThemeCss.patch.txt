@@ -1,0 +1,6 @@
+INSTRUCTIONS (already applied in follow-up if needed):
+1. After dark-theme.css add:
+   <link rel="stylesheet" href="/Themes/ActiveCss" />
+   <link rel="stylesheet" href="~/css/theme-system.css" asp-append-version="true" />
+2. After data-theme-toggle button add:
+   <partial name="_ThemePicker" />

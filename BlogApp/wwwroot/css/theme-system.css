@@ -1,4 +1,4 @@
-/* Theme picker + admin profile menu */
+/* Theme picker + admin profile menu + gallery */
 
 .theme-picker-btn {
   display: inline-flex;
@@ -17,6 +17,11 @@
   color: var(--accent);
   border-color: var(--accent-dim, var(--accent));
   background: var(--surface-2, var(--surface));
+}
+
+.theme-card-selected {
+  outline: 2px solid var(--accent, #e3b341);
+  outline-offset: 1px;
 }
 
 .admin-profile { position: relative; }
@@ -90,3 +95,9 @@
 
 .admin-topbar-start .admin-profile { margin-inline-end: .25rem; }
 .admin-topbar-end .theme-picker-btn { margin-inline: .15rem; }
+
+/* Public navbar icon alignment */
+.nav-quick .theme-picker-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+}
