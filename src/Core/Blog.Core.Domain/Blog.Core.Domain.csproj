@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Blog.Core.Domain</RootNamespace>
+    <AssemblyName>Blog.Core.Domain</AssemblyName>
+  </PropertyGroup>
+</Project>
