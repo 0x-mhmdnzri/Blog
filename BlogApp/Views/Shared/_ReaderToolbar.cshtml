@@ -1,10 +1,26 @@
 @*
-  Include on post details for font size controls.
+  Post reader controls: font size + quick a11y entry.
 *@
 <div class="reader-toolbar" role="toolbar" aria-label="ابزار مطالعه">
-  <div class="btn-group-font btn-group" role="group">
-    <span class="small text-muted-dark me-1">قلم</span>
-    <button type="button" class="btn btn-ghost btn-sm" data-font-delta="-0.05" title="کوچکتر">A−</button>
-    <button type="button" class="btn btn-ghost btn-sm" data-font-delta="0.05" title="بزرگتر">A+</button>
+  <div class="btn-group-font btn-group" role="group" aria-label="اندازه قلم">
+    <span class="small text-muted-dark me-1" id="font-label">قلم</span>
+    <button type="button" class="btn btn-ghost btn-sm" data-font-delta="-0.05" title="کوچکتر" aria-label="کوچک‌تر کردن قلم">A−</button>
+    <button type="button" class="btn btn-ghost btn-sm" data-font-delta="0.05" title="بزرگتر" aria-label="بزرگ‌تر کردن قلم">A+</button>
   </div>
+  <button type="button" class="btn btn-ghost btn-sm" id="reader-a11y-open" title="دسترسی‌پذیری" aria-label="باز کردن تنظیمات دسترسی‌پذیری">
+    دسترسی‌پذیری
+  </button>
 </div>
+<script>
+  (function () {
+    var btn = document.getElementById('reader-a11y-open');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var fab = document.getElementById('a11y-fab');
+      if (fab) fab.click();
+      else if (window.blogA11y) {
+        /* panel builds on DOMContentLoaded */
+      }
+    });
+  })();
+</script>

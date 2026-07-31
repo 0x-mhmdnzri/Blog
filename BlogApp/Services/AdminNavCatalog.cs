@@ -42,6 +42,7 @@ public sealed class AdminNavItem
             "audit" => string.Equals(controller, "AdminAudit", StringComparison.OrdinalIgnoreCase),
             "apikeys" => string.Equals(controller, "AdminApiKeys", StringComparison.OrdinalIgnoreCase),
             "myapikeys" => string.Equals(controller, "AccountApiKeys", StringComparison.OrdinalIgnoreCase),
+            "accessibility" => string.Equals(controller, "AdminAccessibility", StringComparison.OrdinalIgnoreCase),
             "dashboard" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
                            && action is "Index",
             "seo" => string.Equals(controller, "Admin", StringComparison.OrdinalIgnoreCase)
@@ -111,7 +112,6 @@ public static class AdminNavCatalog
             Controller = "Account", Action = "Profile",
             Icon = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" },
 
-        // My API keys + self usage (any staff; readers use public account menu)
         new() { Key = "myapikeys", GroupKey = "admin.group.account", LabelKey = "admin.nav.my_apikeys",
             Controller = "AccountApiKeys", Action = "Index",
             Icon = "M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" },
@@ -124,12 +124,14 @@ public static class AdminNavCatalog
             Controller = "Account", Action = "Authors", SuperAdminOnly = true,
             Icon = "M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" },
 
-        // Moderate all keys — SuperAdmin only
         new() { Key = "apikeys", GroupKey = "admin.group.system", LabelKey = "admin.nav.apikeys",
             Controller = "AdminApiKeys", Action = "Index", SuperAdminOnly = true,
             Icon = "M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" },
 
-        // تنظیمات سایت — SuperAdmin ONLY (no stub for authors)
+        new() { Key = "accessibility", GroupKey = "admin.group.system", LabelKey = "admin.nav.accessibility",
+            Controller = "AdminAccessibility", Action = "Index",
+            Icon = "M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z" },
+
         new() { Key = "settings", GroupKey = "admin.group.system", LabelKey = "admin.nav.settings",
             Controller = "AdminSettings", Action = "Index", SuperAdminOnly = true,
             Icon = "M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
@@ -151,7 +153,6 @@ public static class AdminNavCatalog
         foreach (var item in All)
         {
             if (item.SuperAdminOnly && !isSuper) continue;
-            // Staff-only items: require Author or SuperAdmin (admin panel users)
             if (item.StaffOnly && !isStaff) continue;
             yield return item;
         }
