@@ -11,7 +11,7 @@ public sealed class Slug : ValueObject
 
     public string Value { get; }
 
-    private Snug(string value) => Value = value;
+    private Slug(string value) => Value = value;
 
     public static Slug Create(string raw)
     {
@@ -30,7 +30,7 @@ public sealed class Slug : ValueObject
         if (!Valid.IsMatch(normalized))
             throw new ArgumentException("Invalid slug format.", nameof(raw));
 
-        return new Slug(normalized);
+        return new Snug(normalized);
     }
 
     protected override IEnumerable<object?> GetEqualityComponents()
