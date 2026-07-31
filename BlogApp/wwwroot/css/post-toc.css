@@ -1,0 +1,187 @@
+/* Post table of contents — accordion, RTL/LTR aware */
+
+.post-toc {
+  margin: 0 0 1.75rem;
+  border: 1px solid var(--border-soft, #1e2430);
+  border-radius: 14px;
+  background: var(--surface, #12161f);
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+.post-toc .toc-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text, #e6e9f0);
+  cursor: pointer;
+  text-align: start;
+  font: inherit;
+  transition: background 0.15s ease;
+}
+
+.post-toc .toc-toggle:hover {
+  background: var(--surface-2, #171c27);
+}
+
+.post-toc .toc-toggle:focus-visible {
+  outline: 2px solid var(--accent, #e3b341);
+  outline-offset: -2px;
+}
+
+.post-toc .toc-toggle-chevron {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--surface-2, #171c27);
+  color: var(--text-muted, #8b93a7);
+  transition: transform 0.22s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.post-toc .toc-toggle-chevron::before {
+  content: "";
+  width: 0.35rem;
+  height: 0.35rem;
+  border-inline-end: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  /* points toward inline-end in LTR; mirrored in RTL via parent dir */
+}
+
+html[dir="rtl"] .post-toc[dir="rtl"] .toc-toggle-chevron::before,
+.post-toc[dir="rtl"] .toc-toggle-chevron::before {
+  transform: rotate(135deg);
+}
+
+.post-toc.is-open .toc-toggle-chevron {
+  background: var(--accent-soft, rgba(227, 179, 65, 0.15));
+  color: var(--accent, #e3b341);
+  transform: rotate(90deg);
+}
+
+.post-toc[dir="rtl"].is-open .toc-toggle-chevron {
+  transform: rotate(-90deg);
+}
+
+.post-toc .toc-title {
+  flex: 1;
+  font-weight: 650;
+  font-size: 0.92rem;
+  letter-spacing: 0.01em;
+}
+
+.post-toc .toc-count {
+  min-width: 1.5rem;
+  height: 1.35rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35rem;
+  text-align: center;
+  background: var(--surface-2, #171c27);
+  color: var(--text-muted, #8b93a7);
+  border: 1px solid var(--border-soft, #1e2430);
+}
+
+.post-toc.is-open .toc-count {
+  background: var(--accent-soft, rgba(227, 179, 65, 0.15));
+  color: var(--accent, #e3b341);
+  border-color: transparent;
+}
+
+.post-toc .toc-body {
+  border-top: 1px solid var(--border-soft, #1e2430);
+  max-height: min(22rem, 55vh);
+  overflow: auto;
+  padding: 0.35rem 0.35rem 0.55rem;
+  scrollbar-width: thin;
+}
+
+.post-toc .toc-body[hidden] {
+  display: none !important;
+}
+
+.post-toc .toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.post-toc .toc-list .toc-list {
+  margin-inline-start: 0.85rem;
+  padding-inline-start: 0.65rem;
+  border-inline-start: 1px solid var(--border-soft, #1e2430);
+}
+
+.post-toc .toc-item {
+  margin: 0;
+}
+
+.post-toc .toc-link {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  color: var(--text-muted, #8b93a7);
+  text-decoration: none;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.post-toc .toc-depth-0 > .toc-link {
+  font-weight: 600;
+  color: var(--text, #e6e9f0);
+  font-size: 0.88rem;
+}
+
+.post-toc .toc-depth-1 > .toc-link {
+  font-size: 0.84rem;
+}
+
+.post-toc .toc-depth-2 > .toc-link {
+  font-size: 0.8rem;
+  opacity: 0.92;
+}
+
+.post-toc .toc-link:hover {
+  background: var(--surface-2, #171c27);
+  color: var(--accent, #e3b341);
+}
+
+.post-toc .toc-link.is-active {
+  background: var(--accent-soft, rgba(227, 179, 65, 0.12));
+  color: var(--accent, #e3b341);
+  font-weight: 600;
+}
+
+/* Light theme */
+html[data-theme="light"] .post-toc {
+  background: var(--surface, #fff);
+  border-color: var(--border-soft, #e4e7ee);
+}
+
+html[data-theme="light"] .post-toc .toc-toggle:hover {
+  background: var(--surface-2, #f0f2f6);
+}
+
+html[data-theme="light"] .post-toc .toc-toggle-chevron,
+html[data-theme="light"] .post-toc .toc-count {
+  background: var(--surface-2, #f0f2f6);
+  border-color: var(--border, #d5dae3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-toc .toc-toggle-chevron {
+    transition: none;
+  }
+}
