@@ -30,4 +30,9 @@ public static class AuthorAccess
 
     public static bool OwnsPost(ClaimsPrincipal user, string authorId) =>
         CanManageAllPosts(user) || authorId == UserId(user);
+
+    /// <summary>SuperAdmin / claim holders moderate any comment; authors only on their posts.</summary>
+    public static bool CanModerateComment(ClaimsPrincipal user, Post? post) =>
+        CanModerateAllComments(user)
+        || (post is not null && OwnsPost(user, post));
 }
