@@ -108,7 +108,13 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<Comment>(e =>
         {
             e.HasOne(c => c.Post).WithMany(p => p.Comments).HasForeignKey(c => c.PostId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Parent).WithMany(c => c.Replies).HasForeignKey(c => c.ParentId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(c => c.Body).HasColumnType("TEXT");
             e.HasIndex(c => c.LikeCount);
+            e.HasIndex(c => c.Status);
+            e.HasIndex(c => c.IsPinned);
+            e.HasIndex(c => c.UserId);
+            e.HasIndex(c => c.ParentId);
         });
 
         modelBuilder.Entity<CommentLike>(e =>
