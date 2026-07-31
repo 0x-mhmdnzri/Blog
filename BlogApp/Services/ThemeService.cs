@@ -11,11 +11,12 @@ namespace BlogApp.Services;
 public interface IThemeService
 {
     Task<CustomTheme?> GetActiveAsync(CancellationToken ct = default);
+    Task<CustomTheme?> GetApprovedByIdAsync(int id, CancellationToken ct = default);
+    /// <summary>Preferred cookie theme if approved, otherwise site-wide active.</summary>
+    Task<CustomTheme?> ResolveForVisitorAsync(int? preferredId, CancellationToken ct = default);
     Task<IReadOnlyList<CustomTheme>> ListApprovedAsync(CancellationToken ct = default);
     Task EnsureSystemThemesAsync(CancellationToken ct = default);
-    /// <summary>Scan ContentRoot/themes/*.blogtheme and upsert into DB.</summary>
     Task<ThemeImportResult> ImportFromDirectoryAsync(string? directory = null, CancellationToken ct = default);
-    /// <summary>Parse one .blogtheme JSON and upsert.</summary>
     Task<ThemeImportItemResult> ImportPackAsync(ThemePack pack, string? sourceKey = null, CancellationToken ct = default);
     Task InvalidateAsync();
 }
@@ -26,6 +27,7 @@ public sealed record ThemeImportItemResult(bool Ok, string Message, int? ThemeId
 public sealed class ThemeService : IThemeService
 {
     public const string FileExtension = ".blogtheme";
+    public const string PreferenceCookie = "Blog.ThemeId";
     private const string CacheKey = "active-theme-v1";
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -99,6 +101,21 @@ public sealed class ThemeService : IThemeService
         _db.CustomThemes.AddRange(dark, light);
         await _db.SaveChangesAsync(ct);
         await InvalidateAsync();
+    }
+
+    public async Task<CustomTheme?> GetApprovedByIdAsync(int id, CancellationToken ct = default) =>
+        await _db.CustomThemes.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == id && t.Status == ThemeApprovalStatus.Approved, ct);
+
+    public async Task<CustomTheme?> ResolveForVisitorAsync(int? preferredId, CancellationToken ct = default)
+    {
+        if (preferredId is > 0)
+        {
+            var preferred = await GetApprovedByIdAsync(preferredId.Value, ct);
+            if (preferred is not null)
+                return preferred;
+        }
+        return await GetActiveAsync(ct);
     }
 
     public async Task<ThemeImportResult> ImportFromDirectoryAsync(string? directory = null, CancellationToken ct = default)
