@@ -123,7 +123,6 @@ public class MarkdownService
         attrs = Regex.Replace(attrs, "\\s*srcset\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
         attrs = Regex.Replace(attrs, "\\s*sizes\\s*=\\s*[\"'][^\"']*[\"']", "", RegexOptions.IgnoreCase);
 
-        // Rewrite src through CDN when it points at /media/{id}
         var srcMatch = Regex.Match(attrs, "src\\s*=\\s*[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase);
         if (srcMatch.Success)
         {
@@ -187,15 +186,11 @@ public class MarkdownService
         return Math.Max(1, (int)Math.Ceiling(wordCount / 200.0));
     }
 
-    /// <summary>
-    /// Accordion-style TOC from markdown headings (h2–h4).
-    /// Title and dir follow content language (majority RTL → فهرست مطالب).
-    /// </summary>
     public string GenerateTableOfContents(string markdown, string cssClass = "post-toc", string? cultureCode = null)
     {
         if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
 
-        var headings = new List<(int Level, string Text, stringSlug, string Dir)>();
+        var headings = new List<(int Level, string Text, string Slug, string Dir)>();
         foreach (Match m in HeadingRegex.Matches(markdown))
         {
             var level = m.Groups[1].Value.Length;
@@ -204,7 +199,7 @@ public class MarkdownService
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text) || text.Length < 2) continue;
 
-            headings.Add((level, text,SlugifyHeading(text), DetectDir(text)));
+            headings.Add((level, text, SlugifyHeading(text), DetectDir(text)));
         }
 
         if (headings.Count < 2) return string.Empty;
