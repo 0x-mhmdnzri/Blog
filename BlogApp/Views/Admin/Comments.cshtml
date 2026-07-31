@@ -15,6 +15,9 @@
     <a class="admin-tab @(current == "rejected" ? "active" : "")" asp-action="Comments" asp-route-status="rejected">
         @T["tab.rejected"] <span class="text-muted-dark">(@ViewBag.RejectedCount)</span>
     </a>
+    <a class="admin-tab @(current == "spam" ? "active" : "")" asp-action="Comments" asp-route-status="spam">
+        Spam <span class="text-muted-dark">(@(ViewBag.SpamCount ?? 0))</span>
+    </a>
     <a class="admin-tab @(current == "all" ? "active" : "")" asp-action="Comments" asp-route-status="all">
         @T["tab.all"] <span class="text-muted-dark">(@ViewBag.AllCount)</span>
     </a>
@@ -71,7 +74,8 @@ BlogDT.init('#commentsTable', {
             options: [
                 { value: 'pending', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.pending"].ToString(), j)) },
                 { value: 'approved', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.approved"].ToString(), j)) },
-                { value: 'rejected', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.rejected"].ToString(), j)) }
+                { value: 'rejected', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.rejected"].ToString(), j)) },
+                { value: 'spam', label: 'Spam' }
             ]
         },
         false
