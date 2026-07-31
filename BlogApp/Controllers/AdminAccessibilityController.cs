@@ -1,4 +1,4 @@
-using BlogApp.Services;
+using BlogApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
