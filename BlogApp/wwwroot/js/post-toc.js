@@ -1,6 +1,5 @@
 /**
- * Post TOC — floating sticky sidebar + scroll-spy + smooth section jump.
- * Never scrolls the page when updating the active TOC link.
+ * Post TOC — sticky follows scroll + accordion collapse + scroll-spy + smooth jump.
  */
 (function () {
   'use strict';
@@ -31,11 +30,12 @@
     }
 
     if (toggle && body) {
-      if (isSidebar) setOpen(true);
-      else setOpen(window.matchMedia('(min-width: 768px)').matches);
+      // Default open so sections are reachable; user can collapse anytime
+      setOpen(true);
 
-      toggle.addEventListener('click', function () {
-        if (isSidebar && window.matchMedia('(min-width: 1101px)').matches) return;
+      toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
         setOpen(!nav.classList.contains('is-open'));
       });
     }
@@ -52,27 +52,25 @@
       map.forEach(function (m) { m.el.classList.remove('is-section-active'); });
     }
 
-    /** Highlight active link WITHOUT scrolling the window. */
     function setActive(item) {
       if (!item) return;
       clearActive();
       item.a.classList.add('is-active');
       item.el.classList.add('is-section-active');
 
-      // Keep active link visible inside TOC only (never the page)
-      var scrollParent = sticky || body;
-      if (scrollParent && item.a) {
+      // Scroll active link into view inside TOC panel only (never the page)
+      var panel = body || sticky;
+      if (panel && item.a) {
         var linkRect = item.a.getBoundingClientRect();
-        var parentRect = scrollParent.getBoundingClientRect();
+        var parentRect = panel.getBoundingClientRect();
         if (linkRect.top < parentRect.top + 8) {
-          scrollParent.scrollTop -= (parentRect.top + 8 - linkRect.top);
+          panel.scrollTop -= (parentRect.top + 8 - linkRect.top);
         } else if (linkRect.bottom > parentRect.bottom - 8) {
-          scrollParent.scrollTop += (linkRect.bottom - parentRect.bottom + 8);
+          panel.scrollTop += (linkRect.bottom - parentRect.bottom + 8);
         }
       }
     }
 
-    // Smooth scroll on click — never jumps to top
     links.forEach(function (a) {
       a.addEventListener('click', function (e) {
         e.preventDefault();
@@ -86,9 +84,11 @@
         clicking = true;
         if (clickTimer) clearTimeout(clickTimer);
 
+        // Ensure TOC is open when navigating
+        if (!nav.classList.contains('is-open')) setOpen(true);
+
         var top = target.getBoundingClientRect().top + window.pageYOffset - HEADER_OFFSET;
         if (top < 0) top = 0;
-
         window.scrollTo({ top: top, behavior: 'smooth' });
 
         try {
@@ -98,18 +98,17 @@
         var hit = map.find(function (m) { return m.id === id; });
         if (hit) setActive(hit);
 
-        // Ignore scroll-spy while smooth scroll is running
-        clickTimer = setTimeout(function () {
-          clicking = false;
-        }, 800);
+        clickTimer = setTimeout(function () { clicking = false; }, 800);
 
-        if (!isSidebar && window.matchMedia('(max-width: 767px)').matches) setOpen(false);
+        // On small screens, collapse after jump to free space
+        if (window.matchMedia('(max-width: 1100px)').matches) {
+          setTimeout(function () { setOpen(false); }, 500);
+        }
       });
     });
 
     if (!map.length) return;
 
-    // Scroll spy via IntersectionObserver — more reliable than offsetTop
     var currentId = null;
 
     function pickFromScroll() {
@@ -140,7 +139,6 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     pickFromScroll();
 
-    // Hash on load
     if (location.hash) {
       var hid = decodeURIComponent(location.hash.slice(1));
       var h = map.find(function (m) { return m.id === hid; });

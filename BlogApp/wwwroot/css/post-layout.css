@@ -1,4 +1,4 @@
-/* Post reading layout: related (left) | article | floating sticky TOC (right) */
+/* Post reading layout: related | article | floating sticky TOC */
 
 .post-layout {
   --post-aside-left: 240px;
@@ -8,43 +8,48 @@
   display: grid;
   grid-template-columns: var(--post-aside-left) minmax(0, var(--post-main)) var(--post-aside-toc);
   gap: var(--post-gap);
-  align-items: start;
+  /* stretch so aside columns are as tall as the article — required for sticky to travel */
+  align-items: stretch;
   justify-content: center;
   max-width: calc(240px + 680px + 300px + 4rem);
   margin: 0 auto;
   padding: 2.5rem 1.25rem 5rem;
-  /* Physical columns: left = related, right = TOC */
   direction: ltr;
 }
 
 .post-layout > * {
-  direction: inherit;
+  min-width: 0;
 }
 
-html[dir="rtl"] .post-layout > * {
+html[dir="rtl"] .post-layout > .post-main,
+html[dir="rtl"] .post-layout > .post-aside-related,
+html[dir="rtl"] .post-layout > .post-aside-toc {
   direction: rtl;
 }
 
-html[dir="ltr"] .post-layout > * {
+html[dir="ltr"] .post-layout > .post-main,
+html[dir="ltr"] .post-layout > .post-aside-related,
+html[dir="ltr"] .post-layout > .post-aside-toc {
   direction: ltr;
 }
 
 .post-aside-related {
   grid-column: 1;
-  width: 100%;
 }
 
 .post-main {
   grid-column: 2;
-  min-width: 0;
 }
 
 .post-aside-toc {
   grid-column: 3;
-  width: 100%;
 }
 
-/* Floating sticky sidebar — stays in view while article scrolls */
+/*
+ * Sticky follows page scroll while the user reads the article.
+ * Parent aside is stretched to article height (align-items: stretch),
+ * so position:sticky can slide down inside that tall column.
+ */
 .post-aside-sticky {
   position: sticky;
   top: 5.5rem;
@@ -53,6 +58,8 @@ html[dir="ltr"] .post-layout > * {
   overflow-x: hidden;
   scrollbar-width: thin;
   overscroll-behavior: contain;
+  align-self: start; /* sticky box itself stays content-sized at the top of the tall column */
+  width: 100%;
 }
 
 /* —— Related slider —— */
@@ -165,16 +172,18 @@ html[dir="ltr"] .post-layout > * {
   margin: 0;
 }
 
-/* Sidebar TOC panel */
+/* Sidebar TOC */
 .post-aside-toc .post-toc--sidebar {
   margin: 0;
   width: 100%;
 }
 
 .post-aside-toc .post-toc--sidebar .toc-body {
-  max-height: none; /* parent sticky already scrolls */
-  overflow: visible;
+  max-height: calc(100vh - 12rem);
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 0.5rem 0.4rem 0.75rem;
+  scrollbar-width: thin;
 }
 
 .post-aside-toc .post-toc--sidebar .toc-link {
@@ -224,6 +233,7 @@ html[dir="rtl"] .post-aside-toc .post-toc--sidebar .toc-link.is-active,
   .post-layout {
     grid-template-columns: minmax(0, 1fr);
     max-width: 780px;
+    align-items: start;
   }
 
   .post-aside-related,
@@ -252,7 +262,6 @@ html[dir="rtl"] .post-aside-toc .post-toc--sidebar .toc-link.is-active,
 
   .post-aside-toc .post-toc--sidebar .toc-body {
     max-height: min(18rem, 50vh);
-    overflow: auto;
   }
 }
 
