@@ -46,5 +46,46 @@ public static partial class SchemaBootstrap
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_SearchIndexEntries_PostId\" ON \"SearchIndexEntries\" (\"PostId\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_SearchIndexEntries_Lang_Pub\" ON \"SearchIndexEntries\" (\"LanguageCode\", \"IsPublished\");");
+
+        await TryAddColumnAsync(db, "MediaAssets", "Width", "INTEGER NULL");
+        await TryAddColumnAsync(db, "MediaAssets", "Height", "INTEGER NULL");
+        await TryAddColumnAsync(db, "MediaAssets", "Version", "INTEGER NOT NULL DEFAULT 1");
+        await TryAddColumnAsync(db, "MediaAssets", "OptimizedAtUtc", "TEXT NULL");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "MediaVariants" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_MediaVariants" PRIMARY KEY AUTOINCREMENT,
+                "MediaAssetId" INTEGER NOT NULL,
+                "Width" INTEGER NOT NULL,
+                "Height" INTEGER NOT NULL,
+                "ContentType" TEXT NOT NULL,
+                "SizeBytes" INTEGER NOT NULL,
+                "Content" BLOB NOT NULL,
+                "CreatedAtUtc" TEXT NOT NULL,
+                CONSTRAINT "FK_MediaVariants_MediaAssets_MediaAssetId"
+                    FOREIGN KEY ("MediaAssetId") REFERENCES "MediaAssets" ("Id") ON DELETE CASCADE
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_MediaVariants_MediaAssetId_Width\" ON \"MediaVariants\" (\"MediaAssetId\", \"Width\");");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "MediaVersions" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_MediaVersions" PRIMARY KEY AUTOINCREMENT,
+                "MediaAssetId" INTEGER NOT NULL,
+                "VersionNumber" INTEGER NOT NULL,
+                "ContentType" TEXT NOT NULL,
+                "SizeBytes" INTEGER NOT NULL,
+                "Content" BLOB NOT NULL,
+                "Width" INTEGER NULL,
+                "Height" INTEGER NULL,
+                "Note" TEXT NULL,
+                "CreatedAtUtc" TEXT NOT NULL,
+                CONSTRAINT "FK_MediaVersions_MediaAssets_MediaAssetId"
+                    FOREIGN KEY ("MediaAssetId") REFERENCES "MediaAssets" ("Id") ON DELETE CASCADE
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_MediaVersions_MediaAssetId\" ON \"MediaVersions\" (\"MediaAssetId\");");
     }
 }
