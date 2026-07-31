@@ -2,6 +2,7 @@
 @{
     var userName = User.Identity?.Name;
     var isAuth = User.Identity?.IsAuthenticated == true;
+    var isStaff = User.IsInRole("SuperAdmin") || User.IsInRole("Author");
 }
 @if (isAuth)
 {
@@ -22,12 +23,12 @@
             <div class="admin-profile-list">
                 <a class="admin-profile-item" asp-controller="Account" asp-action="Profile">پروفایل من</a>
                 <a class="admin-profile-item" asp-controller="Account" asp-action="Manage">تنظیمات حساب</a>
-                <a class="admin-profile-item" asp-controller="Themes" asp-action="Index">تم‌های من</a>
-                <a class="admin-profile-item" asp-controller="AccountApiKeys" asp-action="Index">کلیدهای API</a>
-                @if (User.IsInRole("SuperAdmin"))
+                <a class="admin-profile-item" asp-controller="Themes" asp-action="Index">تغییر تم</a>
+                @if (isStaff)
                 {
                     <a class="admin-profile-item" asp-controller="AdminThemes" asp-action="Index">مدیریت تم‌ها</a>
                 }
+                <a class="admin-profile-item" asp-controller="AccountApiKeys" asp-action="Index">کلیدهای API</a>
                 <a class="admin-profile-item" asp-controller="Home" asp-action="Index">بازگشت به سایت</a>
             </div>
             <div class="admin-profile-foot">
