@@ -16,6 +16,12 @@ public class SeoToolsViewModel
     public string SitemapUrl { get; set; } = "/sitemap.xml";
     public string RobotsUrl { get; set; } = "/robots.txt";
     public string? ActiveTab { get; set; }
+
+    // IndexNow status (read-only for UI)
+    public bool IndexNowEnabled { get; set; }
+    public bool IndexNowHasKey { get; set; }
+    public string? IndexNowKeyHint { get; set; }
+    public string? IndexNowKeyUrl { get; set; }
 }
 
 public class SeoMetaForm
@@ -62,4 +68,15 @@ public class SeoPostHealthItem
     public bool HasSummary { get; set; }
     public bool HasCover { get; set; }
     public int Score { get; set; }
+}
+
+public class SeoImportForm
+{
+    /// <summary>wordpress | ghost</summary>
+    [Required]
+    public string Format { get; set; } = "wordpress";
+
+    public string LanguageCode { get; set; } = "fa";
+    public bool CreateRedirects { get; set; } = true;
+    public bool PublishImmediately { get; set; } = true;
 }

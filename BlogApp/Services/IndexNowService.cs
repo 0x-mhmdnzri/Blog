@@ -1,6 +1,4 @@
 using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
 using BlogApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -61,8 +59,19 @@ public sealed class IndexNowService : IIndexNowService
 
     public async Task NotifyPostAsync(int postId, string slug, string? languageCode, CancellationToken ct = default)
     {
+        var lang = languageCode;
+        if (string.IsNullOrWhiteSpace(lang))
+        {
+            await using var scope = _scopes.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            lang = await db.Posts.AsNoTracking()
+                .Where(p => p.Id == postId)
+                .Select(p => p.LanguageCode)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        lang = string.IsNullOrWhiteSpace(lang) ? "fa" : lang.Trim();
         var baseUrl = await ResolveBaseUrlAsync();
-        var lang = string.IsNullOrWhiteSpace(languageCode) ? "fa" : languageCode.Trim();
         var url = $"{baseUrl}/{lang}/post/{slug}";
         await NotifyUrlsAsync(new[] { url }, ct);
     }
@@ -148,7 +157,6 @@ public sealed class IndexNowService : IIndexNowService
             .Select(p => $"{baseUrl}/{p.LanguageCode}/post/{p.Slug}")
             .ToList();
 
-        // home + lang homes
         urls.Insert(0, baseUrl + "/");
         foreach (var lang in new[] { "fa", "en", "ar" })
             urls.Insert(1, $"{baseUrl}/{lang}/");
