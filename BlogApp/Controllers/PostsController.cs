@@ -8,7 +8,6 @@ using BlogApp.Services.Analytics;
 using BlogApp.Services.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
@@ -132,6 +131,8 @@ public partial class PostsController : Controller
             : _markdown.EstimateReadingTimeMinutes(post.ContentMarkdown);
         ViewBag.CanEdit = AuthorAccess.OwnsPost(User, post);
         ViewBag.CommentSort = commentSort;
+        ViewBag.CommentEditWindowMinutes = HttpContext.RequestServices
+            .GetRequiredService<Microsoft.Extensions.Options.IOptions<CommentSpamOptions>>().Value.EditWindowMinutes;
 
         var translations = await _culture.GetTranslationLinksAsync(post.Id);
         ViewBag.Translations = translations;
@@ -156,10 +157,12 @@ public partial class PostsController : Controller
                     .Where(l => l.UserId == uid && commentIds.Contains(l.CommentId))
                     .Select(l => l.CommentId)
                     .ToListAsync()).ToHashSet();
+            ViewBag.CurrentUserId = uid;
         }
         else
         {
             ViewBag.LikedCommentIds = new HashSet<int>();
+            ViewBag.CurrentUserId = null;
         }
 
         await LoadTaxonomyContextAsync(post);
@@ -373,58 +376,4 @@ public partial class PostsController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult PreviewMarkdown([FromForm] string content) =>
         Content(_markdown.RenderToHtmlWithToc(content ?? "", false), "text/html");
-
-    [HttpPost, ValidateAntiForgeryToken, AllowAnonymous]
-    [EnableRateLimiting("comment")]
-    public async Task<IActionResult> AddComment(int postId, string authorName, string body)
-    {
-        authorName = (authorName ?? string.Empty).Trim();
-        body = (body ?? string.Empty).Trim();
-
-        if (authorName.Length is < 2 or > 80 || body.Length is < 2 or > 2000)
-        {
-            TempData["CommentSubmitted"] = "نام یا متن دیدگاه معتبر نیست.";
-            var bad = await _db.Posts.Where(p => p.Id == postId).Select(p => new { p.Slug, p.LanguageCode }).FirstOrDefaultAsync();
-            return bad is null ? NotFound() : Redirect($"/{bad.LanguageCode}/post/{bad.Slug}");
-        }
-
-        authorName = new string(authorName.Where(c => !char.IsControl(c)).ToArray());
-        body = new string(body.Where(c => c is '\n' or '\r' or '\t' || !char.IsControl(c)).ToArray());
-
-        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId && p.IsPublished && !p.IsDeleted);
-        if (post is null)
-            return NotFound();
-
-        var comment = new Comment
-        {
-            PostId = postId,
-            AuthorName = authorName,
-            Body = body,
-            Status = CommentStatus.Pending
-        };
-        _db.Comments.Add(comment);
-        await _db.SaveChangesAsync();
-        TempData["CommentSubmitted"] = "ممنون — دیدگاه شما در انتظار بررسی است.";
-
-        try
-        {
-            await _notify.NotifyNewCommentAsync(post, comment);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Notify new comment failed PostId={PostId}", postId);
-        }
-
-        _broadcaster.Publish(new
-        {
-            type = "comment",
-            status = "pending",
-            postId,
-            postTitle = post.Title,
-            authorId = post.AuthorId,
-            authorName = comment.AuthorName
-        });
-
-        return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
-    }
 }
