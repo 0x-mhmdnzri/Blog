@@ -1,4 +1,93 @@
-/* Spotlight / Apple-style admin search */
+/* ═══════════════════════════════════════════════════════════════
+   Admin Search – wide topbar field + Spotlight modal
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Wide search field in admin topbar */
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
+}
+
+.admin-topbar-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 520px;
+  margin-inline: 0.5rem auto;
+}
+
+.admin-search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--border, #232838);
+  background: var(--surface, #12161f);
+  color: var(--text-muted, #8b93a7);
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, color 0.15s;
+  text-align: start;
+}
+
+.admin-search-field:hover,
+.admin-search-field:focus-visible {
+  color: var(--text, #e6e9f0);
+  border-color: var(--accent, #e3b341);
+  background: var(--surface2, #171c27);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #e3b341) 18%, transparent);
+  outline: none;
+}
+
+.admin-search-field-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.admin-search-field-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+
+.admin-search-field-kbd {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, #232838);
+  background: var(--surface2, #171c27);
+  color: var(--text-muted, #8b93a7);
+  font-family: inherit;
+}
+
+@media (max-width: 900px) {
+  .admin-topbar-search { max-width: 280px; }
+  .admin-search-field-kbd { display: none; }
+}
+
+@media (max-width: 640px) {
+  .admin-topbar-search {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(48vw, 200px);
+    max-width: none;
+    margin: 0;
+  }
+  .admin-search-field-text { display: none; }
+  .admin-search-field { justify-content: center; padding: 0.45rem; }
+}
+
+/* Legacy small trigger (if used elsewhere) */
 .admin-search-trigger {
   display: inline-flex; align-items: center; gap: .45rem;
   padding: .35rem .65rem; border-radius: 10px;
@@ -13,10 +102,8 @@
   border: 1px solid var(--border, #232838); background: var(--surface2, #171c27);
   color: var(--text-muted, #8b93a7); font-family: inherit;
 }
-@media (max-width: 720px) {
-  .admin-search-trigger-label, .admin-search-kbd { display: none; }
-}
 
+/* Overlay / dialog */
 .admin-search-overlay {
   position: fixed; inset: 0; z-index: 2000;
   background: rgba(0,0,0,.55); backdrop-filter: blur(8px);
@@ -58,6 +145,7 @@
   overflow-x: auto; border-bottom: 1px solid var(--border, #232838);
   scrollbar-width: none;
 }
+.admin-search-scopes::-webkit-scrollbar { display: none; }
 .admin-search-scopes .scope {
   flex-shrink: 0; border: 0; border-radius: 999px;
   padding: .28rem .7rem; font-size: .78rem; cursor: pointer;
@@ -81,7 +169,6 @@
 .admin-search-empty .hint { font-size: .95rem; margin: 0 0 .35rem; }
 .admin-search-empty .hint-sub { font-size: .78rem; opacity: .7; margin: 0; }
 
-/* Skeleton shimmer */
 .admin-search-skeleton { padding: .5rem .75rem; }
 .admin-search-skeleton .sk-row {
   height: 48px; margin: .4rem 0; border-radius: 10px;
@@ -156,7 +243,6 @@
 }
 .admin-search-full { margin-inline-start: auto; color: var(--accent); text-decoration: none; }
 
-/* Full results page */
 .admin-search-page .as-hero {
   display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
   margin-bottom: 1.25rem;

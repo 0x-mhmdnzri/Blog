@@ -3,7 +3,6 @@
   if (!root) return;
 
   const api = root.dataset.api || '/AdminSearch/api';
-  const openBtn = document.getElementById('adminSearchOpen');
   const overlay = document.getElementById('adminSearchOverlay');
   const input = document.getElementById('adminSearchInput');
   const clearBtn = document.getElementById('adminSearchClear');
@@ -22,22 +21,36 @@
   let aborter = null;
 
   function open() {
+    if (!overlay) return;
     overlay.hidden = false;
     document.body.style.overflow = 'hidden';
-    input.focus();
-    input.setAttribute('aria-expanded', 'true');
-    if (!input.value) showIdle();
+    input?.focus();
+    input?.setAttribute('aria-expanded', 'true');
+    if (!input?.value) showIdle();
   }
   function close() {
+    if (!overlay) return;
     overlay.hidden = true;
     document.body.style.overflow = '';
-    input.setAttribute('aria-expanded', 'false');
+    input?.setAttribute('aria-expanded', 'false');
     active = -1;
   }
 
-  openBtn?.addEventListener('click', open);
+  // Topbar wide field + any [data-admin-search-open] / #adminSearchOpen
+  document.querySelectorAll('#adminSearchOpen, [data-admin-search-open], .admin-search-field').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      open();
+    });
+  });
+
   overlay?.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-  clearBtn?.addEventListener('click', () => { input.value = ''; clearBtn.hidden = true; showIdle(); input.focus(); });
+  clearBtn?.addEventListener('click', () => {
+    if (input) input.value = '';
+    if (clearBtn) clearBtn.hidden = true;
+    showIdle();
+    input?.focus();
+  });
 
   scopes.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -45,7 +58,7 @@
       btn.classList.add('is-active');
       btn.setAttribute('aria-selected', 'true');
       scope = btn.dataset.scope || 'all';
-      if (input.value.trim()) runSearch(input.value.trim());
+      if (input?.value.trim()) runSearch(input.value.trim());
     });
   });
 
@@ -53,10 +66,10 @@
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.key.toLowerCase() === 'k') {
       e.preventDefault();
-      if (overlay.hidden) open(); else close();
+      if (overlay?.hidden) open(); else close();
       return;
     }
-    if (overlay.hidden) return;
+    if (overlay?.hidden) return;
     if (e.key === 'Escape') { e.preventDefault(); close(); return; }
     if (e.key === 'ArrowDown') { e.preventDefault(); move(1); return; }
     if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); return; }
@@ -68,27 +81,29 @@
 
   input?.addEventListener('input', () => {
     const q = input.value.trim();
-    clearBtn.hidden = !q;
+    if (clearBtn) clearBtn.hidden = !q;
     if (timer) clearTimeout(timer);
     if (!q) { showIdle(); return; }
     showSkeleton();
-    timer = setTimeout(() => runSearch(q), 160); // debounce — low perceived latency
+    timer = setTimeout(() => runSearch(q), 160);
   });
 
   function showIdle() {
-    skeleton.hidden = true;
-    list.hidden = true;
-    list.innerHTML = '';
-    empty.hidden = false;
-    meta.hidden = true;
+    if (skeleton) skeleton.hidden = true;
+    if (list) { list.hidden = true; list.innerHTML = ''; }
+    if (empty) {
+      empty.hidden = false;
+      empty.innerHTML = '<p class="hint">Type to search across the admin panel</p><p class="hint-sub">↑↓ navigate · Enter open · Esc close</p>';
+    }
+    if (meta) meta.hidden = true;
     hits = [];
     active = -1;
   }
   function showSkeleton() {
-    empty.hidden = true;
-    list.hidden = true;
-    skeleton.hidden = false;
-    meta.hidden = true;
+    if (empty) empty.hidden = true;
+    if (list) list.hidden = true;
+    if (skeleton) skeleton.hidden = false;
+    if (meta) meta.hidden = true;
   }
 
   async function runSearch(q) {
@@ -102,42 +117,47 @@
       render(data, q);
     } catch (err) {
       if (err.name === 'AbortError') return;
-      skeleton.hidden = true;
-      empty.hidden = false;
-      empty.innerHTML = '<p class="hint">Search temporarily unavailable</p>';
+      if (skeleton) skeleton.hidden = true;
+      if (empty) {
+        empty.hidden = false;
+        empty.innerHTML = '<p class="hint">Search temporarily unavailable</p>';
+      }
     }
   }
 
   function render(data, q) {
-    skeleton.hidden = true;
+    if (skeleton) skeleton.hidden = true;
     hits = data.hits || [];
     active = hits.length ? 0 : -1;
 
-    meta.hidden = false;
-    countEl.textContent = data.totalHitsLabel || (hits.length + ' results');
+    if (meta) meta.hidden = false;
+    if (countEl) countEl.textContent = data.totalHitsLabel || (hits.length + ' results');
     const cacheTag = data.fromCache ? ' · cache' : '';
-    latencyEl.textContent = `${data.tookMs || 0} ms${cacheTag}`;
+    if (latencyEl) latencyEl.textContent = `${data.tookMs || 0} ms${cacheTag}`;
 
     if (!hits.length) {
-      list.hidden = true;
-      empty.hidden = false;
-      const sug = (data.suggestions || []).map(s => `<button type="button" class="scope" data-suggest="${escapeAttr(s)}">${escapeHtml(s)}</button>`).join(' ');
-      empty.innerHTML = `<p class="hint">No results for “${escapeHtml(q)}”</p>` +
-        (sug ? `<div class="admin-search-scopes" style="justify-content:center;border:0">${sug}</div>` : '');
-      empty.querySelectorAll('[data-suggest]').forEach(b => b.addEventListener('click', () => {
-        input.value = b.dataset.suggest; clearBtn.hidden = false; runSearch(input.value);
-      }));
+      if (list) list.hidden = true;
+      if (empty) {
+        empty.hidden = false;
+        const sug = (data.suggestions || []).map(s =>
+          `<button type="button" class="scope" data-suggest="${escapeAttr(s)}">${escapeHtml(s)}</button>`
+        ).join(' ');
+        empty.innerHTML = `<p class="hint">No results for “${escapeHtml(q)}”</p>` +
+          (sug ? `<div class="admin-search-scopes" style="justify-content:center;border:0">${sug}</div>` : '');
+        empty.querySelectorAll('[data-suggest]').forEach(b => b.addEventListener('click', () => {
+          if (input) input.value = b.dataset.suggest;
+          if (clearBtn) clearBtn.hidden = false;
+          runSearch(input.value);
+        }));
+      }
       return;
     }
 
-    empty.hidden = true;
-    list.hidden = false;
+    if (empty) empty.hidden = true;
+    if (list) list.hidden = false;
 
-    // Group by type (X-style tabs feel)
     const groups = {};
-    hits.forEach(h => {
-      (groups[h.entityType] ||= []).push(h);
-    });
+    hits.forEach(h => { (groups[h.entityType] ||= []).push(h); });
 
     let html = '';
     const order = ['page', 'post', 'user', 'comment', 'media', 'theme', 'taxonomy'];
@@ -162,9 +182,9 @@
           `</span></a></li>`;
       });
     });
-    list.innerHTML = html;
+    if (list) list.innerHTML = html;
 
-    list.querySelectorAll('.admin-search-item').forEach(a => {
+    list?.querySelectorAll('.admin-search-item').forEach(a => {
       a.addEventListener('mouseenter', () => {
         active = Number(a.dataset.idx);
         paintActive();
@@ -173,7 +193,7 @@
   }
 
   function paintActive() {
-    list.querySelectorAll('.admin-search-item').forEach(a => {
+    list?.querySelectorAll('.admin-search-item').forEach(a => {
       a.classList.toggle('is-active', Number(a.dataset.idx) === active);
     });
   }
@@ -181,7 +201,7 @@
     if (!hits.length) return;
     active = (active + delta + hits.length) % hits.length;
     paintActive();
-    list.querySelector(`.admin-search-item[data-idx="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+    list?.querySelector(`.admin-search-item[data-idx="${active}"]`)?.scrollIntoView({ block: 'nearest' });
   }
   function navigate(url) {
     if (!url) return;

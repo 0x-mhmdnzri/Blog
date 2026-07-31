@@ -1,3 +1,4 @@
+using BlogApp.Services.AdminSearch;
 using BlogApp.Services.Performance;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Caching.Distributed;
@@ -50,6 +51,7 @@ public static class PerformanceServiceExtensions
         services.AddScoped<IBackgroundJobQueue, BackgroundJobQueue>();
         services.AddScoped<ImageOptimizeService>();
         services.AddScoped<SearchIndexService>();
+        services.AddScoped<AdminSearchService>();
         services.AddHostedService<BackgroundJobWorker>();
 
         return services;
