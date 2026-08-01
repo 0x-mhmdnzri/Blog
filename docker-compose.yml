@@ -33,6 +33,7 @@ services:
     ports:
       - "${BLOG_HTTP_PORT}:8080"
     volumes:
+      # SQLite + /app/data/backups (scheduled full snapshots live on this volume)
       - blog_data:/app/data
       - blog_logs:/app/logs
     networks:
