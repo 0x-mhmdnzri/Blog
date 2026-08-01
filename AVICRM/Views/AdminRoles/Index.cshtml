@@ -1,0 +1,80 @@
+@model List<AVICRM.Controllers.RoleListItem>
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "نقش‌ها و مجوزها";
+}
+
+@if (TempData["Saved"] != null)
+{
+    <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="card-surface p-3 mb-3 small" style="border-color:var(--danger,#e5637a);">@TempData["Error"]</div>
+}
+
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h5 mb-1">نقش‌ها و مجوزها</h1>
+        <p class="small text-muted-dark mb-0">سلسله‌مراتب پایه: SuperAdmin ← Author ← Reader — نقش سفارشی و claimها دسترسی صفحات را گسترش می‌دهند.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-ghost btn-sm" asp-action="Assign">اختصاص به کاربر</a>
+        <a class="btn btn-ghost btn-sm" asp-controller="AdminUsers" asp-action="Index">کاربران</a>
+    </div>
+</div>
+
+<div class="card-surface p-3 mb-4">
+    <form asp-action="Create" method="post" class="d-flex flex-wrap gap-2 align-items-end">
+        @Html.AntiForgeryToken()
+        <div class="flex-grow-1" style="min-width:12rem;">
+            <label class="form-label small mb-1" for="roleName">نقش جدید</label>
+            <input id="roleName" name="name" class="form-control form-control-sm" dir="ltr"
+                   placeholder="e.g. Editor, Moderator" maxlength="64" required pattern="[A-Za-z][A-Za-z0-9_\-]{1,63}" />
+        </div>
+        <button type="submit" class="btn btn-accent btn-sm">ایجاد نقش</button>
+    </form>
+</div>
+
+<div class="role-grid">
+@foreach (var r in Model)
+{
+    <div class="role-card card-surface">
+        <div class="role-card-head">
+            <span class="role-card-name ltr-field">@r.Name</span>
+            @if (r.IsBuiltIn)
+            {
+                <span class="status-pill sticky">سیستمی</span>
+            }
+        </div>
+        <div class="role-card-meta small text-muted-dark">
+            <span><strong class="ltr-field">@r.PageClaimCount</strong> صفحه</span>
+            <span class="meta-sep">·</span>
+            <span><strong class="ltr-field">@r.CapabilityCount</strong> قابلیت</span>
+            <span class="meta-sep">·</span>
+            <span><strong class="ltr-field">@r.UserCount</strong> کاربر</span>
+        </div>
+        <div class="role-card-actions">
+            <a class="btn btn-accent btn-sm" asp-action="Permissions" asp-route-role="@r.Name">مجوزها</a>
+            @if (!r.IsBuiltIn)
+            {
+                <form asp-action="Delete" method="post" class="d-inline"
+                      onsubmit="return confirm('حذف نقش @r.Name؟');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="role" value="@r.Name" />
+                    <button type="submit" class="btn btn-outline-danger-dark btn-sm">حذف</button>
+                </form>
+            }
+        </div>
+    </div>
+}
+</div>
+
+<style>
+.role-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.role-card { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .65rem; }
+.role-card-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.role-card-name { font-weight: 650; font-size: 1rem; }
+.role-card-meta { display: flex; flex-wrap: wrap; gap: .35rem; }
+.role-card-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: auto; }
+</style>

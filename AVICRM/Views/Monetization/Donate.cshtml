@@ -1,0 +1,49 @@
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@model AVICRM.Controllers.DonateForm
+@inject IUiTranslator T
+@{
+    ViewData["Title"] = T["mon.donate_title"];
+}
+
+<div class="container py-5" style="max-width:560px;">
+    <h1 class="h3 mb-2">@T["mon.donate_title"]</h1>
+    <p class="text-muted-dark mb-4">@T["mon.donate_intro"]</p>
+
+    @if (TempData["DonateOk"] is string ok)
+    {
+        <div class="wizard-alert success mb-3">@ok</div>
+    }
+
+    <form asp-action="Donate" method="post" class="card-surface p-4">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label class="form-label">@T["mon.price"]</label>
+            <input asp-for="Amount" class="form-control ltr-field" type="number" step="1" min="1" required />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">@T["mon.currency"]</label>
+            <input asp-for="Currency" class="form-control ltr-field" maxlength="8" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">@T["mon.donor"]</label>
+            <input asp-for="DonorName" class="form-control" dir="auto" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input asp-for="DonorEmail" class="form-control ltr-field" type="email" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">@T["mon.pay_ref"]</label>
+            <input asp-for="PaymentReference" class="form-control" dir="auto" placeholder="@T["mon.pay_ref_hint"]" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">@T["mon.message"]</label>
+            <textarea asp-for="Message" class="form-control" dir="auto" rows="2"></textarea>
+        </div>
+        <div class="form-check mb-3">
+            <input asp-for="IsAnonymous" class="form-check-input" />
+            <label class="form-check-label" asp-for="IsAnonymous">@T["mon.anonymous"]</label>
+        </div>
+        <button type="submit" class="btn btn-accent">@T["mon.submit_donate"]</button>
+    </form>
+</div>

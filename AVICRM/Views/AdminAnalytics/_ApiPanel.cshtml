@@ -1,0 +1,115 @@
+@model AVICRM.Models.ViewModels.ApiAnalyticsPanel?
+@if (Model is null) { return; }
+
+<style>
+.api-embed {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+  /* fixed visual rhythm — matches chart cards */
+  min-height: 0;
+}
+.api-embed-head {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+  gap: .5rem; margin-bottom: .75rem;
+}
+.api-embed-title {
+  font-size: .9rem; font-weight: 700; margin: 0;
+  display: flex; align-items: center; gap: .45rem;
+}
+.api-embed-title .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.api-embed-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: .45rem;
+  margin-bottom: .75rem;
+}
+@@media (max-width: 900px) { .api-embed-kpis { grid-template-columns: repeat(3, 1fr); } }
+@@media (max-width: 520px) { .api-embed-kpis { grid-template-columns: repeat(2, 1fr); } }
+.api-embed-kpi {
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: .55rem .65rem;
+  min-height: 58px;
+  display: flex; flex-direction: column; justify-content: center;
+  background: color-mix(in srgb, var(--bg, #000) 3%, var(--surface));
+}
+.api-embed-kpi .l { font-size: .68rem; color: var(--text-muted); }
+.api-embed-kpi .v { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.api-embed-kpi.danger .v { color: #e5637a; }
+.api-embed-table-wrap {
+  /* consistent height so the section doesn’t jump */
+  height: 200px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+}
+.api-embed-table-wrap table { margin: 0; width: 100%; }
+.api-embed-table-wrap th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--surface); font-size: .72rem; white-space: nowrap;
+}
+.api-embed-table-wrap td { font-size: .8rem; vertical-align: middle; }
+.api-embed-empty {
+  height: 200px; display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); font-size: .85rem; border: 1px dashed var(--border-soft); border-radius: 10px;
+}
+</style>
+
+<section class="api-embed" aria-label="API analytics summary">
+    <div class="api-embed-head">
+        <h2 class="api-embed-title"><span class="dot" aria-hidden="true"></span> API در یک نگاه</h2>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-accent btn-sm" asp-controller="AdminAnalytics" asp-action="Api" asp-route-range="@ViewBag.RangeDays">مانیتور کامل</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminApiKeys" asp-action="Index">کلیدها</a>
+        </div>
+    </div>
+
+    <div class="api-embed-kpis">
+        <div class="api-embed-kpi"><div class="l">درخواست</div><div class="v ltr-field">@Model.TotalRequests</div></div>
+        <div class="api-embed-kpi"><div class="l">کاربر</div><div class="v ltr-field">@Model.UniqueUsers</div></div>
+        <div class="api-embed-kpi"><div class="l">کلید فعال</div><div class="v ltr-field">@Model.ActiveKeys</div></div>
+        <div class="api-embed-kpi @(Model.ErrorCount > 0 ? "danger" : "")"><div class="l">خطا</div><div class="v ltr-field">@Model.ErrorCount</div></div>
+        <div class="api-embed-kpi @(Model.RateLimitedCount > 0 ? "danger" : "")"><div class="l">۴۲۹</div><div class="v ltr-field">@Model.RateLimitedCount</div></div>
+    </div>
+
+    @if (Model.Users.Count == 0)
+    {
+        <div class="api-embed-empty">هنوز ترافیک API ثبت نشده — پس از اولین فراخوانی با کلید، اینجا پر می‌شود.</div>
+    }
+    else
+    {
+        <div class="api-embed-table-wrap">
+            <table class="admin-table">
+                <thead>
+                <tr>
+                    <th>کاربر</th>
+                    <th class="ltr-field">Keys</th>
+                    <th class="ltr-field">Req</th>
+                    <th class="ltr-field">Err</th>
+                    <th class="ltr-field">۴۲۹</th>
+                    <th class="ltr-field">Lifetime</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var u in Model.Users.Take(12))
+                {
+                    <tr>
+                        <td class="ltr-field">@u.UserName</td>
+                        <td class="ltr-field">@u.ActiveKeys<span class="text-muted-dark">/@u.KeyCount</span></td>
+                        <td class="ltr-field">@u.RangeRequests</td>
+                        <td class="ltr-field">@u.RangeErrors</td>
+                        <td class="ltr-field">@u.RangeRateLimited</td>
+                        <td class="ltr-field text-muted-dark">@u.LifetimeRequests</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

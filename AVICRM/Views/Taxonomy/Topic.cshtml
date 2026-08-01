@@ -1,0 +1,48 @@
+@model List<Post>
+@{
+    var topic = (AVICRM.Models.TopicCollection)ViewBag.Topic;
+}
+
+<section class="hero py-4">
+    <div class="container" style="max-width:780px;">
+        <div class="eyebrow mb-2">مجموعه موضوعی</div>
+        <h1 class="mb-2" dir="auto">@topic.Name</h1>
+        @if (!string.IsNullOrEmpty(topic.Description))
+        {
+            <p class="text-muted-dark" dir="auto">@topic.Description</p>
+        }
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            @foreach (var item in topic.Items.OrderBy(i => i.SortOrder))
+            {
+                if (item.Category != null)
+                {
+                    <a class="tag-pill" asp-controller="Home" asp-action="Index" asp-route-category="@item.Category.Slug" dir="auto">@item.Category.Name</a>
+                }
+                if (item.Tag != null)
+                {
+                    <a class="tag-pill" asp-controller="Home" asp-action="Index" asp-route-tag="@item.Tag.Slug" dir="auto">#@item.Tag.Name</a>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+<div class="container py-4">
+    <div class="row g-4">
+        @foreach (var p in Model)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="post-card">
+                    <h2 class="h5 mb-2" dir="auto">
+                        <a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a>
+                    </h2>
+                    <p class="text-muted-dark small mb-0" dir="auto">@p.Summary</p>
+                </div>
+            </div>
+        }
+    </div>
+    @if (!Model.Any())
+    {
+        <div class="admin-empty">نوشته‌ای برای این موضوع یافت نشد.</div>
+    }
+</div>

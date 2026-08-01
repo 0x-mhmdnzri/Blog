@@ -1,0 +1,42 @@
+@inject AVICRM.Services.IUiTranslator T
+@{
+    var userName = User.Identity?.Name;
+    var isAuth = User.Identity?.IsAuthenticated == true;
+    var isStaff = User.IsInRole("SuperAdmin") || User.IsInRole("Author");
+}
+@if (isAuth)
+{
+    <div class="admin-profile dropdown" id="adminProfileMenu">
+        <button type="button" class="admin-profile-btn" id="adminProfileBtn"
+                data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                aria-expanded="false" aria-label="منوی حساب" title="@(userName ?? "حساب")">
+            <img src="/AccountAvatar/Me" alt="" width="32" height="32" class="admin-profile-avatar" />
+        </button>
+        <div class="dropdown-menu admin-profile-dropdown dropdown-menu-start" aria-labelledby="adminProfileBtn">
+            <div class="admin-profile-head">
+                <img src="/AccountAvatar/Me" alt="" width="40" height="40" class="admin-profile-avatar" />
+                <div class="min-w-0">
+                    <strong class="d-block text-truncate ltr-field">@(userName ?? "کاربر")</strong>
+                    <span class="small text-muted-dark">حساب مدیریت</span>
+                </div>
+            </div>
+            <div class="admin-profile-list">
+                <a class="admin-profile-item" asp-controller="Account" asp-action="Profile">پروفایل من</a>
+                <a class="admin-profile-item" asp-controller="Account" asp-action="Manage">تنظیمات حساب</a>
+                <a class="admin-profile-item" asp-controller="Themes" asp-action="Index">تغییر تم</a>
+                @if (isStaff)
+                {
+                    <a class="admin-profile-item" asp-controller="AdminThemes" asp-action="Index">مدیریت تم‌ها</a>
+                }
+                <a class="admin-profile-item" asp-controller="AccountApiKeys" asp-action="Index">کلیدهای API</a>
+                <a class="admin-profile-item" asp-controller="Home" asp-action="Index">بازگشت به سایت</a>
+            </div>
+            <div class="admin-profile-foot">
+                <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-ghost btn-sm w-100">@T["admin.logout"]</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}

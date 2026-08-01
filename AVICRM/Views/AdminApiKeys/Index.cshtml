@@ -1,0 +1,272 @@
+@model IEnumerable<AVICRM.Models.ApiKey>
+@using AVICRM.Models
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "کلیدهای API";
+    var list = Model.ToList();
+    var pending = (int)(ViewBag.PendingCount ?? list.Count(k => k.ApprovalStatus == ApiKeyApprovalStatus.Pending && !k.IsBanned));
+    var active = list.Count(k => k.IsUsable);
+    var banned = list.Count(k => k.IsBanned);
+    var totalReq = list.Sum(k => k.RequestCount);
+}
+
+<style>
+.ak-page { max-width: 1100px; }
+.ak-hero {
+  display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+.ak-hero h1 { font-size: 1.15rem; font-weight: 700; margin: 0 0 .25rem; }
+.ak-hero p { margin: 0; font-size: .82rem; color: var(--text-muted); max-width: 36rem; line-height: 1.55; }
+.ak-kpis {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; margin-bottom: 1rem;
+}
+@@media (max-width: 700px) { .ak-kpis { grid-template-columns: repeat(2, 1fr); } }
+.ak-kpi {
+  background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px;
+  padding: .75rem .9rem; min-height: 72px; display: flex; flex-direction: column; justify-content: center;
+}
+.ak-kpi .lbl { font-size: .72rem; color: var(--text-muted); margin-bottom: .2rem; }
+.ak-kpi .val { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ak-kpi.warn .val { color: #e5637a; }
+.ak-kpi.ok .val { color: var(--accent); }
+.ak-kpi.wait .val { color: #e3b341; }
+.ak-toolbar {
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+  margin-bottom: 1rem; padding: .75rem; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--border-soft);
+}
+.ak-toolbar .form-control, .ak-toolbar .form-select { max-width: 14rem; }
+.ak-list { display: flex; flex-direction: column; gap: .65rem; }
+.ak-card {
+  background: var(--surface); border: 1px solid var(--border-soft); border-radius: 14px;
+  padding: 1rem 1.1rem; display: grid; grid-template-columns: 1fr auto; gap: .75rem 1rem;
+  align-items: center; transition: border-color .15s ease;
+}
+.ak-card:hover { border-color: var(--accent-dim, var(--border)); }
+.ak-card.is-banned { border-color: rgba(229,99,122,.45); background: color-mix(in srgb, #e5637a 6%, var(--surface)); }
+.ak-card.is-pending { border-color: rgba(227,179,65,.5); background: color-mix(in srgb, #e3b341 6%, var(--surface)); }
+.ak-card.is-off { opacity: .78; }
+.ak-meta { min-width: 0; }
+.ak-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; margin-bottom: .35rem; }
+.ak-name { font-weight: 650; font-size: .95rem; }
+.ak-user { font-size: .8rem; color: var(--text-muted); font-family: ui-monospace, monospace; }
+.ak-prefix {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem;
+  padding: .15rem .45rem; border-radius: 6px; background: var(--bg, rgba(0,0,0,.06));
+  border: 1px solid var(--border-soft); direction: ltr; display: inline-block;
+}
+.ak-scopes { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+.ak-scope {
+  font-size: .68rem; padding: .12rem .45rem; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  font-family: ui-monospace, monospace; direction: ltr;
+}
+.ak-stats {
+  display: flex; flex-wrap: wrap; gap: .75rem 1.1rem; margin-top: .55rem;
+  font-size: .78rem; color: var(--text-muted);
+}
+.ak-stats strong { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 650; }
+.ak-actions {
+  display: flex; flex-wrap: wrap; gap: .35rem; justify-content: flex-end; align-items: center;
+}
+.ak-actions form { display: inline; margin: 0; }
+.ak-pill {
+  display: inline-flex; align-items: center; gap: .25rem; font-size: .7rem; font-weight: 650;
+  padding: .2rem .55rem; border-radius: 999px; letter-spacing: .01em;
+}
+.ak-pill.on { background: color-mix(in srgb, #9ecb8c 22%, transparent); color: #3d6b3a; }
+.ak-pill.off { background: color-mix(in srgb, var(--text-muted) 18%, transparent); color: var(--text-muted); }
+.ak-pill.ban { background: color-mix(in srgb, #e5637a 22%, transparent); color: #a33; }
+.ak-pill.wait { background: color-mix(in srgb, #e3b341 22%, transparent); color: #b8860b; }
+[data-theme="dark"] .ak-pill.on, html.dark .ak-pill.on { color: #b6e0a8; }
+[data-theme="dark"] .ak-pill.ban, html.dark .ak-pill.ban { color: #f5a3b0; }
+[data-theme="dark"] .ak-pill.wait, html.dark .ak-pill.wait { color: #e3b341; }
+.ak-empty {
+  text-align: center; padding: 2.5rem 1rem; border-radius: 14px;
+  border: 1px dashed var(--border-soft); color: var(--text-muted); font-size: .9rem;
+}
+.ak-msg {
+  padding: .65rem 1rem; border-radius: 10px; margin-bottom: 1rem; font-size: .85rem;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border-soft));
+}
+@@media (max-width: 640px) {
+  .ak-card { grid-template-columns: 1fr; }
+  .ak-actions { justify-content: flex-start; }
+}
+</style>
+
+<div class="ak-page">
+    <div class="ak-hero">
+        <div>
+            <h1>کلیدهای API</h1>
+            <p>کاربران (خواننده/نویسنده) درخواست می‌دهند؛ فقط سوپرادمین تأیید می‌کند. پس از تأیید، اعلان به کاربر ارسال می‌شود و کلید برای API قابل استفاده می‌شود.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-accent btn-sm" asp-action="Index" asp-route-status="pending">در انتظار (@pending)</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminAnalytics" asp-action="Api">مانیتور API</a>
+            <a class="btn btn-ghost btn-sm" href="/api/docs" target="_blank" rel="noopener">مستندات</a>
+        </div>
+    </div>
+
+    @if (TempData["Msg"] != null)
+    {
+        <div class="ak-msg">@TempData["Msg"]</div>
+    }
+
+    <div class="ak-kpis">
+        <div class="ak-kpi wait"><div class="lbl">در انتظار تأیید</div><div class="val ltr-field">@pending</div></div>
+        <div class="ak-kpi ok"><div class="lbl">قابل استفاده</div><div class="val ltr-field">@active</div></div>
+        <div class="ak-kpi warn"><div class="lbl">بن‌شده</div><div class="val ltr-field">@banned</div></div>
+        <div class="ak-kpi"><div class="lbl">مجموع درخواست‌ها</div><div class="val ltr-field">@totalReq</div></div>
+    </div>
+
+    <form method="get" class="ak-toolbar">
+        <input class="form-control form-control-sm" name="q" value="@ViewBag.Q" placeholder="جست‌وجو: کاربر، نام، prefix…" />
+        <select class="form-select form-select-sm" name="status" style="max-width:11rem;">
+            <option value="">همه وضعیت‌ها</option>
+            <option value="pending" selected="@(ViewBag.Status == "pending")">در انتظار تأیید</option>
+            <option value="approved" selected="@(ViewBag.Status == "approved")">تأییدشده</option>
+            <option value="active" selected="@(ViewBag.Status == "active")">فعال و تأییدشده</option>
+            <option value="rejected" selected="@(ViewBag.Status == "rejected")">رد شده</option>
+            <option value="disabled" selected="@(ViewBag.Status == "disabled")">غیرفعال</option>
+            <option value="banned" selected="@(ViewBag.Status == "banned")">بن</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" type="submit">اعمال فیلتر</button>
+        @if (!string.IsNullOrEmpty(ViewBag.Q as string) || !string.IsNullOrEmpty(ViewBag.Status as string))
+        {
+            <a class="btn btn-ghost btn-sm" asp-action="Index">پاک کردن</a>
+        }
+        <span class="ms-auto small text-muted-dark">@list.Count نتیجه</span>
+    </form>
+
+    @if (list.Count == 0)
+    {
+        <div class="ak-empty">
+            موردی نیست. کاربران از منوی حساب → <strong>کلیدهای API</strong> درخواست می‌دهند.
+        </div>
+    }
+    else
+    {
+        <div class="ak-list">
+        @foreach (var k in list)
+        {
+            var scopes = (k.Scopes ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var cardClass = k.IsBanned ? "is-banned"
+                : k.ApprovalStatus == ApiKeyApprovalStatus.Pending ? "is-pending"
+                : (!k.IsActive ? "is-off" : "");
+            <article class="ak-card @cardClass">
+                <div class="ak-meta">
+                    <div class="ak-title-row">
+                        <span class="ak-name">@k.Name</span>
+                        @if (k.IsBanned)
+                        {
+                            <span class="ak-pill ban" title="@k.BanReason">بن</span>
+                        }
+                        else if (k.ApprovalStatus == ApiKeyApprovalStatus.Pending)
+                        {
+                            <span class="ak-pill wait">در انتظار تأیید</span>
+                        }
+                        else if (k.ApprovalStatus == ApiKeyApprovalStatus.Rejected)
+                        {
+                            <span class="ak-pill ban">رد شده</span>
+                        }
+                        else if (!k.IsActive)
+                        {
+                            <span class="ak-pill off">غیرفعال</span>
+                        }
+                        else
+                        {
+                            <span class="ak-pill on">تأیید و فعال</span>
+                        }
+                        <span class="ak-prefix" title="پیشوند کلید">@k.KeyPrefix…</span>
+                    </div>
+                    <div class="ak-user">@((k.User?.UserName ?? k.UserId))</div>
+                    <div class="ak-scopes">
+                        @foreach (var s in scopes)
+                        {
+                            <span class="ak-scope">@s</span>
+                        }
+                    </div>
+                    <div class="ak-stats">
+                        <span>درخواست: <strong class="ltr-field">@k.RequestCount</strong></span>
+                        <span>ضربات: <strong class="ltr-field">@k.AbuseStrikeCount</strong></span>
+                        @if (k.LastUsedAtUtc is { } last)
+                        {
+                            <span>آخرین: <strong class="ltr-field">@last.ToString("yyyy-MM-dd HH:mm") UTC</strong></span>
+                        }
+                        @if (k.ExpiresAtUtc is { } exp)
+                        {
+                            <span>انقضا: <strong class="ltr-field">@exp.ToString("yyyy-MM-dd")</strong></span>
+                        }
+                    </div>
+                    @if (k.ApprovalStatus == ApiKeyApprovalStatus.Rejected && !string.IsNullOrWhiteSpace(k.RejectionReason))
+                    {
+                        <div class="small mt-1" style="color:#e5637a;">دلیل رد: @k.RejectionReason</div>
+                    }
+                    @if (k.IsBanned && !string.IsNullOrWhiteSpace(k.BanReason))
+                    {
+                        <div class="small mt-1" style="color:#e5637a;">دلیل بن: @k.BanReason</div>
+                    }
+                </div>
+                <div class="ak-actions">
+                    @if (!k.IsBanned && k.ApprovalStatus == ApiKeyApprovalStatus.Pending)
+                    {
+                        <form asp-action="Approve" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@k.Id" />
+                            <button class="btn btn-accent btn-sm" type="submit">تأیید</button>
+                        </form>
+                        <form asp-action="Reject" method="post" onsubmit="var r=prompt('دلیل رد (اختیاری):'); if(r===null) return false; this.querySelector('[name=reason]').value=r; return true;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@k.Id" />
+                            <input type="hidden" name="reason" value="" />
+                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">رد</button>
+                        </form>
+                    }
+                    else if (k.IsBanned)
+                    {
+                        <form asp-action="Unban" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@k.Id" />
+                            <button class="btn btn-accent btn-sm" type="submit">رفع بن</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-action="Ban" method="post" onsubmit="return confirm('بن کردن این کلید؟');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@k.Id" />
+                            <input type="hidden" name="reason" value="Manual ban by admin" />
+                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">بن</button>
+                        </form>
+                        @if (k.IsActive)
+                        {
+                            <form asp-action="Disable" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@k.Id" />
+                                <button class="btn btn-ghost btn-sm" type="submit">خاموش</button>
+                            </form>
+                        }
+                        else if (k.ApprovalStatus == ApiKeyApprovalStatus.Approved)
+                        {
+                            <form asp-action="Enable" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@k.Id" />
+                                <button class="btn btn-ghost btn-sm" type="submit">روشن</button>
+                            </form>
+                        }
+                    }
+                    <form asp-action="Delete" method="post" onsubmit="return confirm('حذف دائمی کلید؟');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@k.Id" />
+                        <button class="btn btn-ghost btn-sm" type="submit">حذف</button>
+                    </form>
+                </div>
+            </article>
+        }
+        </div>
+    }
+</div>

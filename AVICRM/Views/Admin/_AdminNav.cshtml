@@ -1,0 +1,70 @@
+@model (List<AVICRM.Services.AdminNavItem> Items, int PendingCount)
+@inject AVICRM.Services.IUiTranslator T
+@{
+    var items = Model.Items;
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    string? lastGroup = null;
+
+    string Label(AVICRM.Services.AdminNavItem item)
+    {
+        if (item.Key == "apikeys")
+        {
+            var v = T["admin.nav.apikeys"];
+            return v == "admin.nav.apikeys" ? "کلیدهای API" : v;
+        }
+        if (item.Key == "roles")
+        {
+            var v = T["admin.nav.roles"];
+            return v == "admin.nav.roles" ? "نقش‌ها و مجوزها" : v;
+        }
+        if (item.Key == "backup")
+        {
+            var v = T["admin.nav.backup"];
+            return v == "admin.nav.backup" ? "پشتیبان و ذخیره‌سازی" : v;
+        }
+        if (item.Key == "enterprise")
+        {
+            var v = T["admin.nav.enterprise"];
+            return v == "admin.nav.enterprise" ? "سازمانی" : v;
+        }
+        return T[item.LabelKey];
+    }
+}
+<nav class="admin-nav" id="adminNav" aria-label="Admin">
+@foreach (var item in items)
+{
+    if (item.GroupKey != lastGroup)
+    {
+        lastGroup = item.GroupKey;
+        <div class="admin-nav-group-label">@T[item.GroupKey!]</div>
+    }
+    var active = item.Matches(controller, action);
+    <a class="admin-nav-link @(active ? "active" : "")"
+       asp-controller="@item.Controller"
+       asp-action="@item.Action"
+       data-nav-key="@item.Key"
+       title="@Label(item)">
+        <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" focusable="false">
+                <path d="@item.Icon"/>
+            </svg>
+        </span>
+        <span class="nav-label">@Label(item)</span>
+        <span class="nav-trail">
+            @if (item.ShowPendingBadge)
+            {
+                <span class="badge-count" id="pendingBadge" style="@(Model.PendingCount > 0 ? "" : "display:none;")">@Model.PendingCount</span>
+            }
+            @if (item.DemoTag)
+            {
+                <span class="soon-tag">@T["admin.demo"]</span>
+            }
+            @if (item.SuperOnlyTag)
+            {
+                <span class="soon-tag">@T["admin.super_only"]</span>
+            }
+        </span>
+    </a>
+}
+</nav>

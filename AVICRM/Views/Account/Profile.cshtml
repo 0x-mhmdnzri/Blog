@@ -1,0 +1,66 @@
+@model AVICRM.Models.ViewModels.ProfileEditViewModel
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "پروفایل من";
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+}
+
+@if (TempData["ProfileSaved"] != null)
+{
+    <div class="alert alert-success mb-4" style="background:rgba(34,197,94,.12); color:#4ade80; border:1px solid rgba(34,197,94,.3);">
+        @TempData["ProfileSaved"]
+    </div>
+}
+
+<div class="card-surface p-4" style="max-width:560px;">
+    <form asp-action="Profile" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+            @if (Model.HasProfileImage && userId != null)
+            {
+                <img src="@Url.Action("ProfileImage", "Account", new { userId })"
+                     alt="avatar"
+                     class="rounded-circle"
+                     style="width:72px;height:72px;object-fit:cover;border:2px solid var(--border-soft);" />
+            }
+            else
+            {
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:72px;height:72px;background:var(--surface-2);border:2px solid var(--border-soft);font-size:1.5rem;">
+                    @(Model.DisplayName?.FirstOrDefault().ToString().ToUpper() ?? "?")
+                </div>
+            }
+            <div>
+                <div class="form-label mb-1">تصویر پروفایل</div>
+                <input type="file" name="ProfileImageFile" accept="image/*" class="form-control form-control-sm" />
+                @if (Model.HasProfileImage)
+                {
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="RemoveProfileImage" value="true" id="removeImg" />
+                        <label class="form-check-label small" for="removeImg">حذف تصویر فعلی</label>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" asp-for="DisplayName">نام نمایشی</label>
+            <input class="form-control" asp-for="DisplayName" dir="auto" />
+            <span asp-validation-for="DisplayName" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" asp-for="Email">ایمیل</label>
+            <input class="form-control ltr-field" asp-for="Email" />
+            <span asp-validation-for="Email" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label" asp-for="Bio">بیو</label>
+            <textarea class="form-control" asp-for="Bio" rows="3" dir="auto" maxlength="500"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-accent">ذخیره پروفایل</button>
+    </form>
+</div>

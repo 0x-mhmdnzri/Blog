@@ -1,0 +1,13 @@
+@inject AVICRM.Services.IUiTranslator T
+@{
+    ViewData["Title"] = T["nl.confirm_title"];
+    var ok = ViewBag.Ok as bool? ?? false;
+}
+
+<div class="container py-5" style="max-width:520px;">
+    <div class="card-surface p-4 text-center">
+        <h1 class="h4 mb-3">@T["nl.confirm_title"]</h1>
+        <p class="@(ok ? "text-success" : "text-danger") mb-3">@ViewBag.Message</p>
+        <a class="btn btn-accent btn-sm" asp-controller="Home" asp-action="Index">@T["nl.back_home"]</a>
+    </div>
+</div>

@@ -1,9 +1,9 @@
-# BlogApp → AVICRM rename
+# AVICRM → AVICRM rename
 
 ## Done on branch `rename-avicrm`
 
-- Namespace: `BlogApp` → `AVICRM`
-- Project folder: `BlogApp/` → `AVICRM/`
+- Namespace: `AVICRM` → `AVICRM`
+- Project folder: `AVICRM/` → `AVICRM/`
 - Project file: `AVICRM.csproj`
 - Solution: `AVICRM.sln`
 - Assembly: `AVICRM.dll`
@@ -30,4 +30,4 @@ git remote set-url origin https://github.com/0x-mhmdnzri/AVICRM.git
 
 ## Cleanup
 
-After merge, remove leftover `BlogApp/` directory and `BlogApp.sln` if still present.
+After merge, remove leftover `AVICRM/` directory and `AVICRM.sln` if still present.

@@ -1,8 +1,8 @@
 # Developer Features — Pure monolith
 
-**One project only: `BlogApp`.**  
+**One project only: `AVICRM`.**  
 No class libraries. No n-tier multi-project solution.  
-Folders under `BlogApp/Developer/` are **organizational**, not separate assemblies.
+Folders under `AVICRM/Developer/` are **organizational**, not separate assemblies.
 
 If a leftover `src/` folder appears in a clone, remove it:
 
@@ -14,7 +14,7 @@ bash scripts/purge-src.sh
 ## Layout
 
 ```
-BlogApp/                         # sole .csproj + composition root
+AVICRM/                         # sole .csproj + composition root
   Developer/
     Domain/                      # IDomainEvent, AggregateRoot, integration events
     Messaging/                   # MassTransit publisher + consumers (EDD)
@@ -41,7 +41,7 @@ BlogApp/                         # sole .csproj + composition root
 | **Extension SDK** | Done | `Developer/Sdk/ExtensionSdk.cs` |
 | **Health Checks** | Done | `/healthz`, `/healthz/ready` |
 | **Metrics Endpoint** | Done | `/metrics` (Prometheus) |
-| **Distributed Tracing** | Done | OpenTelemetry ASP.NET + HTTP + source `BlogApp` |
+| **Distributed Tracing** | Done | OpenTelemetry ASP.NET + HTTP + source `AVICRM` |
 | **Structured Logging** | Done | Serilog Compact JSON |
 | **OpenTelemetry Integration** | Done | tracing + metrics + optional OTLP |
 
@@ -78,7 +78,7 @@ Consumers: `PostPublished`, `PostCreated`, `CommentApproved`, `AuthorFollowed`.
 ### Build
 
 ```bash
-cd BlogApp && dotnet restore && dotnet run
-# solution has only BlogApp:
-dotnet build BlogApp.sln
+cd AVICRM && dotnet restore && dotnet run
+# solution has only AVICRM:
+dotnet build AVICRM.sln
 ```

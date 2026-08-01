@@ -1,0 +1,26 @@
+@inject AVICRM.Services.IUiTranslator T
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = T["ent.dr_title"];
+}
+<link rel="stylesheet" href="~/css/admin-enterprise.css" asp-append-version="true" />
+<div class="ent-page" style="max-width:720px">
+    <header class="ent-hero">
+        <div>
+            <p class="ent-eyebrow">@T["ent.eyebrow"]</p>
+            <h2 class="ent-title">@T["ent.dr_title"]</h2>
+        </div>
+    </header>
+    <div class="ent-card">
+        <ol class="ent-help-list" style="padding-inline-start:1.25rem;list-style:decimal">
+            <li>@T["ent.dr_1"]</li>
+            <li>@T["ent.dr_2"]</li>
+            <li>@T["ent.dr_3"]</li>
+            <li>@T["ent.dr_4"]</li>
+            <li>@T["ent.dr_5"]</li>
+            <li>@T["ent.dr_6"]</li>
+            <li>@T["ent.dr_7"]</li>
+        </ol>
+        <p class="mt-3 mb-0"><a class="ent-link" asp-action="Index">@T["ent.dr_back"]</a></p>
+    </div>
+</div>

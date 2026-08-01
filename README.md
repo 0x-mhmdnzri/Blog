@@ -1,15 +1,15 @@
 # AVICRM
 
-**Architecture: single ASP.NET Core web app monolith — only `BlogApp/`.**  
+**Architecture: single ASP.NET Core web app monolith — only `AVICRM/`.**  
 No class libraries, no n-tier / Clean Architecture project split. One process, one `.csproj`.
 
-**AVICRM** — ASP.NET Core application evolving from a Markdown publishing core toward a full CRM (see [FEATURES.md](FEATURES.md)). Current codebase remains the monolith under `BlogApp/`. Publishing surface: Markdown in, styled HTML out — text, code, images, and video in one SQLite database. Public site and admin panel support RTL (e.g. Persian) and Vazirmatn.
+**AVICRM** — ASP.NET Core application evolving from a Markdown publishing core toward a full CRM (see [FEATURES.md](FEATURES.md)). Current codebase remains the monolith under `AVICRM/`. Publishing surface: Markdown in, styled HTML out — text, code, images, and video in one SQLite database. Public site and admin panel support RTL (e.g. Persian) and Vazirmatn.
 
 ## Stack
 
 | Layer | Choice |
 | --- | --- |
-| Host | ASP.NET Core MVC (.NET 10 LTS) — `BlogApp` |
+| Host | ASP.NET Core MVC (.NET 10 LTS) — `AVICRM` |
 | Data | EF Core 10 + SQLite (`blog.db`) + FTS5 |
 | Events | MassTransit (InMemory default, RabbitMQ optional) |
 | Markdown | Markdig (GFM + `{{video:ID}}` embeds) |
@@ -34,7 +34,7 @@ No class libraries, no n-tier / Clean Architecture project split. One process, o
 
 CRM roadmap (Contacts, pipeline, automation, …): **[FEATURES.md](FEATURES.md)** — not all modules implemented yet.
 
-See also [DEVELOPER.md](DEVELOPER.md), [SOCIAL.md](SOCIAL.md), [BlogApp/API.md](BlogApp/API.md).
+See also [DEVELOPER.md](DEVELOPER.md), [SOCIAL.md](SOCIAL.md), [AVICRM/API.md](AVICRM/API.md).
 
 ## Docker (recommended)
 

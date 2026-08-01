@@ -1,5 +1,5 @@
 # =============================================================================
-# Dark Pro Blog — Docker Compose
+# AVICRM — Docker Compose
 #
 #   cp .env.example .env   # REQUIRED — all config lives in .env
 #   # edit Admin__Password, Seo__BaseUrl, …
