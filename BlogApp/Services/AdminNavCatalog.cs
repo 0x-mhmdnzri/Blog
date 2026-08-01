@@ -42,6 +42,7 @@ public sealed class AdminNavItem
             "users" => string.Equals(controller, "AdminUsers", StringComparison.OrdinalIgnoreCase),
             "roles" => string.Equals(controller, "AdminRoles", StringComparison.OrdinalIgnoreCase),
             "audit" => string.Equals(controller, "AdminAudit", StringComparison.OrdinalIgnoreCase),
+            "enterprise" => string.Equals(controller, "AdminEnterprise", StringComparison.OrdinalIgnoreCase),
             "backup" => string.Equals(controller, "AdminBackup", StringComparison.OrdinalIgnoreCase),
             "apikeys" => string.Equals(controller, "AdminApiKeys", StringComparison.OrdinalIgnoreCase),
             "myapikeys" => string.Equals(controller, "AccountApiKeys", StringComparison.OrdinalIgnoreCase),
@@ -151,6 +152,10 @@ public static class AdminNavCatalog
         new() { Key = "flags", GroupKey = "admin.group.system", LabelKey = "admin.nav.flags",
             Controller = "AdminSettings", Action = "FeatureFlags", SuperAdminOnly = true,
             Icon = "M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" },
+
+        new() { Key = "enterprise", GroupKey = "admin.group.system", LabelKey = "admin.nav.enterprise",
+            Controller = "AdminEnterprise", Action = "Index", SuperAdminOnly = true, SuperOnlyTag = true,
+            Icon = "M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" },
 
         new() { Key = "backup", GroupKey = "admin.group.system", LabelKey = "admin.nav.backup",
             Controller = "AdminBackup", Action = "Index", SuperAdminOnly = true, SuperOnlyTag = true,
