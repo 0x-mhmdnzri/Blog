@@ -56,6 +56,10 @@ public class AppNotification
 
     public bool IsRead { get; set; }
 
+    public bool IsStarred { get; set; }
+
+    public bool IsArchived { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     /// <summary>Optional campaign that produced this row.</summary>
@@ -182,3 +186,49 @@ public sealed record NotificationDeliveredEvent(
     string? Body,
     string? LinkUrl,
     DateTime CreatedAtUtc);
+
+/// <summary>Browser Web Push subscription (one device/browser per endpoint).</summary>
+public class PushSubscription
+{
+    public int Id { get; set; }
+
+    [Required, MaxLength(450)]
+    public string UserId { get; set; } = string.Empty;
+
+    [Required, MaxLength(800)]
+    public string Endpoint { get; set; } = string.Empty;
+
+    [Required, MaxLength(200)]
+    public string P256dh { get; set; } = string.Empty;
+
+    [Required, MaxLength(200)]
+    public string Auth { get; set; } = string.Empty;
+
+    [MaxLength(200)]
+    public string? UserAgent { get; set; }
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? LastUsedAtUtc { get; set; }
+}
+
+/// <summary>Outbound webhook delivery attempt log.</summary>
+public class WebhookDelivery
+{
+    public int Id { get; set; }
+    public int SubscriptionId { get; set; }
+
+    [Required, MaxLength(80)]
+    public string EventType { get; set; } = string.Empty;
+
+    [Required, MaxLength(400)]
+    public string TargetUrl { get; set; } = string.Empty;
+
+    public int? HttpStatus { get; set; }
+    public bool Success { get; set; }
+
+    [MaxLength(1000)]
+    public string? Error { get; set; }
+
+    public int Attempt { get; set; } = 1;
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
