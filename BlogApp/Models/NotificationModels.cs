@@ -20,17 +20,11 @@ public enum NotificationKind
 /// <summary>Who should receive a composed notification.</summary>
 public enum NotificationAudience
 {
-    /// <summary>One user by id.</summary>
     SingleUser = 0,
-    /// <summary>Every authenticated role (all users).</summary>
     Broadcast = 1,
-    /// <summary>All Authors + SuperAdmins.</summary>
     AllAuthors = 2,
-    /// <summary>Followers of a specific author.</summary>
     AuthorFollowers = 3,
-    /// <summary>Users who interact with posts in a category.</summary>
     CategoryReaders = 4,
-    /// <summary>Explicit list of user ids (batch).</summary>
     UserList = 5
 }
 
@@ -58,8 +52,50 @@ public class AppNotification
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>Admin-composed / scheduled notification campaign.</summary>
+public class NotificationCampaign
+{
+    public int Id { get; set; }
+
+    [Required, MaxLength(200)]
+    public string Title { get; set; } = string.Empty;
+
+    [MaxLength(2000)]
+    public string? Body { get; set; }
+
+    [MaxLength(500)]
+    public string? LinkUrl { get; set; }
+
+    public NotificationKind Kind { get; set; } = NotificationKind.AdminMessage;
+    public NotificationAudience Audience { get; set; }
+
+    [MaxLength(450)]
+    public string? TargetUserId { get; set; }
+
+    [MaxLength(4000)]
+    public string? TargetUserIdsJson { get; set; }
+
+    public int? CategoryId { get; set; }
+
+    [MaxLength(450)]
+    public string? AuthorUserId { get; set; }
+
+    public bool SendInApp { get; set; } = true;
+    public bool SendEmail { get; set; }
+    public bool SendPush { get; set; }
+    public bool SendSms { get; set; }
+
+    public DateTime? ScheduledAtUtc { get; set; }
+    public DateTime? SentAtUtc { get; set; }
+
+    [MaxLength(450)]
+    public string? CreatedByUserId { get; set; }
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
 /// <summary>Per-user notification channel preferences.</summary>
-public class UserNotificationPrefs
+public class NotificationPreference
 {
     public int Id { get; set; }
 
@@ -78,8 +114,20 @@ public class UserNotificationPrefs
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
-/// <summary>Queued outbound notification (admin compose / campaigns).</summary>
-public class NotificationOutbox
+public class AuthorFollow
+{
+    public int Id { get; set; }
+
+    [Required, MaxLength(450)]
+    public string FollowerUserId { get; set; } = string.Empty;
+
+    [Required, MaxLength(450)]
+    public string AuthorUserId { get; set; } = string.Empty;
+
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class OutboundMessage
 {
     public int Id { get; set; }
 
@@ -88,11 +136,8 @@ public class NotificationOutbox
     [MaxLength(450)]
     public string? TargetUserId { get; set; }
 
-    [MaxLength(2000)]
+    [MaxLength(4000)]
     public string? TargetUserIdsJson { get; set; }
-
-    public int? AuthorId { get; set; }
-    public int? CategoryId { get; set; }
 
     public NotificationKind Kind { get; set; } = NotificationKind.AdminMessage;
 
@@ -119,7 +164,15 @@ public class NotificationOutbox
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
-/// <summary>Web Push subscription (browser endpoint).</summary>
+public sealed record NotificationDeliveredEvent(
+    int NotificationId,
+    string UserId,
+    NotificationKind Kind,
+    string Title,
+    string? Body,
+    string? LinkUrl,
+    DateTime CreatedAtUtc);
+
 public class PushSubscription
 {
     public int Id { get; set; }
@@ -139,12 +192,25 @@ public class PushSubscription
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
-/// <summary>Realtime event published on the notification bus (SSE / SignalR).</summary>
-public record NotificationDeliveredEvent(
-    int NotificationId,
-    string UserId,
-    NotificationKind Kind,
-    string Title,
-    string? Body,
-    string? LinkUrl,
-    DateTime CreatedAtUtc);
+public class WebhookDelivery
+{
+    public int Id { get; set; }
+
+    [MaxLength(450)]
+    public string? UserId { get; set; }
+
+    [Required, MaxLength(500)]
+    public string Url { get; set; } = string.Empty;
+
+    [MaxLength(64)]
+    public string? EventType { get; set; }
+
+    public int AttemptCount { get; set; }
+    public int? LastStatusCode { get; set; }
+
+    [MaxLength(2000)]
+    public string? LastError { get; set; }
+
+    public DateTime? DeliveredAtUtc { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+}
