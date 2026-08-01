@@ -1,166 +1,333 @@
+@using BlogApp.Models.Enterprise
+@inject BlogApp.Services.IUiTranslator T
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "Enterprise";
-    var tenants = ViewBag.Tenants as IReadOnlyList<BlogApp.Models.Enterprise.Tenant> ?? Array.Empty<BlogApp.Models.Enterprise.Tenant>();
-    var approvals = ViewBag.Approvals as IReadOnlyList<BlogApp.Models.Enterprise.ContentApprovalRequest> ?? Array.Empty<BlogApp.Models.Enterprise.ContentApprovalRequest>();
-    var backups = ViewBag.Backups as IReadOnlyList<BlogApp.Models.Enterprise.BackupRecord> ?? Array.Empty<BlogApp.Models.Enterprise.BackupRecord>();
-    var sso = ViewBag.Sso as BlogApp.Models.Enterprise.SsoProviderConfig;
-    var locs = ViewBag.Localization as IReadOnlyList<BlogApp.Models.Enterprise.LocalizationEntry> ?? Array.Empty<BlogApp.Models.Enterprise.LocalizationEntry>();
+    ViewData["Title"] = T["admin.nav.enterprise"];
+    var tenants = ViewBag.Tenants as IReadOnlyList<Tenant> ?? Array.Empty<Tenant>();
+    var approvals = ViewBag.Approvals as IReadOnlyList<ContentApprovalRequest> ?? Array.Empty<ContentApprovalRequest>();
+    var backups = ViewBag.Backups as IReadOnlyList<BackupRecord> ?? Array.Empty<BackupRecord>();
+    var sso = ViewBag.Sso as SsoProviderConfig;
+    var locs = ViewBag.Localization as IReadOnlyList<LocalizationEntry> ?? Array.Empty<LocalizationEntry>();
+    var workspaceCount = tenants.Sum(t => t.Workspaces?.Count ?? 0);
+    var pendingApprovals = approvals.Count(a => a.State == ApprovalState.Submitted || a.State == ApprovalState.InReview);
 }
+<link rel="stylesheet" href="~/css/admin-enterprise.css" asp-append-version="true" />
 
-<div class="container-fluid py-3">
-    <h1 class="h3 mb-3">Enterprise</h1>
-    <p class="text-muted-dark small mb-4">Multi-tenant · workspaces · domains · SSO · approval · lifecycle · legal hold · GDPR · backup · localization</p>
+<div class="ent-page">
+    @if (TempData["FlashOk"] is string ok)
+    {
+        <div class="ent-flash ent-flash-ok" role="status">@ok</div>
+    }
+    @if (TempData["FlashErr"] is string err)
+    {
+        <div class="ent-flash ent-flash-err" role="alert">@err</div>
+    }
 
-    <div class="row g-3">
-        <div class="col-lg-6">
-            <div class="card-surface p-3 mb-3">
-                <h2 class="h6">Tenants &amp; workspaces</h2>
-                <form method="post" asp-action="CreateTenant" class="row g-2 mb-3">
-                    @Html.AntiForgeryToken()
-                    <div class="col-4"><input name="code" class="form-control form-control-sm" placeholder="code" required /></div>
-                    <div class="col-5"><input name="name" class="form-control form-control-sm" placeholder="name" required /></div>
-                    <div class="col-3"><button class="btn btn-accent btn-sm w-100" type="submit">Add tenant</button></div>
-                </form>
+    <header class="ent-hero">
+        <div>
+            <p class="ent-eyebrow">@T["ent.eyebrow"]</p>
+            <h2 class="ent-title">@T["ent.title"]</h2>
+            <p class="ent-lead">@T["ent.lead"]</p>
+        </div>
+        <div class="ent-hero-actions">
+            <a class="ent-btn ent-btn-primary" asp-controller="AdminBackup" asp-action="Index">@T["ent.open_backup"]</a>
+            <a class="ent-btn ent-btn-ghost" asp-action="DrRunbook">@T["ent.dr_runbook"]</a>
+        </div>
+    </header>
+
+    <div class="ent-kpis">
+        <div class="ent-kpi">
+            <span class="ent-kpi-label">@T["ent.kpi_tenants"]</span>
+            <span class="ent-kpi-value">@tenants.Count</span>
+        </div>
+        <div class="ent-kpi">
+            <span class="ent-kpi-label">@T["ent.kpi_workspaces"]</span>
+            <span class="ent-kpi-value">@workspaceCount</span>
+        </div>
+        <div class="ent-kpi">
+            <span class="ent-kpi-label">@T["ent.kpi_approvals"]</span>
+            <span class="ent-kpi-value">@pendingApprovals</span>
+        </div>
+        <div class="ent-kpi">
+            <span class="ent-kpi-label">@T["ent.kpi_backups"]</span>
+            <span class="ent-kpi-value">@backups.Count</span>
+        </div>
+    </div>
+
+    <nav class="ent-tabs" role="tablist" aria-label="@T["ent.title"]">
+        <button type="button" class="ent-tab is-active" data-ent-tab="tenants" role="tab">@T["ent.tab_tenants"]</button>
+        <button type="button" class="ent-tab" data-ent-tab="sso" role="tab">@T["ent.tab_sso"]</button>
+        <button type="button" class="ent-tab" data-ent-tab="approvals" role="tab">@T["ent.tab_approvals"]</button>
+        <button type="button" class="ent-tab" data-ent-tab="compliance" role="tab">@T["ent.tab_compliance"]</button>
+        <button type="button" class="ent-tab" data-ent-tab="backup" role="tab">@T["ent.tab_backup"]</button>
+        <button type="button" class="ent-tab" data-ent-tab="i18n" role="tab">@T["ent.tab_i18n"]</button>
+    </nav>
+
+    <section class="ent-panel is-active" data-ent-panel="tenants">
+        <div class="ent-card">
+            <div class="ent-card-head">
+                <div>
+                    <h3>@T["ent.tenants_title"]</h3>
+                    <p class="ent-card-sub">@T["ent.tenants_sub"]</p>
+                </div>
+            </div>
+            <form method="post" asp-action="CreateTenant" class="ent-form-row">
+                @Html.AntiForgeryToken()
+                <input name="code" class="ent-input ltr-field" placeholder="@T["ent.ph_code"]" required />
+                <input name="name" class="ent-input" placeholder="@T["ent.ph_name"]" required />
+                <button class="ent-btn ent-btn-primary" type="submit">@T["ent.add_tenant"]</button>
+            </form>
+
+            @if (!tenants.Any())
+            {
+                <div class="ent-empty">@T["ent.tenants_empty"]</div>
+            }
+            else
+            {
                 @foreach (var t in tenants)
                 {
-                    <div class="border-bottom border-secondary py-2">
-                        <strong>@t.Name</strong> <span class="ltr-field small text-muted">@t.Code</span>
-                        <ul class="small mb-1">
-                            @foreach (var w in t.Workspaces)
+                    <div class="ent-tenant">
+                        <div class="ent-tenant-head">
+                            <span class="ent-tenant-name">@t.Name</span>
+                            <span class="ent-code">@t.Code</span>
+                            <span class="ent-chip">@((t.Workspaces?.Count ?? 0)) WS</span>
+                            <span class="ent-chip">@((t.Domains?.Count ?? 0)) @T["ent.domains"]</span>
+                        </div>
+                        <ul class="ent-list">
+                            @foreach (var w in t.Workspaces ?? Enumerable.Empty<Workspace>())
                             {
-                                <li>WS: @w.Name (@w.Code) @(w.IsIsolated ? "isolated" : "shared")</li>
+                                <li>
+                                    <span>@w.Name <span class="ent-code">@w.Code</span></span>
+                                    <span class="ent-chip @(w.IsIsolated ? "ent-chip-warn" : "")">@(w.IsIsolated ? T["ent.isolated"] : T["ent.shared"])</span>
+                                </li>
                             }
-                            @foreach (var d in t.Domains)
+                            @foreach (var d in t.Domains ?? Enumerable.Empty<TenantDomain>())
                             {
-                                <li>Domain: <span class="ltr-field">@d.Host</span> @(d.IsVerified ? "✓" : "pending")</li>
+                                <li>
+                                    <span class="ltr-field">@d.Host</span>
+                                    <span class="ent-chip @(d.IsVerified ? "ent-chip-ok" : "ent-chip-warn")">@(d.IsVerified ? T["ent.verified"] : T["ent.pending"])</span>
+                                </li>
                             }
                         </ul>
-                        <form method="post" asp-action="CreateWorkspace" class="d-flex gap-1 flex-wrap mb-1">
+                        <form method="post" asp-action="CreateWorkspace" class="ent-form-row">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="tenantId" value="@t.Id" />
-                            <input name="code" class="form-control form-control-sm" style="width:6rem" placeholder="ws" />
-                            <input name="name" class="form-control form-control-sm" style="width:8rem" placeholder="workspace" />
-                            <button class="btn btn-ghost btn-sm" type="submit">+ workspace</button>
+                            <input name="code" class="ent-input ltr-field" style="flex:0 1 6rem" placeholder="ws" />
+                            <input name="name" class="ent-input" placeholder="@T["ent.ph_workspace"]" />
+                            <button class="ent-btn ent-btn-ghost ent-btn-sm" type="submit">+ @T["ent.add_workspace"]</button>
                         </form>
-                        <form method="post" asp-action="AddDomain" class="d-flex gap-1 flex-wrap">
+                        <form method="post" asp-action="AddDomain" class="ent-form-row">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="tenantId" value="@t.Id" />
-                            <input name="host" class="form-control form-control-sm ltr-field" style="width:12rem" placeholder="blog.example.com" />
-                            <button class="btn btn-ghost btn-sm" type="submit">+ domain</button>
+                            <input name="host" class="ent-input ltr-field" placeholder="blog.example.com" />
+                            <button class="ent-btn ent-btn-ghost ent-btn-sm" type="submit">+ @T["ent.add_domain"]</button>
                         </form>
                     </div>
                 }
-            </div>
-
-            <div class="card-surface p-3 mb-3">
-                <h2 class="h6">SSO (OIDC / SAML config)</h2>
-                <form method="post" asp-action="SaveSso" class="row g-2">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="Id" value="@(sso?.Id ?? 0)" />
-                    <div class="col-md-4">
-                        <select name="Protocol" class="form-select form-select-sm">
-                            <option value="OIDC" selected="@(sso?.Protocol != "SAML")">OIDC</option>
-                            <option value="SAML" selected="@(sso?.Protocol == "SAML")">SAML</option>
-                        </select>
-                    </div>
-                    <div class="col-md-8"><input name="DisplayName" value="@sso?.DisplayName" class="form-control form-control-sm" placeholder="Display name" /></div>
-                    <div class="col-12"><input name="Authority" value="@sso?.Authority" class="form-control form-control-sm ltr-field" placeholder="Authority / IdP URL" /></div>
-                    <div class="col-md-6"><input name="ClientId" value="@sso?.ClientId" class="form-control form-control-sm ltr-field" placeholder="Client ID" /></div>
-                    <div class="col-md-6"><input name="ClientSecret" value="@sso?.ClientSecret" class="form-control form-control-sm ltr-field" placeholder="Client secret" /></div>
-                    <div class="col-12"><input name="MetadataUrl" value="@sso?.MetadataUrl" class="form-control form-control-sm ltr-field" placeholder="Metadata URL (SAML)" /></div>
-                    <div class="col-12 form-check">
-                        <input class="form-check-input" type="checkbox" name="IsEnabled" value="true" @(sso?.IsEnabled == true ? "checked" : null) />
-                        <label class="form-check-label small">Enabled</label>
-                    </div>
-                    <div class="col-12"><button type="submit" class="btn btn-accent btn-sm">Save SSO</button></div>
-                </form>
-            </div>
+            }
         </div>
+    </section>
 
-        <div class="col-lg-6">
-            <div class="card-surface p-3 mb-3">
-                <h2 class="h6">Approval workflow</h2>
-                @if (!approvals.Any())
-                {
-                    <p class="small text-muted-dark mb-0">No pending approvals. Authors submit via API/service <code>SubmitApprovalAsync</code>.</p>
-                }
-                else
-                {
-                    <ul class="list-unstyled small mb-0">
-                        @foreach (var a in approvals.Take(20))
-                        {
-                            <li class="d-flex justify-content-between align-items-center gap-2 py-1 border-bottom border-secondary">
-                                <span>#@a.PostId @a.Post?.Title · @a.State</span>
-                                @if (a.State == BlogApp.Models.Enterprise.ApprovalState.Submitted || a.State == BlogApp.Models.Enterprise.ApprovalState.InReview)
-                                {
-                                    <span class="d-flex gap-1">
-                                        <form method="post" asp-action="ResolveApproval">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@a.Id" /><input type="hidden" name="approve" value="true" /><button class="btn btn-sm btn-accent">Approve</button></form>
-                                        <form method="post" asp-action="ResolveApproval">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@a.Id" /><input type="hidden" name="approve" value="false" /><button class="btn btn-sm btn-ghost">Reject</button></form>
-                                    </span>
-                                }
-                            </li>
-                        }
-                    </ul>
-                }
+    <section class="ent-panel" data-ent-panel="sso">
+        <div class="ent-card">
+            <div class="ent-card-head">
+                <div>
+                    <h3>@T["ent.sso_title"]</h3>
+                    <p class="ent-card-sub">@T["ent.sso_sub"]</p>
+                </div>
             </div>
+            <form method="post" asp-action="SaveSso">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@(sso?.Id ?? 0)" />
+                <div class="ent-form-row">
+                    <select name="Protocol" class="ent-select">
+                        <option value="OIDC" selected="@(sso?.Protocol != "SAML")">OIDC</option>
+                        <option value="SAML" selected="@(sso?.Protocol == "SAML")">SAML</option>
+                    </select>
+                    <input name="DisplayName" value="@sso?.DisplayName" class="ent-input" placeholder="@T["ent.ph_display"]" />
+                </div>
+                <div class="ent-form-row">
+                    <input name="Authority" value="@sso?.Authority" class="ent-input ltr-field" placeholder="@T["ent.ph_authority"]" />
+                </div>
+                <div class="ent-form-row">
+                    <input name="ClientId" value="@sso?.ClientId" class="ent-input ltr-field" placeholder="Client ID" />
+                    <input name="ClientSecret" value="@sso?.ClientSecret" class="ent-input ltr-field" placeholder="Client secret" />
+                </div>
+                <div class="ent-form-row">
+                    <input name="MetadataUrl" value="@sso?.MetadataUrl" class="ent-input ltr-field" placeholder="@T["ent.ph_metadata"]" />
+                </div>
+                <div class="ent-form-row">
+                    <label class="ent-check">
+                        <input type="checkbox" name="IsEnabled" value="true" @(sso?.IsEnabled == true ? "checked" : null) />
+                        @T["ent.sso_enabled"]
+                    </label>
+                    <button type="submit" class="ent-btn ent-btn-primary">@T["ent.save_sso"]</button>
+                </div>
+            </form>
+        </div>
+    </section>
 
-            <div class="card-surface p-3 mb-3">
-                <h2 class="h6">Legal hold</h2>
-                <form method="post" asp-action="LegalHold" class="row g-2">
-                    @Html.AntiForgeryToken()
-                    <div class="col-4"><input name="postId" class="form-control form-control-sm" placeholder="Post Id" /></div>
-                    <div class="col-4"><input name="targetUserId" class="form-control form-control-sm" placeholder="User Id" /></div>
-                    <div class="col-4"><input name="reason" class="form-control form-control-sm" placeholder="Reason" required /></div>
-                    <div class="col-12"><button class="btn btn-ghost btn-sm" type="submit">Place hold</button></div>
-                </form>
+    <section class="ent-panel" data-ent-panel="approvals">
+        <div class="ent-card">
+            <div class="ent-card-head">
+                <div>
+                    <h3>@T["ent.approvals_title"]</h3>
+                    <p class="ent-card-sub">@T["ent.approvals_sub"]</p>
+                </div>
             </div>
-
-            <div class="card-surface p-3 mb-3">
-                <h2 class="h6">GDPR</h2>
-                <form method="post" asp-action="GdprExport" class="d-flex gap-2 mb-2">
-                    @Html.AntiForgeryToken()
-                    <input name="targetUserId" class="form-control form-control-sm" placeholder="User Id" required />
-                    <button class="btn btn-accent btn-sm" type="submit">Export JSON</button>
-                </form>
-                <form method="post" asp-action="GdprErase" class="d-flex gap-2" onsubmit="return confirm('Erase / anonymize this user?');">
-                    @Html.AntiForgeryToken()
-                    <input name="targetUserId" class="form-control form-control-sm" placeholder="User Id" required />
-                    <button class="btn btn-ghost btn-sm" type="submit">Erase</button>
-                </form>
-            </div>
-
-            <div class="card-surface p-3 mb-3">
-                <h2 class="h6">Backup &amp; restore</h2>
-                <form method="post" asp-action="Backup" class="mb-2">@Html.AntiForgeryToken()<button class="btn btn-accent btn-sm" type="submit">Create backup</button></form>
-                <ul class="small list-unstyled">
-                    @foreach (var b in backups)
+            @if (!approvals.Any())
+            {
+                <div class="ent-empty">@T["ent.approvals_empty"]</div>
+            }
+            else
+            {
+                <ul class="ent-list">
+                    @foreach (var a in approvals.Take(30))
                     {
-                        <li class="d-flex justify-content-between py-1">
-                            <span class="ltr-field">@b.FileName · @b.SizeBytes B · @b.CreatedAtUtc.ToString("u")</span>
-                            <form method="post" asp-action="Restore">@Html.AntiForgeryToken()<input type="hidden" name="backupId" value="@b.Id" /><button class="btn btn-ghost btn-sm" type="submit">Stage restore</button></form>
+                        <li>
+                            <span>
+                                <strong>#@a.PostId</strong> @a.Post?.Title
+                                <span class="ent-chip">@a.State</span>
+                            </span>
+                            @if (a.State == ApprovalState.Submitted || a.State == ApprovalState.InReview)
+                            {
+                                <span class="d-flex gap-1">
+                                    <form method="post" asp-action="ResolveApproval">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@a.Id" />
+                                        <input type="hidden" name="approve" value="true" />
+                                        <button class="ent-btn ent-btn-primary ent-btn-sm" type="submit">@T["ent.approve"]</button>
+                                    </form>
+                                    <form method="post" asp-action="ResolveApproval">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@a.Id" />
+                                        <input type="hidden" name="approve" value="false" />
+                                        <button class="ent-btn ent-btn-ghost ent-btn-sm" type="submit">@T["ent.reject"]</button>
+                                    </form>
+                                </span>
+                            }
                         </li>
                     }
                 </ul>
-                <a class="small" asp-action="DrRunbook">Disaster recovery runbook →</a>
-            </div>
+            }
+        </div>
+    </section>
 
-            <div class="card-surface p-3 mb-3">
-                <h2 class="h6">Localization (editorial)</h2>
-                <form method="post" asp-action="Localization" class="row g-2 mb-2">
+    <section class="ent-panel" data-ent-panel="compliance">
+        <div class="ent-grid-2">
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <div>
+                        <h3>@T["ent.legal_title"]</h3>
+                        <p class="ent-card-sub">@T["ent.legal_sub"]</p>
+                    </div>
+                </div>
+                <form method="post" asp-action="LegalHold">
                     @Html.AntiForgeryToken()
-                    <div class="col-3"><input name="key" class="form-control form-control-sm" placeholder="key" required /></div>
-                    <div class="col-2"><input name="languageCode" class="form-control form-control-sm" value="fa" /></div>
-                    <div class="col-5"><input name="value" class="form-control form-control-sm" placeholder="value" required /></div>
-                    <div class="col-2"><button class="btn btn-accent btn-sm w-100" type="submit">Save</button></div>
+                    <div class="ent-form-row">
+                        <input name="postId" class="ent-input" placeholder="@T["ent.ph_post_id"]" />
+                        <input name="targetUserId" class="ent-input" placeholder="@T["ent.ph_user_id"]" />
+                    </div>
+                    <div class="ent-form-row">
+                        <input name="reason" class="ent-input" placeholder="@T["ent.ph_reason"]" required />
+                        <button class="ent-btn ent-btn-ghost" type="submit">@T["ent.place_hold"]</button>
+                    </div>
                 </form>
-                <ul class="small mb-0">
-                    @foreach (var L in locs.Take(30))
-                    {
-                        <li><span class="ltr-field">@L.Key</span> [@L.LanguageCode] @L.Status — @L.Value</li>
-                    }
-                </ul>
+            </div>
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <div>
+                        <h3>@T["ent.gdpr_title"]</h3>
+                        <p class="ent-card-sub">@T["ent.gdpr_sub"]</p>
+                    </div>
+                </div>
+                <form method="post" asp-action="GdprExport" class="ent-form-row">
+                    @Html.AntiForgeryToken()
+                    <input name="targetUserId" class="ent-input" placeholder="@T["ent.ph_user_id"]" required />
+                    <button class="ent-btn ent-btn-primary" type="submit">@T["ent.export_json"]</button>
+                </form>
+                <form method="post" asp-action="GdprErase" class="ent-form-row" onsubmit="return confirm('@T["ent.confirm_erase"]');">
+                    @Html.AntiForgeryToken()
+                    <input name="targetUserId" class="ent-input" placeholder="@T["ent.ph_user_id"]" required />
+                    <button class="ent-btn ent-btn-danger" type="submit">@T["ent.erase"]</button>
+                </form>
             </div>
         </div>
-    </div>
+    </section>
+
+    <section class="ent-panel" data-ent-panel="backup">
+        <div class="ent-card">
+            <div class="ent-card-head">
+                <div>
+                    <h3>@T["ent.backup_title"]</h3>
+                    <p class="ent-card-sub">@T["ent.backup_sub"]</p>
+                </div>
+                <a class="ent-btn ent-btn-primary" asp-controller="AdminBackup" asp-action="Index">@T["ent.open_backup"]</a>
+            </div>
+            <form method="post" asp-action="Backup" class="ent-form-row">
+                @Html.AntiForgeryToken()
+                <button class="ent-btn ent-btn-ghost" type="submit">@T["ent.create_backup"]</button>
+            </form>
+            @if (!backups.Any())
+            {
+                <div class="ent-empty">@T["ent.backup_empty"]</div>
+            }
+            else
+            {
+                <ul class="ent-list">
+                    @foreach (var b in backups.Take(15))
+                    {
+                        <li>
+                            <span class="ltr-field ent-code">@b.FileName</span>
+                            <span class="ltr-field small text-muted">@b.CreatedAtUtc.ToString("u")</span>
+                            <form method="post" asp-action="Restore">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="backupId" value="@b.Id" />
+                                <button class="ent-btn ent-btn-ghost ent-btn-sm" type="submit">@T["ent.stage_restore"]</button>
+                            </form>
+                        </li>
+                    }
+                </ul>
+            }
+            <p class="mt-2 mb-0"><a class="ent-link" asp-action="DrRunbook">@T["ent.dr_runbook"]</a></p>
+        </div>
+    </section>
+
+    <section class="ent-panel" data-ent-panel="i18n">
+        <div class="ent-card">
+            <div class="ent-card-head">
+                <div>
+                    <h3>@T["ent.i18n_title"]</h3>
+                    <p class="ent-card-sub">@T["ent.i18n_sub"]</p>
+                </div>
+            </div>
+            <form method="post" asp-action="Localization" class="ent-form-row">
+                @Html.AntiForgeryToken()
+                <input name="key" class="ent-input ltr-field" placeholder="key" required />
+                <input name="languageCode" class="ent-input ltr-field" style="flex:0 1 4rem" value="fa" />
+                <input name="value" class="ent-input" placeholder="value" required />
+                <button class="ent-btn ent-btn-primary" type="submit">@T["btn.save"]</button>
+            </form>
+            @if (!locs.Any())
+            {
+                <div class="ent-empty">@T["ent.i18n_empty"]</div>
+            }
+            else
+            {
+                <ul class="ent-list">
+                    @foreach (var L in locs.Take(40))
+                    {
+                        <li>
+                            <span><span class="ent-code">@L.Key</span> <span class="ent-chip">@L.LanguageCode</span> @L.Status</span>
+                            <span class="small">@L.Value</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </section>
 </div>
+
+@section Scripts {
+<script src="~/js/admin-enterprise.js" asp-append-version="true"></script>
+}
