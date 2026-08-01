@@ -44,7 +44,8 @@ public sealed class SiteConfigService : ISiteConfigService
             [SiteSettingKeys.MaintenanceMessage] = "سایت موقتاً در حال نگهداری است. کمی بعد برگردید.",
             [SiteSettingKeys.AnnouncementEnabled] = "false",
             [SiteSettingKeys.AnnouncementText] = "",
-            [SiteSettingKeys.AnnouncementStyle] = "info"
+            [SiteSettingKeys.AnnouncementStyle] = "info",
+            [SiteSettingKeys.AnnouncementVersion] = "0"
         };
 
         foreach (var (key, value) in defaults)

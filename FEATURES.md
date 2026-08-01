@@ -23,8 +23,8 @@ Items below are **not** fully done yet. Everything else is treated as shipped in
 
 ### Administration
 
-* Announcement Banner (site-wide dismissible)
-* Moderation Queue polish (spam + reports in one inbox)
+* ~~Announcement Banner (site-wide dismissible)~~
+* ~~Moderation Queue polish (spam + reports in one inbox)~~
 
 ### API
 
@@ -98,4 +98,4 @@ Items below are **not** fully done yet. Everything else is treated as shipped in
 
 ## Implemented (reference)
 
-Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (FTS5 full-content / Spotlight-style) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, search keyword analytics & reading duration & bounce rate, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events.
+Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (FTS5 full-content / Spotlight-style) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, search keyword analytics & reading duration & bounce rate, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events, dismissible site announcement banner, unified moderation queue (comments + reports + spam).
