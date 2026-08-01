@@ -1,36 +1,64 @@
-/* Admin chrome only — follow active theme vars (custom light/dark). No site-wide palette override. */
+/* Admin chrome only — follow active theme vars. Admin panel navbar/sidebar only. */
+
+/* Kill hardcoded dark topbar from older admin-rtl builds */
+.admin-body .admin-topbar,
+.admin-shell .admin-topbar,
+header.admin-topbar,
 .admin-topbar {
-  background: color-mix(in srgb, var(--surface) 94%, transparent) !important;
-  border-bottom-color: var(--border-soft) !important;
-  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 96%, transparent) !important;
+  border-bottom: 1px solid var(--border-soft) !important;
+  color: var(--text) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
+
 .admin-topbar h1,
 .admin-topbar .eyebrow,
-.admin-breadcrumb,
-.admin-breadcrumb .bc-link {
-  color: inherit;
+.admin-topbar-titles,
+.admin-topbar-titles h1 {
+  color: var(--text) !important;
 }
-.admin-breadcrumb .bc-link { color: var(--text-muted); }
-.admin-breadcrumb .bc-link:hover { color: var(--accent); }
+
+.admin-breadcrumb {
+  color: var(--text-faint) !important;
+}
+.admin-breadcrumb .bc-link {
+  color: var(--text-muted) !important;
+}
+.admin-breadcrumb .bc-link:hover {
+  color: var(--accent) !important;
+}
 
 .admin-sidebar {
   background: var(--surface) !important;
   border-inline-end-color: var(--border-soft) !important;
-  color: var(--text);
+  color: var(--text) !important;
 }
-.admin-sidebar .admin-nav-link { color: var(--text-muted); }
+.admin-sidebar .admin-nav-link {
+  color: var(--text-muted) !important;
+}
 .admin-sidebar .admin-nav-link:hover {
-  background: var(--surface-2);
-  color: var(--text);
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
 }
 .admin-sidebar .admin-nav-link.active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
 }
 .admin-brand {
-  border-bottom-color: var(--border-soft);
-  color: var(--text);
+  border-bottom-color: var(--border-soft) !important;
+  color: var(--text) !important;
 }
+.admin-sidebar-footer a,
+.admin-sidebar-footer .footer-link,
+.admin-sidebar-footer .footer-logout {
+  color: var(--text-muted) !important;
+}
+.admin-sidebar-footer a:hover,
+.admin-sidebar-footer .footer-link:hover {
+  color: var(--text) !important;
+}
+
 .admin-search-field {
   background: var(--surface-2) !important;
   border-color: var(--border) !important;
@@ -42,10 +70,15 @@
   border-color: var(--accent) !important;
   background: var(--surface) !important;
 }
+
 .admin-body {
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bg) !important;
+  color: var(--text) !important;
 }
 .admin-main {
-  background: var(--bg);
+  background: var(--bg) !important;
+  box-shadow: -8px 0 24px color-mix(in srgb, var(--text) 10%, transparent) !important;
+}
+html[dir="rtl"] .admin-main {
+  box-shadow: 8px 0 24px color-mix(in srgb, var(--text) 10%, transparent) !important;
 }
