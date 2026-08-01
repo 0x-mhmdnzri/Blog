@@ -22,6 +22,10 @@ public class AnalyticsDashboardViewModel
     public List<NamedCount> Countries { get; set; } = new();
     public List<NamedCount> Referrers { get; set; } = new();
     public List<NamedCount> SearchKeywords { get; set; } = new();
+    /// <summary>Queries that returned 0 hits (search quality signal).</summary>
+    public List<NamedCount> ZeroResultKeywords { get; set; } = new();
+    public int ZeroResultSearchCount { get; set; }
+    public double ZeroResultRatePercent { get; set; }
     public List<TopPostItem> PopularPosts { get; set; } = new();
     public List<TopPostItem> TrendingPosts { get; set; } = new();
     public List<HeatmapPoint> Heatmap { get; set; } = new();
