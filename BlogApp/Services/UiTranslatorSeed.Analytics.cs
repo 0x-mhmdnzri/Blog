@@ -24,7 +24,8 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.Monetization)
             .Concat(UiTranslationCatalog.Newsletter)
             .Concat(UiTranslationCatalog.Author)
-            .Concat(UiTranslationCatalog.Accessibility);
+            .Concat(UiTranslationCatalog.Accessibility)
+            .Concat(UiTranslationCatalog.Backup);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
@@ -47,40 +48,48 @@ public sealed partial class UiTranslatorService
         }
 
         var tracked = await _db.UiTranslations
-            .Where(t => t.Group == "ana" || t.Key == "admin.nav.analytics")
+            .Where(t => t.Group == "ana" || t.Key == "admin.nav.analytics"
+                        || t.Group == "bk" || t.Key == "admin.nav.backup")
             .ToListAsync(ct);
 
         var byId = tracked.ToDictionary(t => t.Key + "|" + t.LanguageCode, StringComparer.OrdinalIgnoreCase);
         var changed = 0;
-        foreach (var (key, group, fa, en, ar) in UiTranslationCatalog.Analytics)
+
+        void UpsertCatalog((string Key, string Group, string Fa, string En, string Ar)[] rows)
         {
-            foreach (var (code, value) in new[] { ("fa", fa), ("en", en), ("ar", ar) })
+            foreach (var (key, group, fa, en, ar) in rows)
             {
-                var id = key + "|" + code;
-                if (byId.TryGetValue(id, out var row))
+                foreach (var (code, value) in new[] { ("fa", fa), ("en", en), ("ar", ar) })
                 {
-                    if (row.Value != value)
+                    var id = key + "|" + code;
+                    if (byId.TryGetValue(id, out var row))
                     {
-                        row.Value = value;
-                        row.Group = group;
-                        row.UpdatedAtUtc = DateTime.UtcNow;
+                        if (row.Value != value)
+                        {
+                            row.Value = value;
+                            row.Group = group;
+                            row.UpdatedAtUtc = DateTime.UtcNow;
+                            changed++;
+                        }
+                    }
+                    else if (!set.Contains(id))
+                    {
+                        _db.UiTranslations.Add(new UiTranslation
+                        {
+                            Key = key,
+                            LanguageCode = code,
+                            Value = value,
+                            Group = group,
+                            UpdatedAtUtc = DateTime.UtcNow
+                        });
                         changed++;
                     }
                 }
-                else if (!set.Contains(id))
-                {
-                    _db.UiTranslations.Add(new UiTranslation
-                    {
-                        Key = key,
-                        LanguageCode = code,
-                        Value = value,
-                        Group = group,
-                        UpdatedAtUtc = DateTime.UtcNow
-                    });
-                    changed++;
-                }
             }
         }
+
+        UpsertCatalog(UiTranslationCatalog.Analytics);
+        UpsertCatalog(UiTranslationCatalog.Backup);
 
         if (added > 0 || changed > 0)
             await _db.SaveChangesAsync(ct);
