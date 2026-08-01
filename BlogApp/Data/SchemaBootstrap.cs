@@ -157,6 +157,7 @@ public static partial class SchemaBootstrap
         await EnsureMonetizationTablesAsync(db);
         await EnsureSocialTablesAsync(db);
         await EnsurePerformanceTablesAsync(db);
+        await EnsureSearchFtsAsync(db);
         await EnsureAdminSearchAsync(db);
         await EnsureApiTablesAsync(db);
         await EnsureNewsletterTablesAsync(db);
