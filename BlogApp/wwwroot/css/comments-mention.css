@@ -1,0 +1,75 @@
+/* Telegram-style @mention typeahead */
+.cmt-mention-dropdown {
+  position: absolute;
+  z-index: 1200;
+  min-width: 240px;
+  max-width: 320px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.35rem;
+  border-radius: 14px;
+  background: var(--surface, #161b22);
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.35),
+    0 0 0 1px rgba(255,255,255,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.cmt-mention-dropdown[hidden] { display: none !important; }
+
+.cmt-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+}
+.cmt-mention-item:hover,
+.cmt-mention-item.is-active {
+  background: color-mix(in srgb, var(--accent, #e3b341) 14%, transparent);
+}
+.cmt-mention-av {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface-2, #1c2330);
+}
+.cmt-mention-av--ph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent, #e3b341);
+}
+.cmt-mention-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.05rem;
+}
+.cmt-mention-name {
+  font-size: 0.88rem;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmt-mention-user {
+  font-size: 0.75rem;
+  color: var(--text-muted, #8b949e);
+  direction: ltr;
+  text-align: start;
+}
