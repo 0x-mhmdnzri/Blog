@@ -26,7 +26,8 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.Author)
             .Concat(UiTranslationCatalog.Accessibility)
             .Concat(UiTranslationCatalog.Backup)
-            .Concat(UiTranslationCatalog.Enterprise);
+            .Concat(UiTranslationCatalog.Enterprise)
+            .Concat(UiTranslationCatalog.CrmNav);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
@@ -51,7 +52,8 @@ public sealed partial class UiTranslatorService
         var tracked = await _db.UiTranslations
             .Where(t => t.Group == "ana" || t.Key == "admin.nav.analytics"
                         || t.Group == "bk" || t.Key == "admin.nav.backup"
-                        || t.Group == "ent" || t.Key == "admin.nav.enterprise")
+                        || t.Group == "ent" || t.Key == "admin.nav.enterprise"
+                        || t.Group == "crm" || t.Key.StartsWith("crm.nav"))
             .ToListAsync(ct);
 
         var byId = tracked.ToDictionary(t => t.Key + "|" + t.LanguageCode, StringComparer.OrdinalIgnoreCase);
@@ -93,6 +95,7 @@ public sealed partial class UiTranslatorService
         UpsertCatalog(UiTranslationCatalog.Analytics);
         UpsertCatalog(UiTranslationCatalog.Backup);
         UpsertCatalog(UiTranslationCatalog.Enterprise);
+        UpsertCatalog(UiTranslationCatalog.CrmNav);
 
         if (added > 0 || changed > 0)
             await _db.SaveChangesAsync(ct);
