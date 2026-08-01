@@ -10,7 +10,7 @@ public partial class PostsController
 {
     /// <summary>
     /// FEATURES.md: Post → newsletter one-click send.
-    /// Creates a draft/scheduled NewsletterCampaign from the published post and queues send.
+    /// Creates a NewsletterCampaign from the published post and queues send.
     /// </summary>
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
@@ -28,8 +28,11 @@ public partial class PostsController
         if (!User.IsInRole(AppRoles.SuperAdmin) && post.AuthorId != userId)
             return Forbid();
 
-        var bodyHtml = $
-"<p>{System.Net.WebUtility.HtmlEncode(post.Summary ?? "")}</p>\n<p><a href=\"/post/{System.Net.WebUtility.HtmlEncode(post.Slug)}\">Read full post →</a></p>";
+        var summary = System.Net.WebUtility.HtmlEncode(post.Summary ?? "");
+        var slug = System.Net.WebUtility.HtmlEncode(post.Slug);
+        var bodyHtml =
+            "<p>" + summary + "</p>\n" +
+            "<p><a href=\"/post/" + slug + "\">Read full post →</a></p>";
 
         var campaign = new NewsletterCampaign
         {
