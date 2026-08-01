@@ -88,6 +88,12 @@ public class NotificationCampaign
     public DateTime? ScheduledAtUtc { get; set; }
     public DateTime? SentAtUtc { get; set; }
 
+    public bool IsSent { get; set; }
+    public int RecipientCount { get; set; }
+
+    [MaxLength(4000)]
+    public string? TargetUserIdsCsv { get; set; }
+
     [MaxLength(450)]
     public string? CreatedByUserId { get; set; }
 
@@ -111,7 +117,14 @@ public class NotificationPreference
     public bool NotifyNewFollower { get; set; } = true;
     public bool NotifyNewPostFromFollowed { get; set; } = true;
 
+    public bool WeeklyDigest { get; set; }
+
+    [MaxLength(32)]
+    public string? PhoneE164 { get; set; }
+
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public ApplicationUser? User { get; set; }
 }
 
 public class AuthorFollow
@@ -125,6 +138,9 @@ public class AuthorFollow
     public string AuthorUserId { get; set; } = string.Empty;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public ApplicationUser? Follower { get; set; }
+    public ApplicationUser? Author { get; set; }
 }
 
 public class OutboundMessage
