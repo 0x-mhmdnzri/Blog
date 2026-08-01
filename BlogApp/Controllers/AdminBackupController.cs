@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BlogApp.Models;
+using BlogApp.Services;
 using BlogApp.Services.Backup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,15 +14,18 @@ public class AdminBackupController : Controller
 {
     private readonly IAppBackupService _backup;
     private readonly IOptions<BackupOptions> _options;
+    private readonly IUiTranslator _t;
     private readonly ILogger<AdminBackupController> _log;
 
     public AdminBackupController(
         IAppBackupService backup,
         IOptions<BackupOptions> options,
+        IUiTranslator t,
         ILogger<AdminBackupController> log)
     {
         _backup = backup;
         _options = options;
+        _t = t;
         _log = log;
     }
 
@@ -31,7 +35,7 @@ public class AdminBackupController : Controller
     [HttpGet("Index")]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
-        ViewData["Title"] = "Backup & storage";
+        ViewData["Title"] = _t["admin.nav.backup"];
         var list = await _backup.ListAsync(ct);
         var snap = _backup.GetStorageSnapshot();
         ViewBag.Backups = list;
@@ -40,7 +44,6 @@ public class AdminBackupController : Controller
         return View();
     }
 
-    /// <summary>JSON metrics for live polling (storage + cumulative process I/O).</summary>
     [HttpGet("Stats")]
     public IActionResult Stats()
     {
@@ -55,7 +58,8 @@ public class AdminBackupController : Controller
         try
         {
             var rec = await _backup.CreateFullBackupAsync(ActorId, "manual", ct);
-            TempData["FlashOk"] = $"Backup ready: {rec.FileName} ({FormatBytes(rec.SizeBytes)})";
+            TempData["FlashOk"] = string.Format(
+                _t["bk.flash_ready"], rec.FileName, FormatBytes(rec.SizeBytes));
             if (download)
                 return RedirectToAction(nameof(Download), new { id = rec.Id });
             return RedirectToAction(nameof(Index));
@@ -63,7 +67,7 @@ public class AdminBackupController : Controller
         catch (Exception ex)
         {
             _log.LogError(ex, "Manual full backup failed");
-            TempData["FlashErr"] = "Backup failed: " + ex.Message;
+            TempData["FlashErr"] = string.Format(_t["bk.flash_failed"], ex.Message);
             return RedirectToAction(nameof(Index));
         }
     }
@@ -74,7 +78,7 @@ public class AdminBackupController : Controller
         var path = _backup.GetBackupFilePath(id);
         if (path is null)
         {
-            TempData["FlashErr"] = "Backup file not found on disk.";
+            TempData["FlashErr"] = _t["bk.flash_missing"];
             return RedirectToAction(nameof(Index));
         }
 
@@ -89,7 +93,7 @@ public class AdminBackupController : Controller
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var ok = await _backup.DeleteBackupAsync(id, ActorId, ct);
-        TempData[ok ? "FlashOk" : "FlashErr"] = ok ? "Backup deleted." : "Backup not found.";
+        TempData[ok ? "FlashOk" : "FlashErr"] = ok ? _t["bk.flash_deleted"] : _t["bk.flash_not_found"];
         return RedirectToAction(nameof(Index));
     }
 
@@ -98,7 +102,9 @@ public class AdminBackupController : Controller
     public async Task<IActionResult> Retention(CancellationToken ct)
     {
         var n = await _backup.EnforceRetentionAsync(ct);
-        TempData["FlashOk"] = n == 0 ? "Nothing to purge." : $"Purged {n} old backup(s).";
+        TempData["FlashOk"] = n == 0
+            ? _t["bk.flash_purge_none"]
+            : string.Format(_t["bk.flash_purged"], n);
         return RedirectToAction(nameof(Index));
     }
 
