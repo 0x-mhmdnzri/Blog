@@ -6,7 +6,6 @@ using BlogApp.Services.Analytics;
 using BlogApp.Services.Performance;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
@@ -36,7 +35,6 @@ public class HomeController : Controller
         _search = search;
     }
 
-    [OutputCache(PolicyName = "home")]
     public async Task<IActionResult> Index(
         string? category,
         string? tag,
@@ -46,14 +44,6 @@ public class HomeController : Controller
         bool? featured = null,
         int? minRead = null,
         string? partial = null)
-    {
-        // NOTE: full body restored from git history — see repo
-        return await IndexCore(category, tag, q, page, sort, featured, minRead, partial);
-    }
-
-    private async Task<IActionResult> IndexCore(
-        string? category, string? tag, string? q, int page,
-        string? sort, bool? featured, int? minRead, string? partial)
     {
         const int pageSize = 8;
         if (page < 1) page = 1;
@@ -80,68 +70,160 @@ public class HomeController : Controller
             var skip = (page - 1) * pageSize;
             var countTask = CompiledQueries.HomeRecentCount(_db, lang, now);
             var postsTask = ToListAsync(CompiledQueries.HomeRecentPage(_db, lang, now, skip, pageSize));
+
             await Task.WhenAll(countTask, postsTask, catsTask);
+
             total = await countTask;
             posts = await postsTask;
             categories = await catsTask;
         }
         else
         {
-            // Full query path is in git history; minimal fallback to avoid empty site
-            categories = await catsTask;
-            var query = _db.Posts.AsNoTracking()
-                .Where(p => p.IsPublished && !p.IsDeleted && p.LanguageCode == lang
-                    && (p.PublishedAtUtc == null || p.PublishedAtUtc <= now)
-                    && (p.ExpiresAtUtc == null || p.ExpiresAtUtc > now));
+            List<int>? ftsOrder = null;
+            var query = _db.Posts
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted)
+                .Where(p => p.LanguageCode == lang)
+                .Where(p => p.IsPublished
+                            || isAuthor
+                            || (p.ScheduledPublishAtUtc != null && p.ScheduledPublishAtUtc <= now))
+                .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now || isAuthor)
+                .Where(p => isAuthor
+                            || p.TranslationStatus == TranslationStatus.Original
+                            || p.TranslationStatus == TranslationStatus.Approved);
+
             if (!string.IsNullOrWhiteSpace(category))
                 query = query.Where(p => p.Category != null && p.Category.Slug == category);
+
             if (!string.IsNullOrWhiteSpace(tag))
                 query = query.Where(p => p.PostTags.Any(pt => pt.Tag.Slug == tag));
+
+            if (featured == true)
+                query = query.Where(p => p.IsFeatured);
+            if (minRead is > 0)
+                query = query.Where(p => p.ReadingTimeMinutes >= minRead);
+
             if (!string.IsNullOrWhiteSpace(q))
             {
-                var term = q.Trim();
-                query = query.Where(p => p.Title.Contains(term) || (p.Summary != null && p.Summary.Contains(term)));
-            }
-            total = await query.CountAsync();
-            posts = await query.OrderByDescending(p => p.PublishedAtUtc ?? p.CreatedAtUtc)
-                .Skip((page - 1) * pageSize).Take(pageSize)
-                .Select(p => new PostListItemViewModel
+                ftsOrder = await _search.SearchPostIdsAsync(q, take: 500);
+                var ftsIds = ftsOrder;
+                if (ftsIds.Count == 0)
+                    query = query.Where(p => false);
+                else
                 {
-                    Id = p.Id,
-                    Title = p.Title,
-                    Slug = p.Slug,
-                    Summary = p.Summary,
-                    CoverImageUrl = p.CoverImageUrl,
-                    PublishedAtUtc = p.PublishedAtUtc,
-                    ReadingTimeMinutes = p.ReadingTimeMinutes,
-                    ViewCount = p.ViewCount,
-                    CategoryName = p.Category != null ? p.Category.Name : null,
-                    AuthorName = p.Author != null ? p.Author.UserName : null,
-                    LanguageCode = p.LanguageCode,
-                    IsFeatured = p.IsFeatured,
-                    Tags = p.PostTags.Select(pt => pt.Tag.Name).ToList()
-                }).ToListAsync();
+                    query = _db.Posts
+                        .AsNoTracking()
+                        .Where(p => !p.IsDeleted)
+                        .Where(p => p.IsPublished
+                                    || isAuthor
+                                    || (p.ScheduledPublishAtUtc != null && p.ScheduledPublishAtUtc <= now))
+                        .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now || isAuthor)
+                        .Where(p => isAuthor
+                                    || p.TranslationStatus == TranslationStatus.Original
+                                    || p.TranslationStatus == TranslationStatus.Approved)
+                        .Where(p => ftsIds.Contains(p.Id));
+
+                    if (!string.IsNullOrWhiteSpace(category))
+                        query = query.Where(p => p.Category != null && p.Category.Slug == category);
+                    if (!string.IsNullOrWhiteSpace(tag))
+                        query = query.Where(p => p.PostTags.Any(pt => pt.Tag.Slug == tag));
+                    if (featured == true)
+                        query = query.Where(p => p.IsFeatured);
+                    if (minRead is > 0)
+                        query = query.Where(p => p.ReadingTimeMinutes >= minRead);
+                }
+            }
+
+            query = (sort?.ToLowerInvariant()) switch
+            {
+                "popular" => query.OrderByDescending(p => p.ViewCount).ThenByDescending(p => p.PublishedAtUtc),
+                "oldest" => query.OrderBy(p => p.PublishedAtUtc ?? p.CreatedAtUtc),
+                "read" => query.OrderBy(p => p.ReadingTimeMinutes).ThenByDescending(p => p.PublishedAtUtc),
+                _ => query.OrderByDescending(p => p.IsSticky)
+                          .ThenByDescending(p => p.IsFeatured)
+                          .ThenByDescending(p => p.IsPublished ? p.PublishedAtUtc : p.CreatedAtUtc)
+            };
+
+            var projected = query.Select(p => new PostListItemViewModel
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Soft = p.Slug,
+                Summary = p.Summary,
+                CategoryName = p.Category != null ? p.Category.Name : null,
+                PublishedAtUtc = p.PublishedAtUtc,
+                CoverMediaAssetId = p.CoverMediaAssetId,
+                IsPublished = p.IsPublished,
+                IsFeatured = p.IsFeatured,
+                IsSticky = p.IsSticky,
+                ReadingTimeMinutes = p.ReadingTimeMinutes,
+                LanguageCode = p.LanguageCode,
+                Tags = p.PostTags.Select(pt => pt.Tag.Name).ToList()
+            });
+
+            var totalTask = projected.CountAsync();
+            var postsTask = projected.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            await Task.WhenAll(totalTask, postsTask, catsTask);
+
+            total = await totalTask;
+            posts = await postsTask;
+            categories = await catsTask;
+
+            if (ftsOrder is { Count: > 0 } && string.IsNullOrWhiteSpace(sort))
+            {
+                var rank = ftsOrder.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+                posts = posts.OrderBy(p => rank.GetValueOrDefault(p.Id, int.MaxValue)).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(q))
+                await _analytics.TrackSearchAsync(HttpContext, q.Trim(), total);
         }
 
+        ViewBag.Categories = categories;
         ViewBag.CurrentCategory = category;
         ViewBag.CurrentTag = tag;
-        ViewBag.Query = q;
+        ViewBag.SearchQuery = q;
         ViewBag.Page = page;
         ViewBag.TotalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
-        ViewBag.Categories = categories;
+        ViewBag.TotalCount = total;
+        ViewBag.CurrentCulture = _culture.Current;
         ViewBag.Sort = sort;
-        ViewData["Title"] = _seo.SiteName;
+        ViewBag.Featured = featured;
+        ViewBag.MinRead = minRead;
 
-        if (string.Equals(partial, "1", StringComparison.Ordinal) || string.Equals(partial, "true", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(partial, "1", StringComparison.Ordinal)
+            || (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase) && page > 1))
+        {
             return PartialView("_PostCards", posts);
+        }
+
+        ViewData["Description"] = _seo.SiteDescription;
+        ViewData["OgType"] = "website";
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var canonical = string.IsNullOrEmpty(category) && string.IsNullOrEmpty(tag) && string.IsNullOrEmpty(q) && page == 1
+            ? $"{baseUrl}/{lang}/"
+            : $"{baseUrl}/{lang}{Request.Path}{Request.QueryString}";
+        ViewData["Canonical"] = canonical;
+        ViewBag.WebsiteJsonLd = _seo.BuildWebsiteJsonLd(baseUrl);
+        ViewBag.CollectionJsonLd = _seo.BuildCollectionJsonLd(
+            baseUrl,
+            canonical,
+            ViewData["Title"] as string ?? _seo.SiteName,
+            _seo.SiteDescription,
+            posts.Select(p => (
+                p.Title,
+                $"{baseUrl}/{p.LanguageCode}/post/{p.Slug}",
+                p.PublishedAtUtc?.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+            )));
 
         return View(posts);
     }
 
-    private static async Task<List<PostListItemViewModel>> ToListAsync(IAsyncEnumerable<PostListItemViewModel> src)
+    private static async Task<List<T>> ToListAsync<T>(IAsyncEnumerable<T> source)
     {
-        var list = new List<PostListItemViewModel>();
-        await foreach (var item in src)
+        var list = new List<T>();
+        await foreach (var item in source)
             list.Add(item);
         return list;
     }
@@ -155,6 +237,7 @@ public class HomeController : Controller
 
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var hits = await _search.SearchHitsAsync(q, take: 10);
+
         try { await _analytics.TrackSearchAsync(HttpContext, q.Trim(), hits.Count); } catch { }
 
         var results = hits.Select(h => new
@@ -167,6 +250,7 @@ public class HomeController : Controller
             author = h.AuthorName,
             url = baseUrl + "/" + h.LanguageCode + "/post/" + h.Slug
         });
+
         return Json(results);
     }
 
@@ -195,17 +279,25 @@ public class HomeController : Controller
     {
         var feature = HttpContext.Features.Get<IStatusCodeReExecuteFeature>();
         var code = statusCode ?? HttpContext.Response.StatusCode;
-        if (code < 400) code = 500;
+        if (code < 400)
+            code = 500;
+
         HttpContext.Response.StatusCode = code;
-        var known = code is 400 or 401 or 403 or 404 or 405 or 408 or 429 or 500 or 502 or 503 ? code : 0;
+
+        var known = code is 400 or 401 or 403 or 404 or 405 or 408 or 429 or 500 or 502 or 503
+            ? code
+            : 0;
+
         var titleKey = known > 0 ? $"err.{known}.title" : "err.generic.title";
         var msgKey = known > 0 ? $"err.{known}.msg" : "err.generic.msg";
+
         ViewData["Title"] = _t[titleKey];
         ViewData["NoIndex"] = true;
         ViewBag.StatusCode = code;
         ViewBag.ErrorTitle = _t[titleKey];
         ViewBag.ErrorMessage = _t[msgKey];
         ViewBag.OriginalPath = feature?.OriginalPath;
+
         return View();
     }
 }
