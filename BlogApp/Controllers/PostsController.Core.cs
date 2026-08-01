@@ -37,15 +37,13 @@ public partial class PostsController
             return NotFound();
         }
 
-        if (!post.IsPublished && !User.Identity!.IsAuthenticated)
-            return NotFound();
+        // Unpublished: only the author or SuperAdmin (CanManageAllPosts)
         if (!post.IsPublished && !AuthorAccess.OwnsPost(User, post))
             return NotFound();
 
         post.ViewCount++;
         await _db.SaveChangesAsync();
 
-        // View expects RenderedHtml (body) + TocHtml (sidebar) — NOT ViewBag.Html
         ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(
             post.ContentMarkdown ?? string.Empty,
             includeToc: false,
@@ -56,6 +54,8 @@ public partial class PostsController
             post.LanguageCode);
         ViewBag.ReadingTimeMinutes = Math.Max(1, post.ReadingTimeMinutes);
         ViewBag.CommentSort = string.Equals(sort, "latest", StringComparison.OrdinalIgnoreCase) ? "latest" : "relevant";
+        ViewBag.CanEdit = AuthorAccess.OwnsPost(User, post);
+        ViewBag.CurrentUserId = AuthorAccess.UserId(User);
         ViewData["Title"] = post.Title;
 
         try { await LoadTaxonomyContextAsync(post); } catch (Exception ex) { _logger.LogDebug(ex, "Taxonomy context"); }
@@ -81,11 +81,9 @@ public partial class PostsController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PostEditViewModel vm)
     {
-        // If AutoSave already created a draft, treat this as Edit so we don't lose body or duplicate
         if (vm.Id > 0)
             return await Edit(vm.Id, vm);
 
-        // Prefer raw form field if model binder missed it
         if (string.IsNullOrWhiteSpace(vm.ContentMarkdown)
             && Request.Form.TryGetValue("ContentMarkdown", out var rawBody)
             && !string.IsNullOrWhiteSpace(rawBody))
@@ -102,10 +100,14 @@ public partial class PostsController
             vm.AvailableCategories = await GetCategoryOptionsAsync();
             return View(vm);
         }
+
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
+
         var authorId = AuthorAccess.UserId(User)!;
         var lang = AppCultures.Normalize(vm.LanguageCode);
         var uniqueSlug = await MakeUniqueSlugAsync(SlugHelper.Slugify(vm.Title), lang);
         var wantPublish = ResolvePublishFlag(vm);
+
         var post = new Post
         {
             Title = vm.Title,
@@ -115,19 +117,18 @@ public partial class PostsController
             ContentMarkdown = vm.ContentMarkdown,
             CategoryId = vm.CategoryId,
             CoverMediaAssetId = vm.CoverMediaAssetId,
-            IsPublished = wantPublish && !vm.ScheduledPublishAtUtc.HasValue,
-            ScheduledPublishAtUtc = vm.ScheduledPublishAtUtc,
-            ExpiresAtUtc = vm.ExpiresAtUtc,
             IsFeatured = vm.IsFeatured,
             IsSticky = vm.IsSticky,
             IsPremium = vm.IsPremium,
             IsSponsored = vm.IsSponsored,
             SponsoredLabel = vm.SponsoredLabel?.Trim(),
             ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown),
-            PublishedAtUtc = (wantPublish && !vm.ScheduledPublishAtUtc.HasValue) ? DateTime.UtcNow : null,
             LanguageCode = lang,
             TranslationStatus = TranslationStatus.Original
         };
+
+        ApplyPublishState(post, wantPublish, vm.ScheduledPublishAtUtc, vm.ExpiresAtUtc, wasPublished: false);
+
         await ApplyTagsAsync(post, vm.TagsCsv);
         _db.Posts.Add(post);
         await _db.SaveChangesAsync();
@@ -190,12 +191,13 @@ public partial class PostsController
         if (vm.Id <= 0 && id > 0) vm.Id = id;
         if (id != vm.Id) return BadRequest();
 
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
+
         var post = await _db.Posts.Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
         if (post is null) return NotFound();
         if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
 
-        // Prefer raw form field if binder dropped large/hidden panel value
         if (string.IsNullOrWhiteSpace(vm.ContentMarkdown)
             && Request.Form.TryGetValue("ContentMarkdown", out var rawBody)
             && !string.IsNullOrWhiteSpace(rawBody))
@@ -204,7 +206,6 @@ public partial class PostsController
             ModelState.Remove(nameof(vm.ContentMarkdown));
         }
 
-        // Safety net: never wipe a non-empty body with empty client payload
         if (string.IsNullOrWhiteSpace(vm.ContentMarkdown))
         {
             if (!string.IsNullOrWhiteSpace(post.ContentMarkdown))
@@ -226,7 +227,6 @@ public partial class PostsController
                 {
                     vm.ContentMarkdown = lastRev;
                     ModelState.Remove(nameof(vm.ContentMarkdown));
-                    _logger.LogWarning("Edit PostId={Id}: restored ContentMarkdown from revision", id);
                 }
                 else
                 {
@@ -256,24 +256,11 @@ public partial class PostsController
         post.IsPremium = vm.IsPremium;
         post.IsSponsored = vm.IsSponsored;
         post.SponsoredLabel = vm.SponsoredLabel?.Trim();
-        post.ExpiresAtUtc = NormalizeOptionalDate(vm.ExpiresAtUtc);
         post.ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown);
         post.UpdatedAtUtc = DateTime.UtcNow;
         post.TranslationStatus = vm.TranslationStatus;
 
-        var scheduled = NormalizeOptionalDate(vm.ScheduledPublishAtUtc);
-        if (scheduled is DateTime when && when > DateTime.UtcNow.AddMinutes(1))
-        {
-            post.IsPublished = false;
-            post.ScheduledPublishAtUtc = when;
-        }
-        else
-        {
-            post.IsPublished = wantPublish;
-            post.ScheduledPublishAtUtc = null;
-            if (!wasPublished && wantPublish)
-                post.PublishedAtUtc = DateTime.UtcNow;
-        }
+        ApplyPublishState(post, wantPublish, vm.ScheduledPublishAtUtc, vm.ExpiresAtUtc, wasPublished);
 
         _db.PostTags.RemoveRange(post.PostTags);
         await ApplyTagsAsync(post, vm.TagsCsv);
@@ -281,14 +268,14 @@ public partial class PostsController
         if (changed) await SaveRevisionAsync(post, authorId, "after-edit");
 
         _logger.LogInformation(
-            "Edit saved PostId={Id} Published={Pub} BodyLen={Len}",
-            post.Id, post.IsPublished, post.ContentMarkdown?.Length ?? 0);
+            "Edit saved PostId={Id} Published={Pub} Scheduled={Sched} BodyLen={Len}",
+            post.Id, post.IsPublished, post.ScheduledPublishAtUtc, post.ContentMarkdown?.Length ?? 0);
 
         try
         {
             if (!wasPublished && post.IsPublished && post.PublishedAtUtc.HasValue)
                 await _events.PublishAsync(new PostPublishedDomainEvent(post.Id, post.Title, post.Slug, post.AuthorId, post.PublishedAtUtc.Value));
-            else if (wasPublished && !post.IsPublished)
+            else if (wasPublished && !post.IsPublished && post.ScheduledPublishAtUtc is null)
                 await _events.PublishAsync(new PostUnpublishedDomainEvent(post.Id, post.Slug));
         }
         catch (Exception ex)
@@ -299,7 +286,6 @@ public partial class PostsController
         return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
     }
 
-    /// <summary>Checkbox may bind false when hidden panel; also accept form "true"/"on".</summary>
     private bool ResolvePublishFlag(PostEditViewModel vm)
     {
         if (vm.IsPublished) return true;
@@ -314,14 +300,6 @@ public partial class PostsController
             }
         }
         return false;
-    }
-
-    private static DateTime? NormalizeOptionalDate(DateTime? value)
-    {
-        if (value is null) return null;
-        // datetime-local empty / default can bind as DateTime.MinValue
-        if (value.Value.Year < 2000) return null;
-        return DateTime.SpecifyKind(value.Value, DateTimeKind.Utc);
     }
 
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
