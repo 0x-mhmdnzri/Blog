@@ -148,7 +148,7 @@ public class HomeController : Controller
             {
                 Id = p.Id,
                 Title = p.Title,
-                slug = p.Slug,
+                Slug = p.Slug,
                 Summary = p.Summary,
                 CategoryName = p.Category != null ? p.Category.Name : null,
                 PublishedAtUtc = p.PublishedAtUtc,
