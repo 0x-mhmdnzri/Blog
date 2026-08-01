@@ -55,10 +55,23 @@ public class AdminSettingsController : Controller
         await _config.SetAsync(SiteSettingKeys.BaseUrl, vm.BaseUrl?.Trim());
         await _config.SetBoolAsync(SiteSettingKeys.MaintenanceMode, vm.MaintenanceMode);
         await _config.SetAsync(SiteSettingKeys.MaintenanceMessage, vm.MaintenanceMessage?.Trim());
+        var prevText = await _config.GetAsync(SiteSettingKeys.AnnouncementText) ?? "";
+        var prevOn = await _config.GetBoolAsync(SiteSettingKeys.AnnouncementEnabled);
+        var prevStyle = await _config.GetAsync(SiteSettingKeys.AnnouncementStyle) ?? "info";
+        var newText = vm.AnnouncementText?.Trim() ?? "";
+        var newStyle = string.IsNullOrWhiteSpace(vm.AnnouncementStyle) ? "info" : vm.AnnouncementStyle.Trim().ToLowerInvariant();
+
         await _config.SetBoolAsync(SiteSettingKeys.AnnouncementEnabled, vm.AnnouncementEnabled);
-        await _config.SetAsync(SiteSettingKeys.AnnouncementText, vm.AnnouncementText?.Trim());
-        await _config.SetAsync(SiteSettingKeys.AnnouncementStyle,
-            string.IsNullOrWhiteSpace(vm.AnnouncementStyle) ? "info" : vm.AnnouncementStyle.Trim().ToLowerInvariant());
+        await _config.SetAsync(SiteSettingKeys.AnnouncementText, newText);
+        await _config.SetAsync(SiteSettingKeys.AnnouncementStyle, newStyle);
+
+        // New content / style / re-enable → bump version so dismissed clients see it again
+        if (vm.AnnouncementEnabled
+            && (newText != prevText || newStyle != prevStyle || !prevOn || string.IsNullOrWhiteSpace(prevText)))
+        {
+            await _config.SetAsync(SiteSettingKeys.AnnouncementVersion,
+                DateTime.UtcNow.Ticks.ToString());
+        }
 
         await _audit.LogAsync("settings.update", "SiteSetting", null,
             $"Maintenance={vm.MaintenanceMode}; Announcement={vm.AnnouncementEnabled}", HttpContext);
