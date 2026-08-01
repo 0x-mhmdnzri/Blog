@@ -65,6 +65,9 @@ public sealed class EnterpriseService : IEnterpriseService
             IsIsolated = isolated,
             CreatedAtUtc = DateTime.UtcNow
         };
+        // fix: space after =
+        w.Code =Slug(code);
+        w.Code = Slug(code);
         _db.Workspaces.Add(w);
         await _db.SaveChangesAsync(ct);
         return w;
@@ -218,7 +221,7 @@ public sealed class EnterpriseService : IEnterpriseService
         };
         _db.LegalHolds.Add(h);
         await _db.SaveChangesAsync(ct);
-        await _audit.LogAsync(actorId, "legal_hold.place", $"post={postId} user={userId} reason={reason}");
+        await _audit.LogAsync("legal_hold.place", "LegalHold", h.Id.ToString(), $"post={postId} user={userId} reason={reason}");
         return h;
     }
 
@@ -230,7 +233,7 @@ public sealed class EnterpriseService : IEnterpriseService
         h.IsActive = false;
         h.ReleasedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
-        await _audit.LogAsync(actorId, "legal_hold.release", $"id={holdId}");
+        await _audit.LogAsync("legal_hold.release", "LegalHold", holdId.ToString(), $"actor={actorId}");
     }
 
     public Task<bool> IsOnLegalHoldAsync(int? postId, string? userId, CancellationToken ct = default)
@@ -267,7 +270,7 @@ public sealed class EnterpriseService : IEnterpriseService
         var payload = new
         {
             exportedAtUtc = DateTime.UtcNow,
-            user = user is null ? null : new { user.Id, user.UserName, user.Email, user.PhoneNumber },
+            user = user is null ? null : new { user.Id, user.UserName, user.Email, user.PhoneNumber, user.DisplayName },
             posts,
             comments,
             consents
@@ -304,22 +307,18 @@ public sealed class EnterpriseService : IEnterpriseService
         foreach (var c in comments)
         {
             c.Body = "[redacted]";
+            c.AuthorName = "Deleted";
+            c.AuthorEmail = null;
             c.UserId = null;
-        }
-
-        var posts = await _db.Posts.Where(p => p.AuthorId == userId).ToListAsync(ct);
-        foreach (var p in posts)
-        {
-            // keep content for editorial integrity but anonymize author link if possible
-            p.AuthorId = p.AuthorId; // retained for FK; soft anonymize via profile wipe
         }
 
         var user = await _users.FindByIdAsync(userId);
         if (user is not null)
         {
-            user.Email = $"erased-{userId.AsSpan(0, Math.Min(8, userId.Length))}@invalid.local";
+            var shortId = userId.Length >= 8 ? userId[..8] : userId;
+            user.Email = $"erased-{shortId}@invalid.local";
             user.NormalizedEmail = user.Email.ToUpperInvariant();
-            user.UserName = $"erased_{userId[..Math.Min(8, userId.Length)]}";
+            user.UserName = $"erased_{shortId}";
             user.NormalizedUserName = user.UserName.ToUpperInvariant();
             user.PhoneNumber = null;
             user.ProfileImage = null;
@@ -329,7 +328,7 @@ public sealed class EnterpriseService : IEnterpriseService
         }
 
         await _db.SaveChangesAsync(ct);
-        await _audit.LogAsync(actorId, "gdpr.erase", $"user={userId}");
+        await _audit.LogAsync("gdpr.erase", "User", userId, $"actor={actorId}");
         _log.LogWarning("GDPR erase completed for {UserId} by {Actor}", userId, actorId);
     }
 
@@ -342,27 +341,26 @@ public sealed class EnterpriseService : IEnterpriseService
         var fileName = $"blog-backup-{stamp}.zip";
         var zipPath = Path.Combine(dataDir, fileName);
 
-        // Snapshot sqlite db if present
-        var dbPath = Path.Combine(_env.ContentRootPath, "blog.db");
-        if (!File.Exists(dbPath))
+        var candidates = new[]
         {
-            // try relative data source
-            dbPath = Path.GetFullPath(Path.Combine(_env.ContentRootPath, "..", "blog.db"));
-        }
+            Path.Combine(_env.ContentRootPath, "blog.db"),
+            Path.GetFullPath(Path.Combine(_env.ContentRootPath, "..", "blog.db")),
+            Path.Combine(Directory.GetCurrentDirectory(), "blog.db")
+        };
+        var dbPath = candidates.FirstOrDefault(File.Exists);
 
         await using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
         {
-            if (File.Exists(dbPath))
-            {
+            if (dbPath is not null)
                 zip.CreateEntryFromFile(dbPath, "blog.db", CompressionLevel.Optimal);
-            }
+
             var meta = zip.CreateEntry("manifest.json");
             await using var w = new StreamWriter(meta.Open());
             await w.WriteAsync(JsonSerializer.Serialize(new
             {
                 createdAtUtc = DateTime.UtcNow,
                 actorId,
-                includes = new[] { "blog.db" }
+                includes = dbPath is null ? Array.Empty<string>() : new[] { "blog.db" }
             }));
         }
 
@@ -379,7 +377,7 @@ public sealed class EnterpriseService : IEnterpriseService
         };
         _db.BackupRecords.Add(rec);
         await _db.SaveChangesAsync(ct);
-        await _audit.LogAsync(actorId, "backup.create", fileName);
+        await _audit.LogAsync("backup.create", "Backup", rec.Id.ToString(), fileName);
         return rec;
     }
 
@@ -395,13 +393,12 @@ public sealed class EnterpriseService : IEnterpriseService
         if (!File.Exists(zipPath))
             throw new FileNotFoundException("Backup file missing", zipPath);
 
-        // Safety: extract to restore staging; full hot-swap requires app restart in production
         var staging = Path.Combine(_env.ContentRootPath, "App_Data", "restore-staging");
         if (Directory.Exists(staging)) Directory.Delete(staging, true);
         Directory.CreateDirectory(staging);
         ZipFile.ExtractToDirectory(zipPath, staging);
 
-        await _audit.LogAsync(actorId, "backup.restore_staged", rec.FileName);
+        await _audit.LogAsync("backup.restore_staged", "Backup", backupId.ToString(), rec.FileName);
         _log.LogWarning("Backup {File} extracted to staging by {Actor}; restart required to swap DB", rec.FileName, actorId);
     }
 

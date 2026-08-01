@@ -1,0 +1,166 @@
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Enterprise";
+    var tenants = ViewBag.Tenants as IReadOnlyList<BlogApp.Models.Enterprise.Tenant> ?? Array.Empty<BlogApp.Models.Enterprise.Tenant>();
+    var approvals = ViewBag.Approvals as IReadOnlyList<BlogApp.Models.Enterprise.ContentApprovalRequest> ?? Array.Empty<BlogApp.Models.Enterprise.ContentApprovalRequest>();
+    var backups = ViewBag.Backups as IReadOnlyList<BlogApp.Models.Enterprise.BackupRecord> ?? Array.Empty<BlogApp.Models.Enterprise.BackupRecord>();
+    var sso = ViewBag.Sso as BlogApp.Models.Enterprise.SsoProviderConfig;
+    var locs = ViewBag.Localization as IReadOnlyList<BlogApp.Models.Enterprise.LocalizationEntry> ?? Array.Empty<BlogApp.Models.Enterprise.LocalizationEntry>();
+}
+
+<div class="container-fluid py-3">
+    <h1 class="h3 mb-3">Enterprise</h1>
+    <p class="text-muted-dark small mb-4">Multi-tenant · workspaces · domains · SSO · approval · lifecycle · legal hold · GDPR · backup · localization</p>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card-surface p-3 mb-3">
+                <h2 class="h6">Tenants &amp; workspaces</h2>
+                <form method="post" asp-action="CreateTenant" class="row g-2 mb-3">
+                    @Html.AntiForgeryToken()
+                    <div class="col-4"><input name="code" class="form-control form-control-sm" placeholder="code" required /></div>
+                    <div class="col-5"><input name="name" class="form-control form-control-sm" placeholder="name" required /></div>
+                    <div class="col-3"><button class="btn btn-accent btn-sm w-100" type="submit">Add tenant</button></div>
+                </form>
+                @foreach (var t in tenants)
+                {
+                    <div class="border-bottom border-secondary py-2">
+                        <strong>@t.Name</strong> <span class="ltr-field small text-muted">@t.Code</span>
+                        <ul class="small mb-1">
+                            @foreach (var w in t.Workspaces)
+                            {
+                                <li>WS: @w.Name (@w.Code) @(w.IsIsolated ? "isolated" : "shared")</li>
+                            }
+                            @foreach (var d in t.Domains)
+                            {
+                                <li>Domain: <span class="ltr-field">@d.Host</span> @(d.IsVerified ? "✓" : "pending")</li>
+                            }
+                        </ul>
+                        <form method="post" asp-action="CreateWorkspace" class="d-flex gap-1 flex-wrap mb-1">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="tenantId" value="@t.Id" />
+                            <input name="code" class="form-control form-control-sm" style="width:6rem" placeholder="ws" />
+                            <input name="name" class="form-control form-control-sm" style="width:8rem" placeholder="workspace" />
+                            <button class="btn btn-ghost btn-sm" type="submit">+ workspace</button>
+                        </form>
+                        <form method="post" asp-action="AddDomain" class="d-flex gap-1 flex-wrap">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="tenantId" value="@t.Id" />
+                            <input name="host" class="form-control form-control-sm ltr-field" style="width:12rem" placeholder="blog.example.com" />
+                            <button class="btn btn-ghost btn-sm" type="submit">+ domain</button>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            <div class="card-surface p-3 mb-3">
+                <h2 class="h6">SSO (OIDC / SAML config)</h2>
+                <form method="post" asp-action="SaveSso" class="row g-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="Id" value="@(sso?.Id ?? 0)" />
+                    <div class="col-md-4">
+                        <select name="Protocol" class="form-select form-select-sm">
+                            <option value="OIDC" selected="@(sso?.Protocol != "SAML")">OIDC</option>
+                            <option value="SAML" selected="@(sso?.Protocol == "SAML")">SAML</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8"><input name="DisplayName" value="@sso?.DisplayName" class="form-control form-control-sm" placeholder="Display name" /></div>
+                    <div class="col-12"><input name="Authority" value="@sso?.Authority" class="form-control form-control-sm ltr-field" placeholder="Authority / IdP URL" /></div>
+                    <div class="col-md-6"><input name="ClientId" value="@sso?.ClientId" class="form-control form-control-sm ltr-field" placeholder="Client ID" /></div>
+                    <div class="col-md-6"><input name="ClientSecret" value="@sso?.ClientSecret" class="form-control form-control-sm ltr-field" placeholder="Client secret" /></div>
+                    <div class="col-12"><input name="MetadataUrl" value="@sso?.MetadataUrl" class="form-control form-control-sm ltr-field" placeholder="Metadata URL (SAML)" /></div>
+                    <div class="col-12 form-check">
+                        <input class="form-check-input" type="checkbox" name="IsEnabled" value="true" @(sso?.IsEnabled == true ? "checked" : null) />
+                        <label class="form-check-label small">Enabled</label>
+                    </div>
+                    <div class="col-12"><button type="submit" class="btn btn-accent btn-sm">Save SSO</button></div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card-surface p-3 mb-3">
+                <h2 class="h6">Approval workflow</h2>
+                @if (!approvals.Any())
+                {
+                    <p class="small text-muted-dark mb-0">No pending approvals. Authors submit via API/service <code>SubmitApprovalAsync</code>.</p>
+                }
+                else
+                {
+                    <ul class="list-unstyled small mb-0">
+                        @foreach (var a in approvals.Take(20))
+                        {
+                            <li class="d-flex justify-content-between align-items-center gap-2 py-1 border-bottom border-secondary">
+                                <span>#@a.PostId @a.Post?.Title · @a.State</span>
+                                @if (a.State == BlogApp.Models.Enterprise.ApprovalState.Submitted || a.State == BlogApp.Models.Enterprise.ApprovalState.InReview)
+                                {
+                                    <span class="d-flex gap-1">
+                                        <form method="post" asp-action="ResolveApproval">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@a.Id" /><input type="hidden" name="approve" value="true" /><button class="btn btn-sm btn-accent">Approve</button></form>
+                                        <form method="post" asp-action="ResolveApproval">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@a.Id" /><input type="hidden" name="approve" value="false" /><button class="btn btn-sm btn-ghost">Reject</button></form>
+                                    </span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <div class="card-surface p-3 mb-3">
+                <h2 class="h6">Legal hold</h2>
+                <form method="post" asp-action="LegalHold" class="row g-2">
+                    @Html.AntiForgeryToken()
+                    <div class="col-4"><input name="postId" class="form-control form-control-sm" placeholder="Post Id" /></div>
+                    <div class="col-4"><input name="targetUserId" class="form-control form-control-sm" placeholder="User Id" /></div>
+                    <div class="col-4"><input name="reason" class="form-control form-control-sm" placeholder="Reason" required /></div>
+                    <div class="col-12"><button class="btn btn-ghost btn-sm" type="submit">Place hold</button></div>
+                </form>
+            </div>
+
+            <div class="card-surface p-3 mb-3">
+                <h2 class="h6">GDPR</h2>
+                <form method="post" asp-action="GdprExport" class="d-flex gap-2 mb-2">
+                    @Html.AntiForgeryToken()
+                    <input name="targetUserId" class="form-control form-control-sm" placeholder="User Id" required />
+                    <button class="btn btn-accent btn-sm" type="submit">Export JSON</button>
+                </form>
+                <form method="post" asp-action="GdprErase" class="d-flex gap-2" onsubmit="return confirm('Erase / anonymize this user?');">
+                    @Html.AntiForgeryToken()
+                    <input name="targetUserId" class="form-control form-control-sm" placeholder="User Id" required />
+                    <button class="btn btn-ghost btn-sm" type="submit">Erase</button>
+                </form>
+            </div>
+
+            <div class="card-surface p-3 mb-3">
+                <h2 class="h6">Backup &amp; restore</h2>
+                <form method="post" asp-action="Backup" class="mb-2">@Html.AntiForgeryToken()<button class="btn btn-accent btn-sm" type="submit">Create backup</button></form>
+                <ul class="small list-unstyled">
+                    @foreach (var b in backups)
+                    {
+                        <li class="d-flex justify-content-between py-1">
+                            <span class="ltr-field">@b.FileName · @b.SizeBytes B · @b.CreatedAtUtc.ToString("u")</span>
+                            <form method="post" asp-action="Restore">@Html.AntiForgeryToken()<input type="hidden" name="backupId" value="@b.Id" /><button class="btn btn-ghost btn-sm" type="submit">Stage restore</button></form>
+                        </li>
+                    }
+                </ul>
+                <a class="small" asp-action="DrRunbook">Disaster recovery runbook →</a>
+            </div>
+
+            <div class="card-surface p-3 mb-3">
+                <h2 class="h6">Localization (editorial)</h2>
+                <form method="post" asp-action="Localization" class="row g-2 mb-2">
+                    @Html.AntiForgeryToken()
+                    <div class="col-3"><input name="key" class="form-control form-control-sm" placeholder="key" required /></div>
+                    <div class="col-2"><input name="languageCode" class="form-control form-control-sm" value="fa" /></div>
+                    <div class="col-5"><input name="value" class="form-control form-control-sm" placeholder="value" required /></div>
+                    <div class="col-2"><button class="btn btn-accent btn-sm w-100" type="submit">Save</button></div>
+                </form>
+                <ul class="small mb-0">
+                    @foreach (var L in locs.Take(30))
+                    {
+                        <li><span class="ltr-field">@L.Key</span> [@L.LanguageCode] @L.Status — @L.Value</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
