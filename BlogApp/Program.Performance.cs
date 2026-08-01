@@ -22,10 +22,12 @@ public static class PerformanceServiceExtensions
                 o.Configuration = perf.Cache.RedisConnection;
                 o.InstanceName = perf.Cache.RedisInstanceName;
             });
+            Console.WriteLine($"[Performance] Distributed cache: Redis ({perf.Cache.RedisInstanceName})");
         }
         else
         {
             services.AddDistributedMemoryCache();
+            Console.WriteLine("[Performance] Distributed cache: memory");
         }
 
         if (perf.Cache.ResponseCacheEnabled)
@@ -35,19 +37,41 @@ public static class PerformanceServiceExtensions
         {
             services.AddOutputCache(options =>
             {
-                options.AddBasePolicy(b => b.Expire(TimeSpan.FromSeconds(Math.Max(5, perf.Cache.DefaultSeconds))));
+                options.AddBasePolicy(b => b
+                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
+                    .Expire(TimeSpan.FromSeconds(Math.Max(5, perf.Cache.DefaultSeconds))));
+
                 options.AddPolicy("home", b => b
+                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
                     .Expire(TimeSpan.FromSeconds(Math.Max(5, perf.Cache.HomeFeedSeconds)))
                     .SetVaryByQuery("category", "tag", "q", "page", "sort", "featured", "minRead")
-                    .Tag("home"));
-                options.AddPolicy("public-page", b => b
+                    .SetVaryByHeader("Accept-Language")
+                    .Tag(OutputCacheInvalidator.TagHome, OutputCacheInvalidator.TagTaxonomy));
+
+                options.AddPolicy("post", b => b
+                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
                     .Expire(TimeSpan.FromSeconds(Math.Max(10, perf.Cache.PostPageSeconds)))
-                    .Tag("pages"));
+                    .SetVaryByQuery("sort")
+                    .SetVaryByHeader("Accept-Language")
+                    .Tag(OutputCacheInvalidator.TagPost));
+
+                options.AddPolicy("taxonomy", b => b
+                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
+                    .Expire(TimeSpan.FromSeconds(Math.Max(10, perf.Cache.HomeFeedSeconds)))
+                    .SetVaryByQuery("page", "sort")
+                    .SetVaryByHeader("Accept-Language")
+                    .Tag(OutputCacheInvalidator.TagTaxonomy, OutputCacheInvalidator.TagHome));
+
+                options.AddPolicy("public-page", b => b
+                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
+                    .Expire(TimeSpan.FromSeconds(Math.Max(10, perf.Cache.PostPageSeconds)))
+                    .Tag(OutputCacheInvalidator.TagPages));
             });
         }
 
         services.AddSingleton<IAppCache, AppCache>();
         services.AddSingleton<ICdnUrlService, CdnUrlService>();
+        services.AddSingleton<IOutputCacheInvalidator, OutputCacheInvalidator>();
         services.AddScoped<IBackgroundJobQueue, BackgroundJobQueue>();
         services.AddScoped<ImageOptimizeService>();
         services.AddScoped<SearchIndexService>();
