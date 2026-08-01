@@ -14,7 +14,8 @@ namespace BlogApp.Services.Performance;
 public sealed class SearchIndexService
 {
     private static readonly Regex MdNoise = new(@"[#*_`>~\[\]()!]|\{+[^}]*\}+", RegexOptions.Compiled);
-    private static readonly Regex FtsSpecial = new(@"[\"\*\^\(\)\{\}\[\]\:\\]", RegexOptions.Compiled);
+    // Verbatim string: "" = one double-quote character
+    private static readonly Regex FtsSpecial = new(@"[""*^(){}\[\]:\\]", RegexOptions.Compiled);
 
     private readonly ApplicationDbContext _db;
     private readonly ILogger<SearchIndexService> _logger;
@@ -227,7 +228,7 @@ public sealed class SearchIndexService
             var t = p;
             if (t.Length > 64) t = t[..64];
             if (t.Length < 1) continue;
-            tokens.Add($"\"{t}\"*");
+            tokens.Add("\"" + t + "\"*");
         }
         if (tokens.Count == 0) return null;
         return string.Join(' ', tokens);
