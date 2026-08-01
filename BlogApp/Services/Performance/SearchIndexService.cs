@@ -105,36 +105,51 @@ public sealed class SearchIndexService
     public async Task<List<int>> SearchPostIdsAsync(string query, int take = 50, CancellationToken ct = default)
     {
         var match = BuildMatchQuery(query);
-        if (match is null) return new List<int>();
+        var ftsIds = new List<int>();
 
-        try
+        if (match is not null)
         {
-            var conn = _db.Database.GetDbConnection();
-            if (conn.State != ConnectionState.Open)
-                await conn.OpenAsync(ct);
+            try
+            {
+                var conn = _db.Database.GetDbConnection();
+                if (conn.State != ConnectionState.Open)
+                    await conn.OpenAsync(ct);
 
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT PostId FROM PostsFts WHERE PostsFts MATCH $q ORDER BY bm25(PostsFts) LIMIT $take";
-            var pQ = cmd.CreateParameter();
-            pQ.ParameterName = "$q";
-            pQ.Value = match;
-            cmd.Parameters.Add(pQ);
-            var pT = cmd.CreateParameter();
-            pT.ParameterName = "$take";
-            pT.Value = take;
-            cmd.Parameters.Add(pT);
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT PostId FROM PostsFts WHERE PostsFts MATCH $q ORDER BY bm25(PostsFts) LIMIT $take";
+                var pQ = cmd.CreateParameter();
+                pQ.ParameterName = "$q";
+                pQ.Value = match;
+                cmd.Parameters.Add(pQ);
+                var pT = cmd.CreateParameter();
+                pT.ParameterName = "$take";
+                pT.Value = take;
+                cmd.Parameters.Add(pT);
 
-            var ids = new List<int>();
-            await using var reader = await cmd.ExecuteReaderAsync(ct);
-            while (await reader.ReadAsync(ct))
-                ids.Add(reader.GetInt32(0));
-            return ids;
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                    ftsIds.Add(reader.GetInt32(0));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "FTS MATCH failed; using LIKE only. q={Q}", query);
+            }
         }
-        catch (Exception ex)
+
+        // Always merge substring LIKE — critical for Persian partials and empty FTS index
+        var likeIds = await FallbackLikeIdsAsync(query, take, ct);
+        if (ftsIds.Count == 0 && likeIds.Count == 0)
+            likeIds = await FallbackPostsTableAsync(query, take, ct);
+
+        if (ftsIds.Count == 0) return likeIds;
+
+        var seen = new HashSet<int>(ftsIds);
+        foreach (var id in likeIds)
         {
-            _logger.LogWarning(ex, "FTS MATCH failed; falling back to LIKE. q={Q}", query);
-            return await FallbackLikeIdsAsync(query, take, ct);
+            if (seen.Add(id)) ftsIds.Add(id);
+            if (ftsIds.Count >= take) break;
         }
+        return ftsIds;
     }
 
     public async Task<List<SearchHit>> SearchHitsAsync(string query, int take = 12, CancellationToken ct = default)
@@ -142,22 +157,46 @@ public sealed class SearchIndexService
         var ids = await SearchPostIdsAsync(query, take, ct);
         if (ids.Count == 0) return new List<SearchHit>();
 
+        var order = ids.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+
         var entries = await _db.SearchIndexEntries.AsNoTracking()
             .Where(s => ids.Contains(s.PostId) && s.IsPublished)
             .ToListAsync(ct);
 
-        var order = ids.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
-        return entries
-            .OrderBy(e => order.GetValueOrDefault(e.PostId, int.MaxValue))
-            .Select(e => new SearchHit
+        if (entries.Count > 0)
+        {
+            return entries
+                .OrderBy(e => order.GetValueOrDefault(e.PostId, int.MaxValue))
+                .Select(e => new SearchHit
+                {
+                    PostId = e.PostId,
+                    Title = e.Title,
+                    Slug = e.Slug,
+                    Summary = e.Summary,
+                    LanguageCode = e.LanguageCode,
+                    CategoryName = e.CategoryName,
+                    AuthorName = e.AuthorName
+                })
+                .ToList();
+        }
+
+        var fromPosts = await _db.Posts.AsNoTracking()
+            .Include(p => p.Category)
+            .Include(p => p.Author)
+            .Where(p => ids.Contains(p.Id) && !p.IsDeleted && p.IsPublished)
+            .ToListAsync(ct);
+
+        return fromPosts
+            .OrderBy(p => order.GetValueOrDefault(p.Id, int.MaxValue))
+            .Select(p => new SearchHit
             {
-                PostId = e.PostId,
-                Title = e.Title,
-                Slug = e.Slug,
-                Summary = e.Summary,
-                LanguageCode = e.LanguageCode,
-                CategoryName = e.CategoryName,
-                AuthorName = e.AuthorName
+                PostId = p.Id,
+                Title = p.Title,
+                Slug = p.Slug,
+                Summary = p.Summary,
+                LanguageCode = p.LanguageCode,
+                CategoryName = p.Category != null ? p.Category.Name : null,
+                AuthorName = p.Author != null ? (p.Author.DisplayName ?? p.Author.UserName) : null
             })
             .ToList();
     }
@@ -223,15 +262,35 @@ public sealed class SearchIndexService
         if (parts.Length == 0) return null;
 
         var tokens = new List<string>();
-        foreach (var p in parts.Take(12))
+        foreach (var part in parts.Take(12))
         {
-            var t = p;
-            if (t.Length > 64) t = t[..64];
-            if (t.Length < 1) continue;
-            tokens.Add("\"" + t + "\"*");
+            var tok = part;
+            if (tok.Length > 64) tok = tok[..64];
+            tok = tok.Replace("\"", "");
+            if (tok.Length < 1) continue;
+            tokens.Add(tok + "*");
         }
         if (tokens.Count == 0) return null;
         return string.Join(' ', tokens);
+    }
+
+    /// <summary>Last-resort: scan Posts when SearchIndexEntries is empty/out of date.</summary>
+    private async Task<List<int>> FallbackPostsTableAsync(string query, int take, CancellationToken ct)
+    {
+        var term = query.Trim();
+        if (term.Length > 80) term = term[..80];
+        if (term.Length < 1) return new List<int>();
+
+        return await _db.Posts.AsNoTracking()
+            .Where(p => !p.IsDeleted && p.IsPublished)
+            .Where(p =>
+                p.Title.Contains(term)
+                || (p.Summary != null && p.Summary.Contains(term))
+                || p.ContentMarkdown.Contains(term))
+            .OrderByDescending(p => p.PublishedAtUtc)
+            .Take(take)
+            .Select(p => p.Id)
+            .ToListAsync(ct);
     }
 
     private static string StripMarkdown(string? md)

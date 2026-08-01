@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = T["notif.title"];
     var unread = Model.Count(n => !n.IsRead);
-    var total = Model.Count;
+    var totalCount = Model.Count;
 }
 
 <div class="ni-page">
@@ -13,11 +13,11 @@
             <p class="ni-sub">
                 @if (unread > 0)
                 {
-                    <span class="ni-sub-strong">@unread</span> خوانده‌نشده از @total اعلان
+                    <text><span class="ni-sub-strong">@unread</span> خوانده‌نشده از @totalCount اعلان</text>
                 }
-                else if (total > 0)
+                else if (totalCount > 0)
                 {
-                    <text>همه @total اعلان خوانده شده‌اند</text>
+                    <text>همه @totalCount اعلان خوانده شده‌اند</text>
                 }
                 else
                 {
@@ -41,7 +41,7 @@
         <aside class="ni-nav" aria-label="folders">
             <button type="button" class="ni-folder is-active" data-filter="all">
                 <span>همه</span>
-                <span class="ni-folder-count ltr-field">@total</span>
+                <span class="ni-folder-count ltr-field">@totalCount</span>
             </button>
             <button type="button" class="ni-folder" data-filter="unread">
                 <span>خوانده‌نشده</span>
@@ -49,7 +49,7 @@
             </button>
             <button type="button" class="ni-folder" data-filter="read">
                 <span>خوانده‌شده</span>
-                <span class="ni-folder-count ltr-field">@(total - unread)</span>
+                <span class="ni-folder-count ltr-field">@(totalCount - unread)</span>
             </button>
             <div class="ni-nav-foot">
                 <a asp-action="Preferences" class="ni-nav-link">@T["notif.preferences"]</a>

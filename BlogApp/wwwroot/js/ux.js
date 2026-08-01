@@ -39,7 +39,7 @@
     if (suggestBox) suggestBox.innerHTML = '';
   }
   function escapeHtml(s) {
-    return String(s || '').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
   function fetchSuggest(q) {
     if (!suggestBox || !q || q.length < 2) { if (suggestBox) suggestBox.innerHTML = ''; return; }
@@ -103,43 +103,101 @@
       localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
     } catch (_) {}
   }
+  function renderHistoryPage() {
+    var host = document.getElementById('reading-history-list');
+    if (!host) return;
+    try {
+      var list = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      if (!list.length) {
+        host.innerHTML = '<p class="text-muted-dark">هنوز سابقه‌ای نیست.</p>';
+        return;
+      }
+      host.innerHTML = list.map(function (it) {
+        return '<div class="history-item"><a href="' + escapeHtml(it.url) + '" dir="auto">' +
+          escapeHtml(it.title) + '</a><span class="ltr-field small" style="opacity:.6">' +
+          new Date(it.at).toLocaleString() + '</span></div>';
+      }).join('');
+    } catch (_) {
+      host.innerHTML = '<p class="text-muted-dark">خطا در خواندن سابقه</p>';
+    }
+  }
+  window.blogClearHistory = function () {
+    try { localStorage.removeItem(HISTORY_KEY); } catch (_) {}
+    renderHistoryPage();
+    toast('سابقه پاک شد', 'success');
+  };
 
-  function bindInfiniteScroll() {
-    var feed = document.getElementById('blog-feed');
-    if (!feed || feed.getAttribute('data-infinite') !== '1') return;
-    var page = parseInt(feed.getAttribute('data-page') || '1', 10);
-    var total = parseInt(feed.getAttribute('data-total-pages') || '1', 10);
-    var loading = false;
+  function setupInfinite() {
+    var grid = document.getElementById('posts-grid');
     var sentinel = document.getElementById('infinite-sentinel');
-    if (!sentinel || page >= total) return;
-
+    if (!grid || !sentinel) return;
+    var page = parseInt(grid.getAttribute('data-page') || '1', 10);
+    var total = parseInt(grid.getAttribute('data-total-pages') || '1', 10);
+    var loading = false;
+    var status = document.getElementById('infinite-status');
     var obs = new IntersectionObserver(function (entries) {
       if (!entries[0].isIntersecting || loading || page >= total) return;
       loading = true;
-      page += 1;
+      if (status) status.textContent = 'در حال بارگذاری…';
+      var next = page + 1;
       var params = new URLSearchParams(window.location.search);
-      params.set('page', String(page));
+      params.set('page', String(next));
       params.set('partial', '1');
       fetch(window.location.pathname + '?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(function (r) { return r.text(); })
         .then(function (html) {
-          if (html && html.trim()) {
-            feed.insertAdjacentHTML('beforeend', html);
-            feed.setAttribute('data-page', String(page));
+          var tmp = document.createElement('div');
+          tmp.innerHTML = html;
+          var cards = tmp.querySelectorAll('#posts-grid > *, .col-md-6');
+          if (cards.length) {
+            cards.forEach(function (c) { grid.appendChild(c); });
+            page = next;
+            grid.setAttribute('data-page', String(page));
+          } else {
+            page = total;
           }
-          if (page >= total && sentinel) sentinel.remove();
+          if (status) status.textContent = page >= total ? 'پایان فهرست' : '';
+          loading = false;
         })
-        .catch(function () {})
-        .finally(function () { loading = false; });
+        .catch(function () { loading = false; if (status) status.textContent = ''; });
     }, { rootMargin: '200px' });
     obs.observe(sentinel);
   }
 
+  function setupToc() {
+    var links = document.querySelectorAll('.toc-nav a[href^="#"]');
+    if (!links.length) return;
+    var map = [];
+    links.forEach(function (a) {
+      var id = a.getAttribute('href').slice(1);
+      var el = document.getElementById(id);
+      if (el) map.push({ a: a, el: el });
+    });
+    function onScroll() {
+      var y = window.scrollY + 100;
+      var active = null;
+      map.forEach(function (m) { if (m.el.offsetTop <= y) active = m; });
+      links.forEach(function (a) { a.classList.remove('active'); });
+      if (active) active.a.classList.add('active');
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
+
+  function setupBackTop() {
+    var btn = document.getElementById('back-to-top');
+    if (!btn) return;
+    window.addEventListener('scroll', function () {
+      btn.classList.toggle('show', (window.scrollY || 0) > 480);
+    }, { passive: true });
+    btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  }
+
   function bind() {
-    document.querySelectorAll('[data-open-search]').forEach(function (btn) {
+    document.querySelectorAll('[data-search-open]').forEach(function (btn) {
       btn.addEventListener('click', function (e) { e.preventDefault(); openSearch(); });
     });
-    document.querySelectorAll('[data-close-search]').forEach(function (btn) {
+    document.querySelectorAll('[data-search-close]').forEach(function (btn) {
       btn.addEventListener('click', function (e) { e.preventDefault(); closeSearch(); });
     });
     if (overlay) {
@@ -167,19 +225,18 @@
     });
     document.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        openSearch();
+        e.preventDefault(); openSearch();
       }
       if (e.key === 'Escape') closeSearch();
     });
-    try {
-      var saved = parseFloat(localStorage.getItem('blog-font-scale') || '1');
-      if (saved && saved !== 1) applyFontScale(saved);
-    } catch (_) {}
+
     window.addEventListener('scroll', updateProgress, { passive: true });
     updateProgress();
     trackHistory();
-    bindInfiniteScroll();
+    renderHistoryPage();
+    setupInfinite();
+    setupToc();
+    setupBackTop();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);

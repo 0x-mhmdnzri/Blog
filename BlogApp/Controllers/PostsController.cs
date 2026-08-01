@@ -226,6 +226,14 @@ public partial class PostsController : Controller
 
         try
         {
+            var jobs = HttpContext.RequestServices.GetService<BlogApp.Services.Performance.IBackgroundJobQueue>();
+            if (jobs is not null)
+                await jobs.EnqueueIndexPostAsync(post.Id);
+        }
+        catch { /* non-fatal */ }
+
+        try
+        {
             await _events.PublishAsync(new PostCreatedDomainEvent(post.Id, post.Title, post.Slug, post.AuthorId));
             if (post.IsPublished && post.PublishedAtUtc.HasValue)
             {
@@ -325,6 +333,14 @@ public partial class PostsController : Controller
         await ApplyTagsAsync(post, vm.TagsCsv);
         await _db.SaveChangesAsync();
         if (changed) await SaveRevisionAsync(post, authorId, "after-edit");
+
+        try
+        {
+            var jobs = HttpContext.RequestServices.GetService<BlogApp.Services.Performance.IBackgroundJobQueue>();
+            if (jobs is not null)
+                await jobs.EnqueueIndexPostAsync(post.Id);
+        }
+        catch { /* non-fatal */ }
 
         try
         {
