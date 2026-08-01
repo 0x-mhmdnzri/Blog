@@ -3,6 +3,7 @@ using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
 using BlogApp.Services.Analytics;
+using BlogApp.Services.Performance;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,19 +17,22 @@ public class HomeController : Controller
     private readonly IAnalyticsTracker _analytics;
     private readonly ICultureService _culture;
     private readonly IUiTranslator _t;
+    private readonly SearchIndexService _search;
 
     public HomeController(
         ApplicationDbContext db,
         SeoService seo,
         IAnalyticsTracker analytics,
         ICultureService culture,
-        IUiTranslator t)
+        IUiTranslator t,
+        SearchIndexService search)
     {
         _db = db;
         _seo = seo;
         _analytics = analytics;
         _culture = culture;
         _t = t;
+        _search = search;
     }
 
     public async Task<IActionResult> Index(
@@ -59,7 +63,6 @@ public class HomeController : Controller
         int total;
         List<Category> categories;
 
-        // Categories: small table — plain AsNoTracking (no compiled query; EF OrderBy type clash)
         var catsTask = _db.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
 
         if (useCompiled)
@@ -76,6 +79,7 @@ public class HomeController : Controller
         }
         else
         {
+            List<int>? ftsOrder = null;
             var query = _db.Posts
                 .AsNoTracking()
                 .Where(p => !p.IsDeleted)
@@ -101,12 +105,33 @@ public class HomeController : Controller
 
             if (!string.IsNullOrWhiteSpace(q))
             {
-                var term = q.Trim();
-                if (term.Length > 100) term = term[..100];
-                query = query.Where(p =>
-                    p.Title.Contains(term) ||
-                    (p.Summary != null && p.Summary.Contains(term)) ||
-                    p.PostTags.Any(pt => pt.Tag.Name.Contains(term)));
+                ftsOrder = await _search.SearchPostIdsAsync(q, take: 500);
+                var ftsIds = ftsOrder;
+                if (ftsIds.Count == 0)
+                    query = query.Where(p => false);
+                else
+                {
+                    query = _db.Posts
+                        .AsNoTracking()
+                        .Where(p => !p.IsDeleted)
+                        .Where(p => p.IsPublished
+                                    || isAuthor
+                                    || (p.ScheduledPublishAtUtc != null && p.ScheduledPublishAtUtc <= now))
+                        .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now || isAuthor)
+                        .Where(p => isAuthor
+                                    || p.TranslationStatus == TranslationStatus.Original
+                                    || p.TranslationStatus == TranslationStatus.Approved)
+                        .Where(p => ftsIds.Contains(p.Id));
+
+                    if (!string.IsNullOrWhiteSpace(category))
+                        query = query.Where(p => p.Category != null && p.Category.Slug == category);
+                    if (!string.IsNullOrWhiteSpace(tag))
+                        query = query.Where(p => p.PostTags.Any(pt => pt.Tag.Slug == tag));
+                    if (featured == true)
+                        query = query.Where(p => p.IsFeatured);
+                    if (minRead is > 0)
+                        query = query.Where(p => p.ReadingTimeMinutes >= minRead);
+                }
             }
 
             query = (sort?.ToLowerInvariant()) switch
@@ -123,7 +148,7 @@ public class HomeController : Controller
             {
                 Id = p.Id,
                 Title = p.Title,
-                Slug = p.Slug,
+                slug = p.Slug,
                 Summary = p.Summary,
                 CategoryName = p.Category != null ? p.Category.Name : null,
                 PublishedAtUtc = p.PublishedAtUtc,
@@ -144,6 +169,12 @@ public class HomeController : Controller
             total = await totalTask;
             posts = await postsTask;
             categories = await catsTask;
+
+            if (ftsOrder is { Count: > 0 } && string.IsNullOrWhiteSpace(sort))
+            {
+                var rank = ftsOrder.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+                posts = posts.OrderBy(p => rank.GetValueOrDefault(p.Id, int.MaxValue)).ToList();
+            }
 
             if (!string.IsNullOrWhiteSpace(q))
                 await _analytics.TrackSearchAsync(HttpContext, q.Trim(), total);
@@ -198,38 +229,39 @@ public class HomeController : Controller
     }
 
     [HttpGet]
-    [ResponseCache(Duration = 15, VaryByQueryKeys = new[] { "q" }, Location = ResponseCacheLocation.Any)]
+    [ResponseCache(Duration = 10, VaryByQueryKeys = new[] { "q" }, Location = ResponseCacheLocation.Any)]
     public async Task<IActionResult> SearchSuggest(string? q)
     {
-        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 1)
             return Json(Array.Empty<object>());
 
-        var term = q.Trim();
-        if (term.Length > 80) term = term[..80];
-        var lang = _culture.CurrentCode;
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var hits = await _search.SearchHitsAsync(q, take: 10);
 
-        var results = await _db.Posts
-            .AsNoTracking()
-            .Where(p => !p.IsDeleted && p.IsPublished && p.LanguageCode == lang)
-            .Where(p => p.TranslationStatus == TranslationStatus.Original
-                        || p.TranslationStatus == TranslationStatus.Approved)
-            .Where(p => p.Title.Contains(term)
-                        || (p.Summary != null && p.Summary.Contains(term))
-                        || p.PostTags.Any(pt => pt.Tag.Name.Contains(term)))
-            .OrderByDescending(p => p.PublishedAtUtc)
-            .Take(8)
-            .Select(p => new
-            {
-                p.Title,
-                p.Slug,
-                p.Summary,
-                p.LanguageCode,
-                url = baseUrl + "/" + p.LanguageCode + "/post/" + p.Slug
-            })
-            .ToListAsync();
+        try { await _analytics.TrackSearchAsync(HttpContext, q.Trim(), hits.Count); } catch { }
+
+        var results = hits.Select(h => new
+        {
+            title = h.Title,
+            slug = h.Slug,
+            summary = h.Summary,
+            languageCode = h.LanguageCode,
+            category = h.CategoryName,
+            author = h.AuthorName,
+            url = baseUrl + "/" + h.LanguageCode + "/post/" + h.Slug
+        });
 
         return Json(results);
+    }
+
+    [HttpPost]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = AppRoles.SuperAdmin)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RebuildSearchIndex()
+    {
+        await _search.RebuildAllAsync();
+        TempData["FlashOk"] = "ایندکس جست‌وجو بازسازی شد.";
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpGet]
