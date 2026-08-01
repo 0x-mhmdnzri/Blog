@@ -23,6 +23,11 @@
             var v = T["admin.nav.backup"];
             return v == "admin.nav.backup" ? "پشتیبان و ذخیره‌سازی" : v;
         }
+        if (item.Key == "enterprise")
+        {
+            var v = T["admin.nav.enterprise"];
+            return v == "admin.nav.enterprise" ? "سازمانی" : v;
+        }
         return T[item.LabelKey];
     }
 }
