@@ -83,7 +83,7 @@ public partial class PostsController
         {
             Title = vm.Title,
             AuthorId = authorId,
-            Soft = uniqueSlug,
+            Slug = uniqueSlug,
             Summary = string.IsNullOrWhiteSpace(vm.Summary) ? _ai.Summarize(vm.ContentMarkdown) : vm.Summary,
             ContentMarkdown = vm.ContentMarkdown,
             CategoryId = vm.CategoryId,
