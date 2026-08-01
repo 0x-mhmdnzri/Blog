@@ -10,13 +10,65 @@
         var v = T[item.LabelKey];
         return v == item.LabelKey ? item.LabelKey.Split('.').Last() : v;
     }
-
-    void RenderLink(AVICRM.Services.AdminNavItem item, bool nested)
+}
+<nav class="admin-nav" id="adminNav" aria-label="@T["crm.nav.aria"]">
+@foreach (var item in items)
+{
+    if (item.IsSection)
     {
-        var active = item.Matches(controller, action);
-        <a class="admin-nav-link @(nested ? "is-child" : "") @(active ? "active" : "")"
-           asp-controller="@item.Controller"
-           asp-action="@item.Action"
+        var open = item.Matches(controller, action);
+        <div class="admin-nav-section @(open ? "is-open" : "")" data-nav-section="@item.Key">
+            <button type="button" class="admin-nav-section-btn" aria-expanded="@(open ? "true" : "false")" data-nav-accordion="@item.Key">
+                <span class="nav-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" focusable="false">
+                        <path d="@item.Icon"/>
+                    </svg>
+                </span>
+                <span class="nav-label">@Label(item)</span>
+                <span class="nav-chevron" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                </span>
+            </button>
+            <div class="admin-nav-children" role="group" @(open ? null : "hidden")>
+                @foreach (var child in item.Children!)
+                {
+                    var childActive = child.Matches(controller, action);
+                    var childHref = Url.Action(child.Action, child.Controller) ?? "#";
+                    <a class="admin-nav-link is-child @(childActive ? "active" : "")"
+                       href="@childHref"
+                       data-nav-key="@child.Key"
+                       title="@Label(child)">
+                        <span class="nav-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" focusable="false">
+                                <path d="@child.Icon"/>
+                            </svg>
+                        </span>
+                        <span class="nav-label">@Label(child)</span>
+                        <span class="nav-trail">
+                            @if (child.ShowPendingBadge)
+                            {
+                                <span class="badge-count" id="pendingBadge" style="@(Model.PendingCount > 0 ? "" : "display:none;")">@Model.PendingCount</span>
+                            }
+                            @if (child.DemoTag)
+                            {
+                                <span class="soon-tag">@T["admin.demo"]</span>
+                            }
+                            @if (child.SuperOnlyTag)
+                            {
+                                <span class="soon-tag">@T["admin.super_only"]</span>
+                            }
+                        </span>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        var leafActive = item.Matches(controller, action);
+        var leafHref = Url.Action(item.Action, item.Controller) ?? "#";
+        <a class="admin-nav-link @(leafActive ? "active" : "")"
+           href="@leafHref"
            data-nav-key="@item.Key"
            title="@Label(item)">
             <span class="nav-icon" aria-hidden="true">
@@ -40,37 +92,6 @@
                 }
             </span>
         </a>
-    }
-}
-<nav class="admin-nav" id="adminNav" aria-label="@T["crm.nav.aria"]">
-@foreach (var item in items)
-{
-    if (item.IsSection)
-    {
-        var open = item.Matches(controller, action);
-        <div class="admin-nav-section @(open ? "is-open" : "")" data-nav-section="@item.Key">
-            <button type="button" class="admin-nav-section-btn" aria-expanded="@(open ? "true" : "false")" data-nav-accordion="@item.Key">
-                <span class="nav-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" focusable="false">
-                        <path d="@item.Icon"/>
-                    </svg>
-                </span>
-                <span class="nav-label">@Label(item)</span>
-                <span class="nav-chevron" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
-                </span>
-            </button>
-            <div class="admin-nav-children" role="group" @(open ? null : "hidden")>
-                @foreach (var child in item.Children!)
-                {
-                    RenderLink(child, true);
-                }
-            </div>
-        </div>
-    }
-    else
-    {
-        RenderLink(item, false);
     }
 }
 </nav>
