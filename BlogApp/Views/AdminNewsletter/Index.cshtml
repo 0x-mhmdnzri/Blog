@@ -6,6 +6,7 @@
     var subs = (List<NewsletterSubscriber>)ViewBag.Subscribers;
     var segments = (List<NewsletterSegment>)ViewBag.Segments;
     var campaigns = (List<NewsletterCampaign>)ViewBag.Campaigns;
+    var recentPosts = ViewBag.RecentPosts as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 }
 
 @if (TempData["NlOk"] is string ok) { <div class="wizard-alert success mb-3">@ok</div> }
@@ -36,17 +37,56 @@
 
 @if (tab == "subscribers")
 {
+    <div class="chart-card chart-card-tight mb-3">
+        <div class="chart-title mb-2">@T["nl.import_csv"]</div>
+        <p class="small text-muted-dark mb-2">@T["nl.import_csv_hint"]</p>
+        <form asp-action="ImportCsv" method="post" enctype="multipart/form-data" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-md-4">
+                <label class="form-label small">CSV</label>
+                <input type="file" name="file" accept=".csv,text/csv" class="form-control form-control-sm" required />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">@T["nl.default_lang"]</label>
+                <input name="defaultLanguage" class="form-control form-control-sm ltr-field" placeholder="fa" value="fa" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">@T["nl.default_tags"]</label>
+                <input name="defaultTags" class="form-control form-control-sm" placeholder="readers" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-accent btn-sm w-100">@T["nl.import_btn"]</button>
+            </div>
+            <div class="col-md-2">
+                <a class="btn btn-ghost btn-sm w-100" asp-action="ExportSubscribersCsv">@T["nl.export_csv"]</a>
+            </div>
+        </form>
+        <p class="small text-muted-dark mt-2 mb-0 ltr-field">email,name,language,tags</p>
+    </div>
+
     <div class="admin-table-wrap">
         <table class="admin-table" style="min-width:0;">
-            <thead><tr><th>Email</th><th>@T["nl.name"]</th><th>@T["nl.status"]</th><th>Lang</th><th></th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>@T["nl.name"]</th>
+                    <th>@T["nl.status"]</th>
+                    <th>Lang</th>
+                    <th>Source</th>
+                    <th></th>
+                </tr>
+            </thead>
             <tbody>
             @foreach (var s in subs)
             {
                 <tr>
                     <td class="ltr-field small">@s.Email</td>
                     <td>@s.Name</td>
-                    <td>@s.Status</td>
+                    <td>
+                        <span class="status-pill @(s.Status == NewsletterSubscriberStatus.Confirmed ? "featured" : "")">@s.Status</span>
+                    </td>
                     <td class="ltr-field">@s.LanguageCode</td>
+                    <td class="small ltr-field">@(s.Source ?? "—")</td>
                     <td>
                         <form asp-action="DeleteSubscriber" method="post" class="d-inline" onsubmit="return confirm('@T["msg.confirm_delete"]');">
                             @Html.AntiForgeryToken()
@@ -101,6 +141,27 @@
 @if (tab == "campaigns")
 {
     <div class="chart-card chart-card-tight mb-3">
+        <div class="chart-title mb-2">@T["nl.post_as_campaign"]</div>
+        <p class="small text-muted-dark mb-2">@T["nl.post_as_campaign_hint"]</p>
+        <form asp-action="PublishPostCampaign" method="post" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-md-8">
+                <select name="postId" class="form-select form-select-sm" required>
+                    <option value="">@T["nl.select_post"]</option>
+                    @foreach (var p in recentPosts)
+                    {
+                        <option value="@p.Id">@p.Title</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-1">
+                <button type="submit" name="sendNow" value="true" class="btn btn-accent btn-sm flex-grow-1">@T["nl.send_now"]</button>
+                <button type="submit" name="sendNow" value="false" class="btn btn-ghost btn-sm">@T["nl.save_draft"]</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="chart-card chart-card-tight mb-3">
         <div class="chart-title mb-2">@T["nl.add_campaign"]</div>
         <form asp-action="SaveCampaign" method="post" class="row g-2">
             @Html.AntiForgeryToken()
@@ -132,7 +193,7 @@
             {
                 <tr>
                     <td>@c.Subject</td>
-                    <td>@c.Status</td>
+                    <td><span class="status-pill">@c.Status</span></td>
                     <td class="ltr-field">@c.RecipientCount</td>
                     <td class="ltr-field">@c.SentCount / @c.FailCount</td>
                     <td class="text-nowrap">

@@ -10,7 +10,6 @@ public partial class PostsController
 {
     /// <summary>
     /// FEATURES.md: Post → newsletter one-click send.
-    /// Creates a NewsletterCampaign from the published post and queues send.
     /// </summary>
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
@@ -18,44 +17,16 @@ public partial class PostsController
     {
         var post = await _db.Posts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
         if (post is null) return NotFound();
-        if (!post.IsPublished)
-        {
-            TempData["Error"] = "Publish the post before sending to the newsletter.";
-            return RedirectToAction(nameof(Edit), new { id });
-        }
 
         var userId = AuthorAccess.UserId(User)!;
         if (!User.IsInRole(AppRoles.SuperAdmin) && post.AuthorId != userId)
             return Forbid();
 
-        var summary = System.Net.WebUtility.HtmlEncode(post.Summary ?? "");
-        var slug = System.Net.WebUtility.HtmlEncode(post.Slug);
-        var bodyHtml =
-            "<p>" + summary + "</p>\n" +
-            "<p><a href=\"/post/" + slug + "\">Read full post →</a></p>";
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var (ok, msg, _) = await nl.PublishPostAsCampaignAsync(id, userId, baseUrl, sendNow: true);
 
-        var campaign = new NewsletterCampaign
-        {
-            Subject = post.Title,
-            BodyHtml = bodyHtml,
-            CreatedByUserId = userId,
-            CreatedAtUtc = DateTime.UtcNow,
-            Status = NewsletterCampaignStatus.Scheduled,
-            ScheduledAtUtc = DateTime.UtcNow
-        };
-        _db.NewsletterCampaigns.Add(campaign);
-        await _db.SaveChangesAsync();
-
-        try
-        {
-            await nl.SendCampaignAsync(campaign.Id);
-            TempData["Success"] = "Newsletter campaign queued from this post.";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Newsletter send from post failed PostId={Id}", id);
-            TempData["Error"] = "Campaign created but send failed — check newsletter status.";
-        }
+        if (ok) TempData["Success"] = msg;
+        else TempData["Error"] = msg;
 
         return RedirectToAction(nameof(Edit), new { id });
     }

@@ -36,7 +36,7 @@ public static partial class UiTranslationCatalog
         ("nl.kpi_pending", "nl", "در انتظار", "Pending", "معلّق"),
         ("nl.kpi_campaigns", "nl", "کمپین", "Campaigns", "حملات"),
 
-        ("nl.overview_hint", "nl", "عضویت با double opt-in، سگمنت زبان/تگ، کمپین فوری و زمان‌بندی‌شده.", "Double opt-in, language/tag segments, immediate & scheduled campaigns.", "تأكيد مزدوج وشرائح وحملات."),
+        ("nl.overview_hint", "nl", "عضویت با double opt-in، سگمنت زبان/تگ، کمپین فوری و زمان‌بندی‌شده، ورود CSV.", "Double opt-in, language/tag segments, campaigns, CSV import.", "تأكيد مزدوج وشرائح وحملات واستيراد CSV."),
         ("nl.public_page", "nl", "صفحه عمومی عضویت", "Public subscribe page", "صفحة الاشتراك"),
 
         ("nl.status", "nl", "وضعیت", "Status", "الحالة"),
@@ -50,11 +50,26 @@ public static partial class UiTranslationCatalog
         ("nl.schedule", "nl", "زمان‌بندی", "Schedule", "جدولة"),
         ("nl.send_now", "nl", "ارسال الان", "Send now", "أرسل الآن"),
         ("nl.cancel", "nl", "لغو", "Cancel", "إلغاء"),
+        ("nl.save_draft", "nl", "پیش‌نویس", "Draft", "مسودة"),
 
         ("nl.saved_segment", "nl", "سگمنت ذخیره شد.", "Segment saved.", "تم حفظ الشريحة."),
         ("nl.campaign_saved", "nl", "کمپین ذخیره / زمان‌بندی شد.", "Campaign saved/scheduled.", "تم حفظ الحملة."),
         ("nl.campaign_sent", "nl", "کمپین ارسال شد.", "Campaign sent.", "تم إرسال الحملة."),
         ("nl.err_segment", "nl", "نام سگمنت الزامی است.", "Segment name is required.", "اسم الشريحة مطلوب."),
         ("nl.err_campaign", "nl", "موضوع و متن الزامی است.", "Subject and body are required.", "الموضوع والنص مطلوبان."),
+
+        ("nl.import_csv", "nl", "ورود CSV مشترکان", "Import subscribers CSV", "استيراد CSV"),
+        ("nl.import_csv_hint", "nl", "همیشه double opt-in: ردیف‌های جدید Pending می‌شوند و ایمیل تأیید ارسال می‌شود. تأییدشده‌ها رد می‌شوند.", "Always double opt-in: new rows become Pending and get a confirm email. Confirmed emails are skipped.", "دائمًا تأكيد مزدوج: الصفوف الجديدة معلّقة مع بريد تأكيد."),
+        ("nl.import_btn", "nl", "ورود", "Import", "استيراد"),
+        ("nl.export_csv", "nl", "خروجی CSV", "Export CSV", "تصدير CSV"),
+        ("nl.default_lang", "nl", "زبان پیش‌فرض", "Default language", "اللغة الافتراضية"),
+        ("nl.default_tags", "nl", "تگ پیش‌فرض", "Default tags", "وسوم افتراضية"),
+        ("nl.import_no_file", "nl", "فایل CSV انتخاب نشده.", "No CSV file selected.", "لم يُختر ملف CSV."),
+        ("nl.import_result", "nl", "ورود: {0} جدید، {1} بازگشایی، {2} رد (تأییدشده)، {3} نامعتبر، {4} ایمیل تأیید.", "Import: {0} added, {1} reopened, {2} skipped (confirmed), {3} invalid, {4} confirm emails.", "استيراد: {0} جديد، {1} أُعيد، {2} تُخطي، {3} غير صالح، {4} تأكيد."),
+
+        ("nl.post_as_campaign", "nl", "ارسال نوشته به‌عنوان کمپین", "Publish post as campaign", "نشر مقالة كحملة"),
+        ("nl.post_as_campaign_hint", "nl", "یک نوشته منتشرشده را انتخاب کنید تا موضوع و لینک آن کمپین شود.", "Pick a published post — subject and link become the campaign.", "اختر مقالة منشورة."),
+        ("nl.select_post", "nl", "— انتخاب نوشته —", "— Select post —", "— اختر مقالة —"),
+        ("nl.send_to_newsletter", "nl", "ارسال به خبرنامه", "Send to newsletter", "أرسل للنشرة"),
     };
 }
