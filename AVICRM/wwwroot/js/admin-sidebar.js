@@ -1,5 +1,5 @@
 (function () {
-  var COOKIE = 'Blog.AdminSidebarLocked';
+  var COOKIE = 'AVICRM.AdminSidebarLocked';
   var sidebar = document.getElementById('adminSidebar');
   var lockBtn = document.getElementById('sidebarLockBtn');
   var nav = document.getElementById('adminNav');
@@ -36,15 +36,14 @@
     }
     setCookie(COOKIE, locked ? '1' : '0', 365);
     if (!animate) {
-      // force reflow then restore transition
       void sidebar.offsetWidth;
       sidebar.style.transition = '';
       document.body.style.transition = '';
     }
   }
 
-  // Init from cookie without animating width (avoids jump)
   var cookieVal = getCookie(COOKIE);
+  if (cookieVal === null) cookieVal = getCookie('Blog.AdminSidebarLocked');
   applyLock(cookieVal === '1', false);
 
   if (lockBtn) {
@@ -85,34 +84,11 @@
     pageOverlay.classList.remove('is-visible');
   }
 
-  function scrollActiveIntoView() {
-    if (!nav) return;
-    var active = nav.querySelector('.admin-nav-link.active');
-    if (!active) return;
-    try {
-      active.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-    } catch (e) {
-      active.scrollIntoView(false);
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      setTimeout(scrollActiveIntoView, 60);
-      hidePageOverlay();
-    });
-  } else {
-    setTimeout(scrollActiveIntoView, 60);
-    hidePageOverlay();
-  }
-
   if (nav) {
     nav.addEventListener('click', function (e) {
       var link = e.target.closest('.admin-nav-link');
-      if (!link || link.getAttribute('href') === '#' || link.hasAttribute('download')) return;
-      // same-page hash only
+      if (!link || link.getAttribute('href') === '#') return;
       if (link.href && link.origin === location.origin && link.pathname === location.pathname && link.search === location.search) return;
-
       nav.querySelectorAll('.admin-nav-link.active').forEach(function (el) {
         el.classList.remove('active');
       });
@@ -121,59 +97,49 @@
     });
   }
 
-  // Also overlay for in-content admin links (optional soft)
-  document.addEventListener('click', function (e) {
-    var a = e.target.closest('a[data-admin-nav]');
-    if (a) showPageOverlay();
-  });
-
-  window.BlogSkeleton = {
-    show: function (el) {
-      if (!el) return;
-      el.classList.add('skel-host');
-      if (!el.querySelector('.skel-overlay')) {
-        var o = document.createElement('div');
-        o.className = 'skel-overlay';
-        o.innerHTML =
-          '<div class="skel-line skel-w-40"></div>' +
-          '<div class="skel-line skel-w-80"></div>' +
-          '<div class="skel-line skel-w-60"></div>' +
-          '<div class="skel-line skel-w-90"></div>' +
-          '<div class="skel-line skel-w-50"></div>';
-        el.appendChild(o);
+  document.querySelectorAll('[data-nav-accordion]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var section = btn.closest('.admin-nav-section');
+      if (!section) return;
+      var open = !section.classList.contains('is-open');
+      var parent = section.parentElement;
+      if (parent) {
+        parent.querySelectorAll(':scope > .admin-nav-section.is-open').forEach(function (s) {
+          if (s !== section) {
+            s.classList.remove('is-open');
+            var b = s.querySelector('[data-nav-accordion]');
+            var c = s.querySelector('.admin-nav-children');
+            if (b) b.setAttribute('aria-expanded', 'false');
+            if (c) c.hidden = true;
+          }
+        });
       }
-    },
-    hide: function (el) {
-      if (!el) return;
-      el.classList.remove('skel-host');
-      var o = el.querySelector('.skel-overlay');
-      if (o) o.remove();
-    }
-  };
-
-  document.querySelectorAll('.admin-table-wrap').forEach(function (wrap) {
-    var table = wrap.querySelector('table.display');
-    if (table) BlogSkeleton.show(wrap);
-  });
-
-  if (window.jQuery) {
-    jQuery(document).on('init.dt draw.dt', function (e) {
-      var table = e.target;
-      var wrap = table.closest && table.closest('.admin-table-wrap');
-      if (wrap) BlogSkeleton.hide(wrap);
+      section.classList.toggle('is-open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      var kids = section.querySelector('.admin-nav-children');
+      if (kids) kids.hidden = !open;
+      try {
+        var key = btn.getAttribute('data-nav-accordion');
+        if (key) localStorage.setItem('avicrm-nav-' + key, open ? '1' : '0');
+      } catch (err) {}
     });
-  }
-
-  window.addEventListener('pageshow', function () {
-    hidePageOverlay();
-    var content = document.querySelector('.admin-content');
-    if (content) content.classList.remove('is-loading');
   });
 
-  window.addEventListener('load', function () {
-    hidePageOverlay();
-    var content = document.querySelector('.admin-content');
-    if (content) content.classList.remove('is-loading');
-    document.body.classList.add('app-ready');
+  document.querySelectorAll('.admin-nav-section[data-nav-section]').forEach(function (section) {
+    if (section.classList.contains('is-open')) return;
+    var key = section.getAttribute('data-nav-section');
+    try {
+      if (localStorage.getItem('avicrm-nav-' + key) === '1') {
+        section.classList.add('is-open');
+        var b = section.querySelector('[data-nav-accordion]');
+        var c = section.querySelector('.admin-nav-children');
+        if (b) b.setAttribute('aria-expanded', 'true');
+        if (c) c.hidden = false;
+      }
+    } catch (err) {}
   });
+
+  window.addEventListener('pageshow', function () { hidePageOverlay(); });
+  window.addEventListener('load', function () { hidePageOverlay(); });
 })();
