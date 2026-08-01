@@ -117,6 +117,8 @@ public static class SiteSettingKeys
     public const string AnnouncementEnabled = "AnnouncementEnabled";
     public const string AnnouncementText = "AnnouncementText";
     public const string AnnouncementStyle = "AnnouncementStyle"; // info | warn | success
+    /// <summary>Bumped when announcement content changes so dismissed users see the new banner.</summary>
+    public const string AnnouncementVersion = "AnnouncementVersion";
 }
 
 /// <summary>Default feature flag keys seeded on bootstrap.</summary>
