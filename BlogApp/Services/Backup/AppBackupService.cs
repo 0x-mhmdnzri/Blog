@@ -13,6 +13,7 @@ namespace BlogApp.Services.Backup;
 /// Full application-data backup to a directory on the Docker data volume
 /// (default <c>/app/data/backups</c>). Uses SQLite online Backup API for a
 /// consistent snapshot without stopping the app (supports RPO-oriented schedules).
+/// Outside Docker / Development falls back to <c>{ContentRoot}/App_Data/backups</c>.
 /// </summary>
 public sealed partial class AppBackupService : IAppBackupService
 {
@@ -41,20 +42,95 @@ public sealed partial class AppBackupService : IAppBackupService
 
     public string ResolveBackupDirectory()
     {
-        var path = _options.Value.Path?.Trim();
-        if (string.IsNullOrWhiteSpace(path))
-            path = "/app/data/backups";
+        var configured = _options.Value.Path?.Trim();
+        var localFallback = Path.Combine(_env.ContentRootPath, "App_Data", "backups");
 
-        // Local/dev fallback when /app/data is not present
-        if (path.StartsWith("/app/", StringComparison.Ordinal)
-            && !Directory.Exists(Path.GetDirectoryName(path) ?? path)
-            && !_env.IsProduction())
+        // Prefer explicit relative / local paths as-is.
+        string path;
+        if (string.IsNullOrWhiteSpace(configured))
         {
-            path = Path.Combine(_env.ContentRootPath, "App_Data", "backups");
+            path = _env.IsDevelopment() ? localFallback : "/app/data/backups";
+        }
+        else if (configured.StartsWith("/app/", StringComparison.Ordinal)
+                 && (_env.IsDevelopment() || !IsWritableDirectoryParent(configured)))
+        {
+            // Docker default path is not usable on the host (often read-only /app).
+            path = localFallback;
+            _log.LogDebug(
+                "Backup path {Configured} not writable in {Env}; using {Fallback}",
+                configured, _env.EnvironmentName, path);
+        }
+        else
+        {
+            path = configured;
         }
 
-        Directory.CreateDirectory(path);
+        try
+        {
+            Directory.CreateDirectory(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            if (!string.Equals(path, localFallback, StringComparison.Ordinal))
+            {
+                _log.LogWarning(ex, "Cannot create backup dir {Path}; falling back to {Fallback}", path, localFallback);
+                path = localFallback;
+                Directory.CreateDirectory(path);
+            }
+            else
+            {
+                throw;
+            }
+        }
+
         return Path.GetFullPath(path);
+    }
+
+    /// <summary>
+    /// True if we can create the target directory (or it already exists and is writable).
+    /// Avoids blowing up on read-only mounts like a host <c>/app</c> tree.
+    /// </summary>
+    private static bool IsWritableDirectoryParent(string path)
+    {
+        try
+        {
+            var full = Path.GetFullPath(path);
+            if (Directory.Exists(full))
+            {
+                // Probe write access
+                var probe = Path.Combine(full, ".write-probe-" + Guid.NewGuid().ToString("N"));
+                File.WriteAllText(probe, "ok");
+                File.Delete(probe);
+                return true;
+            }
+
+            // Walk up until an existing ancestor; if none or root is not writable, fail.
+            var parent = Path.GetDirectoryName(full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            while (!string.IsNullOrEmpty(parent))
+            {
+                if (Directory.Exists(parent))
+                {
+                    try
+                    {
+                        var probe = Path.Combine(parent, ".write-probe-" + Guid.NewGuid().ToString("N"));
+                        File.WriteAllText(probe, "ok");
+                        File.Delete(probe);
+                        return true;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                }
+                parent = Path.GetDirectoryName(parent);
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public string? ResolveDatabasePath()
