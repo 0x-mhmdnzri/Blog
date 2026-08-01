@@ -4,7 +4,7 @@ namespace BlogApp.Data;
 
 public static partial class SchemaBootstrap
 {
-    public static async Task EnsureNotificationsAsync(ApplicationDbContext db)
+    public static async Task EnsureNotificationTablesAsync(ApplicationDbContext db)
     {
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "AppNotifications" (
