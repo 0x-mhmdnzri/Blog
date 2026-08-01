@@ -162,11 +162,23 @@
         </form>
     </header>
 
-    <form asp-action="AddComment" method="post" class="cmt-composer" id="cmtMainComposer" autocomplete="off" data-toast-success="دیدگاه ثبت شد">
+    @if (TempData["CommentSubmitted"] is string cmtMsg)
+    {
+        <div class="wizard-alert success mb-3" data-toast-flash="success" data-toast-message="@cmtMsg">@cmtMsg</div>
+    }
+
+    <form asp-controller="Posts" asp-action="AddComment" method="post"
+          class="cmt-composer" id="cmtMainComposer" autocomplete="off"
+          data-toast-success="دیدگاه ثبت شد" data-native-submit="true">
         @Html.AntiForgeryToken()
         <input type="hidden" name="postId" value="@Model.Id" />
+        <input type="hidden" name="parentId" id="cmtParentId" value="" />
         <div class="cmt-honeypot" aria-hidden="true">
             <input type="text" name="website" tabindex="-1" autocomplete="off" />
+        </div>
+        <div id="cmtReplyBanner" class="cmt-reply-banner" hidden>
+            در پاسخ به <strong id="cmtReplyName"></strong>
+            <button type="button" class="btn btn-ghost btn-sm" id="cmtReplyCancel">لغو</button>
         </div>
         <div class="cmt-composer-row">
             <div class="cmt-avatar cmt-avatar-self" aria-hidden="true">@(string.IsNullOrEmpty(defaultName) ? "+" : Initials(defaultName))</div>
@@ -188,7 +200,9 @@
 
     @* Template for inline reply (cloned by JS) *@
     <template id="cmtReplyTemplate">
-        <form asp-action="AddComment" method="post" class="cmt-composer cmt-composer-inline" autocomplete="off" data-toast-success="پاسخ ثبت شد">
+        <form asp-controller="Posts" asp-action="AddComment" method="post"
+              class="cmt-composer cmt-composer-inline" autocomplete="off"
+              data-toast-success="پاسخ ثبت شد" data-native-submit="true">
             @Html.AntiForgeryToken()
             <input type="hidden" name="postId" value="@Model.Id" />
             <input type="hidden" name="parentId" value="" data-parent-field />
