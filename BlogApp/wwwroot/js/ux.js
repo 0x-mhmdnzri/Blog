@@ -1,6 +1,6 @@
 /**
- * User Experience: search, reading progress, font scale, history, infinite scroll, toasts
- * Theme switching is only via /Themes (theme-picker-btn).
+ * User Experience: reading progress, font scale, history, infinite scroll, toasts
+ * Public Spotlight search lives in site-search.js
  */
 (function () {
   'use strict';
@@ -25,45 +25,10 @@
   }
   window.blogToast = toast;
 
-  var overlay = document.getElementById('search-overlay');
-  var searchInput = document.getElementById('search-input');
-  var suggestBox = document.getElementById('search-suggest');
-  var suggestTimer = null;
-  var langPrefix = (document.documentElement.getAttribute('data-culture') || 'fa');
-
-  function openSearch() {
-    if (!overlay) return;
-    overlay.hidden = false;
-    document.body.style.overflow = 'hidden';
-    if (searchInput) { searchInput.focus(); searchInput.select(); }
-  }
-  function closeSearch() {
-    if (!overlay) return;
-    overlay.hidden = true;
-    document.body.style.overflow = '';
-    if (suggestBox) suggestBox.innerHTML = '';
-  }
   function escapeHtml(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-  function fetchSuggest(q) {
-    if (!suggestBox || !q || q.length < 2) { if (suggestBox) suggestBox.innerHTML = ''; return; }
-    fetch('/Home/SearchSuggest?q=' + encodeURIComponent(q))
-      .then(function (r) { return r.json(); })
-      .then(function (items) {
-        if (!items || !items.length) {
-          suggestBox.innerHTML = '<div class="small p-2" style="opacity:.7">نتیجه‌ای یافت نشد</div>';
-          return;
-        }
-        suggestBox.innerHTML = items.map(function (it) {
-          var href = it.url || ('/' + (it.languageCode || langPrefix) + '/post/' + encodeURIComponent(it.slug));
-          var sum = it.summary ? '<div class="s-sum" dir="auto">' + escapeHtml(it.summary).slice(0, 100) + '</div>' : '';
-          return '<a role="option" href="' + href + '"><div class="s-title" dir="auto">' + escapeHtml(it.title) + '</div>' + sum + '</a>';
-        }).join('');
-      }).catch(function () {});
+    return String(s || '').replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');
   }
 
-  /* ——— Reading progress (short-post safe) ——— */
   function updateProgress() {
     var bar = document.getElementById('reading-progress');
     if (!bar) return;
@@ -71,7 +36,6 @@
     var article = document.querySelector('.post-article, article.post-article');
     var bodyIsland = document.querySelector('.post-body-island, .readme-content.post-body-island');
 
-    // Not a post page → keep bar at 0 and inactive
     if (!article && !bodyIsland) {
       bar.style.width = '0%';
       bar.setAttribute('aria-valuenow', '0');
@@ -89,7 +53,6 @@
 
     var pct;
     if (scrollable <= 24) {
-      // Short post: fill when the bottom of content enters the viewport
       var bottomVisible = rect.bottom <= viewport * 0.92;
       pct = bottomVisible || pageTop + viewport >= end - 8 ? 100 : Math.min(100, Math.max(0, (pageTop / Math.max(end, 1)) * 100));
       if (rect.top > viewport) pct = 0;
@@ -154,7 +117,6 @@
     toast('سابقه پاک شد', 'success');
   };
 
-  /* ——— Infinite scroll (slow network resilient) ——— */
   function setupInfinite() {
     var grid = document.getElementById('posts-grid');
     var sentinel = document.getElementById('infinite-sentinel');
@@ -178,7 +140,6 @@
     function appendCards(html) {
       var tmp = document.createElement('div');
       tmp.innerHTML = html.trim();
-      // Partial may be raw cards or wrapped in #posts-grid
       var nodes = tmp.querySelectorAll('#posts-grid > *');
       if (!nodes.length) nodes = tmp.querySelectorAll(':scope > .col-md-6, :scope > .col-lg-4, :scope > [class*="col-"]');
       if (!nodes.length && tmp.children.length) nodes = tmp.children;
@@ -227,7 +188,6 @@
             retries = 0;
             setStatus(page >= total ? 'پایان فهرست' : '');
           } else {
-            // Empty partial → treat as end
             page = total;
             grid.setAttribute('data-page', String(page));
             setStatus('پایان فهرست');
@@ -282,40 +242,10 @@
   }
 
   function bind() {
-    document.querySelectorAll('[data-search-open]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) { e.preventDefault(); openSearch(); });
-    });
-    document.querySelectorAll('[data-search-close]').forEach(function (btn) {
-      btn.addEventListener('click', function (e) { e.preventDefault(); closeSearch(); });
-    });
-    if (overlay) {
-      overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSearch(); });
-    }
-    if (searchInput) {
-      searchInput.addEventListener('input', function () {
-        clearTimeout(suggestTimer);
-        var q = searchInput.value.trim();
-        suggestTimer = setTimeout(function () { fetchSuggest(q); }, 220);
-      });
-      searchInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closeSearch();
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          var q = searchInput.value.trim();
-          if (q) location.href = '/' + langPrefix + '/?q=' + encodeURIComponent(q);
-        }
-      });
-    }
     document.querySelectorAll('[data-font-delta]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         changeFont(parseFloat(btn.getAttribute('data-font-delta') || '0'));
       });
-    });
-    document.addEventListener('keydown', function (e) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault(); openSearch();
-      }
-      if (e.key === 'Escape') closeSearch();
     });
 
     var progressRaf = null;
