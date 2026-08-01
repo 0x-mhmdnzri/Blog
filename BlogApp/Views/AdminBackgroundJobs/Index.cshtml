@@ -1,0 +1,44 @@
+@model List<BackgroundJob>
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "صف کارها";
+    var status = ViewBag.Status as string ?? "dead";
+}
+@if (TempData["JobOk"] is string ok) { <div class="card-surface p-3 mb-3 small">@ok</div> }
+<header class="mb-3">
+  <h1 class="h4 mb-1">صف کارها و Dead Letter</h1>
+  <p class="text-muted-dark small mb-0">ایمیل، ایندکس و بهینه‌سازی تصویر — Retry و صف مرده</p>
+</header>
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-sm @(status=="dead"?"btn-accent":"btn-ghost")" asp-action="Index" asp-route-status="dead">Dead letter (@ViewBag.Failed)</a>
+  <a class="btn btn-sm @(status=="pending"?"btn-accent":"btn-ghost")" asp-action="Index" asp-route-status="pending">Pending (@ViewBag.Pending)</a>
+  <a class="btn btn-sm @(status=="running"?"btn-accent":"btn-ghost")" asp-action="Index" asp-route-status="running">Running (@ViewBag.Running)</a>
+  <a class="btn btn-sm @(status=="succeeded"?"btn-accent":"btn-ghost")" asp-action="Index" asp-route-status="succeeded">Succeeded (@ViewBag.Succeeded)</a>
+  <a class="btn btn-sm @(status=="all"?"btn-accent":"btn-ghost")" asp-action="Index" asp-route-status="all">All</a>
+  <form asp-action="RetryAllFailed" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="type" value="@BackgroundJobTypes.SendEmail" /><button class="btn btn-sm btn-ghost" type="submit">Retry email fails (@ViewBag.EmailFailed)</button></form>
+  <form asp-action="PurgeSucceeded" method="post" class="d-inline" onsubmit="return confirm('Purge?');">@Html.AntiForgeryToken()<button class="btn btn-sm btn-ghost" type="submit">Purge succeeded</button></form>
+</div>
+@if (Model.Count == 0) { <p class="text-muted-dark">موردی نیست.</p> }
+else {
+  <div class="d-flex flex-column gap-2" style="max-width:900px">
+  @foreach (var j in Model) {
+    <div class="card-surface p-3 @(j.Status==BackgroundJobStatus.Failed?"border border-danger":"")">
+      <div class="d-flex flex-wrap justify-content-between gap-2">
+        <div>
+          <strong class="ltr-field">@j.Type</strong>
+          <span class="badge bg-secondary">@j.Status</span>
+          <span class="small text-muted-dark ltr-field">#@j.Id · @j.Attempts/@j.MaxAttempts</span>
+          @if (!string.IsNullOrEmpty(j.LastError)) { <div class="small text-danger ltr-field mt-1">@j.LastError</div> }
+          <div class="small text-muted-dark ltr-field">@j.CreatedAtUtc.ToString("u")</div>
+        </div>
+        <div class="d-flex gap-1">
+          @if (j.Status == BackgroundJobStatus.Failed) {
+            <form asp-action="Retry" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@j.Id" /><button type="submit" class="btn btn-sm btn-accent">Retry</button></form>
+          }
+          <form asp-action="Delete" method="post" onsubmit="return confirm('Delete?');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@j.Id" /><button type="submit" class="btn btn-sm btn-ghost">Delete</button></form>
+        </div>
+      </div>
+    </div>
+  }
+  </div>
+}
