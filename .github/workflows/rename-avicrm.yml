@@ -4,11 +4,13 @@ on:
   workflow_dispatch:
   push:
     branches: [rename-avicrm]
-    paths:
-      - '.github/workflows/rename-avicrm.yml'
 
 permissions:
   contents: write
+
+concurrency:
+  group: rename-avicrm
+  cancel-in-progress: false
 
 jobs:
   rename:
@@ -17,19 +19,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: rename-avicrm
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: Skip if already renamed
+      - name: Skip if already done
         id: check
         run: |
-          if [ -d AVICRM ] && [ ! -d BlogApp ]; then
+          if [ -d AVICRM ] && [ ! -d BlogApp ] && [ -f AVICRM/AVICRM.csproj ]; then
             echo "already=true" >> "$GITHUB_OUTPUT"
-            echo "Already AVICRM — nothing to do"
           else
             echo "already=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Replace BlogApp → AVICRM in contents
+      - name: Content replace BlogApp → AVICRM
         if: steps.check.outputs.already != 'true'
         run: |
           set -euo pipefail
@@ -38,27 +39,34 @@ jobs:
                -o -name 'Dockerfile' -o -name '*.yml' -o -name '*.yaml' -o -name '*.md' \
                -o -name '*.json' -o -name '*.example' -o -name '.gitignore' -o -name '.dockerignore' \
                -o -name '*.js' -o -name '*.css' -o -name '*.sh' \) \
-            ! -path './.git/*' ! -path '*/bin/*' ! -path '*/obj/*' \
+            ! -path './.git/*' ! -path '*/bin/*' ! -path '*/obj/*' ! -path './.github/workflows/*' \
             -print0 | while IFS= read -r -d '' f; do
             if grep -q 'BlogApp' "$f" 2>/dev/null; then
               sed -i 's/BlogApp/AVICRM/g' "$f"
             fi
           done
 
-      - name: Rename paths
+      - name: Rename folder and project files
         if: steps.check.outputs.already != 'true'
         run: |
           set -euo pipefail
-          if [ -f BlogApp/BlogApp.csproj ]; then mv BlogApp/BlogApp.csproj BlogApp/AVICRM.csproj; fi
-          if [ -f BlogApp/AVICRM.csproj ] && [ ! -f BlogApp/BlogApp.csproj ]; then true; fi
-          # After content replace, csproj may already be named AVICRM.csproj
-          if [ -f BlogApp/AVICRM.csproj ]; then true
-          elif [ -f BlogApp/BlogApp.csproj ]; then mv BlogApp/BlogApp.csproj BlogApp/AVICRM.csproj
+          if [ -d BlogApp ]; then
+            if [ -f BlogApp/BlogApp.csproj ]; then
+              git mv BlogApp/BlogApp.csproj BlogApp/AVICRM.csproj || mv BlogApp/BlogApp.csproj BlogApp/AVICRM.csproj
+            fi
+            # if sed already rewrote filename in index only, handle physical name
+            if [ -f BlogApp/BlogApp.csproj ]; then mv BlogApp/BlogApp.csproj BlogApp/AVICRM.csproj; fi
+            if [ -d AVICRM ]; then
+              # merge: move remaining files
+              cp -a BlogApp/. AVICRM/
+              rm -rf BlogApp
+            else
+              git mv BlogApp AVICRM || mv BlogApp AVICRM
+            fi
           fi
-          # Content replace also renames BlogApp.csproj references but file may still be BlogApp.csproj if sed only did content
-          if [ -f BlogApp/BlogApp.csproj ]; then mv BlogApp/BlogApp.csproj BlogApp/AVICRM.csproj; fi
-          if [ -f BlogApp.sln ]; then mv BlogApp.sln AVICRM.sln; fi
-          if [ -d BlogApp ] && [ ! -d AVICRM ]; then mv BlogApp AVICRM; fi
+          if [ -f BlogApp.sln ]; then
+            git mv BlogApp.sln AVICRM.sln || mv BlogApp.sln AVICRM.sln
+          fi
           if [ -f AVICRM/AVICRM.csproj ]; then
             if ! grep -q '<AssemblyName>' AVICRM/AVICRM.csproj; then
               sed -i 's/<RootNamespace>AVICRM<\/RootNamespace>/<RootNamespace>AVICRM<\/RootNamespace>\n    <AssemblyName>AVICRM<\/AssemblyName>/' AVICRM/AVICRM.csproj
@@ -66,11 +74,14 @@ jobs:
             sed -i 's/Dark Pro Blog/AVICRM/g' AVICRM/AVICRM.csproj || true
           fi
           sed -i 's/Dark Pro Blog/AVICRM/g' Dockerfile docker-compose.yml 2>/dev/null || true
+          echo "Tree:"
           ls -la
           test -d AVICRM
-          test -f AVICRM.sln || test -f AVICRM/AVICRM.csproj
+          test -f AVICRM/AVICRM.csproj
+          # no BlogApp left
+          if [ -d BlogApp ]; then echo "BlogApp still exists" >&2; exit 1; fi
 
-      - name: Commit and push
+      - name: Commit
         if: steps.check.outputs.already != 'true'
         run: |
           set -euo pipefail
@@ -78,8 +89,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No changes"
             exit 0
           fi
           git commit -m "refactor: rename BlogApp to AVICRM (folder, csproj, namespaces)"
-          git push origin rename-avicrm
+          git push origin HEAD:rename-avicrm
