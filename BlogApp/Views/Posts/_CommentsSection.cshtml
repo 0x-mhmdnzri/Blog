@@ -3,7 +3,7 @@
 @{
     var commentSort = (ViewBag.CommentSort as string) ?? "relevant";
     var likedIds = ViewBag.LikedCommentIds as HashSet<int> ?? new HashSet<int>();
-    var canLike = User.Identity?.IsAuthenticated == true
+    var canInteract = User.Identity?.IsAuthenticated == true
         && (User.IsInRole(AppRoles.Reader) || User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
     var canEditPost = ViewBag.CanEdit as bool? ?? false;
     var currentUserId = ViewBag.CurrentUserId as string;
@@ -11,7 +11,7 @@
     var maxBody = ViewBag.CommentMaxBodyLength as int? ?? 2000;
     var postUrl = Url.Action("Details", "Posts", new { slug = Model.Slug })!;
     var sortQs = "?sort=" + commentSort;
-    var isAuth = User.Identity?.IsAuthenticated == true;
+    var isAuth = canInteract;
     var defaultName = isAuth ? (User.Identity?.Name ?? "") : "";
 
     var all = Model.Comments.ToList();
@@ -48,10 +48,6 @@
             <div class="cmt-main">
                 <header class="cmt-head">
                     <span class="cmt-name" dir="auto">@c.AuthorName</span>
-                    @if (c.IsGuest)
-                    {
-                        <span class="cmt-badge">مهمان</span>
-                    }
                     @if (c.IsPinned)
                     {
                         <span class="cmt-badge cmt-badge-pin">سنجاق‌شده</span>
@@ -74,7 +70,7 @@
                 <p class="cmt-body" dir="@MarkdownService.DetectDir(c.Body)">@c.Body</p>
 
                 <footer class="cmt-actions">
-                    @if (canLike)
+                    @if (isAuth)
                     {
                         <form asp-controller="Comments" asp-action="ToggleLike" method="post" class="cmt-act-form">
                             @Html.AntiForgeryToken()
@@ -85,6 +81,7 @@
                                 <span class="ltr-field">@c.LikeCount</span>
                             </button>
                         </form>
+                        <button type="button" class="cmt-act" data-reply-to="@c.Id" data-reply-name="@c.AuthorName">پاسخ</button>
                     }
                     else
                     {
@@ -93,9 +90,9 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                             <span class="ltr-field">@c.LikeCount</span>
                         </a>
+                        <a class="cmt-act" asp-controller="Account" asp-action="Login"
+                           asp-route-returnUrl="@(postUrl + sortQs + "#comments")">پاسخ</a>
                     }
-
-                    <button type="button" class="cmt-act" data-reply-to="@c.Id" data-reply-name="@c.AuthorName">پاسخ</button>
 
                     @if (canEditPost)
                     {
@@ -167,65 +164,67 @@
         <div class="wizard-alert success mb-3" data-toast-flash="success" data-toast-message="@cmtMsg">@cmtMsg</div>
     }
 
-    <form asp-controller="Posts" asp-action="AddComment" method="post"
-          class="cmt-composer" id="cmtMainComposer" autocomplete="off"
-          data-toast-success="دیدگاه ثبت شد" data-native-submit="true">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="postId" value="@Model.Id" />
-        <input type="hidden" name="parentId" id="cmtParentId" value="" />
-        <div class="cmt-honeypot" aria-hidden="true">
-            <input type="text" name="website" tabindex="-1" autocomplete="off" />
-        </div>
-        <div id="cmtReplyBanner" class="cmt-reply-banner" hidden>
-            در پاسخ به <strong id="cmtReplyName"></strong>
-            <button type="button" class="btn btn-ghost btn-sm" id="cmtReplyCancel">لغو</button>
-        </div>
-        <div class="cmt-composer-row">
-            <div class="cmt-avatar cmt-avatar-self" aria-hidden="true">@(string.IsNullOrEmpty(defaultName) ? "+" : Initials(defaultName))</div>
-            <div class="cmt-composer-body">
-                <input class="cmt-input cmt-input-name" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" value="@defaultName" />
-                @if (!isAuth)
-                {
-                    <input class="cmt-input cmt-input-email" name="authorEmail" type="email" dir="ltr" placeholder="ایمیل (اختیاری)" maxlength="120" />
-                }
-                <textarea class="cmt-input cmt-input-body" name="body" id="cmtBody" dir="auto" rows="3" required maxlength="@maxBody"
-                          placeholder="چه چیزی در ذهن دارید؟ می‌توانید با @@username منشن کنید"></textarea>
-                <div class="cmt-compose-foot">
-                    <span class="cmt-counter ltr-field" id="cmtCounter">0 / @maxBody</span>
-                    <button class="btn btn-accent btn-sm" type="submit">ارسال</button>
-                </div>
-            </div>
-        </div>
-    </form>
-
-    @* Template for inline reply (cloned by JS) *@
-    <template id="cmtReplyTemplate">
+    @if (isAuth)
+    {
         <form asp-controller="Posts" asp-action="AddComment" method="post"
-              class="cmt-composer cmt-composer-inline" autocomplete="off"
-              data-toast-success="پاسخ ثبت شد" data-native-submit="true">
+              class="cmt-composer" id="cmtMainComposer" autocomplete="off"
+              data-toast-success="دیدگاه ثبت شد" data-native-submit="true">
             @Html.AntiForgeryToken()
             <input type="hidden" name="postId" value="@Model.Id" />
-            <input type="hidden" name="parentId" value="" data-parent-field />
+            <input type="hidden" name="parentId" id="cmtParentId" value="" />
             <div class="cmt-honeypot" aria-hidden="true">
                 <input type="text" name="website" tabindex="-1" autocomplete="off" />
             </div>
+            <div id="cmtReplyBanner" class="cmt-reply-banner" hidden>
+                در پاسخ به <strong id="cmtReplyName"></strong>
+                <button type="button" class="btn btn-ghost btn-sm" id="cmtReplyCancel">لغو</button>
+            </div>
             <div class="cmt-composer-row">
-                <div class="cmt-avatar cmt-avatar-self" aria-hidden="true">@(string.IsNullOrEmpty(defaultName) ? "+" : Initials(defaultName))</div>
+                <div class="cmt-avatar cmt-avatar-self" aria-hidden="true">@Initials(defaultName)</div>
                 <div class="cmt-composer-body">
-                    <input class="cmt-input cmt-input-name" name="authorName" dir="auto" placeholder="نام شما" required maxlength="80" value="@defaultName" />
-                    @if (!isAuth)
-                    {
-                        <input class="cmt-input cmt-input-email" name="authorEmail" type="email" dir="ltr" placeholder="ایمیل (اختیاری)" maxlength="120" />
-                    }
-                    <textarea class="cmt-input cmt-input-body" name="body" dir="auto" rows="2" required maxlength="@maxBody" placeholder="پاسخ خود را بنویسید…"></textarea>
+                    <input type="hidden" name="authorName" value="@defaultName" />
+                    <textarea class="cmt-input cmt-input-body" name="body" id="cmtBody" dir="auto" rows="3" required maxlength="@maxBody"
+                              placeholder="چه چیزی در ذهن دارید؟ می‌توانید با @@username منشن کنید"></textarea>
                     <div class="cmt-compose-foot">
-                        <button type="button" class="btn btn-ghost btn-sm" data-reply-dismiss>لغو</button>
-                        <button class="btn btn-accent btn-sm" type="submit">پاسخ</button>
+                        <span class="cmt-counter ltr-field" id="cmtCounter">0 / @maxBody</span>
+                        <button class="btn btn-accent btn-sm" type="submit">ارسال</button>
                     </div>
                 </div>
             </div>
         </form>
-    </template>
+
+        <template id="cmtReplyTemplate">
+            <form asp-controller="Posts" asp-action="AddComment" method="post"
+                  class="cmt-composer cmt-composer-inline" autocomplete="off"
+                  data-toast-success="پاسخ ثبت شد" data-native-submit="true">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="postId" value="@Model.Id" />
+                <input type="hidden" name="parentId" value="" data-parent-field />
+                <input type="hidden" name="authorName" value="@defaultName" />
+                <div class="cmt-honeypot" aria-hidden="true">
+                    <input type="text" name="website" tabindex="-1" autocomplete="off" />
+                </div>
+                <div class="cmt-composer-row">
+                    <div class="cmt-avatar cmt-avatar-self" aria-hidden="true">@Initials(defaultName)</div>
+                    <div class="cmt-composer-body">
+                        <textarea class="cmt-input cmt-input-body" name="body" dir="auto" rows="2" required maxlength="@maxBody" placeholder="پاسخ خود را بنویسید…"></textarea>
+                        <div class="cmt-compose-foot">
+                            <button type="button" class="btn btn-ghost btn-sm" data-reply-dismiss>لغو</button>
+                            <button class="btn btn-accent btn-sm" type="submit">پاسخ</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </template>
+    }
+    else
+    {
+        <div class="cmt-composer cmt-composer-locked card-surface p-3 mb-3 text-center">
+            <p class="mb-2 text-muted-dark">برای ارسال دیدگاه یا پسند، وارد شوید.</p>
+            <a class="btn btn-accent btn-sm" asp-controller="Account" asp-action="Login"
+               asp-route-returnUrl="@(postUrl + sortQs + "#comments")">ورود / ثبت‌نام</a>
+        </div>
+    }
 
     <div class="cmt-list">
         @if (roots.Count == 0)
