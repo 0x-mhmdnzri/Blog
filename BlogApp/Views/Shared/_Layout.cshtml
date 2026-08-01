@@ -224,35 +224,21 @@
                                     @if (!string.IsNullOrEmpty(userName))
                                     {
                                         <li>
-                                            <a class="dropdown-item" asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@userName">
-                                                پروفایل عمومی
-                                            </a>
+                                            <a class="dropdown-item" asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@userName">پروفایل عمومی</a>
                                         </li>
                                     }
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Account" asp-action="Manage">تنظیمات حساب</a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="AccountApiKeys" asp-action="Index">کلیدهای API (PAT)</a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Themes" asp-action="Index">گالری تم‌ها</a>
-                                    </li>
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Manage">تنظیمات حساب</a></li>
+                                    <li><a class="dropdown-item" asp-controller="AccountApiKeys" asp-action="Index">کلیدهای API (PAT)</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Themes" asp-action="Index">گالری تم‌ها</a></li>
                                     @if (isReader)
                                     {
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Feed" asp-action="Index">فید فعالیت</a>
-                                        </li>
+                                        <li><a class="dropdown-item" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Feed" asp-action="Index">فید فعالیت</a></li>
                                     }
                                     @if (isStaff)
                                     {
                                         <li><hr class="dropdown-divider" /></li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a>
-                                        </li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a></li>
                                     }
                                     <li><hr class="dropdown-divider" /></li>
                                     <li>
@@ -300,17 +286,43 @@
         </div>
     </footer>
 
-    <div id="search-overlay" hidden>
-        <div class="search-panel" role="dialog" aria-modal="true" aria-label="جست‌وجو">
-            <label class="sr-only" for="search-input">جست‌وجوی نوشته‌ها</label>
-            <input type="search" id="search-input" placeholder="جست‌وجوی نوشته‌ها… (Enter)" autocomplete="off" dir="auto" />
-            <div id="search-suggest" role="listbox" aria-label="پیشنهادهای جست‌وجو"></div>
-            <div class="p-2 small" style="opacity:.6;border-top:1px solid var(--border-soft,#1e2430)">
-                <button type="button" class="btn btn-ghost btn-sm" data-search-close>بستن (Esc)</button>
-                <span class="ltr-field ms-2">Ctrl+K</span>
+    @* macOS Spotlight-style search *@
+    <div id="search-overlay" class="site-search-overlay" hidden>
+        <div class="site-search-dialog" role="dialog" aria-modal="true" aria-label="جست‌وجو">
+            <div class="site-search-bar">
+                <span class="site-search-icon" aria-hidden="true">⌕</span>
+                <label class="sr-only" for="search-input">جست‌وجوی نوشته‌ها</label>
+                <input type="search" id="search-input" class="site-search-input"
+                       placeholder="جست‌وجو…" autocomplete="off" dir="auto"
+                       aria-autocomplete="list" aria-controls="search-list" aria-expanded="false" />
+                <button type="button" id="search-clear" class="site-search-clear" hidden aria-label="پاک کردن">×</button>
+            </div>
+            <div id="search-meta" class="site-search-meta" hidden>
+                <span id="search-count">—</span>
+                <span id="search-latency" class="site-search-latency ltr-field"></span>
+            </div>
+            <div class="site-search-body">
+                <div id="search-empty" class="site-search-empty">
+                    <p class="hint">جست‌وجو در نوشته‌ها</p>
+                    <p class="hint-sub">↑↓ پیمایش · Enter باز کردن · Esc بستن</p>
+                </div>
+                <div id="search-skeleton" class="site-search-skeleton" hidden>
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                </div>
+                <ul id="search-list" class="site-search-list" role="listbox" hidden></ul>
+            </div>
+            <div class="site-search-footer">
+                <span><kbd>↑</kbd><kbd>↓</kbd> پیمایش</span>
+                <span><kbd>Enter</kbd> باز</span>
+                <span><kbd>Esc</kbd> بستن</span>
+                <a id="search-full-link" class="site-search-full" href="/@lang/" hidden>همه نتایج →</a>
             </div>
         </div>
     </div>
+
     <div id="a11y-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     <button type="button" id="back-to-top" class="back-to-top" aria-label="بازگشت به بالا">↑</button>
 
@@ -321,6 +333,7 @@
     <script src="~/js/form-submit-observer.js" asp-append-version="true" defer></script>
     <script src="~/js/notifications-bell.js" asp-append-version="true" defer></script>
     <script src="~/js/site.js" asp-append-version="true" defer></script>
+    <script src="~/js/site-search.js" asp-append-version="true" defer></script>
     <script src="~/js/ux.js" asp-append-version="true" defer></script>
     <script src="~/js/a11y.js" asp-append-version="true" defer></script>
     <script src="~/js/datepicker.js" asp-append-version="true" defer></script>
