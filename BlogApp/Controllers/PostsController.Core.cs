@@ -71,6 +71,13 @@ public partial class PostsController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PostEditViewModel vm)
     {
+        // If AutoSave already created a draft, treat this as Edit so we don't lose body or duplicate
+        if (vm.Id > 0)
+            return await Edit(vm.Id, vm);
+
+        if (string.IsNullOrWhiteSpace(vm.ContentMarkdown))
+            ModelState.AddModelError(nameof(vm.ContentMarkdown), "محتوای نوشته الزامی است");
+
         if (!ModelState.IsValid)
         {
             vm.AvailableCategories = await GetCategoryOptionsAsync();
@@ -159,11 +166,45 @@ public partial class PostsController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, PostEditViewModel vm)
     {
+        if (id <= 0 && vm.Id > 0) id = vm.Id;
+        if (vm.Id <= 0 && id > 0) vm.Id = id;
         if (id != vm.Id) return BadRequest();
+
         var post = await _db.Posts.Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
         if (post is null) return NotFound();
         if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
+
+        // Safety net: never wipe a non-empty body with empty client payload (wizard/fetch race).
+        if (string.IsNullOrWhiteSpace(vm.ContentMarkdown))
+        {
+            if (!string.IsNullOrWhiteSpace(post.ContentMarkdown))
+            {
+                vm.ContentMarkdown = post.ContentMarkdown;
+                ModelState.Remove(nameof(vm.ContentMarkdown));
+                _logger.LogWarning(
+                    "Edit PostId={Id}: empty ContentMarkdown in form — kept existing body ({Len} chars)",
+                    id, post.ContentMarkdown.Length);
+            }
+            else
+            {
+                var lastRev = await _db.PostRevisions.AsNoTracking()
+                    .Where(r => r.PostId == id && r.ContentMarkdown != null && r.ContentMarkdown != "")
+                    .OrderByDescending(r => r.CreatedAtUtc)
+                    .Select(r => r.ContentMarkdown)
+                    .FirstOrDefaultAsync();
+                if (!string.IsNullOrWhiteSpace(lastRev))
+                {
+                    vm.ContentMarkdown = lastRev;
+                    ModelState.Remove(nameof(vm.ContentMarkdown));
+                    _logger.LogWarning("Edit PostId={Id}: restored ContentMarkdown from revision", id);
+                }
+                else
+                {
+                    ModelState.AddModelError(nameof(vm.ContentMarkdown), "محتوای نوشته الزامی است");
+                }
+            }
+        }
 
         if (!ModelState.IsValid)
         {
