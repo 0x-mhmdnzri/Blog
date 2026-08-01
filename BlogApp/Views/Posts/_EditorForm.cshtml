@@ -1,112 +1,39 @@
 @model PostEditViewModel
 @inject BlogApp.Services.IUiTranslator T
 
+@{ /* featured label must bind IsFeatured */ }
+
 <style>
-.pw {
-  max-width: 960px;
-}
-.pw-steps {
-  display: flex;
-  gap: .35rem;
-  margin-bottom: 1.25rem;
-  padding: .35rem;
-  border-radius: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  overflow-x: auto;
-}
-.pw-step {
-  flex: 1 1 0;
-  min-width: 7.5rem;
-  border: 0;
-  background: transparent;
-  color: var(--text-muted);
-  border-radius: 10px;
-  padding: .65rem .7rem;
-  text-align: start;
-  cursor: pointer;
-  transition: background .15s, color .15s, box-shadow .15s;
-}
+.pw { max-width: 960px; }
+.pw-steps { display: flex; gap: .35rem; margin-bottom: 1.25rem; padding: .35rem; border-radius: 14px; background: var(--surface); border: 1px solid var(--border-soft); overflow-x: auto; }
+.pw-step { flex: 1 1 0; min-width: 7.5rem; border: 0; background: transparent; color: var(--text-muted); border-radius: 10px; padding: .65rem .7rem; text-align: start; cursor: pointer; }
 .pw-step:hover { color: var(--text); background: color-mix(in srgb, var(--accent) 6%, transparent); }
-.pw-step.is-active {
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
-}
+.pw-step.is-active { color: var(--text); background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
 .pw-step.is-done { color: var(--text); }
-.pw-step .pw-n {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 1.35rem; height: 1.35rem; border-radius: 50%;
-  font-size: .72rem; font-weight: 700; margin-inline-end: .4rem;
-  background: color-mix(in srgb, var(--text-muted) 18%, transparent);
-  font-variant-numeric: tabular-nums;
-}
-.pw-step.is-active .pw-n,
-.pw-step.is-done .pw-n {
-  background: var(--accent); color: #1a1a1a;
-}
+.pw-step .pw-n { display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; font-size: .72rem; font-weight: 700; margin-inline-end: .4rem; background: color-mix(in srgb, var(--text-muted) 18%, transparent); }
+.pw-step.is-active .pw-n, .pw-step.is-done .pw-n { background: var(--accent); color: #1a1a1a; }
 .pw-step .pw-label { font-size: .8rem; font-weight: 650; display: block; line-height: 1.25; }
 .pw-step .pw-hint { font-size: .68rem; opacity: .75; display: block; margin-top: .15rem; }
 .pw-panel { display: none; animation: pwIn .2s ease; }
 .pw-panel.is-active { display: block; }
 @@keyframes pwIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.pw-card {
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: 14px;
-  padding: 1.15rem 1.25rem;
-  margin-bottom: 1rem;
-}
-.pw-card h2 {
-  font-size: .95rem; font-weight: 700; margin: 0 0 .85rem;
-  display: flex; align-items: center; gap: .45rem;
-}
-.pw-card h2 .dot {
-  width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
-}
-.pw-nav {
-  display: flex; flex-wrap: wrap; gap: .5rem; justify-content: space-between; align-items: center;
-  padding-top: .25rem;
-}
+.pw-card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 14px; padding: 1.15rem 1.25rem; margin-bottom: 1rem; }
+.pw-card h2 { font-size: .95rem; font-weight: 700; margin: 0 0 .85rem; display: flex; align-items: center; gap: .45rem; }
+.pw-card h2 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.pw-nav { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: space-between; align-items: center; padding-top: .25rem; }
 .pw-nav-right { display: flex; flex-wrap: wrap; gap: .5rem; }
-.pw-progress {
-  height: 3px; border-radius: 999px; background: var(--border-soft); margin-bottom: 1rem; overflow: hidden;
-}
-.pw-progress > span {
-  display: block; height: 100%; width: 25%; background: var(--accent);
-  transition: width .25s ease;
-}
-.pw-switch-grid {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem 1rem;
-}
+.pw-progress { height: 3px; border-radius: 999px; background: var(--border-soft); margin-bottom: 1rem; overflow: hidden; }
+.pw-progress > span { display: block; height: 100%; width: 25%; background: var(--accent); transition: width .25s ease; }
+.pw-switch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem 1rem; }
 @@media (max-width: 576px) { .pw-switch-grid { grid-template-columns: 1fr; } }
-.pw-switch {
-  display: flex; align-items: center; gap: .55rem;
-  padding: .7rem .85rem; border-radius: 10px;
-  border: 1px solid var(--border-soft);
-  background: color-mix(in srgb, var(--bg, #000) 2%, var(--surface));
-}
+.pw-switch { display: flex; align-items: center; gap: .55rem; padding: .7rem .85rem; border-radius: 10px; border: 1px solid var(--border-soft); background: color-mix(in srgb, var(--bg, #000) 2%, var(--surface)); }
 .pw-switch label { margin: 0; font-size: .88rem; cursor: pointer; }
-.pw-review {
-  display: grid; gap: .55rem;
-  font-size: .86rem;
-}
-.pw-review-row {
-  display: grid; grid-template-columns: 8rem 1fr; gap: .5rem;
-  padding: .45rem 0; border-bottom: 1px solid var(--border-soft);
-}
+.pw-review { display: grid; gap: .55rem; font-size: .86rem; }
+.pw-review-row { display: grid; grid-template-columns: 8rem 1fr; gap: .5rem; padding: .45rem 0; border-bottom: 1px solid var(--border-soft); }
 .pw-review-row .k { color: var(--text-muted); }
 .pw-review-row .v { font-weight: 600; word-break: break-word; }
-.pw-error {
-  border-color: rgba(229,99,122,.55) !important;
-  box-shadow: 0 0 0 2px rgba(229,99,122,.12);
-}
-.pw-step-error .pw-n { background: #e5637a !important; color: #fff !important; }
-#rich-editor {
-  min-height: 280px; padding: .75rem; border: 1px solid var(--border-soft);
-  border-radius: 8px; background: var(--surface); outline: none;
-}
+.pw-error { border-color: rgba(229,99,122,.55) !important; box-shadow: 0 0 0 2px rgba(229,99,122,.12); }
+#rich-editor { min-height: 280px; padding: .75rem; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--surface); outline: none; }
 #autosave-status { font-size: .75rem; color: var(--text-muted); margin-inline-start: .5rem; }
 </style>
 
@@ -119,28 +46,11 @@
 
 <div class="pw" id="postWizard" data-start-step="1">
     <div class="pw-progress" aria-hidden="true"><span id="pwProgressBar"></span></div>
-
     <div class="pw-steps" role="tablist" aria-label="مراحل نوشتن">
-        <button type="button" class="pw-step is-active" data-step="1" role="tab" aria-selected="true">
-            <span class="pw-n">۱</span>
-            <span class="pw-label">اطلاعات پایه</span>
-            <span class="pw-hint">عنوان و دسته‌بندی</span>
-        </button>
-        <button type="button" class="pw-step" data-step="2" role="tab" aria-selected="false">
-            <span class="pw-n">۲</span>
-            <span class="pw-label">محتوا</span>
-            <span class="pw-hint">متن و رسانه</span>
-        </button>
-        <button type="button" class="pw-step" data-step="3" role="tab" aria-selected="false">
-            <span class="pw-n">۳</span>
-            <span class="pw-label">انتشار</span>
-            <span class="pw-hint">زمان و وضعیت</span>
-        </button>
-        <button type="button" class="pw-step" data-step="4" role="tab" aria-selected="false">
-            <span class="pw-n">۴</span>
-            <span class="pw-label">بازبینی</span>
-            <span class="pw-hint">تأیید و ذخیره</span>
-        </button>
+        <button type="button" class="pw-step is-active" data-step="1" role="tab" aria-selected="true"><span class="pw-n">۱</span><span class="pw-label">اطلاعات پایه</span><span class="pw-hint">عنوان و دسته‌بندی</span></button>
+        <button type="button" class="pw-step" data-step="2" role="tab" aria-selected="false"><span class="pw-n">۲</span><span class="pw-label">محتوا</span><span class="pw-hint">متن و رسانه</span></button>
+        <button type="button" class="pw-step" data-step="3" role="tab" aria-selected="false"><span class="pw-n">۳</span><span class="pw-label">انتشار</span><span class="pw-hint">زمان و وضعیت</span></button>
+        <button type="button" class="pw-step" data-step="4" role="tab" aria-selected="false"><span class="pw-n">۴</span><span class="pw-label">بازبینی</span><span class="pw-hint">تأیید و ذخیره</span></button>
     </div>
 
     <div class="pw-panel is-active" data-panel="1" role="tabpanel">
@@ -189,9 +99,7 @@
         </div>
         <div class="pw-nav">
             <a asp-controller="Admin" asp-action="Posts" class="btn btn-ghost">انصراف</a>
-            <div class="pw-nav-right">
-                <button type="button" class="btn btn-accent" data-pw-next>ادامه ←</button>
-            </div>
+            <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>ادامه ←</button></div>
         </div>
     </div>
 
@@ -234,9 +142,7 @@
         </div>
         <div class="pw-nav">
             <button type="button" class="btn btn-ghost" data-pw-prev>→ قبلی</button>
-            <div class="pw-nav-right">
-                <button type="button" class="btn btn-accent" data-pw-next>ادامه ←</button>
-            </div>
+            <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>ادامه ←</button></div>
         </div>
     </div>
 
@@ -250,7 +156,7 @@
                 </div>
                 <div class="pw-switch">
                     <input asp-for="IsFeatured" class="form-check-input" type="checkbox" />
-                    <label asp-for="IsSticky">نوشته ویژه</label>
+                    <label asp-for="IsFeatured">نوشته ویژه</label>
                 </div>
                 <div class="pw-switch">
                     <input asp-for="IsSticky" class="form-check-input" type="checkbox" />
@@ -281,14 +187,12 @@
                 }
                 <div class="col-md-6">
                     <label class="form-label" asp-for="ScheduledPublishAtUtc">انتشار زمان‌بندی‌شده</label>
-                    <input asp-for="ScheduledPublishAtUtc" type="datetime-local" class="form-control ltr-field"
-                           data-utc-iso="@schedIso" />
+                    <input asp-for="ScheduledPublishAtUtc" type="datetime-local" class="form-control ltr-field" data-utc-iso="@schedIso" />
                     <div class="form-text text-muted-dark">زمان محلی شما · هر ~۳۰ ثانیه توسط worker منتشر می‌شود</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" asp-for="ExpiresAtUtc">انقضا</label>
-                    <input asp-for="ExpiresAtUtc" type="datetime-local" class="form-control ltr-field"
-                           data-utc-iso="@expIso" />
+                    <input asp-for="ExpiresAtUtc" type="datetime-local" class="form-control ltr-field" data-utc-iso="@expIso" />
                 </div>
             </div>
         </div>
@@ -326,9 +230,7 @@
 
         <div class="pw-nav">
             <button type="button" class="btn btn-ghost" data-pw-prev>→ قبلی</button>
-            <div class="pw-nav-right">
-                <button type="button" class="btn btn-accent" data-pw-next>بازبینی ←</button>
-            </div>
+            <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>بازبینی ←</button></div>
         </div>
     </div>
 
@@ -362,17 +264,13 @@
 (function () {
   var root = document.getElementById('postWizard');
   if (!root) return;
-  var total = 4;
-  var step = 1;
+  var total = 4, step = 1;
   var bar = document.getElementById('pwProgressBar');
   var panels = root.querySelectorAll('[data-panel]');
   var tabs = root.querySelectorAll('.pw-step');
-
   function show(n) {
     step = Math.max(1, Math.min(total, n));
-    panels.forEach(function (p) {
-      p.classList.toggle('is-active', Number(p.getAttribute('data-panel')) === step);
-    });
+    panels.forEach(function (p) { p.classList.toggle('is-active', Number(p.getAttribute('data-panel')) === step); });
     tabs.forEach(function (t) {
       var s = Number(t.getAttribute('data-step'));
       t.classList.toggle('is-active', s === step);
@@ -382,31 +280,19 @@
     if (bar) bar.style.width = (step / total * 100) + '%';
     if (step === 4) fillReview();
   }
-
   function validate(n) {
     if (n === 1) {
       var title = document.getElementById('pwTitle');
-      if (!title || !title.value.trim()) {
-        title && title.classList.add('pw-error');
-        title && title.focus();
-        return false;
-      }
-      title.classList.remove('pw-error');
-      return true;
+      if (!title || !title.value.trim()) { title && title.classList.add('pw-error'); title && title.focus(); return false; }
+      title.classList.remove('pw-error'); return true;
     }
     if (n === 2) {
       var md = document.getElementById('markdown-input');
-      if (!md || !md.value.trim()) {
-        md && md.classList.add('pw-error');
-        md && md.focus();
-        return false;
-      }
-      md.classList.remove('pw-error');
-      return true;
+      if (!md || !md.value.trim()) { md && md.classList.add('pw-error'); md && md.focus(); return false; }
+      md.classList.remove('pw-error'); return true;
     }
     return true;
   }
-
   function fillReview() {
     var title = (document.getElementById('pwTitle') || {}).value || '—';
     var cat = document.getElementById('pwCategory');
@@ -416,38 +302,20 @@
     var md = (document.getElementById('markdown-input') || {}).value || '';
     var pub = document.getElementById('pwPub');
     var status = pub && pub.checked ? 'منتشر' : 'پیش‌نویس';
-    setRv('title', title);
-    setRv('category', catText);
-    setRv('summary', summary.trim() || '—');
-    setRv('tags', tags.trim() || '—');
-    setRv('chars', md.trim().length + ' نویسه');
-    setRv('status', status);
+    setRv('title', title); setRv('category', catText); setRv('summary', summary.trim() || '—');
+    setRv('tags', tags.trim() || '—'); setRv('chars', md.trim().length + ' نویسه'); setRv('status', status);
   }
-  function setRv(key, val) {
-    var el = root.querySelector('[data-rv="' + key + '"]');
-    if (el) el.textContent = val;
-  }
-
-  root.querySelectorAll('[data-pw-next]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      if (!validate(step)) return;
-      show(step + 1);
-    });
-  });
-  root.querySelectorAll('[data-pw-prev]').forEach(function (btn) {
-    btn.addEventListener('click', function () { show(step - 1); });
-  });
+  function setRv(key, val) { var el = root.querySelector('[data-rv="' + key + '"]'); if (el) el.textContent = val; }
+  root.querySelectorAll('[data-pw-next]').forEach(function (btn) { btn.addEventListener('click', function () { if (!validate(step)) return; show(step + 1); }); });
+  root.querySelectorAll('[data-pw-prev]').forEach(function (btn) { btn.addEventListener('click', function () { show(step - 1); }); });
   tabs.forEach(function (t) {
     t.addEventListener('click', function () {
       var target = Number(t.getAttribute('data-step'));
       if (target < step) { show(target); return; }
-      for (var i = 1; i < target; i++) {
-        if (!validate(i)) { show(i); return; }
-      }
+      for (var i = 1; i < target; i++) { if (!validate(i)) { show(i); return; } }
       show(target);
     });
   });
-
   show(1);
 })();
 </script>
