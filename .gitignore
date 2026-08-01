@@ -1,23 +1,11 @@
-## .NET
 bin/
 obj/
+.vs/
 *.user
-
-## Secrets
-.env
-.env.local
-.env.*.local
-
-## SQLite DB (generated at runtime)
 *.db
 *.db-shm
 *.db-wal
-
-## Serilog rolling JSON
+.env
+App_Data/
 logs/
-.idea
-## IDE
-.vs/
-.vscode/
-*.suo
-!/BlogApp/BlogApp.csproj
+publish/
