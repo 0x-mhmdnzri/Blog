@@ -38,32 +38,32 @@ public static class PerformanceServiceExtensions
             services.AddOutputCache(options =>
             {
                 options.AddBasePolicy(b => b
-                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
+                    .AddPolicy(typeof(AnonymousGetOutputCachePolicy))
                     .Expire(TimeSpan.FromSeconds(Math.Max(5, perf.Cache.DefaultSeconds))));
 
                 options.AddPolicy("home", b => b
-                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
+                    .AddPolicy(typeof(AnonymousGetOutputCachePolicy))
                     .Expire(TimeSpan.FromSeconds(Math.Max(5, perf.Cache.HomeFeedSeconds)))
                     .SetVaryByQuery("category", "tag", "q", "page", "sort", "featured", "minRead")
                     .SetVaryByHeader("Accept-Language")
                     .Tag(OutputCacheInvalidator.TagHome, OutputCacheInvalidator.TagTaxonomy));
 
                 options.AddPolicy("post", b => b
-                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
+                    .AddPolicy(typeof(AnonymousGetOutputCachePolicy))
                     .Expire(TimeSpan.FromSeconds(Math.Max(10, perf.Cache.PostPageSeconds)))
                     .SetVaryByQuery("sort")
                     .SetVaryByHeader("Accept-Language")
                     .Tag(OutputCacheInvalidator.TagPost));
 
                 options.AddPolicy("taxonomy", b => b
-                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
+                    .AddPolicy(typeof(AnonymousGetOutputCachePolicy))
                     .Expire(TimeSpan.FromSeconds(Math.Max(10, perf.Cache.HomeFeedSeconds)))
                     .SetVaryByQuery("page", "sort")
                     .SetVaryByHeader("Accept-Language")
                     .Tag(OutputCacheInvalidator.TagTaxonomy, OutputCacheInvalidator.TagHome));
 
                 options.AddPolicy("public-page", b => b
-                    .AddPolicy(AnonymousGetOutputCachePolicy.Instance)
+                    .AddPolicy(typeof(AnonymousGetOutputCachePolicy))
                     .Expire(TimeSpan.FromSeconds(Math.Max(10, perf.Cache.PostPageSeconds)))
                     .Tag(OutputCacheInvalidator.TagPages));
             });
