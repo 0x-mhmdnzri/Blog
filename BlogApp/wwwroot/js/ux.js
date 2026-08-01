@@ -1,12 +1,17 @@
 /**
- * User Experience: search, progress, font scale, history, infinite scroll, TOC, toasts
- * Theme switching is only via /Themes (theme-picker-btn) — no light/dark toggle.
+ * User Experience: search, reading progress, font scale, history, infinite scroll, toasts
+ * Theme switching is only via /Themes (theme-picker-btn).
  */
 (function () {
   'use strict';
 
   function toast(message, type) {
     var host = document.getElementById('toast-host');
+    if (window.ToastifyStack) {
+      var kind = type === 'success' ? 'success'
+        : (type === 'error' || type === 'danger') ? 'error' : 'info';
+      return ToastifyStack.push({ title: message, kind: kind, duration: 3200, linkUrl: null });
+    }
     if (!host) return;
     var el = document.createElement('div');
     el.className = 'toast' + (type ? ' ' + type : '');
@@ -58,22 +63,45 @@
       }).catch(function () {});
   }
 
+  /* ——— Reading progress (short-post safe) ——— */
   function updateProgress() {
     var bar = document.getElementById('reading-progress');
     if (!bar) return;
-    var article = document.querySelector('.post-article, article.post-article, .readme-content');
-    var scrollTop = window.scrollY || document.documentElement.scrollTop;
-    var pct = 0;
-    if (article) {
-      var start = article.offsetTop;
-      var height = article.offsetHeight - window.innerHeight;
-      pct = height > 0 ? Math.min(100, Math.max(0, ((scrollTop - start) / height) * 100)) : 0;
-    } else {
-      var docH = document.documentElement.scrollHeight - window.innerHeight;
-      pct = docH > 0 ? Math.min(100, (scrollTop / docH) * 100) : 0;
+
+    var article = document.querySelector('.post-article, article.post-article');
+    var bodyIsland = document.querySelector('.post-body-island, .readme-content.post-body-island');
+
+    // Not a post page → keep bar at 0 and inactive
+    if (!article && !bodyIsland) {
+      bar.style.width = '0%';
+      bar.setAttribute('aria-valuenow', '0');
+      bar.classList.remove('is-complete', 'is-active');
+      return;
     }
+
+    var target = bodyIsland || article;
+    var rect = target.getBoundingClientRect();
+    var pageTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var start = rect.top + pageTop;
+    var end = start + target.offsetHeight;
+    var viewport = window.innerHeight || document.documentElement.clientHeight;
+    var scrollable = end - start - viewport;
+
+    var pct;
+    if (scrollable <= 24) {
+      // Short post: fill when the bottom of content enters the viewport
+      var bottomVisible = rect.bottom <= viewport * 0.92;
+      pct = bottomVisible || pageTop + viewport >= end - 8 ? 100 : Math.min(100, Math.max(0, (pageTop / Math.max(end, 1)) * 100));
+      if (rect.top > viewport) pct = 0;
+      if (rect.bottom < 0) pct = 100;
+    } else {
+      pct = Math.min(100, Math.max(0, ((pageTop + viewport * 0.15 - start) / scrollable) * 100));
+    }
+
     bar.style.width = pct + '%';
     bar.setAttribute('aria-valuenow', String(Math.round(pct)));
+    bar.classList.toggle('is-active', pct > 0.5);
+    bar.classList.toggle('is-complete', pct >= 99.5);
   }
 
   function applyFontScale(scale) {
@@ -126,61 +154,122 @@
     toast('سابقه پاک شد', 'success');
   };
 
+  /* ——— Infinite scroll (slow network resilient) ——— */
   function setupInfinite() {
     var grid = document.getElementById('posts-grid');
     var sentinel = document.getElementById('infinite-sentinel');
     if (!grid || !sentinel) return;
+
     var page = parseInt(grid.getAttribute('data-page') || '1', 10);
     var total = parseInt(grid.getAttribute('data-total-pages') || '1', 10);
     var loading = false;
+    var retries = 0;
+    var MAX_RETRIES = 3;
     var status = document.getElementById('infinite-status');
-    var obs = new IntersectionObserver(function (entries) {
-      if (!entries[0].isIntersecting || loading || page >= total) return;
+    var abortCtrl = null;
+
+    function setStatus(msg, isError) {
+      if (!status) return;
+      status.textContent = msg || '';
+      status.classList.toggle('is-error', !!isError);
+      status.classList.toggle('is-loading', msg && !isError && msg.indexOf('بارگذاری') !== -1);
+    }
+
+    function appendCards(html) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = html.trim();
+      // Partial may be raw cards or wrapped in #posts-grid
+      var nodes = tmp.querySelectorAll('#posts-grid > *');
+      if (!nodes.length) nodes = tmp.querySelectorAll(':scope > .col-md-6, :scope > .col-lg-4, :scope > [class*="col-"]');
+      if (!nodes.length && tmp.children.length) nodes = tmp.children;
+      var count = 0;
+      Array.prototype.forEach.call(nodes, function (c) {
+        grid.appendChild(c);
+        count++;
+      });
+      return count;
+    }
+
+    function loadNext() {
+      if (loading || page >= total) return;
       loading = true;
-      if (status) status.textContent = 'در حال بارگذاری…';
+      setStatus('در حال بارگذاری…');
+
+      if (abortCtrl) try { abortCtrl.abort(); } catch (_) {}
+      abortCtrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+
       var next = page + 1;
       var params = new URLSearchParams(window.location.search);
       params.set('page', String(next));
       params.set('partial', '1');
-      fetch(window.location.pathname + '?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function (r) { return r.text(); })
+      var url = window.location.pathname + '?' + params.toString();
+
+      var timeoutId = setTimeout(function () {
+        if (abortCtrl) try { abortCtrl.abort(); } catch (_) {}
+      }, 20000);
+
+      fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+        credentials: 'same-origin',
+        signal: abortCtrl ? abortCtrl.signal : undefined,
+        cache: 'no-store'
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.text();
+        })
         .then(function (html) {
-          var tmp = document.createElement('div');
-          tmp.innerHTML = html;
-          var cards = tmp.querySelectorAll('#posts-grid > *, .col-md-6');
-          if (cards.length) {
-            cards.forEach(function (c) { grid.appendChild(c); });
+          clearTimeout(timeoutId);
+          var added = appendCards(html);
+          if (added > 0) {
             page = next;
             grid.setAttribute('data-page', String(page));
+            retries = 0;
+            setStatus(page >= total ? 'پایان فهرست' : '');
           } else {
+            // Empty partial → treat as end
             page = total;
+            grid.setAttribute('data-page', String(page));
+            setStatus('پایان فهرست');
           }
-          if (status) status.textContent = page >= total ? 'پایان فهرست' : '';
           loading = false;
         })
-        .catch(function () { loading = false; if (status) status.textContent = ''; });
-    }, { rootMargin: '200px' });
-    obs.observe(sentinel);
-  }
-
-  function setupToc() {
-    var links = document.querySelectorAll('.toc-nav a[href^="#"]');
-    if (!links.length) return;
-    var map = [];
-    links.forEach(function (a) {
-      var id = a.getAttribute('href').slice(1);
-      var el = document.getElementById(id);
-      if (el) map.push({ a: a, el: el });
-    });
-    function onScroll() {
-      var y = window.scrollY + 100;
-      var active = null;
-      map.forEach(function (m) { if (m.el.offsetTop <= y) active = m; });
-      links.forEach(function (a) { a.classList.remove('active'); });
-      if (active) active.a.classList.add('active');
+        .catch(function (err) {
+          clearTimeout(timeoutId);
+          loading = false;
+          if (err && err.name === 'AbortError') {
+            setStatus('زمان بارگذاری تمام شد — دوباره تلاش کنید', true);
+          } else {
+            setStatus('خطا در بارگذاری شبکه', true);
+          }
+          retries++;
+          if (retries <= MAX_RETRIES) {
+            var delay = Math.min(8000, 1000 * Math.pow(2, retries - 1));
+            setTimeout(function () {
+              if (page < total) loadNext();
+            }, delay);
+          } else if (status) {
+            status.innerHTML = 'بارگذاری ناموفق. <button type="button" class="btn btn-ghost btn-sm" data-infinite-retry>تلاش مجدد</button>';
+            var btn = status.querySelector('[data-infinite-retry]');
+            if (btn) btn.addEventListener('click', function () {
+              retries = 0;
+              loadNext();
+            });
+          }
+        });
     }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+
+    if (page >= total) {
+      setStatus(total > 1 ? 'پایان فهرست' : '');
+      return;
+    }
+
+    var obs = new IntersectionObserver(function (entries) {
+      if (!entries[0] || !entries[0].isIntersecting) return;
+      loadNext();
+    }, { rootMargin: '320px 0px', threshold: 0 });
+
+    obs.observe(sentinel);
   }
 
   function setupBackTop() {
@@ -229,12 +318,19 @@
       if (e.key === 'Escape') closeSearch();
     });
 
-    window.addEventListener('scroll', updateProgress, { passive: true });
+    var progressRaf = null;
+    window.addEventListener('scroll', function () {
+      if (progressRaf) return;
+      progressRaf = requestAnimationFrame(function () {
+        progressRaf = null;
+        updateProgress();
+      });
+    }, { passive: true });
+    window.addEventListener('resize', updateProgress, { passive: true });
     updateProgress();
     trackHistory();
     renderHistoryPage();
     setupInfinite();
-    setupToc();
     setupBackTop();
   }
 

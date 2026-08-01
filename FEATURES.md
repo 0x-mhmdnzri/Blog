@@ -4,9 +4,9 @@ Items below are **not** fully done yet. Everything else is treated as shipped in
 
 ### User Experience
 
-* Reading Progress Indicator polish (edge cases on short posts)
-* Infinite Scroll reliability on slow networks
-* Table of Contents auto-highlight on deep posts
+* ~~Reading Progress Indicator polish (edge cases on short posts)~~
+* ~~Infinite Scroll reliability on slow networks~~
+* ~~Table of Contents auto-highlight on deep posts~~
 
 ### Analytics
 
@@ -98,4 +98,4 @@ Items below are **not** fully done yet. Everything else is treated as shipped in
 
 ## Implemented (reference)
 
-Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (FTS5 full-content / Spotlight-style) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, search keyword analytics & reading duration & bounce rate, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule / **CSV import (double opt-in)** / **post→campaign one action** / export subscribers, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events, dismissible site announcement banner, unified moderation queue (comments + reports + spam), output cache (home/post/taxonomy) with publish invalidation, Redis distributed cache in compose, background job dead-letter UI with email retries.
+Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (FTS5 full-content / Spotlight-style) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, search keyword analytics & reading duration & bounce rate, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule / **CSV import (double opt-in)** / **post→campaign one action** / export subscribers, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events, dismissible site announcement banner, unified moderation queue (comments + reports + spam), output cache (home/post/taxonomy) with publish invalidation, Redis distributed cache in compose, background job dead-letter UI with email retries, **reading progress bar (short-post safe)**, **infinite scroll with retry/timeout**, **TOC IntersectionObserver auto-highlight on deep posts**.
