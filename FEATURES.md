@@ -1,101 +1,158 @@
-# Remaining features (not yet fully implemented)
+**Executive Summary**
 
-Items below are **not** fully done yet. Everything else is treated as shipped in the monolith (`BlogApp/`).
+A complete CRM requires more than contact storage. It needs unified customer data, sales pipeline control, automation, analytics, service, marketing, mobile access, integrations, security, and 2026-standard AI capabilities. Building without clear prioritization and data governance will produce an expensive, low-adoption system that fails to improve revenue or retention.
 
-### User Experience
+**Critical Analysis**
 
-* ~~Reading Progress Indicator polish (edge cases on short posts)~~
-* ~~Infinite Scroll reliability on slow networks~~
-* ~~Table of Contents auto-highlight on deep posts~~
+Most feature lists treat every module as equal. That is flawed. Core data model and pipeline mechanics determine whether the rest of the system works. Over-scoping AI, marketing, and service modules before the foundation is solid creates technical debt and delayed ROI. Underestimating data quality, duplicate handling, and role-based access leads to polluted records and compliance risk. Integration depth is routinely underestimated—without reliable email, calendar, and external system sync the CRM becomes a silo. Mobile is often treated as a late add-on; field teams will reject it if offline and update capabilities are weak. Forecasting and AI features without clean historical data produce unreliable outputs that erode trust.
 
-### Analytics
+Missing or commonly weak areas in early builds: audit logging, consent management, multi-currency/multi-language support, and clear ownership rules for records.
 
-* ~~Search Keyword Analytics~~
-* ~~Average Reading Duration (scroll/time tracking)~~
-* ~~Bounce Rate Tracking~~
+**Prioritized Action Plan**
 
-### Security
-
-* Two-Factor Authentication (TOTP)
-* Email Verification flow (register → confirm link)
-* CAPTCHA Integration (login / register / comment / subscribe)
-* Content Approval Workflow (author submit → admin publish)
-
-### Administration
-
-* ~~Announcement Banner (site-wide dismissible)~~
-* ~~Moderation Queue polish (spam + reports in one inbox)~~
-
-### API
-
-* Real GraphQL engine (current `/api/graphql` is a minimal custom parser)
-* OpenAPI / Swagger documentation page completeness
-
-### Performance
-
-* ~~Output Caching (full HTML for home / post / taxonomy; invalidate on publish)~~
-* ~~Redis as default distributed cache in production compose~~
-* ~~Queue-based Email Delivery reliability (retries, dead-letter UI)~~
-
-### Internationalization
-
-* Multi-language Posts product UX (link translations, switcher on post)
-* Localized URLs consistency (`/{lang}/post/{slug}` everywhere)
-* Translation Workflow (status, assignees, review)
-
-### Monetization
-
-* Stripe (or provider) Checkout for memberships
-* Advertisement Management
-* Affiliate Link Management
-* Member-only Markdown blocks (`:::members`)
-
-### Newsletter
-
-* ~~Publish post as campaign (one action)~~
-* ~~Subscriber CSV import with double opt-in rules~~
-
-### Accessibility
-
-* Automated Accessibility Checker (beyond static checklist page)
-* Screen Reader Optimization audit of public templates
-* Keyboard Navigation pass on admin + public
-* High Contrast Mode completeness (theme + reader)
-
-### Developer Features
-
-* Plugin sample DLL + docs for Extension SDK
-* Output-cache invalidation consumer on domain events
-
-### Enterprise Features
-
-* ~~Multi-Tenant Support~~
-* ~~Workspace Isolation~~
-* ~~Custom Domains~~
-* ~~SSO (OIDC/SAML)~~
-* ~~Approval Workflow (formal states)~~
-* ~~Content Lifecycle Management~~
-* ~~Legal Hold~~
-* ~~Data Export (GDPR download-my-data)~~
-* ~~GDPR Compliance (erase account, consent logs)~~
-* ~~Backup & Restore UI~~
-* ~~Disaster Recovery runbooks / automate~~
-* ~~Localization Management (editorial)~~
-
-### AI Features
-
-* Semantic Search
-* AI Recommendations
-* Similar Articles
-* Automatic Tag Generation (LLM)
-* Automatic Category Classification
-* AI-generated Cover Images
-* Duplicate Content Detection
-* Content Summarization
-* Auto-translate post drafts
+1. Lock the data model (Contacts, Accounts, Leads, Opportunities, Activities) and role/permission matrix first.  
+2. Build and validate core sales pipeline + activity logging + email/calendar sync.  
+3. Add automation rules and basic reporting.  
+4. Layer customer service and marketing modules only after core adoption metrics are positive.  
+5. Introduce AI scoring/forecasting once sufficient clean data exists.  
+6. Harden security, compliance, mobile, and API/integration surface before production scale.  
+7. Define success metrics (adoption rate, data completeness, pipeline velocity, forecast accuracy) and gate each phase on them.
 
 ---
 
-## Implemented (reference)
+# CRM Application – Full Feature Specification (README)
 
-Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (FTS5 full-content / Spotlight-style) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, search keyword analytics & reading duration & bounce rate, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule / **CSV import (double opt-in)** / **post→campaign one action** / export subscribers, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events, dismissible site announcement banner, unified moderation queue (comments + reports + spam), output cache (home/post/taxonomy) with publish invalidation, Redis distributed cache in compose, background job dead-letter UI with email retries, **reading progress bar (short-post safe)**, **infinite scroll with retry/timeout**, **TOC IntersectionObserver auto-highlight on deep posts**, **enterprise module** (tenants, workspaces, domains, SSO config, approval, lifecycle, legal hold, GDPR export/erase, backup/DR, localization admin).
+## Overview
+This document defines the complete feature set required to develop a modern CRM application capable of competing with current market standards (Salesforce, HubSpot, Zoho, Dynamics 365, Pipedrive level capabilities) while remaining suitable for custom development. Features are organized by module and prioritized as Must-Have (MVP), Should-Have (v1.1–1.5), and Nice-to-Have / Advanced (later releases / 2026 AI layer).
+
+## 1. Contact & Account Management (Must-Have)
+- Centralized contact records: name, email, phone, address, social profiles, custom fields.
+- Account (company) records with hierarchical relationships and associated contacts.
+- 360° customer view: interaction timeline (emails, calls, meetings, notes, deals, tickets).
+- Duplicate detection and merge tools.
+- Relationship mapping (who knows whom, account hierarchies).
+- Custom fields and layouts per object.
+- Data enrichment hooks (optional third-party enrichment).
+
+## 2. Lead Management (Must-Have)
+- Lead capture from forms, email, API, imports, webhooks.
+- Lead qualification and status tracking.
+- Automatic and manual assignment rules (territory, round-robin, skill-based).
+- Lead scoring (rules-based initially; AI later).
+- Conversion to Contact + Opportunity with data carry-over.
+- Lead source tracking and attribution.
+
+## 3. Sales Pipeline & Opportunity Management (Must-Have)
+- Visual, drag-and-drop pipeline with customizable stages.
+- Multiple pipelines support.
+- Opportunity records: value, probability, expected close date, products/services, competitors.
+- Stage-gate rules and required fields per stage.
+- Deal aging alerts and stalled-deal flags.
+- Quote / proposal generation and version tracking.
+- Win/loss reasons capture.
+- Multi-currency support.
+
+## 4. Activity & Task Management (Must-Have)
+- Log calls, emails, meetings, notes, and custom activities against any record.
+- Task creation, assignment, due dates, reminders, and completion tracking.
+- Calendar integration (Google / Outlook) with two-way sync.
+- Activity timeline visible on contact, account, and opportunity records.
+- Bulk activity logging and templates.
+
+## 5. Email & Communication (Must-Have)
+- Email tracking (opens, clicks) and automatic logging to the correct record.
+- Email templates with merge fields.
+- In-app email composition and sending.
+- Sequence / cadence support (basic drip sequences).
+- Call logging (manual + optional telephony integration).
+- Omnichannel inbox foundation (email primary; chat/social later).
+
+## 6. Workflow Automation (Must-Have)
+- Trigger-based workflows (record create/update, stage change, time-based).
+- Actions: create task, send email, update field, assign owner, create record, webhook.
+- Approval processes (discount, contract, stage progression).
+- Conditional logic and branching.
+- Scheduled jobs and recurring automations.
+- Audit of automation runs.
+
+## 7. Reporting, Dashboards & Analytics (Must-Have)
+- Pre-built and custom reports (pipeline, activity, conversion, win rates).
+- Role-based dashboards with filters and drill-down.
+- Real-time KPI cards (pipeline value, forecast, activity volume).
+- Export to CSV / PDF.
+- Scheduled report delivery.
+- Basic forecasting (weighted pipeline).
+
+## 8. Customer Service / Support (Should-Have)
+- Case / ticket management with priorities, SLAs, and escalation rules.
+- Knowledge base / self-service articles.
+- Case linking to contacts, accounts, and opportunities.
+- Queue management and assignment.
+- Customer portal for ticket submission and status.
+- Satisfaction surveys post-resolution.
+
+## 9. Marketing Automation (Should-Have)
+- List segmentation and smart lists.
+- Email campaign builder and tracking.
+- Landing page / form integration.
+- Lead nurturing workflows.
+- Campaign attribution and ROI reporting.
+- Consent and preference management.
+
+## 10. Mobile CRM (Must-Have)
+- Native or high-quality progressive web app with full offline capability for core objects.
+- Field updates, activity logging, and pipeline moves on mobile.
+- Push notifications for tasks and alerts.
+- Mobile-optimized dashboards and search.
+
+## 11. Integrations & API (Must-Have)
+- RESTful API + webhooks.
+- Native connectors for major email (Gmail, Outlook), calendar, and popular tools (Slack, Zoom, accounting, marketing platforms).
+- CSV / Excel import-export with mapping and validation.
+- SSO (SAML / OAuth) support.
+- Marketplace / connector library target (minimum viable set of 20–50 common integrations).
+
+## 12. Security, Access Control & Compliance (Must-Have)
+- Role-based access control (profiles + roles) with field-level and record-level security.
+- Sharing rules and ownership transfer.
+- Full audit logs (who changed what and when).
+- Data encryption at rest and in transit.
+- GDPR / CCPA tools: consent tracking, data export, right-to-be-forgotten workflows.
+- Password policies, MFA, session management.
+- Backup and restore capabilities.
+
+## 13. Customization & Extensibility (Must-Have)
+- Custom objects, fields, and relationships.
+- Layout and page customization (no-code preferred).
+- Custom modules for industry needs.
+- Formula fields and validation rules.
+- Multi-language and multi-timezone support.
+- Branding (logo, colors) for white-label potential.
+
+## 14. AI & Advanced Capabilities (Nice-to-Have / 2026 Layer)
+- Predictive lead and opportunity scoring.
+- Revenue forecasting with confidence intervals.
+- Auto-generated call/meeting notes and action items (transcription + summarization).
+- Next-best-action recommendations.
+- Churn / at-risk account detection.
+- Natural language search and query.
+- AI-assisted email drafting and content generation.
+- Deal insight and coaching signals.
+
+## 15. Administration & Platform (Must-Have)
+- User and license management.
+- Data quality tools (validation, deduplication jobs).
+- System health monitoring and usage analytics.
+- Sandbox / staging environments.
+- Release and configuration management.
+- Documentation and in-app help.
+
+## Development Notes
+- Start with a clean, normalized data model. Everything else depends on it.
+- Prioritize user adoption over feature volume. Complex interfaces kill usage.
+- Design for multi-tenancy if SaaS is the target.
+- Build observability (logs, metrics, traces) from day one.
+- Plan data migration and historical activity import early—these frequently become critical path items.
+- Define clear success metrics before coding begins: data completeness, daily active users, pipeline velocity improvement, forecast accuracy.
+
+This specification covers the full feature surface required for a competitive CRM. Scope ruthlessly by business priority and phase delivery accordingly.
