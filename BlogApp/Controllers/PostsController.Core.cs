@@ -45,11 +45,21 @@ public partial class PostsController
         post.ViewCount++;
         await _db.SaveChangesAsync();
 
-        ViewBag.Html = _markdown.RenderToHtmlWithToc(post.ContentMarkdown, true);
+        // View expects RenderedHtml (body) + TocHtml (sidebar) — NOT ViewBag.Html
+        ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(
+            post.ContentMarkdown ?? string.Empty,
+            includeToc: false,
+            cultureCode: post.LanguageCode);
+        ViewBag.TocHtml = _markdown.GenerateTableOfContents(
+            post.ContentMarkdown ?? string.Empty,
+            "post-toc",
+            post.LanguageCode);
+        ViewBag.ReadingTimeMinutes = Math.Max(1, post.ReadingTimeMinutes);
         ViewBag.CommentSort = string.Equals(sort, "latest", StringComparison.OrdinalIgnoreCase) ? "latest" : "relevant";
         ViewData["Title"] = post.Title;
 
-        try { await LoadSocialContextAsync(post); } catch { }
+        try { await LoadTaxonomyContextAsync(post); } catch (Exception ex) { _logger.LogDebug(ex, "Taxonomy context"); }
+        try { await LoadSocialContextAsync(post); } catch (Exception ex) { _logger.LogDebug(ex, "Social context"); }
 
         return View(post);
     }
@@ -75,6 +85,15 @@ public partial class PostsController
         if (vm.Id > 0)
             return await Edit(vm.Id, vm);
 
+        // Prefer raw form field if model binder missed it
+        if (string.IsNullOrWhiteSpace(vm.ContentMarkdown)
+            && Request.Form.TryGetValue("ContentMarkdown", out var rawBody)
+            && !string.IsNullOrWhiteSpace(rawBody))
+        {
+            vm.ContentMarkdown = rawBody.ToString();
+            ModelState.Remove(nameof(vm.ContentMarkdown));
+        }
+
         if (string.IsNullOrWhiteSpace(vm.ContentMarkdown))
             ModelState.AddModelError(nameof(vm.ContentMarkdown), "محتوای نوشته الزامی است");
 
@@ -86,6 +105,7 @@ public partial class PostsController
         var authorId = AuthorAccess.UserId(User)!;
         var lang = AppCultures.Normalize(vm.LanguageCode);
         var uniqueSlug = await MakeUniqueSlugAsync(SlugHelper.Slugify(vm.Title), lang);
+        var wantPublish = ResolvePublishFlag(vm);
         var post = new Post
         {
             Title = vm.Title,
@@ -95,7 +115,7 @@ public partial class PostsController
             ContentMarkdown = vm.ContentMarkdown,
             CategoryId = vm.CategoryId,
             CoverMediaAssetId = vm.CoverMediaAssetId,
-            IsPublished = vm.IsPublished && !vm.ScheduledPublishAtUtc.HasValue,
+            IsPublished = wantPublish && !vm.ScheduledPublishAtUtc.HasValue,
             ScheduledPublishAtUtc = vm.ScheduledPublishAtUtc,
             ExpiresAtUtc = vm.ExpiresAtUtc,
             IsFeatured = vm.IsFeatured,
@@ -104,7 +124,7 @@ public partial class PostsController
             IsSponsored = vm.IsSponsored,
             SponsoredLabel = vm.SponsoredLabel?.Trim(),
             ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown),
-            PublishedAtUtc = (vm.IsPublished && !vm.ScheduledPublishAtUtc.HasValue) ? DateTime.UtcNow : null,
+            PublishedAtUtc = (wantPublish && !vm.ScheduledPublishAtUtc.HasValue) ? DateTime.UtcNow : null,
             LanguageCode = lang,
             TranslationStatus = TranslationStatus.Original
         };
@@ -175,7 +195,16 @@ public partial class PostsController
         if (post is null) return NotFound();
         if (!AuthorAccess.OwnsPost(User, post)) return Forbid();
 
-        // Safety net: never wipe a non-empty body with empty client payload (wizard/fetch race).
+        // Prefer raw form field if binder dropped large/hidden panel value
+        if (string.IsNullOrWhiteSpace(vm.ContentMarkdown)
+            && Request.Form.TryGetValue("ContentMarkdown", out var rawBody)
+            && !string.IsNullOrWhiteSpace(rawBody))
+        {
+            vm.ContentMarkdown = rawBody.ToString();
+            ModelState.Remove(nameof(vm.ContentMarkdown));
+        }
+
+        // Safety net: never wipe a non-empty body with empty client payload
         if (string.IsNullOrWhiteSpace(vm.ContentMarkdown))
         {
             if (!string.IsNullOrWhiteSpace(post.ContentMarkdown))
@@ -214,6 +243,7 @@ public partial class PostsController
 
         var authorId = AuthorAccess.UserId(User)!;
         var wasPublished = post.IsPublished;
+        var wantPublish = ResolvePublishFlag(vm);
         var changed = post.Title != vm.Title || post.ContentMarkdown != vm.ContentMarkdown || post.Summary != vm.Summary;
 
         post.Title = vm.Title;
@@ -226,25 +256,33 @@ public partial class PostsController
         post.IsPremium = vm.IsPremium;
         post.IsSponsored = vm.IsSponsored;
         post.SponsoredLabel = vm.SponsoredLabel?.Trim();
-        post.ExpiresAtUtc = vm.ExpiresAtUtc;
+        post.ExpiresAtUtc = NormalizeOptionalDate(vm.ExpiresAtUtc);
         post.ReadingTimeMinutes = _markdown.EstimateReadingTimeMinutes(vm.ContentMarkdown);
         post.UpdatedAtUtc = DateTime.UtcNow;
         post.TranslationStatus = vm.TranslationStatus;
-        if (vm.ScheduledPublishAtUtc.HasValue && vm.ScheduledPublishAtUtc > DateTime.UtcNow)
+
+        var scheduled = NormalizeOptionalDate(vm.ScheduledPublishAtUtc);
+        if (scheduled is DateTime when && when > DateTime.UtcNow.AddMinutes(1))
         {
             post.IsPublished = false;
-            post.ScheduledPublishAtUtc = vm.ScheduledPublishAtUtc;
+            post.ScheduledPublishAtUtc = when;
         }
         else
         {
-            post.IsPublished = vm.IsPublished;
+            post.IsPublished = wantPublish;
             post.ScheduledPublishAtUtc = null;
-            if (!wasPublished && vm.IsPublished) post.PublishedAtUtc = DateTime.UtcNow;
+            if (!wasPublished && wantPublish)
+                post.PublishedAtUtc = DateTime.UtcNow;
         }
+
         _db.PostTags.RemoveRange(post.PostTags);
         await ApplyTagsAsync(post, vm.TagsCsv);
         await _db.SaveChangesAsync();
         if (changed) await SaveRevisionAsync(post, authorId, "after-edit");
+
+        _logger.LogInformation(
+            "Edit saved PostId={Id} Published={Pub} BodyLen={Len}",
+            post.Id, post.IsPublished, post.ContentMarkdown?.Length ?? 0);
 
         try
         {
@@ -259,6 +297,31 @@ public partial class PostsController
         }
 
         return Redirect($"/{post.LanguageCode}/post/{post.Slug}");
+    }
+
+    /// <summary>Checkbox may bind false when hidden panel; also accept form "true"/"on".</summary>
+    private bool ResolvePublishFlag(PostEditViewModel vm)
+    {
+        if (vm.IsPublished) return true;
+        if (Request.Form.TryGetValue("IsPublished", out var vals))
+        {
+            foreach (var v in vals)
+            {
+                if (string.Equals(v, "true", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(v, "on", StringComparison.OrdinalIgnoreCase)
+                    || v == "1")
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private static DateTime? NormalizeOptionalDate(DateTime? value)
+    {
+        if (value is null) return null;
+        // datetime-local empty / default can bind as DateTime.MinValue
+        if (value.Value.Year < 2000) return null;
+        return DateTime.SpecifyKind(value.Value, DateTimeKind.Utc);
     }
 
     [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
