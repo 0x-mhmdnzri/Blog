@@ -46,11 +46,17 @@
     const body = new URLSearchParams();
     body.set('content', textarea.value);
     body.set('__RequestVerificationToken', token || '');
-    const res = await fetch(previewUrl, { method: 'POST', body });
-    if (res.ok) {
-      preview.innerHTML = await res.text();
-      if (window.hljs) preview.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
-    }
+    try {
+      const res = await fetch(previewUrl, {
+        method: 'POST',
+        body,
+        headers: { 'X-No-Toast': '1' }
+      });
+      if (res.ok) {
+        preview.innerHTML = await res.text();
+        if (window.hljs) preview.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+      }
+    } catch (e) { console.warn('preview failed', e); }
   }
   textarea.addEventListener('input', function () { scheduleRender(); markDirty(); });
 
@@ -61,10 +67,14 @@
     form.append('__RequestVerificationToken', token || '');
     dropzone.textContent = 'Uploading ' + file.name + '…';
     try {
-      const res = await fetch(uploadUrl, { method: 'POST', body: form });
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        body: form,
+        headers: { 'X-No-Toast': '1' }
+      });
       if (!res.ok) throw new Error('fail');
       const data = await res.json();
-      insertAtCursor('\n' + data.markdownSnippet + '\n');
+      insertAtCursor('\n' + (data.markdownSnippet || data.url || '') + '\n');
       dropzone.textContent = 'Drop image/video or click';
     } catch (e) { dropzone.textContent = 'Upload failed'; console.error(e); }
   }
@@ -98,8 +108,28 @@
     if (statusEl) statusEl.textContent = msg;
   }
 
+  /** Keep hidden Id + form action in sync after first autosave create. */
+  function bindDraftToForm(id) {
+    postId = id;
+    textarea.dataset.postId = String(id);
+    var idInput = document.querySelector('#postCreateForm input[name="Id"], #postEditForm input[name="Id"], input[name="Id"]');
+    if (idInput) idInput.value = String(id);
+    var form = document.getElementById('postCreateForm') || document.getElementById('postEditForm');
+    if (form) {
+      form.action = '/Posts/Edit/' + id;
+      form.setAttribute('action', '/Posts/Edit/' + id);
+      // After first autosave, subsequent full submits must hit Edit
+      form.id = 'postEditForm';
+    }
+    try {
+      history.replaceState(null, '', '/Posts/Edit/' + id);
+      localStorage.removeItem('blog.draft.new');
+    } catch (e) {}
+  }
+
   async function doAutosave() {
     if (!autosaveUrl) return;
+    syncRichToTextarea();
     if (!dirty && textarea.value === lastSaved && postId > 0) return;
 
     const titleInput = document.querySelector('input[name="Title"]');
@@ -115,30 +145,18 @@
 
     try {
       setStatus('Saving…');
-      const res = await fetch(autosaveUrl, { method: 'POST', body });
+      const res = await fetch(autosaveUrl, {
+        method: 'POST',
+        body,
+        headers: { 'X-No-Toast': '1' }
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.ok) {
           lastSaved = textarea.value;
           dirty = false;
-          if (data.created && data.id) {
-            postId = data.id;
-            textarea.dataset.postId = String(postId);
-            const idInput = document.querySelector('input[name="Id"]');
-            if (idInput) idInput.value = String(postId);
-            // switch form to Edit so full submit updates the draft
-            const form = document.getElementById('postCreateForm') || document.getElementById('postEditForm');
-            if (form && data.id) {
-              form.action = '/Posts/Edit';
-              if (!document.querySelector('input[name="Id"]')) {
-                const h = document.createElement('input');
-                h.type = 'hidden'; h.name = 'Id'; h.value = String(data.id);
-                form.appendChild(h);
-              }
-            }
-            history.replaceState(null, '', '/Posts/Edit/' + data.id);
-            try { localStorage.removeItem('blog.draft.new'); } catch (e) {}
-          }
+          if (data.created && data.id) bindDraftToForm(data.id);
+          else if (data.id && postId <= 0) bindDraftToForm(data.id);
           const rt = document.getElementById('reading-time-display');
           if (rt && data.readingTimeMinutes) rt.textContent = data.readingTimeMinutes;
           const t = data.updatedAtUtc ? new Date(data.updatedAtUtc) : new Date();
@@ -153,13 +171,13 @@
 
   textarea.addEventListener('input', () => {
     clearTimeout(autosaveTimer);
-    autosaveTimer = setTimeout(doAutosave, 12000);
+    autosaveTimer = setTimeout(doAutosave, 8000);
   });
   const titleEl = document.querySelector('input[name="Title"]');
   if (titleEl) titleEl.addEventListener('input', () => {
     markDirty();
     clearTimeout(autosaveTimer);
-    autosaveTimer = setTimeout(doAutosave, 12000);
+    autosaveTimer = setTimeout(doAutosave, 8000);
   });
 
   const autosaveBtn = document.getElementById('btn-autosave');
@@ -189,10 +207,17 @@
     }
   } catch (e) {}
 
-  // —— Rich text optional pane (contenteditable → markdown-ish) ——
+  // —— Rich text optional pane ——
   const rich = document.getElementById('rich-editor');
   const modeBtn = document.getElementById('btn-editor-mode');
   let richMode = false;
+
+  function syncRichToTextarea() {
+    if (richMode && rich && !rich.hidden) {
+      textarea.value = htmlToRoughMd(rich.innerHTML);
+    }
+  }
+
   if (modeBtn && rich) {
     modeBtn.addEventListener('click', function () {
       richMode = !richMode;
@@ -218,7 +243,7 @@
 
   function mdToRoughHtml(md) {
     var h = (md || '')
-      .replace(/&/g, '&').replace(/</g, '<')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')
       .replace(/^## (.+)$/gm, '<h2>$1</h2>')
       .replace(/^# (.+)$/gm, '<h1>$1</h1>')
@@ -245,24 +270,50 @@
       if (tag === 'code') return '`' + inner + '`';
       if (tag === 'br') return '\n';
       if (tag === 'p' || tag === 'div') return '\n\n' + inner;
+      if (tag === 'img') {
+        var src = node.getAttribute('src') || '';
+        var alt = node.getAttribute('alt') || '';
+        return '![' + alt + '](' + src + ')';
+      }
       return inner;
     }
     return walk(d).replace(/\n{3,}/g, '\n\n').trim();
   }
+
+  // Critical: before any form submit, sync rich→textarea and force ContentMarkdown name
+  function onFormSubmit(e) {
+    var form = e.target;
+    if (!form || (form.id !== 'postCreateForm' && form.id !== 'postEditForm')) return;
+    syncRichToTextarea();
+    // Ensure the field is not disabled and has the current value
+    textarea.disabled = false;
+    textarea.removeAttribute('disabled');
+    // If still empty, try localStorage draft as last resort
+    if (!textarea.value.trim()) {
+      try {
+        var raw = localStorage.getItem(draftKey) || localStorage.getItem('blog.draft.new');
+        if (raw) {
+          var d = JSON.parse(raw);
+          if (d && d.content && d.content.trim()) textarea.value = d.content;
+        }
+      } catch (err) {}
+    }
+  }
+  document.addEventListener('submit', onFormSubmit, true);
 
   function antiforgery() { return token || document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''; }
 
   const btnSummarize = document.getElementById('btn-ai-summarize');
   if (btnSummarize) btnSummarize.addEventListener('click', async () => {
     const body = new URLSearchParams(); body.set('content', textarea.value); body.set('__RequestVerificationToken', antiforgery());
-    const res = await fetch('/Posts/AiSummarize', { method: 'POST', body });
+    const res = await fetch('/Posts/AiSummarize', { method: 'POST', body, headers: { 'X-No-Toast': '1' } });
     if (res.ok) { const data = await res.json(); const input = document.getElementById('summary-input'); if (input) input.value = data.summary || ''; }
   });
 
   const btnAssist = document.getElementById('btn-ai-assist');
   if (btnAssist) btnAssist.addEventListener('click', async () => {
     const body = new URLSearchParams(); body.set('content', textarea.value); body.set('__RequestVerificationToken', antiforgery());
-    const res = await fetch('/Posts/AiAssist', { method: 'POST', body });
+    const res = await fetch('/Posts/AiAssist', { method: 'POST', body, headers: { 'X-No-Toast': '1' } });
     if (res.ok) {
       const data = await res.json();
       const titleInput = document.querySelector('input[name="Title"]');
@@ -275,7 +326,7 @@
   const btnGrammar = document.getElementById('btn-ai-grammar');
   if (btnGrammar) btnGrammar.addEventListener('click', async () => {
     const body = new URLSearchParams(); body.set('content', textarea.value); body.set('__RequestVerificationToken', antiforgery());
-    const res = await fetch('/Posts/AiGrammarCheck', { method: 'POST', body });
+    const res = await fetch('/Posts/AiGrammarCheck', { method: 'POST', body, headers: { 'X-No-Toast': '1' } });
     const hintsEl = document.getElementById('ai-hints');
     if (res.ok && hintsEl) {
       const data = await res.json();

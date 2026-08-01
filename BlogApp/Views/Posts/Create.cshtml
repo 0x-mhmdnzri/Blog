@@ -10,9 +10,10 @@
     <p class="text-muted-dark small mb-0">در چهار مرحله: پایه → محتوا → انتشار → بازبینی</p>
 </div>
 
-<form asp-action="Create" method="post" id="postCreateForm"
-      data-toast-success="نوشته با موفقیت ذخیره شد">
+@* data-native-submit: multi-step wizard must use full browser POST so ContentMarkdown is never dropped *@
+<form asp-action="Create" method="post" id="postCreateForm" data-native-submit="true">
     @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
     @await Html.PartialAsync("_EditorForm", Model)
 </form>
 
