@@ -228,6 +228,30 @@ a:focus-visible,
   margin: 0;
 }
 
+.site-search-scopes {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding-top: 0.85rem;
+}
+.site-search-scopes .scope {
+  border: 1px solid var(--border-soft, #1e2430);
+  border-radius: 999px;
+  padding: 0.28rem 0.75rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  background: var(--surface-2, #171c27);
+  color: var(--text-muted, #8b93a7);
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.site-search-scopes .scope:hover {
+  border-color: var(--accent, #e3b341);
+  color: var(--accent, #e3b341);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
 .site-search-skeleton {
   padding: 0.5rem 0.85rem;
 }
