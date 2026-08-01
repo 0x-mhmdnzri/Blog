@@ -1,18 +1,22 @@
-/* Admin topbar + search chrome — theme tokens only (no dark hardcodes).
-   Loaded after admin-rtl / admin-search. */
-
+/* Admin-only overrides for light custom themes. Do not touch site-wide styles. */
 .admin-topbar {
-  background: color-mix(in srgb, var(--bg) 88%, transparent) !important;
-  border-bottom: 1px solid var(--border-soft, var(--border));
-  color: var(--text);
+  background: color-mix(in srgb, var(--bg) 90%, transparent) !important;
+  border-bottom-color: var(--border-soft, var(--border));
 }
 @supports not (background: color-mix(in srgb, red 50%, blue)) {
-  .admin-topbar {
-    background: var(--bg) !important;
-  }
+  .admin-topbar { background: var(--bg) !important; }
 }
-
-/* Ensure kbd never sticks to a dark chip on light themes */
+.admin-search-field {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+.admin-search-field:hover,
+.admin-search-field:focus-visible {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border-color: var(--accent) !important;
+}
 .admin-search-field-kbd {
   background: var(--surface-2) !important;
   border-color: var(--border) !important;
@@ -22,11 +26,4 @@
 .admin-search-field:focus-visible .admin-search-field-kbd {
   background: var(--surface) !important;
   color: var(--text-muted) !important;
-}
-
-.admin-search-field:hover,
-.admin-search-field:focus-visible {
-  background: var(--surface-2) !important;
-  color: var(--text) !important;
-  border-color: var(--accent) !important;
 }
