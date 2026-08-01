@@ -2,77 +2,229 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = T["page.moderation"];
+    var commentCount = Model.PendingComments.Count;
+    var reportCount = Model.OpenReports.Count;
+    var spamCount = Model.OpenReports.Count(r =>
+        (r.Reason ?? "").Contains("spam", StringComparison.OrdinalIgnoreCase)
+        || (r.Reason ?? "").Contains("\u0627\u0633\u067e\u0645", StringComparison.OrdinalIgnoreCase));
+    var total = commentCount + reportCount;
 }
 
-<div class="row g-4">
-    <div class="col-lg-6">
-        <h2 class="h6 text-muted-dark mb-3">@T["mod.pending_comments"] (@Model.PendingComments.Count)</h2>
-        @if (Model.PendingComments.Count == 0)
-        {
-            <div class="admin-empty"><p>@T["mod.no_pending_comments"]</p></div>
-        }
-        else
-        {
-            @foreach (var c in Model.PendingComments)
-            {
-                <div class="card-surface p-3 mb-2">
-                    <div class="d-flex justify-content-between gap-2">
-                        <strong dir="auto">@c.AuthorName</strong>
-                        <span class="ltr-field small text-muted-dark">@PersianDate.DateTime(c.CreatedAtUtc)</span>
-                    </div>
-                    <p class="mb-2 mt-1 text-muted-dark" dir="auto">@c.Body</p>
-                    <div class="small mb-2">
-                        <a asp-controller="Posts" asp-action="Details" asp-route-slug="@c.PostSlug" dir="auto">@c.PostTitle</a>
-                    </div>
-                    <div class="d-flex gap-1">
-                        <form asp-controller="Admin" asp-action="ApproveComment" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@c.Id" />
-                            <button type="submit" class="icon-btn approve">@T["btn.approve"]</button>
-                        </form>
-                        <form asp-controller="Admin" asp-action="RejectComment" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@c.Id" />
-                            <button type="submit" class="icon-btn reject">@T["btn.reject"]</button>
-                        </form>
-                    </div>
-                </div>
-            }
-            <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="Comments">@T["mod.all_comments"] →</a>
-        }
+<header class="mq-hero">
+    <div>
+        <p class="mq-eyebrow">Moderation</p>
+        <h1 class="mq-title">@T["page.moderation"]</h1>
+        <p class="mq-sub">\u0635\u0641 \u0648\u0627\u062d\u062f \u0628\u0631\u0627\u06cc \u062f\u06cc\u062f\u06af\u0627\u0647\u200c\u0647\u0627\u06cc \u062f\u0631 \u0627\u0646\u062a\u0638\u0627\u0631\u060c \u06af\u0632\u0627\u0631\u0634\u200c\u0647\u0627 \u0648 \u0627\u0633\u067e\u0645.</p>
     </div>
-    <div class="col-lg-6">
-        <h2 class="h6 text-muted-dark mb-3">@T["mod.open_reports"] (@Model.OpenReports.Count)</h2>
-        @if (Model.OpenReports.Count == 0)
-        {
-            <div class="admin-empty"><p>@T["mod.no_open_reports"]</p></div>
-        }
-        else
-        {
-            @foreach (var r in Model.OpenReports)
-            {
-                <div class="card-surface p-3 mb-2">
-                    <div class="small text-muted-dark">@(r.TargetType == ContentReportTarget.Post ? T["mod.target_post"] : T["mod.target_comment"]) · @r.Reason</div>
-                    <div dir="auto" class="mb-1">@(r.TargetTitle ?? "#" + r.TargetId)</div>
-                    @if (!string.IsNullOrEmpty(r.Details))
-                    {
-                        <p class="small text-muted-dark mb-2" dir="auto">@r.Details</p>
-                    }
-                    <div class="d-flex gap-1">
-                        <form asp-controller="AdminReports" asp-action="Resolve" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@r.Id" />
-                            <button type="submit" class="icon-btn approve">@T["btn.resolve"]</button>
-                        </form>
-                        <form asp-controller="AdminReports" asp-action="Dismiss" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@r.Id" />
-                            <button type="submit" class="icon-btn reject">@T["btn.dismiss"]</button>
-                        </form>
-                    </div>
-                </div>
-            }
-            <a class="btn btn-ghost btn-sm" asp-controller="AdminReports" asp-action="Index">@T["mod.all_reports"] →</a>
-        }
+    <div class="mq-hero-links">
+        <a class="mq-link" asp-controller="Admin" asp-action="Comments">@T["mod.all_comments"]</a>
+        <a class="mq-link" asp-controller="AdminReports" asp-action="Index">@T["mod.all_reports"]</a>
     </div>
+</header>
+
+<div class="mq-kpis">
+    <button type="button" class="mq-kpi is-active" data-mq-filter="all">
+        <span class="mq-kpi-label">\u0647\u0645\u0647</span>
+        <span class="mq-kpi-val">@total</span>
+    </button>
+    <button type="button" class="mq-kpi" data-mq-filter="comment">
+        <span class="mq-kpi-label">@T["mod.pending_comments"]</span>
+        <span class="mq-kpi-val">@commentCount</span>
+    </button>
+    <button type="button" class="mq-kpi" data-mq-filter="report">
+        <span class="mq-kpi-label">@T["mod.open_reports"]</span>
+        <span class="mq-kpi-val">@reportCount</span>
+    </button>
+    <button type="button" class="mq-kpi @(spamCount > 0 ? "mq-kpi-warn" : "")" data-mq-filter="spam">
+        <span class="mq-kpi-label">\u0627\u0633\u067e\u0645</span>
+        <span class="mq-kpi-val">@spamCount</span>
+    </button>
 </div>
+
+<div class="mq-toolbar">
+    <input type="search" class="mq-search" id="mqSearch" placeholder="\u062c\u0633\u062a\u200c\u0648\u062c\u0648 \u062f\u0631 \u0635\u0641\u2026" autocomplete="off" />
+    <span class="mq-hint" id="mqHint">@total \u0645\u0648\u0631\u062f</span>
+</div>
+
+@if (total == 0)
+{
+    <div class="mq-empty">
+        <p class="mq-empty-title">\u0635\u0641 \u062e\u0627\u0644\u06cc \u0627\u0633\u062a</p>
+        <p class="mq-empty-hint">@T["mod.no_pending_comments"] \u00b7 @T["mod.no_open_reports"]</p>
+    </div>
+}
+else
+{
+    <div class="mq-feed" id="mqFeed">
+        @{
+            var items = new List<(string Kind, DateTime At, object Payload)>();
+            foreach (var c in Model.PendingComments)
+                items.Add(("comment", c.CreatedAtUtc, c));
+            foreach (var r in Model.OpenReports)
+            {
+                var isSpam = (r.Reason ?? "").Contains("spam", StringComparison.OrdinalIgnoreCase)
+                             || (r.Reason ?? "").Contains("\u0627\u0633\u067e\u0645", StringComparison.OrdinalIgnoreCase);
+                items.Add((isSpam ? "spam" : "report", r.CreatedAtUtc, r));
+            }
+            foreach (var item in items.OrderByDescending(x => x.At))
+            {
+                if (item.Kind == "comment")
+                {
+                    var c = (AdminCommentListItem)item.Payload;
+                    <article class="mq-card" data-kind="comment" data-q="@((c.AuthorName + " " + c.Body + " " + c.PostTitle).ToLowerInvariant())">
+                        <div class="mq-card-head">
+                            <span class="mq-badge mq-badge-comment">\u062f\u06cc\u062f\u06af\u0627\u0647</span>
+                            <span class="mq-time ltr-field">@PersianDate.DateTime(c.CreatedAtUtc)</span>
+                        </div>
+                        <div class="mq-card-who" dir="auto"><strong>@c.AuthorName</strong></div>
+                        <p class="mq-card-body" dir="auto">@c.Body</p>
+                        <div class="mq-card-meta">
+                            <a asp-controller="Posts" asp-action="Details" asp-route-slug="@c.PostSlug" dir="auto">@c.PostTitle</a>
+                        </div>
+                        <div class="mq-card-acts">
+                            <form asp-controller="Admin" asp-action="ApproveComment" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button type="submit" class="mq-btn mq-btn-ok">@T["btn.approve"]</button>
+                            </form>
+                            <form asp-controller="Admin" asp-action="RejectComment" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button type="submit" class="mq-btn mq-btn-bad">@T["btn.reject"]</button>
+                            </form>
+                        </div>
+                    </article>
+                }
+                else
+                {
+                    var r = (ContentReport)item.Payload;
+                    var kindAttr = item.Kind;
+                    <article class="mq-card @(kindAttr == "spam" ? "mq-card-spam" : "")" data-kind="@kindAttr" data-q="@(((r.TargetTitle ?? "") + " " + r.Reason + " " + (r.Details ?? "") + " " + (r.ReporterName ?? "")).ToLowerInvariant())">
+                        <div class="mq-card-head">
+                            <span class="mq-badge @(kindAttr == "spam" ? "mq-badge-spam" : "mq-badge-report")">
+                                @(kindAttr == "spam" ? "\u0627\u0633\u067e\u0645" : "\u06af\u0632\u0627\u0631\u0634")
+                            </span>
+                            <span class="mq-pill">@(r.TargetType == ContentReportTarget.Post ? T["mod.target_post"] : T["mod.target_comment"])</span>
+                            <span class="mq-time ltr-field">@PersianDate.DateTime(r.CreatedAtUtc)</span>
+                        </div>
+                        <div class="mq-card-who" dir="auto">
+                            <strong>@(r.TargetTitle ?? ("#" + r.TargetId))</strong>
+                            <span class="mq-reason">@r.Reason</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(r.Details))
+                        {
+                            <p class="mq-card-body" dir="auto">@r.Details</p>
+                        }
+                        <div class="mq-card-meta">
+                            \u06af\u0632\u0627\u0631\u0634\u200c\u062f\u0647\u0646\u062f\u0647: @(r.ReporterName ?? "\u2014")
+                        </div>
+                        <div class="mq-card-acts">
+                            <form asp-controller="AdminReports" asp-action="Resolve" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <button type="submit" class="mq-btn mq-btn-ok">@T["btn.resolve"]</button>
+                            </form>
+                            <form asp-controller="AdminReports" asp-action="Dismiss" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <button type="submit" class="mq-btn mq-btn-bad">@T["btn.dismiss"]</button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            }
+        }
+    </div>
+    <p class="mq-none" id="mqNone" hidden>\u0645\u0648\u0631\u062f\u06cc \u0628\u0627 \u0627\u06cc\u0646 \u0641\u06cc\u0644\u062a\u0631 \u0646\u06cc\u0633\u062a.</p>
+}
+
+<style>
+.mq-hero{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.15rem}
+.mq-eyebrow{margin:0 0 .2rem;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);opacity:.9}
+.mq-title{margin:0 0 .3rem;font-size:1.35rem;font-weight:750;letter-spacing:-0.02em}
+.mq-sub{margin:0;font-size:.86rem;color:var(--text-muted)}
+.mq-hero-links{display:flex;flex-wrap:wrap;gap:.5rem}
+.mq-link{font-size:.82rem;font-weight:600;color:var(--accent);text-decoration:none!important;padding:.35rem .7rem;border-radius:10px;border:1px solid var(--border-soft);background:var(--surface)}
+.mq-link:hover{border-color:var(--accent-dim,var(--accent))}
+.mq-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem;margin-bottom:1rem}
+@@media (max-width:720px){.mq-kpis{grid-template-columns:1fr 1fr}}
+.mq-kpi{background:var(--surface);border:1px solid var(--border-soft);border-radius:14px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.25rem;text-align:start;cursor:pointer;color:inherit;transition:border-color .15s,background .15s}
+.mq-kpi:hover{border-color:var(--border)}
+.mq-kpi.is-active{border-color:color-mix(in srgb,var(--accent) 45%,var(--border));background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.mq-kpi-warn{border-color:color-mix(in srgb,var(--danger) 35%,var(--border))}
+.mq-kpi-label{font-size:.72rem;color:var(--text-muted);font-weight:550}
+.mq-kpi-val{font-size:1.4rem;font-weight:750;direction:ltr;text-align:start;font-variant-numeric:tabular-nums}
+.mq-kpi.is-active .mq-kpi-val{color:var(--accent)}
+.mq-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:.65rem;margin-bottom:.85rem}
+.mq-search{flex:1;max-width:20rem;background:var(--bg);border:1px solid var(--border-soft);border-radius:10px;padding:.5rem .85rem;color:var(--text);font-size:.86rem;outline:none}
+.mq-search:focus{border-color:var(--accent-dim,var(--accent));box-shadow:0 0 0 3px var(--accent-soft,rgba(227,179,65,.15))}
+.mq-hint{font-size:.78rem;color:var(--text-faint)}
+.mq-feed{display:flex;flex-direction:column;gap:.55rem;max-width:720px}
+.mq-card{background:var(--surface);border:1px solid var(--border-soft);border-radius:14px;padding:.95rem 1.1rem;transition:border-color .12s}
+.mq-card:hover{border-color:color-mix(in srgb,var(--accent) 30%,var(--border))}
+.mq-card-spam{border-color:color-mix(in srgb,var(--danger) 30%,var(--border));background:color-mix(in srgb,var(--danger) 4%,var(--surface))}
+.mq-card.is-hidden{display:none!important}
+.mq-card-head{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .55rem;margin-bottom:.45rem}
+.mq-badge{font-size:.68rem;font-weight:700;padding:.15rem .5rem;border-radius:999px}
+.mq-badge-comment{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.mq-badge-report{background:color-mix(in srgb,#6fb3d2 16%,transparent);color:#6fb3d2}
+.mq-badge-spam{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
+.mq-pill{font-size:.68rem;font-weight:600;color:var(--text-faint);background:var(--surface-2);padding:.12rem .45rem;border-radius:999px}
+.mq-time{font-size:.72rem;color:var(--text-faint);margin-inline-start:auto}
+.mq-card-who{font-size:.92rem;margin-bottom:.35rem}
+.mq-reason{display:inline-block;margin-inline-start:.4rem;font-size:.78rem;font-weight:600;color:var(--text-muted)}
+.mq-card-body{margin:0 0 .5rem;font-size:.9rem;line-height:1.55;color:var(--text-muted);white-space:pre-wrap}
+.mq-card-meta{font-size:.78rem;color:var(--text-faint);margin-bottom:.65rem}
+.mq-card-meta a{color:var(--accent);text-decoration:none}
+.mq-card-meta a:hover{text-decoration:underline}
+.mq-card-acts{display:flex;flex-wrap:wrap;gap:.35rem}
+.mq-card-acts form{margin:0;display:inline}
+.mq-btn{border:1px solid var(--border);background:transparent;border-radius:8px;padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:var(--text-muted);cursor:pointer}
+.mq-btn:hover{color:var(--text);background:var(--surface-2)}
+.mq-btn-ok:hover{color:var(--success,#9ecb8c);border-color:var(--success,#9ecb8c);background:color-mix(in srgb,#9ecb8c 10%,transparent)}
+.mq-btn-bad:hover{color:var(--danger);border-color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,transparent)}
+.mq-empty{text-align:center;padding:2.75rem 1.25rem;background:var(--surface);border:1px dashed var(--border);border-radius:16px}
+.mq-empty-title{font-weight:650;margin:0 0 .25rem}
+.mq-empty-hint{margin:0;font-size:.84rem;color:var(--text-muted)}
+.mq-none{text-align:center;color:var(--text-faint);font-size:.86rem;margin:1rem 0 0}
+</style>
+
+@section Scripts {
+<script>
+(function () {
+  var filter = 'all';
+  var search = document.getElementById('mqSearch');
+  var feed = document.getElementById('mqFeed');
+  var hint = document.getElementById('mqHint');
+  var none = document.getElementById('mqNone');
+  if (!feed) return;
+  function apply() {
+    var q = (search && search.value || '').trim().toLowerCase();
+    var n = 0;
+    feed.querySelectorAll('.mq-card').forEach(function (card) {
+      var kind = card.getAttribute('data-kind') || '';
+      var kindOk = filter === 'all'
+        || (filter === 'comment' && kind === 'comment')
+        || (filter === 'report' && (kind === 'report' || kind === 'spam'))
+        || (filter === 'spam' && kind === 'spam');
+      var qOk = !q || (card.getAttribute('data-q') || '').indexOf(q) !== -1;
+      var ok = kindOk && qOk;
+      card.classList.toggle('is-hidden', !ok);
+      if (ok) n++;
+    });
+    if (hint) hint.textContent = n + ' \u0645\u0648\u0631\u062f';
+    if (none) none.hidden = n > 0;
+  }
+  document.querySelectorAll('[data-mq-filter]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      filter = btn.getAttribute('data-mq-filter') || 'all';
+      document.querySelectorAll('[data-mq-filter]').forEach(function (b) {
+        b.classList.toggle('is-active', b === btn);
+      });
+      apply();
+    });
+  });
+  if (search) search.addEventListener('input', apply);
+})();
+</script>
+}
