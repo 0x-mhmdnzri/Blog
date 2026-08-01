@@ -1,9 +1,12 @@
 /**
  * Single point of failure for all date/datetime pickers.
  * FA → Shamsi (Jalali), EN → Gregorian, AR → Hijri (Islamic).
- * Form values are always stored as Gregorian ISO for the backend:
- *   date: YYYY-MM-DD
- *   datetime: YYYY-MM-DDTHH:mm  (datetime-local shape)
+ *
+ * UX: datetime fields are always edited in the USER'S local timezone.
+ * On form submit, values are converted to UTC wall-clock (YYYY-MM-DDTHH:mm)
+ * so the backend can store Instant/UTC safely.
+ *
+ * Server should set data-utc-iso="yyyy-MM-ddTHH:mm:ssZ" when binding stored UTC.
  */
 (function (global) {
   'use strict';
@@ -16,6 +19,7 @@
 
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
 
+  /** Parse datetime-local / ISO without Z as LOCAL wall-clock. */
   function parseIsoLocal(str) {
     if (!str) return null;
     var m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
@@ -23,11 +27,45 @@
     return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
   }
 
+  /** Parse ISO with Z or offset as absolute instant → Date. */
+  function parseIsoUtc(str) {
+    if (!str) return null;
+    var s = String(str).trim();
+    if (/Z$/i.test(s) || /[+-]\d{2}:?\d{2}$/.test(s)) {
+      var d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // Bare UTC wall-clock from server attribute
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+    if (!m) return null;
+    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)));
+  }
+
   function toIsoLocal(d, withTime) {
     if (!(d instanceof Date) || isNaN(d.getTime())) return '';
     var s = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     if (withTime) s += 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
     return s;
+  }
+
+  /** UTC wall-clock for form post (backend treats Unspecified as UTC). */
+  function toIsoUtcWallClock(d, withTime) {
+    if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+    var s = d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+    if (withTime) s += 'T' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+    return s;
+  }
+
+  function tzLabel() {
+    try {
+      var parts = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(new Date());
+      var p = parts.find(function (x) { return x.type === 'timeZoneName'; });
+      if (p && p.value) return p.value;
+    } catch (_) {}
+    var off = -new Date().getTimezoneOffset();
+    var sign = off >= 0 ? '+' : '-';
+    var abs = Math.abs(off);
+    return 'UTC' + sign + pad(Math.floor(abs / 60)) + ':' + pad(abs % 60);
   }
 
   /* ─── Jalali (Shamsi) helpers ─── */
@@ -89,7 +127,6 @@
     return new Date(g[0], g[1] - 1, g[2], h || 0, mi || 0, 0);
   }
 
-  /* ─── Hijri (Islamic) approximate civil calendar ─── */
   function g2h(gy, gm, gd) {
     var jd = gregorianToJd(gy, gm, gd);
     return jdToHijri(jd);
@@ -142,7 +179,6 @@
     return new Date(g[0], g[1] - 1, g[2], h || 0, mi || 0, 0);
   }
 
-  /* ─── Month names ─── */
   var MONTHS = {
     gregorian: {
       en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
@@ -188,7 +224,6 @@
     if (calendar === 'jalali') {
       if (m <= 6) return 31;
       if (m <= 11) return 30;
-      // Esfand: leap if remainder of (jy+12) % 33 is one of 1,5,9,13,17,22,26,30
       var r = (y + 12) % 33;
       return [1,5,9,13,17,22,26,30].indexOf(r) >= 0 ? 30 : 29;
     }
@@ -206,7 +241,6 @@
     return s;
   }
 
-  /* ─── UI popup ─── */
   var activePopup = null;
 
   function closePopup() {
@@ -250,13 +284,9 @@
       for (var i = 0; i < 7; i++) html += '<span>' + wds[i] + '</span>';
       html += '</div><div class="blog-dp-grid">';
 
-      // weekday of first day
       var first = fromParts(viewY, viewM, 1);
-      var startWd = first.getDay(); // 0=Sun
-      // Persian week starts Saturday=6
-      if (calendar === 'jalali') {
-        startWd = (startWd + 1) % 7; // shift so Sat is 0
-      }
+      var startWd = first.getDay();
+      if (calendar === 'jalali') startWd = (startWd + 1) % 7;
       var dim = daysInMonth(viewY, viewM);
       for (var s = 0; s < startWd; s++) html += '<span class="blog-dp-empty"></span>';
       for (var day = 1; day <= dim; day++) {
@@ -267,7 +297,7 @@
 
       if (withTime) {
         html += '<div class="blog-dp-time">';
-        html += '<label>' + labels.time + '</label>';
+        html += '<label>' + labels.time + ' <span class="blog-dp-tz ltr-field">' + tzLabel() + '</span></label>';
         html += '<input type="number" class="blog-dp-hour" min="0" max="23" value="' + pad(hour) + '" />';
         html += '<span>:</span>';
         html += '<input type="number" class="blog-dp-min" min="0" max="59" value="' + pad(minute) + '" />';
@@ -324,6 +354,7 @@
       };
       popup.querySelector('[data-act="clear"]').onclick = function () {
         input.value = '';
+        input.dataset.localValue = '';
         if (input._display) input._display.value = '';
         input.dispatchEvent(new Event('change', { bubbles: true }));
         closePopup();
@@ -333,7 +364,9 @@
 
     function apply() {
       var d = fromParts(selected.y, selected.m, selected.d, hour, minute);
+      // Keep native input in LOCAL until form submit conversion
       input.value = toIsoLocal(d, withTime);
+      input.dataset.localValue = input.value;
       if (input._display) input._display.value = formatDisplay(d, withTime);
       input.dispatchEvent(new Event('change', { bubbles: true }));
       input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -343,7 +376,6 @@
     document.body.appendChild(popup);
     activePopup = popup;
 
-    // position
     var rect = (input._display || input).getBoundingClientRect();
     var top = rect.bottom + window.scrollY + 6;
     var left = rect.left + window.scrollX;
@@ -362,17 +394,34 @@
     var withTime = (input.type === 'datetime-local') || input.dataset.dpTime === '1';
     var isDateOnly = input.type === 'date' || input.dataset.dpDate === '1';
 
-    // hide native, keep for form post
     input.classList.add('blog-dp-native');
     input.setAttribute('tabindex', '-1');
     input.setAttribute('aria-hidden', 'true');
+
+    // UTC from server → show local
+    var utcAttr = input.getAttribute('data-utc-iso');
+    if (withTime && !isDateOnly && utcAttr) {
+      var utcDate = parseIsoUtc(utcAttr);
+      if (utcDate) {
+        input.value = toIsoLocal(utcDate, true);
+        input.dataset.localValue = input.value;
+      }
+    } else if (withTime && !isDateOnly && input.value) {
+      // asp-for rendered UTC components as-if local; treat as UTC wall-clock
+      var asUtc = parseIsoUtc(input.value);
+      if (asUtc) {
+        input.value = toIsoLocal(asUtc, true);
+        input.dataset.localValue = input.value;
+        input.setAttribute('data-utc-iso', toIsoUtcWallClock(asUtc, true) + ':00Z');
+      }
+    }
 
     var display = document.createElement('input');
     display.type = 'text';
     display.className = (input.className || '').replace(/blog-dp-native/g, '') + ' blog-dp-display ltr-field';
     display.className = display.className.replace(/\s+/g, ' ').trim();
     display.readOnly = true;
-    display.placeholder = input.placeholder || (withTime ? 'YYYY/MM/DD HH:mm' : 'YYYY/MM/DD');
+    display.placeholder = input.placeholder || (withTime && !isDateOnly ? 'YYYY/MM/DD HH:mm (' + tzLabel() + ')' : 'YYYY/MM/DD');
     display.autocomplete = 'off';
     if (input.required) display.required = true;
     if (input.disabled) display.disabled = true;
@@ -383,6 +432,23 @@
     input._display = display;
     input.parentNode.insertBefore(display, input.nextSibling);
 
+    // Annotate nearby label/hint with timezone for datetime fields
+    if (withTime && !isDateOnly) {
+      var hint = input.parentNode.querySelector('.form-text, .blog-dp-hint');
+      if (!hint) {
+        hint = document.createElement('div');
+        hint.className = 'form-text text-muted-dark blog-dp-hint';
+        input.parentNode.appendChild(hint);
+      }
+      if (!hint.dataset.tzDone) {
+        hint.dataset.tzDone = '1';
+        var extra = (culture === 'fa')
+          ? 'زمان به‌وقت محلی شما (' + tzLabel() + ') — در سرور به UTC ذخیره می‌شود'
+          : 'Local time (' + tzLabel() + ') — stored as UTC on the server';
+        hint.textContent = (hint.textContent ? hint.textContent + ' · ' : '') + extra;
+      }
+    }
+
     display.addEventListener('click', function () {
       if (!input.disabled) openPopup(input, withTime && !isDateOnly);
     });
@@ -391,10 +457,68 @@
     });
   }
 
+  /**
+   * Convert all datetime-local fields in a form from local → UTC wall-clock.
+   * Call before native submit / fetch body serialization.
+   */
+  function prepareForm(form) {
+    if (!form || !form.querySelectorAll) return;
+
+    // Offset for backend fallback
+    var off = String(new Date().getTimezoneOffset());
+    var existing = form.querySelector('input[name="__timezoneOffset"]');
+    if (!existing) {
+      existing = document.createElement('input');
+      existing.type = 'hidden';
+      existing.name = '__timezoneOffset';
+      form.appendChild(existing);
+    }
+    existing.value = off;
+
+    var flag = form.querySelector('input[name="__dt_utc_converted"]');
+    if (!flag) {
+      flag = document.createElement('input');
+      flag.type = 'hidden';
+      flag.name = '__dt_utc_converted';
+      form.appendChild(flag);
+    }
+    flag.value = '1';
+
+    form.querySelectorAll('input[type="datetime-local"], input[data-dp-time="1"]').forEach(function (input) {
+      if (input.type === 'date' || input.dataset.dpDate === '1') return;
+      var localStr = input.dataset.localValue || input.value;
+      if (!localStr) return;
+      var d = parseIsoLocal(localStr);
+      if (!d) return;
+      input.dataset.localValue = localStr;
+      input.value = toIsoUtcWallClock(d, true);
+    });
+  }
+
+  function restoreForm(form) {
+    if (!form) return;
+    form.querySelectorAll('input[type="datetime-local"], input[data-dp-time="1"]').forEach(function (input) {
+      if (input.dataset.localValue) {
+        input.value = input.dataset.localValue;
+        if (input._display) {
+          var d = parseIsoLocal(input.value);
+          if (d) input._display.value = formatDisplay(d, true);
+        }
+      }
+    });
+  }
+
   function init(root) {
     root = root || document;
     root.querySelectorAll('input[type="datetime-local"], input[type="date"], input.js-datepicker').forEach(enhance);
   }
+
+  // Capture-phase: convert before any other submit handler / browser navigation
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    prepareForm(form);
+  }, true);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { init(); });
@@ -406,6 +530,11 @@
     init: init,
     culture: culture,
     calendar: calendar,
-    enhance: enhance
+    enhance: enhance,
+    prepareForm: prepareForm,
+    restoreForm: restoreForm,
+    tzLabel: tzLabel,
+    toIsoUtcWallClock: toIsoUtcWallClock,
+    parseIsoLocal: parseIsoLocal
   };
 })(window);
