@@ -14,7 +14,7 @@ namespace BlogApp.Services.Backup;
 /// (default <c>/app/data/backups</c>). Uses SQLite online Backup API for a
 /// consistent snapshot without stopping the app (supports RPO-oriented schedules).
 /// </summary>
-public sealed class AppBackupService : IAppBackupService
+public sealed partial class AppBackupService : IAppBackupService
 {
     private readonly ApplicationDbContext _db;
     private readonly IConfiguration _config;
@@ -224,14 +224,11 @@ public sealed class AppBackupService : IAppBackupService
         if (!File.Exists(stagedDb) || liveDb is null)
             throw new InvalidOperationException("Staged database or live path missing; cannot swap");
 
-        // Online-ish swap: write next to live file, then replace.
-        // Caller should recycle the process after a successful swap for clean connections.
         var liveDir = Path.GetDirectoryName(liveDb)!;
         Directory.CreateDirectory(liveDir);
         var tempLive = liveDb + ".restoring";
         File.Copy(stagedDb, tempLive, overwrite: true);
 
-        // Checkpoint companions out of the way
         foreach (var suffix in new[] { "-wal", "-shm" })
         {
             var side = liveDb + suffix;
@@ -256,7 +253,6 @@ public sealed class AppBackupService : IAppBackupService
         var removed = 0;
         var cutoff = DateTime.UtcNow.AddDays(-Math.Max(1, opts.RetentionDays));
 
-        // Filesystem purge by age
         foreach (var file in Directory.EnumerateFiles(dir, "blog-*.zip", SearchOption.TopDirectoryOnly))
         {
             try
@@ -274,7 +270,6 @@ public sealed class AppBackupService : IAppBackupService
             }
         }
 
-        // Cap by MaxFiles (newest kept)
         if (opts.MaxFiles > 0)
         {
             var ordered = Directory.EnumerateFiles(dir, "blog-*.zip", SearchOption.TopDirectoryOnly)
@@ -292,7 +287,6 @@ public sealed class AppBackupService : IAppBackupService
             }
         }
 
-        // Align DB catalog with remaining files
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
         var records = await _db.BackupRecords.ToListAsync(ct);
         foreach (var r in records)
@@ -307,7 +301,6 @@ public sealed class AppBackupService : IAppBackupService
 
     private static async Task SnapshotSqliteAsync(string sourcePath, string destPath, CancellationToken ct)
     {
-        // Prefer SQLite online Backup API (consistent hot copy).
         await using var source = new SqliteConnection(new SqliteConnectionStringBuilder
         {
             DataSource = sourcePath,
@@ -316,7 +309,6 @@ public sealed class AppBackupService : IAppBackupService
         }.ToString());
         await source.OpenAsync(ct);
 
-        // Checkpoint WAL so main DB is as current as possible before/during backup.
         try
         {
             await using var cmd = source.CreateCommand();
@@ -354,7 +346,6 @@ public sealed class AppBackupService : IAppBackupService
         foreach (var file in Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories))
         {
             var full = Path.GetFullPath(file);
-            // Skip backup directory itself and SQLite live/WAL (DB is snapshotted separately)
             if (full.StartsWith(backupFull, StringComparison.OrdinalIgnoreCase))
                 continue;
             var name = Path.GetFileName(full);
