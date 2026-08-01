@@ -43,8 +43,7 @@
   }
   function fetchSuggest(q) {
     if (!suggestBox || !q || q.length < 2) { if (suggestBox) suggestBox.innerHTML = ''; return; }
-    var suggestUrl = '/' + langPrefix + '/Home/SearchSuggest?q=' + encodeURIComponent(q);
-    fetch(suggestUrl)
+    fetch('/Home/SearchSuggest?q=' + encodeURIComponent(q))
       .then(function (r) { return r.json(); })
       .then(function (items) {
         if (!items || !items.length) {
