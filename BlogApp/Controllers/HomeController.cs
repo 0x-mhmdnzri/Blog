@@ -47,25 +47,30 @@ public class HomeController : Controller
     {
         const int pageSize = 8;
         if (page < 1) page = 1;
-        var isAuthor = User.Identity?.IsAuthenticated == true;
         var now = DateTime.UtcNow;
         var lang = _culture.CurrentCode;
+        var userId = AuthorAccess.UserId(User);
+        var canSeeAllDrafts = AuthorAccess.CanManageAllPosts(User); // SuperAdmin / claim
 
         List<PostListItemViewModel> posts;
         int total;
         var categories = await _db.Categories.AsNoTracking().OrderBy(c => c.Name).ToListAsync();
 
+        // Public: published only. Drafts: author of the post OR SuperAdmin.
         var query = _db.Posts
             .AsNoTracking()
             .Where(p => !p.IsDeleted)
             .Where(p => p.LanguageCode == lang)
             .Where(p => p.IsPublished
-                        || isAuthor
-                        || (p.ScheduledPublishAtUtc != null && p.ScheduledPublishAtUtc <= now))
-            .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now || isAuthor)
-            .Where(p => isAuthor
-                        || p.TranslationStatus == TranslationStatus.Original
-                        || p.TranslationStatus == TranslationStatus.Approved);
+                        || (canSeeAllDrafts && !p.IsPublished)
+                        || (!p.IsPublished && userId != null && p.AuthorId == userId))
+            .Where(p => p.IsPublished
+                        ? (p.ExpiresAtUtc == null || p.ExpiresAtUtc > now)
+                        : true)
+            .Where(p => p.IsPublished
+                        ? (p.TranslationStatus == TranslationStatus.Original
+                           || p.TranslationStatus == TranslationStatus.Approved)
+                        : true);
 
         if (!string.IsNullOrWhiteSpace(category))
             query = query.Where(p => p.Category != null && p.Category.Slug == category);

@@ -12,6 +12,7 @@ public partial class PostsController
 {
     private async Task SaveRevisionAsync(Post post, string userId, string note)
     {
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
         var revision = new PostRevision
         {
             PostId = post.Id,
@@ -33,14 +34,19 @@ public partial class PostsController
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>Request-path fallback for schedule/expire. Hosted service is primary (every 30s).</summary>
     private async Task ApplyScheduledAndExpirationAsync()
     {
+        // Default EF tracking is NoTracking — must enable or updates never persist.
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
         var now = DateTime.UtcNow;
+
         var toPublish = await _db.Posts
             .Where(p => !p.IsDeleted && !p.IsPublished
                         && p.ScheduledPublishAtUtc != null
                         && p.ScheduledPublishAtUtc <= now)
             .ToListAsync();
+
         foreach (var p in toPublish)
         {
             p.IsPublished = true;
@@ -48,18 +54,24 @@ public partial class PostsController
             p.ScheduledPublishAtUtc = null;
             p.UpdatedAtUtc = now;
         }
+
         var toExpire = await _db.Posts
             .Where(p => !p.IsDeleted && p.IsPublished
                         && p.ExpiresAtUtc != null
                         && p.ExpiresAtUtc <= now)
             .ToListAsync();
+
         foreach (var p in toExpire)
         {
             p.IsPublished = false;
             p.UpdatedAtUtc = now;
         }
+
         if (toPublish.Count + toExpire.Count > 0)
+        {
             await _db.SaveChangesAsync();
+            _logger.LogInformation("ApplyScheduled published={Pub} expired={Exp}", toPublish.Count, toExpire.Count);
+        }
     }
 
     private async Task<List<CategoryOption>> GetCategoryOptionsAsync() =>
@@ -93,5 +105,40 @@ public partial class PostsController
             }
             post.PostTags.Add(new PostTag { Tag = tag, Post = post });
         }
+    }
+
+    /// <summary>Apply schedule vs immediate publish rules to a post entity.</summary>
+    private void ApplyPublishState(Post post, bool wantPublish, DateTime? scheduledUtc, DateTime? expiresUtc, bool wasPublished)
+    {
+        post.ExpiresAtUtc = NormalizeOptionalDate(expiresUtc);
+        var scheduled = NormalizeOptionalDate(scheduledUtc);
+
+        // Future schedule wins over "publish now"
+        if (scheduled is DateTime when && when > DateTime.UtcNow)
+        {
+            post.IsPublished = false;
+            post.ScheduledPublishAtUtc = when;
+            _logger.LogInformation(
+                "PostId={Id} scheduled for {When:o} UTC (now={Now:o})",
+                post.Id, when, DateTime.UtcNow);
+        }
+        else
+        {
+            post.IsPublished = wantPublish;
+            post.ScheduledPublishAtUtc = null;
+            if (wantPublish && !wasPublished)
+                post.PublishedAtUtc = DateTime.UtcNow;
+        }
+    }
+
+    private static DateTime? NormalizeOptionalDate(DateTime? value)
+    {
+        if (value is null) return null;
+        if (value.Value.Year < 2000) return null;
+        // datetime-local is wall-clock without offset; form is labeled UTC — treat as UTC
+        var v = value.Value;
+        if (v.Kind == DateTimeKind.Unspecified)
+            return DateTime.SpecifyKind(v, DateTimeKind.Utc);
+        return v.ToUniversalTime();
     }
 }
