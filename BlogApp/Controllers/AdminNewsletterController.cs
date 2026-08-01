@@ -4,6 +4,7 @@ using BlogApp.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 namespace BlogApp.Controllers;
 
@@ -34,11 +35,19 @@ public class AdminNewsletterController : Controller
         ViewBag.CampaignCount = await _db.NewsletterCampaigns.CountAsync();
 
         ViewBag.Subscribers = await _db.NewsletterSubscribers
-            .OrderByDescending(s => s.SubscribedAtUtc).Take(100).ToListAsync();
+            .OrderByDescending(s => s.SubscribedAtUtc).Take(200).ToListAsync();
         ViewBag.Segments = await _db.NewsletterSegments.OrderBy(s => s.Name).ToListAsync();
         ViewBag.Campaigns = await _db.NewsletterCampaigns
             .Include(c => c.Segment)
             .OrderByDescending(c => c.CreatedAtUtc).Take(50).ToListAsync();
+
+        // Recent published posts for one-click campaign
+        ViewBag.RecentPosts = await _db.Posts.AsNoTracking()
+            .Where(p => p.IsPublished && p.DeletedAtUtc == null)
+            .OrderByDescending(p => p.PublishedAtUtc ?? p.CreatedAtUtc)
+            .Select(p => new { p.Id, p.Title, p.Slug })
+            .Take(20)
+            .ToListAsync();
 
         return View();
     }
@@ -168,5 +177,79 @@ public class AdminNewsletterController : Controller
             await _db.SaveChangesAsync();
         }
         return RedirectToAction(nameof(Index), new { tab = "subscribers" });
+    }
+
+    /// <summary>CSV import — always double opt-in (Pending + confirm email).</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    [RequestSizeLimit(5_000_000)]
+    public async Task<IActionResult> ImportCsv(IFormFile? file, string? defaultLanguage, string? defaultTags)
+    {
+        if (file is null || file.Length == 0)
+        {
+            TempData["NlErr"] = _t["nl.import_no_file"];
+            return RedirectToAction(nameof(Index), new { tab = "subscribers" });
+        }
+
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        await using var stream = file.OpenReadStream();
+        var result = await _nl.ImportCsvAsync(stream, baseUrl, defaultLanguage, defaultTags);
+
+        TempData["NlOk"] = string.Format(
+            _t["nl.import_result"],
+            result.Added,
+            result.Reopened,
+            result.SkippedConfirmed,
+            result.SkippedInvalid,
+            result.ConfirmEmailsQueued);
+
+        if (result.Errors.Count > 0)
+            TempData["NlErr"] = string.Join(" · ", result.Errors.Take(5));
+
+        return RedirectToAction(nameof(Index), new { tab = "subscribers" });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportSubscribersCsv()
+    {
+        var rows = await _db.NewsletterSubscribers.AsNoTracking()
+            .OrderBy(s => s.Email)
+            .Select(s => new { s.Email, s.Name, Status = s.Status.ToString(), s.LanguageCode, s.SegmentTags, s.Source, s.SubscribedAtUtc, s.ConfirmedAtUtc })
+            .ToListAsync();
+
+        var sb = new StringBuilder();
+        sb.Append('\uFEFF'); // BOM for Excel
+        sb.AppendLine("email,name,status,language,tags,source,subscribed_at_utc,confirmed_at_utc");
+        foreach (var r in rows)
+        {
+            sb.Append(Csv(r.Email)).Append(',')
+              .Append(Csv(r.Name)).Append(',')
+              .Append(Csv(r.Status)).Append(',')
+              .Append(Csv(r.LanguageCode)).Append(',')
+              .Append(Csv(r.SegmentTags)).Append(',')
+              .Append(Csv(r.Source)).Append(',')
+              .Append(Csv(r.SubscribedAtUtc.ToString("o"))).Append(',')
+              .Append(Csv(r.ConfirmedAtUtc?.ToString("o"))).AppendLine();
+        }
+
+        return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv; charset=utf-8", "newsletter-subscribers.csv");
+    }
+
+    /// <summary>One-click: publish selected post as campaign (FEATURES.md).</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> PublishPostCampaign(int postId, bool sendNow = true)
+    {
+        var userId = AuthorAccess.UserId(User)!;
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var (ok, msg, campaignId) = await _nl.PublishPostAsCampaignAsync(postId, userId, baseUrl, sendNow);
+        TempData[ok ? "NlOk" : "NlErr"] = msg + (campaignId > 0 ? $" (#{campaignId})" : "");
+        return RedirectToAction(nameof(Index), new { tab = "campaigns" });
+    }
+
+    private static string Csv(string? v)
+    {
+        if (string.IsNullOrEmpty(v)) return "";
+        if (v.Contains(',') || v.Contains('"') || v.Contains('\n') || v.Contains('\r'))
+            return "\"" + v.Replace("\"", "\"\"") + "\"";
+        return v;
     }
 }
