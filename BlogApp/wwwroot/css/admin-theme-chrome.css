@@ -1,0 +1,76 @@
+/* Admin theme chrome — light/dark aware (loads after admin-rtl + ActiveCss) */
+.admin-topbar {
+  background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
+  border-bottom: 1px solid var(--border-soft) !important;
+}
+html[data-theme="light"] .admin-topbar,
+html[data-bs-theme="light"] .admin-topbar {
+  background: color-mix(in srgb, var(--surface) 96%, transparent) !important;
+  box-shadow: 0 1px 0 var(--border-soft);
+}
+.admin-sidebar {
+  background: var(--surface) !important;
+  border-inline-end-color: var(--border-soft) !important;
+  color: var(--text);
+}
+.admin-sidebar .admin-nav-link { color: var(--text-muted); }
+.admin-sidebar .admin-nav-link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.admin-sidebar .admin-nav-link.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.admin-brand {
+  border-bottom-color: var(--border-soft);
+  color: var(--text);
+}
+.admin-main {
+  background: var(--bg) !important;
+  box-shadow: -8px 0 24px color-mix(in srgb, var(--text) 8%, transparent) !important;
+}
+html[dir="rtl"] .admin-main {
+  box-shadow: 8px 0 24px color-mix(in srgb, var(--text) 8%, transparent) !important;
+}
+.admin-page-overlay {
+  background: color-mix(in srgb, var(--bg) 55%, transparent) !important;
+}
+.admin-sidebar-backdrop {
+  background: color-mix(in srgb, var(--bg) 45%, transparent) !important;
+}
+.admin-search-field {
+  background: var(--surface-2) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+.admin-search-field:hover,
+.admin-search-field:focus-visible {
+  color: var(--text) !important;
+  border-color: var(--accent) !important;
+  background: var(--surface) !important;
+}
+.admin-body {
+  background: var(--bg) !important;
+  color: var(--text);
+}
+
+/* Built-in light palette when custom ActiveCss is absent */
+html[data-theme="light"],
+html[data-bs-theme="light"] {
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --surface-3: #e5e8ef;
+  --border: #d5dae3;
+  --border-soft: #e8ebf0;
+  --text: #1a1d26;
+  --text-muted: #5a6275;
+  --text-faint: #8a93a6;
+  --accent: #b8892e;
+  --accent-dim: #9a7426;
+  --accent-soft: rgba(184, 137, 46, 0.14);
+  --danger: #c94a5e;
+  --success: #3f8f4a;
+  --shadow-soft: 0 10px 28px -14px rgba(20, 24, 40, 0.18);
+}
