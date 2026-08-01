@@ -1,5 +1,5 @@
 @{
-    Layout = "_AdminLayout";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = "Enterprise";
     var tenants = ViewBag.Tenants as IReadOnlyList<BlogApp.Models.Enterprise.Tenant> ?? Array.Empty<BlogApp.Models.Enterprise.Tenant>();
     var approvals = ViewBag.Approvals as IReadOnlyList<BlogApp.Models.Enterprise.ContentApprovalRequest> ?? Array.Empty<BlogApp.Models.Enterprise.ContentApprovalRequest>();

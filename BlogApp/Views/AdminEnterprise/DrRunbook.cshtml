@@ -1,5 +1,5 @@
 @{
-    Layout = "_AdminLayout";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = "DR Runbook";
 }
 
@@ -7,12 +7,12 @@
     <h1 class="h3">Disaster recovery runbook</h1>
     <ol class="small">
         <li>Create a fresh backup from <strong>Enterprise → Backup</strong> before any change.</li>
-        <li>Copy <code>App_Data/backups/*.zip</code> off-box (object storage / encrypted disk).</li>
+        <li>Copy volume path <code>/app/data/backups/*.zip</code> (Docker volume <code>blog_data</code>) off-box (object storage / encrypted disk).</li>
         <li>To restore: use <em>Stage restore</em>, stop the app, replace <code>blog.db</code> with the staged file, start the app.</li>
         <li>Verify <code>/ready</code> returns <code>ready</code> and smoke-test login + home + a post.</li>
         <li>If legal hold is active, do not purge users/posts until holds are released.</li>
         <li>Re-run schema bootstrap is automatic on start via <code>SchemaBootstrap.EnsureAsync</code>.</li>
-        <li>Document RPO/RTO with your hosting provider; scheduled backups can call the same service from a cron job hitting an authenticated admin endpoint.</li>
+        <li>Document RPO/RTO with your hosting provider; scheduled backups run via <code>BackupHostedService</code> to the Docker data volume.</li>
     </ol>
     <a asp-action="Index">← Back to Enterprise</a>
 </div>
