@@ -18,6 +18,11 @@
             var v = T["admin.nav.roles"];
             return v == "admin.nav.roles" ? "نقش‌ها و مجوزها" : v;
         }
+        if (item.Key == "backup")
+        {
+            var v = T["admin.nav.backup"];
+            return v == "admin.nav.backup" ? "پشتیبان و ذخیره‌سازی" : v;
+        }
         return T[item.LabelKey];
     }
 }
