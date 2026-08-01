@@ -17,7 +17,7 @@ public partial class ApplicationDbContext
     public DbSet<BackupRecord> BackupRecords => Set<BackupRecord>();
     public DbSet<LocalizationEntry> LocalizationEntries => Set<LocalizationEntry>();
 
-    partial void ConfigureEnterprise(ModelBuilder modelBuilder)
+    private void ConfigureEnterprise(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Tenant>(e =>
         {
