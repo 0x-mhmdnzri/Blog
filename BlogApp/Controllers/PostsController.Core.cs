@@ -78,11 +78,12 @@ public partial class PostsController
         }
         var authorId = AuthorAccess.UserId(User)!;
         var lang = AppCultures.Normalize(vm.LanguageCode);
+        var uniqueSlug = await MakeUniqueSlugAsync(SlugHelper.Slugify(vm.Title), lang);
         var post = new Post
         {
             Title = vm.Title,
             AuthorId = authorId,
-            Soft = await MakeUniqueSlugAsync(SlugHelper.Slugify(vm.Title), lang),
+            Soft = uniqueSlug,
             Summary = string.IsNullOrWhiteSpace(vm.Summary) ? _ai.Summarize(vm.ContentMarkdown) : vm.Summary,
             ContentMarkdown = vm.ContentMarkdown,
             CategoryId = vm.CategoryId,
