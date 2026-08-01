@@ -1,6 +1,10 @@
-/* Admin chrome only — follow active theme vars. Admin panel navbar/sidebar only. */
+/* ============================================================
+   Admin chrome ONLY — topbar, sidebar, icon buttons, search.
+   Does NOT affect public site navbar.
+   Follows active theme CSS variables from /Themes/ActiveCss.
+   ============================================================ */
 
-/* Kill hardcoded dark topbar from older admin-rtl builds */
+/* —— Topbar shell —— */
 .admin-body .admin-topbar,
 .admin-shell .admin-topbar,
 header.admin-topbar,
@@ -22,16 +26,20 @@ header.admin-topbar,
 .admin-breadcrumb {
   color: var(--text-faint) !important;
 }
-.admin-breadcrumb .bc-link {
+.admin-breadcrumb .bc-link,
+.admin-breadcrumb .bc-group,
+.admin-breadcrumb .bc-current {
   color: var(--text-muted) !important;
 }
 .admin-breadcrumb .bc-link:hover {
   color: var(--accent) !important;
 }
 
+/* —— Sidebar —— */
+.admin-body .admin-sidebar,
 .admin-sidebar {
   background: var(--surface) !important;
-  border-inline-end-color: var(--border-soft) !important;
+  border-inline-end: 1px solid var(--border-soft) !important;
   color: var(--text) !important;
 }
 .admin-sidebar .admin-nav-link {
@@ -59,18 +67,122 @@ header.admin-topbar,
   color: var(--text) !important;
 }
 
-.admin-search-field {
+/* —— Search field in topbar —— */
+.admin-body .admin-search-field,
+.admin-topbar .admin-search-field {
   background: var(--surface-2) !important;
-  border-color: var(--border) !important;
+  border: 1px solid var(--border) !important;
   color: var(--text-muted) !important;
 }
-.admin-search-field:hover,
-.admin-search-field:focus-visible {
+.admin-body .admin-search-field:hover,
+.admin-body .admin-search-field:focus-visible,
+.admin-topbar .admin-search-field:hover,
+.admin-topbar .admin-search-field:focus-visible {
   color: var(--text) !important;
   border-color: var(--accent) !important;
   background: var(--surface) !important;
 }
+.admin-topbar .admin-search-field-kbd {
+  background: var(--surface) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--text-faint) !important;
+}
 
+/* —— Icon buttons: theme picker, notif bell (ADMIN TOPBAR ONLY) ——
+   Overrides dark fallbacks (#12161f) left over from dark/light era. */
+.admin-body .admin-topbar .theme-picker-btn,
+.admin-body .admin-topbar .notif-bell-btn,
+.admin-topbar .theme-picker-btn,
+.admin-topbar .notif-bell-btn {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+}
+.admin-body .admin-topbar .theme-picker-btn:hover,
+.admin-body .admin-topbar .notif-bell-btn:hover,
+.admin-body .admin-topbar .notif-bell-btn[aria-expanded="true"],
+.admin-topbar .theme-picker-btn:hover,
+.admin-topbar .notif-bell-btn:hover,
+.admin-topbar .notif-bell-btn[aria-expanded="true"] {
+  color: var(--text) !important;
+  border-color: var(--accent-dim, var(--accent)) !important;
+  background: var(--surface) !important;
+}
+
+/* —— Language switcher in admin topbar —— */
+.admin-topbar .lang-switcher .btn,
+.admin-topbar .lang-switcher .btn-ghost {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+}
+.admin-topbar .lang-switcher .btn:hover,
+.admin-topbar .lang-switcher .btn:focus,
+.admin-topbar .lang-switcher .btn.show,
+.admin-topbar .lang-switcher .btn[aria-expanded="true"] {
+  background: var(--surface) !important;
+  border-color: var(--accent-dim, var(--accent)) !important;
+  color: var(--text) !important;
+}
+.admin-topbar .lang-switcher .dropdown-menu {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-soft) !important;
+  color: var(--text) !important;
+}
+.admin-topbar .lang-switcher .dropdown-item {
+  color: var(--text) !important;
+}
+.admin-topbar .lang-switcher .dropdown-item:hover,
+.admin-topbar .lang-switcher .dropdown-item.active {
+  background: var(--surface-2) !important;
+  color: var(--accent) !important;
+}
+
+/* —— Profile avatar button —— */
+.admin-topbar .admin-profile-btn {
+  border-color: var(--border) !important;
+  background: transparent !important;
+}
+.admin-topbar .admin-profile-btn:hover,
+.admin-topbar .admin-profile-btn[aria-expanded="true"] {
+  border-color: var(--accent) !important;
+}
+.admin-topbar .admin-profile-dropdown.dropdown-menu {
+  background: var(--surface) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--text) !important;
+}
+
+/* —— Live indicator —— */
+.admin-topbar .live-indicator {
+  color: var(--text-muted) !important;
+}
+.admin-topbar .live-dot {
+  background: var(--success, #9ecb8c) !important;
+}
+
+/* —— Ghost / menu toggle in topbar —— */
+.admin-topbar .btn-ghost,
+.admin-topbar .admin-menu-toggle {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+}
+.admin-topbar .btn-ghost:hover,
+.admin-topbar .admin-menu-toggle:hover {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--accent-dim, var(--accent)) !important;
+}
+
+/* —— Notif dropdown when opened from admin —— */
+.admin-body .notif-dropdown.dropdown-menu {
+  background: var(--surface) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--text) !important;
+}
+
+/* —— Page chrome —— */
 .admin-body {
   background: var(--bg) !important;
   color: var(--text) !important;
@@ -81,4 +193,53 @@ header.admin-topbar,
 }
 html[dir="rtl"] .admin-main {
   box-shadow: 8px 0 24px color-mix(in srgb, var(--text) 10%, transparent) !important;
+}
+
+/* ============================================================
+   Explicit LIGHT mode reinforcement (custom light themes).
+   Only under .admin-body — public site untouched.
+   ============================================================ */
+html[data-theme="light"] .admin-body .admin-topbar,
+html[data-bs-theme="light"] .admin-body .admin-topbar,
+html[data-theme="light"] .admin-topbar,
+html[data-bs-theme="light"] .admin-topbar {
+  background: color-mix(in srgb, var(--surface, #ffffff) 96%, transparent) !important;
+  border-bottom-color: var(--border-soft, #e5e7eb) !important;
+  color: var(--text, #1a1a1a) !important;
+}
+
+html[data-theme="light"] .admin-body .admin-topbar .theme-picker-btn,
+html[data-theme="light"] .admin-body .admin-topbar .notif-bell-btn,
+html[data-bs-theme="light"] .admin-body .admin-topbar .theme-picker-btn,
+html[data-bs-theme="light"] .admin-body .admin-topbar .notif-bell-btn,
+html[data-theme="light"] .admin-topbar .theme-picker-btn,
+html[data-theme="light"] .admin-topbar .notif-bell-btn,
+html[data-bs-theme="light"] .admin-topbar .theme-picker-btn,
+html[data-bs-theme="light"] .admin-topbar .notif-bell-btn {
+  background: var(--surface-2, #f3f4f6) !important;
+  border-color: var(--border, #d1d5db) !important;
+  color: var(--text-muted, #4b5563) !important;
+}
+
+html[data-theme="light"] .admin-body .admin-topbar .theme-picker-btn:hover,
+html[data-theme="light"] .admin-body .admin-topbar .notif-bell-btn:hover,
+html[data-bs-theme="light"] .admin-body .admin-topbar .theme-picker-btn:hover,
+html[data-bs-theme="light"] .admin-body .admin-topbar .notif-bell-btn:hover {
+  background: var(--surface, #ffffff) !important;
+  border-color: var(--accent) !important;
+  color: var(--text, #1a1a1a) !important;
+}
+
+html[data-theme="light"] .admin-body .admin-sidebar,
+html[data-bs-theme="light"] .admin-body .admin-sidebar {
+  background: var(--surface, #ffffff) !important;
+  color: var(--text, #1a1a1a) !important;
+  border-inline-end-color: var(--border-soft, #e5e7eb) !important;
+}
+
+/* When color-scheme is light (set by ActiveCss) but data-theme lagged */
+html[style*="color-scheme:light"] .admin-topbar,
+html[style*="color-scheme: light"] .admin-topbar {
+  background: color-mix(in srgb, var(--surface) 96%, transparent) !important;
+  color: var(--text) !important;
 }
