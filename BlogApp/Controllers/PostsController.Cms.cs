@@ -37,7 +37,6 @@ public partial class PostsController
     /// <summary>Request-path fallback for schedule/expire. Hosted service is primary (every 30s).</summary>
     private async Task ApplyScheduledAndExpirationAsync()
     {
-        // Default EF tracking is NoTracking — must enable or updates never persist.
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
         var now = DateTime.UtcNow;
 
@@ -107,20 +106,24 @@ public partial class PostsController
         }
     }
 
-    /// <summary>Apply schedule vs immediate publish rules to a post entity.</summary>
-    private void ApplyPublishState(Post post, bool wantPublish, DateTime? scheduledUtc, DateTime? expiresUtc, bool wasPublished)
+    /// <summary>Apply schedule vs immediate publish rules. Dates arrive as user-local converted to UTC.</summary>
+    private void ApplyPublishState(Post post, bool wantPublish, DateTime? scheduledLocalOrUtc, DateTime? expiresLocalOrUtc, bool wasPublished)
     {
-        post.ExpiresAtUtc = NormalizeOptionalDate(expiresUtc);
-        var scheduled = NormalizeOptionalDate(scheduledUtc);
+        var offset = ReadClientTimezoneOffset();
+        // Client prepares forms to UTC wall-clock; offset is fallback only
+        var clientConverted = Request.Form.ContainsKey("__dt_utc_converted")
+                              || string.Equals(Request.Headers["X-Dt-Utc-Converted"], "1", StringComparison.Ordinal);
 
-        // Future schedule wins over "publish now"
+        post.ExpiresAtUtc = DateTimeUserLocal.ToUtc(expiresLocalOrUtc, offset, clientConverted || offset is null);
+        var scheduled = DateTimeUserLocal.ToUtc(scheduledLocalOrUtc, offset, clientConverted || offset is null);
+
         if (scheduled is DateTime when && when > DateTime.UtcNow)
         {
             post.IsPublished = false;
             post.ScheduledPublishAtUtc = when;
             _logger.LogInformation(
-                "PostId={Id} scheduled for {When:o} UTC (now={Now:o})",
-                post.Id, when, DateTime.UtcNow);
+                "PostId={Id} scheduled for {When:o} UTC (now={Now:o}, offsetMin={Off})",
+                post.Id, when, DateTime.UtcNow, offset);
         }
         else
         {
@@ -131,14 +134,16 @@ public partial class PostsController
         }
     }
 
-    private static DateTime? NormalizeOptionalDate(DateTime? value)
+    private int? ReadClientTimezoneOffset()
     {
-        if (value is null) return null;
-        if (value.Value.Year < 2000) return null;
-        // datetime-local is wall-clock without offset; form is labeled UTC — treat as UTC
-        var v = value.Value;
-        if (v.Kind == DateTimeKind.Unspecified)
-            return DateTime.SpecifyKind(v, DateTimeKind.Utc);
-        return v.ToUniversalTime();
+        if (Request.Form.TryGetValue("__timezoneOffset", out var formVal)
+            && int.TryParse(formVal.ToString(), out var formOff))
+            return formOff;
+
+        if (Request.Headers.TryGetValue("X-Timezone-Offset", out var hdr)
+            && int.TryParse(hdr.ToString(), out var hdrOff))
+            return hdrOff;
+
+        return null;
     }
 }
