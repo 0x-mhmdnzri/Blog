@@ -15,6 +15,7 @@ public partial class PostsController
     /// <summary>
     /// Guest + authenticated comments. Honeypot field "website" must be empty.
     /// Supports Twitter-style threaded replies via parentId (max depth).
+    /// Authors may comment on their own unpublished drafts; public still requires published.
     /// </summary>
     [HttpPost, ValidateAntiForgeryToken, AllowAnonymous]
     [EnableRateLimiting("comment")]
@@ -29,14 +30,30 @@ public partial class PostsController
         var spamOpt = HttpContext.RequestServices.GetRequiredService<IOptions<CommentSpamOptions>>().Value;
         var spamSvc = HttpContext.RequestServices.GetRequiredService<ICommentSpamService>();
 
+        // Load post first (published OR owned draft) so we never 404 a valid owner flow
+        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
+        if (post is null)
+        {
+            TempData["CommentSubmitted"] = "نوشته یافت نشد.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        var isAuth = User.Identity?.IsAuthenticated == true;
+        var userId = isAuth ? AuthorAccess.UserId(User) : null;
+        var ownsPost = isAuth && AuthorAccess.OwnsPost(User, post);
+
+        if (!post.IsPublished && !ownsPost)
+        {
+            TempData["CommentSubmitted"] = "این نوشته هنوز منتشر نشده است.";
+            return Redirect($"/{post.LanguageCode}/post/{post.Slug}#comments");
+        }
+
         // Honeypot — bots fill hidden "website"
         if (!string.IsNullOrWhiteSpace(website))
         {
             _logger.LogWarning("Comment honeypot tripped PostId={PostId}", postId);
             TempData["CommentSubmitted"] = "ممنون — دیدگاه شما ثبت شد.";
-            var bait = await _db.Posts.AsNoTracking()
-                .Where(p => p.Id == postId).Select(p => new { p.Slug, p.LanguageCode }).FirstOrDefaultAsync();
-            return bait is null ? NotFound() : Redirect($"/{bait.LanguageCode}/post/{bait.Slug}#comments");
+            return Redirect($"/{post.LanguageCode}/post/{post.Slug}#comments");
         }
 
         authorName = (authorName ?? string.Empty).Trim();
@@ -47,20 +64,11 @@ public partial class PostsController
             body.Length < 2 || body.Length > spamOpt.MaxBodyLength)
         {
             TempData["CommentSubmitted"] = "نام یا متن دیدگاه معتبر نیست.";
-            var bad = await _db.Posts.AsNoTracking()
-                .Where(p => p.Id == postId).Select(p => new { p.Slug, p.LanguageCode }).FirstOrDefaultAsync();
-            return bad is null ? NotFound() : Redirect($"/{bad.LanguageCode}/post/{bad.Slug}#comments");
+            return Redirect($"/{post.LanguageCode}/post/{post.Slug}#comments");
         }
 
         authorName = new string(authorName.Where(c => !char.IsControl(c)).ToArray());
         body = new string(body.Where(c => c is '\n' or '\r' or '\t' || !char.IsControl(c)).ToArray());
-
-        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId && p.IsPublished && !p.IsDeleted);
-        if (post is null)
-            return NotFound();
-
-        var isAuth = User.Identity?.IsAuthenticated == true;
-        var userId = isAuth ? AuthorAccess.UserId(User) : null;
 
         if (!isAuth && !spamOpt.GuestCommentsEnabled)
         {
@@ -76,8 +84,8 @@ public partial class PostsController
                 .FirstOrDefaultAsync();
             if (appUser is not null)
             {
-                if (string.IsNullOrWhiteSpace(authorName))
-                    authorName = appUser.DisplayName;
+                if (string.IsNullOrWhiteSpace(authorName) || authorName == User.Identity?.Name)
+                    authorName = string.IsNullOrWhiteSpace(appUser.DisplayName) ? authorName : appUser.DisplayName;
                 authorEmail ??= appUser.Email;
             }
         }
@@ -87,7 +95,8 @@ public partial class PostsController
         if (parentId is int pid)
         {
             var parent = await _db.Comments.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == pid && c.PostId == postId && c.Status == CommentStatus.Approved);
+                .FirstOrDefaultAsync(c => c.Id == pid && c.PostId == postId
+                    && (c.Status == CommentStatus.Approved || ownsPost));
             if (parent is null)
             {
                 parentId = null;
@@ -121,6 +130,9 @@ public partial class PostsController
             status = CommentStatus.Spam;
         else if (isAuth && spamOpt.AutoApproveAuthenticated)
             status = CommentStatus.Approved;
+
+        // Ensure tracking for insert (DbContext default is NoTracking)
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
 
         var comment = new Comment
         {
@@ -173,17 +185,24 @@ public partial class PostsController
             }
         }
 
-        _broadcaster.Publish(new
+        try
         {
-            type = "comment",
-            status = status.ToString().ToLowerInvariant(),
-            postId,
-            postTitle = post.Title,
-            authorId = post.AuthorId,
-            authorName = comment.AuthorName,
-            spamScore = comment.SpamScore,
-            parentId = comment.ParentId
-        });
+            _broadcaster.Publish(new
+            {
+                type = "comment",
+                status = status.ToString().ToLowerInvariant(),
+                postId,
+                postTitle = post.Title,
+                authorId = post.AuthorId,
+                authorName = comment.AuthorName,
+                spamScore = comment.SpamScore,
+                parentId = comment.ParentId
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Comment broadcast failed");
+        }
 
         var anchor = status == CommentStatus.Approved ? $"#comment-{comment.Id}" : "#comments";
         return Redirect($"/{post.LanguageCode}/post/{post.Slug}{anchor}");
