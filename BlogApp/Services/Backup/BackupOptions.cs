@@ -17,7 +17,10 @@ public sealed class BackupOptions
     /// </summary>
     public string Path { get; set; } = "/app/data/backups";
 
-    /// <summary>How often the hosted worker creates a full snapshot (hours). Target RPO ≈ this interval.</summary>
+    /// <summary>
+    /// How often the hosted worker creates a full snapshot (hours).
+    /// This is the practical RPO ceiling for automated backups (worst-case data loss window).
+    /// </summary>
     public int IntervalHours { get; set; } = 24;
 
     /// <summary>Delete backups older than this many days (retention policy).</summary>
@@ -26,9 +29,17 @@ public sealed class BackupOptions
     /// <summary>Maximum number of backup files to keep (0 = unlimited by count).</summary>
     public int MaxFiles { get; set; } = 30;
 
-    /// <summary>Include SQLite database file (blog.db + WAL companions when present).</summary>
+    /// <summary>Include SQLite database file via online Backup API.</summary>
     public bool IncludeDatabase { get; set; } = true;
 
-    /// <summary>Include /app/data tree except the backups folder itself (CMS state files).</summary>
+    /// <summary>
+    /// Include other files under the data directory (media, CMS state) except the backups folder.
+    /// </summary>
     public bool IncludeDataDirectory { get; set; } = true;
+
+    /// <summary>
+    /// Target Recovery Time Objective in minutes (documentation / ops guidance; not enforced by code).
+    /// Local restore from volume is typically minutes; cross-host restore depends on volume copy speed.
+    /// </summary>
+    public int TargetRtoMinutes { get; set; } = 30;
 }
