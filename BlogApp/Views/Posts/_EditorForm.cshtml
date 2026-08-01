@@ -250,7 +250,7 @@
                 </div>
                 <div class="pw-switch">
                     <input asp-for="IsFeatured" class="form-check-input" type="checkbox" />
-                    <label asp-for="IsFeatured">نوشته ویژه</label>
+                    <label asp-for="IsSticky">نوشته ویژه</label>
                 </div>
                 <div class="pw-switch">
                     <input asp-for="IsSticky" class="form-check-input" type="checkbox" />
@@ -271,14 +271,24 @@
                     <input asp-for="SponsoredLabel" class="form-control form-control-sm" dir="auto" maxlength="120" />
                 </div>
                 <div class="col-md-6"></div>
+                @{
+                    var schedIso = Model.ScheduledPublishAtUtc.HasValue
+                        ? Model.ScheduledPublishAtUtc.Value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+                        : null;
+                    var expIso = Model.ExpiresAtUtc.HasValue
+                        ? Model.ExpiresAtUtc.Value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+                        : null;
+                }
                 <div class="col-md-6">
-                    <label class="form-label" asp-for="ScheduledPublishAtUtc">انتشار زمان‌بندی‌شده (UTC)</label>
-                    <input asp-for="ScheduledPublishAtUtc" type="datetime-local" class="form-control ltr-field" />
-                    <div class="form-text text-muted-dark">Background worker publishes every ~30s</div>
+                    <label class="form-label" asp-for="ScheduledPublishAtUtc">انتشار زمان‌بندی‌شده</label>
+                    <input asp-for="ScheduledPublishAtUtc" type="datetime-local" class="form-control ltr-field"
+                           data-utc-iso="@schedIso" />
+                    <div class="form-text text-muted-dark">زمان محلی شما · هر ~۳۰ ثانیه توسط worker منتشر می‌شود</div>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" asp-for="ExpiresAtUtc">انقضا (UTC)</label>
-                    <input asp-for="ExpiresAtUtc" type="datetime-local" class="form-control ltr-field" />
+                    <label class="form-label" asp-for="ExpiresAtUtc">انقضا</label>
+                    <input asp-for="ExpiresAtUtc" type="datetime-local" class="form-control ltr-field"
+                           data-utc-iso="@expIso" />
                 </div>
             </div>
         </div>
@@ -293,7 +303,7 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:transparent;border-color:var(--border);">
                             <span>
                                 <strong dir="auto">@r.Title</strong>
-                                <small class="text-muted ltr-field">@r.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</small>
+                                <small class="text-muted ltr-field">@r.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</small>
                                 @if (!string.IsNullOrEmpty(r.Note))
                                 {
                                     <span class="badge bg-secondary">@r.Note</span>
