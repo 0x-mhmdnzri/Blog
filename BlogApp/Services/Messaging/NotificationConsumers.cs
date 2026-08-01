@@ -34,8 +34,8 @@ public sealed class NotifyOnPostPublishedConsumer : IConsumer<PostPublishedInteg
 
         try
         {
-            var n = await _dispatcher.NotifyFollowersOfNewPostAsync(post, context.CancellationToken);
-            _log.LogInformation("Notified followers of post {PostId} count~={N}", m.PostId, n);
+            await _dispatcher.NotifyFollowersOfNewPostAsync(post, context.CancellationToken);
+            _log.LogInformation("Notified followers of post {PostId}", m.PostId);
         }
         catch (Exception ex)
         {
