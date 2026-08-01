@@ -42,6 +42,7 @@ public sealed class AdminNavItem
             "users" => string.Equals(controller, "AdminUsers", StringComparison.OrdinalIgnoreCase),
             "roles" => string.Equals(controller, "AdminRoles", StringComparison.OrdinalIgnoreCase),
             "audit" => string.Equals(controller, "AdminAudit", StringComparison.OrdinalIgnoreCase),
+            "backup" => string.Equals(controller, "AdminBackup", StringComparison.OrdinalIgnoreCase),
             "apikeys" => string.Equals(controller, "AdminApiKeys", StringComparison.OrdinalIgnoreCase),
             "myapikeys" => string.Equals(controller, "AccountApiKeys", StringComparison.OrdinalIgnoreCase),
             "accessibility" => string.Equals(controller, "AdminAccessibility", StringComparison.OrdinalIgnoreCase),
@@ -151,6 +152,10 @@ public static class AdminNavCatalog
             Controller = "AdminSettings", Action = "FeatureFlags", SuperAdminOnly = true,
             Icon = "M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" },
 
+        new() { Key = "backup", GroupKey = "admin.group.system", LabelKey = "admin.nav.backup",
+            Controller = "AdminBackup", Action = "Index", SuperAdminOnly = true, SuperOnlyTag = true,
+            Icon = "M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z" },
+
         new() { Key = "audit", GroupKey = "admin.group.system", LabelKey = "admin.nav.audit",
             Controller = "AdminAudit", Action = "Index", SuperAdminOnly = true,
             Icon = "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" },
@@ -170,14 +175,12 @@ public static class AdminNavCatalog
                 continue;
             }
 
-            // Explicit page claim from role(s) — grants lower-level users extra pages
             if (user.HasClaim(AppClaims.Page, item.Key))
             {
                 yield return item;
                 continue;
             }
 
-            // If user has any page claims, only show claimed pages (+ profile/my keys always for staff)
             if (hasPageClaims)
             {
                 if (item.Key is "profile" or "myapikeys" or "dashboard")
@@ -185,7 +188,6 @@ public static class AdminNavCatalog
                 continue;
             }
 
-            // Legacy role defaults (no custom claims yet)
             if (item.SuperAdminOnly) continue;
             if (item.StaffOnly && !isStaff) continue;
             if (!isStaff && item.Key is not ("profile")) continue;
