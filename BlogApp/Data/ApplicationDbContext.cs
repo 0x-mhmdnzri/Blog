@@ -295,5 +295,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         ConfigurePerformance(modelBuilder);
         ConfigureApi(modelBuilder);
         ConfigureNewsletter(modelBuilder);
+        ConfigureEnterprise(modelBuilder);
     }
 }
