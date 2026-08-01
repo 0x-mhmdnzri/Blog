@@ -1,29 +1,32 @@
-/* Admin topbar follows active theme (fixes light custom themes)
-   Loaded after admin-rtl / admin-search so it wins on background. */
+/* Admin topbar + search chrome — theme tokens only (no dark hardcodes).
+   Loaded after admin-rtl / admin-search. */
+
 .admin-topbar {
-  background: color-mix(in srgb, var(--bg, #0b0e14) 88%, transparent) !important;
-  border-bottom: 1px solid var(--border-soft, var(--border, #232838));
-  color: var(--text, inherit);
+  background: color-mix(in srgb, var(--bg) 88%, transparent) !important;
+  border-bottom: 1px solid var(--border-soft, var(--border));
+  color: var(--text);
 }
 @supports not (background: color-mix(in srgb, red 50%, blue)) {
   .admin-topbar {
-    background: var(--bg, #0b0e14) !important;
+    background: var(--bg) !important;
   }
 }
-html[data-theme="light"] .admin-search-field {
-  background: var(--surface, #fff);
-  border-color: var(--border, #d0d5dd);
-  color: var(--text-muted, #667085);
+
+/* Ensure kbd never sticks to a dark chip on light themes */
+.admin-search-field-kbd {
+  background: var(--surface-2) !important;
+  border-color: var(--border) !important;
+  color: var(--text-faint) !important;
 }
-html[data-theme="light"] .admin-search-field:hover,
-html[data-theme="light"] .admin-search-field:focus-visible {
-  background: var(--surface2, var(--surface-2, #f5f6f8));
-  color: var(--text, #101828);
-  border-color: var(--accent, #e3b341);
+.admin-search-field:hover .admin-search-field-kbd,
+.admin-search-field:focus-visible .admin-search-field-kbd {
+  background: var(--surface) !important;
+  color: var(--text-muted) !important;
 }
-html[data-theme="light"] .admin-search-kbd,
-html[data-theme="light"] .admin-search-field-kbd {
-  background: var(--surface2, #f5f6f8);
-  border-color: var(--border, #d0d5dd);
-  color: var(--text-muted, #667085);
+
+.admin-search-field:hover,
+.admin-search-field:focus-visible {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border-color: var(--accent) !important;
 }
