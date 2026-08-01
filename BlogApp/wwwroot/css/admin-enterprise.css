@@ -22,7 +22,7 @@
 .ent-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted, #8b93a7); margin: 0 0 0.35rem; }
 .ent-title { font-size: 1.45rem; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 0.4rem; }
 .ent-lead { margin: 0; max-width: 40rem; font-size: 0.9rem; line-height: 1.5; color: var(--text-muted, #8b93a7); }
-.ent-hero-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.ent-hero-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 
 .ent-kpis {
   display: grid;
@@ -188,4 +188,58 @@ html[data-theme="light"] .ent-hero,
 html[data-theme="light"] .ent-kpi,
 html[data-theme="light"] .ent-tabs {
   border-color: color-mix(in srgb, #000 8%, transparent);
+}
+
+.ent-help-btn {
+  width: 2rem; height: 2rem; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #0a84ff 40%, transparent);
+  background: color-mix(in srgb, #0a84ff 14%, transparent);
+  color: #0a84ff; font-weight: 700; font-size: 0.95rem;
+  cursor: pointer; font-family: inherit; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.15s, transform 0.12s;
+}
+.ent-help-btn:hover { background: color-mix(in srgb, #0a84ff 24%, transparent); transform: scale(1.05); }
+
+.ent-help-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: color-mix(in srgb, #000 55%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.25rem;
+  backdrop-filter: blur(6px);
+}
+.ent-help-overlay[hidden] { display: none !important; }
+.ent-help-dialog {
+  width: min(560px, 100%);
+  max-height: min(85vh, 720px);
+  overflow: auto;
+  border-radius: 16px;
+  background: var(--surface, #12161f);
+  border: 1px solid color-mix(in srgb, #fff 10%, transparent);
+  box-shadow: 0 24px 64px color-mix(in srgb, #000 45%, transparent);
+  display: flex; flex-direction: column;
+}
+.ent-help-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.15rem 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, #fff 6%, transparent);
+  position: sticky; top: 0; background: inherit; z-index: 1;
+}
+.ent-help-head h3 { margin: 0; font-size: 1.1rem; font-weight: 650; }
+.ent-help-close {
+  border: 0; background: transparent; color: var(--text-muted);
+  font-size: 1.4rem; line-height: 1; cursor: pointer; padding: 0.2rem 0.45rem;
+  border-radius: 8px;
+}
+.ent-help-close:hover { background: color-mix(in srgb, #fff 8%, transparent); color: var(--text); }
+.ent-help-body { padding: 1rem 1.15rem 0.5rem; font-size: 0.88rem; line-height: 1.55; color: var(--text); }
+.ent-help-body h4 { margin: 1rem 0 0.4rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.ent-help-body h4:first-child { margin-top: 0; }
+.ent-help-body p { margin: 0 0 0.5rem; color: var(--text-muted); }
+.ent-help-list { margin: 0; padding: 0 0 0 1.1rem; color: var(--text-muted); }
+.ent-help-list li { margin-bottom: 0.55rem; }
+.ent-help-foot {
+  padding: 0.75rem 1.15rem 1.1rem;
+  border-top: 1px solid color-mix(in srgb, #fff 6%, transparent);
+  display: flex; justify-content: flex-end;
 }
