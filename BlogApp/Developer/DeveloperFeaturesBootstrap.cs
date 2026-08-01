@@ -71,29 +71,41 @@ public static class DeveloperFeaturesBootstrap
         // ── Plugins / widgets / pipeline ────────────────────────────────────
         services.AddSingleton<PluginLoader>();
         services.AddSingleton<PipelineExtensionRegistry>();
-        services.AddSingleton<WidgetRegistry>();
+        services.AddSingleton<WidgetRegistry>(sp =>
+        {
+            var reg = new WidgetRegistry();
+            reg.Register(new PopularPostsWidget());
+            reg.Register(new RecentPostsWidget());
+            return reg;
+        });
 
         // ── Health ──────────────────────────────────────────────────────────
         services.AddHealthChecks()
-            .AddCheck("self", () => HealthCheckResult.Healthy("ok"));
+            .AddCheck("self", () => HealthCheckResult.Healthy("BlogApp"), tags: new[] { "live" })
+            .AddCheck<SqliteHealthCheck>("sqlite", tags: new[] { "ready" });
 
-        // ── OpenTelemetry (optional OTLP) ───────────────────────────────────
+        // ── OpenTelemetry ───────────────────────────────────────────────────
+        var serviceName = config["OpenTelemetry:ServiceName"] ?? "BlogApp";
         var otlp = config["OpenTelemetry:OtlpEndpoint"];
+        var prometheus = config.GetValue("OpenTelemetry:Prometheus", true);
+
         services.AddOpenTelemetry()
-            .ConfigureResource(r => r.AddService("BlogApp"))
+            .ConfigureResource(r => r.AddService(serviceName))
             .WithTracing(t =>
             {
-                t.AddAspNetCoreInstrumentation();
-                t.AddHttpClientInstrumentation();
+                t.AddAspNetCoreInstrumentation()
+                 .AddHttpClientInstrumentation()
+                 .AddSource("BlogApp");
                 if (!string.IsNullOrWhiteSpace(otlp))
                     t.AddOtlpExporter(o => o.Endpoint = new Uri(otlp));
             })
             .WithMetrics(m =>
             {
-                m.AddAspNetCoreInstrumentation();
-                m.AddHttpClientInstrumentation();
-                m.AddRuntimeInstrumentation();
-                m.AddPrometheusExporter();
+                m.AddAspNetCoreInstrumentation()
+                 .AddHttpClientInstrumentation()
+                 .AddMeter(BlogMetrics.Meter.Name);
+                if (prometheus)
+                    m.AddPrometheusExporter();
                 if (!string.IsNullOrWhiteSpace(otlp))
                     m.AddOtlpExporter(o => o.Endpoint = new Uri(otlp));
             });
@@ -101,18 +113,82 @@ public static class DeveloperFeaturesBootstrap
         return services;
     }
 
-    public static WebApplication UseDeveloperFeatures(this WebApplication app)
+    public static async Task UseDeveloperFeaturesAsync(this WebApplication app)
     {
-        var transport = string.IsNullOrWhiteSpace(app.Configuration["RabbitMq:HostName"]) ? "InMemory" : "RabbitMQ";
         var pluginsDir = Path.Combine(app.Environment.ContentRootPath, "plugins");
+        var loader = app.Services.GetRequiredService<PluginLoader>();
+        // Plugins that need ConfigureServices must load before Build;
+        // here we only StartAsync for already-registered plugins.
+        await loader.StartAllAsync(app.Services);
+
+        var transport = string.IsNullOrWhiteSpace(app.Configuration["RabbitMq:HostName"])
+            ? "InMemory"
+            : "RabbitMQ";
         app.Logger.LogInformation("MassTransit transport={Transport}; plugins dir={Dir}", transport, pluginsDir);
+    }
 
-        app.MapHealthChecks("/health");
-        app.MapHealthChecks("/health/ready", new HealthCheckOptions
+    public static void MapDeveloperEndpoints(this WebApplication app)
+    {
+        app.MapHealthChecks("/healthz", new HealthCheckOptions
         {
-            Predicate = _ => true
-        });
+            Predicate = r => r.Tags.Contains("live")
+        }).AllowAnonymous().DisableRateLimiting();
 
-        return app;
+        app.MapHealthChecks("/healthz/ready", new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains("ready")
+        }).AllowAnonymous().DisableRateLimiting();
+
+        if (app.Configuration.GetValue("OpenTelemetry:Prometheus", true))
+            app.MapPrometheusScrapingEndpoint("/metrics").AllowAnonymous().DisableRateLimiting();
+
+        app.MapGet("/widgets/{zone}", async (string zone, WidgetRegistry registry, IServiceProvider sp, CancellationToken ct) =>
+        {
+            var parts = new List<string>();
+            foreach (var w in registry.ForZone(zone))
+                parts.Add(await w.RenderHtmlAsync(sp, ct));
+            return Results.Content(string.Join("\n", parts), "text/html; charset=utf-8");
+        }).AllowAnonymous();
+
+        app.MapGet("/dev/plugins", (PluginLoader loader) =>
+        {
+            var data = loader.Loaded.Select(p => new { p.Id, p.Name, p.Version });
+            return Results.Json(data);
+        }).RequireAuthorization(policy => policy.RequireRole("SuperAdmin"));
+
+        app.MapGet("/dev/bus", (IConfiguration config) =>
+        {
+            var host = config["RabbitMq:HostName"];
+            return Results.Json(new
+            {
+                transport = string.IsNullOrWhiteSpace(host) ? "InMemory" : "RabbitMQ",
+                host = host ?? "",
+                massTransit = true,
+                edd = true
+            });
+        }).RequireAuthorization(policy => policy.RequireRole("SuperAdmin"));
+    }
+}
+
+/// <summary>Readiness: SQLite can connect.</summary>
+file sealed class SqliteHealthCheck : IHealthCheck
+{
+    private readonly ApplicationDbContext _db;
+
+    public SqliteHealthCheck(ApplicationDbContext db) => _db = db;
+
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _db.Database.CanConnectAsync(cancellationToken)
+                ? HealthCheckResult.Healthy("sqlite ok")
+                : HealthCheckResult.Unhealthy("sqlite unreachable");
+        }
+        catch (Exception ex)
+        {
+            return HealthCheckResult.Unhealthy("sqlite error", ex);
+        }
     }
 }
