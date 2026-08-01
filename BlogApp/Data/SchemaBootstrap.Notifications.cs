@@ -4,7 +4,7 @@ namespace BlogApp.Data;
 
 public static partial class SchemaBootstrap
 {
-    public static async Task EnsureNotificationTablesAsync(ApplicationDbContext db)
+    public static async Task EnsureNotificationsAsync(ApplicationDbContext db)
     {
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "AppNotifications" (
@@ -23,8 +23,9 @@ public static partial class SchemaBootstrap
             """);
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_AppNotifications_UserId_IsRead\" ON \"AppNotifications\" (\"UserId\", \"IsRead\");");
-
         await TryAddColumnAsync(db, "AppNotifications", "CampaignId", "INTEGER NULL");
+        await TryAddColumnAsync(db, "AppNotifications", "IsStarred", "INTEGER NOT NULL DEFAULT 0");
+        await TryAddColumnAsync(db, "AppNotifications", "IsArchived", "INTEGER NOT NULL DEFAULT 0");
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "NotificationPreferences" (
@@ -43,6 +44,39 @@ public static partial class SchemaBootstrap
             );
             """);
         await TryAddColumnAsync(db, "NotificationPreferences", "NotifyNewPostFromFollowed", "INTEGER NOT NULL DEFAULT 1");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "PushSubscriptions" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_PushSubscriptions" PRIMARY KEY AUTOINCREMENT,
+                "UserId" TEXT NOT NULL,
+                "Endpoint" TEXT NOT NULL,
+                "P256dh" TEXT NOT NULL,
+                "Auth" TEXT NOT NULL,
+                "UserAgent" TEXT NULL,
+                "CreatedAtUtc" TEXT NOT NULL,
+                "LastUsedAtUtc" TEXT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PushSubscriptions_Endpoint\" ON \"PushSubscriptions\" (\"Endpoint\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_PushSubscriptions_UserId\" ON \"PushSubscriptions\" (\"UserId\");");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "WebhookDeliveries" (
+                "Id" INTEGER NOT NULL CONSTRAINT "PK_WebhookDeliveries" PRIMARY KEY AUTOINCREMENT,
+                "SubscriptionId" INTEGER NOT NULL,
+                "EventType" TEXT NOT NULL,
+                "TargetUrl" TEXT NOT NULL,
+                "HttpStatus" INTEGER NULL,
+                "Success" INTEGER NOT NULL,
+                "Error" TEXT NULL,
+                "Attempt" INTEGER NOT NULL DEFAULT 1,
+                "CreatedAtUtc" TEXT NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_WebhookDeliveries_Sub\" ON \"WebhookDeliveries\" (\"SubscriptionId\", \"CreatedAtUtc\");");
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "AuthorFollows" (
@@ -91,7 +125,5 @@ public static partial class SchemaBootstrap
                 "RecipientCount" INTEGER NOT NULL
             );
             """);
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE INDEX IF NOT EXISTS \"IX_NotificationCampaigns_IsSent_Scheduled\" ON \"NotificationCampaigns\" (\"IsSent\", \"ScheduledAtUtc\");");
     }
 }
