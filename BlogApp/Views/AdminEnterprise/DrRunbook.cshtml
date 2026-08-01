@@ -1,18 +1,26 @@
+@inject BlogApp.Services.IUiTranslator T
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "DR Runbook";
+    ViewData["Title"] = T["ent.dr_title"];
 }
-
-<div class="container-fluid py-3" style="max-width:720px">
-    <h1 class="h3">Disaster recovery runbook</h1>
-    <ol class="small">
-        <li>Create a fresh backup from <strong>Enterprise → Backup</strong> before any change.</li>
-        <li>Copy volume path <code>/app/data/backups/*.zip</code> (Docker volume <code>blog_data</code>) off-box (object storage / encrypted disk).</li>
-        <li>To restore: use <em>Stage restore</em>, stop the app, replace <code>blog.db</code> with the staged file, start the app.</li>
-        <li>Verify <code>/ready</code> returns <code>ready</code> and smoke-test login + home + a post.</li>
-        <li>If legal hold is active, do not purge users/posts until holds are released.</li>
-        <li>Re-run schema bootstrap is automatic on start via <code>SchemaBootstrap.EnsureAsync</code>.</li>
-        <li>Document RPO/RTO with your hosting provider; scheduled backups run via <code>BackupHostedService</code> to the Docker data volume.</li>
-    </ol>
-    <a asp-action="Index">← Back to Enterprise</a>
+<link rel="stylesheet" href="~/css/admin-enterprise.css" asp-append-version="true" />
+<div class="ent-page" style="max-width:720px">
+    <header class="ent-hero">
+        <div>
+            <p class="ent-eyebrow">@T["ent.eyebrow"]</p>
+            <h2 class="ent-title">@T["ent.dr_title"]</h2>
+        </div>
+    </header>
+    <div class="ent-card">
+        <ol class="ent-help-list" style="padding-inline-start:1.25rem;list-style:decimal">
+            <li>@T["ent.dr_1"]</li>
+            <li>@T["ent.dr_2"]</li>
+            <li>@T["ent.dr_3"]</li>
+            <li>@T["ent.dr_4"]</li>
+            <li>@T["ent.dr_5"]</li>
+            <li>@T["ent.dr_6"]</li>
+            <li>@T["ent.dr_7"]</li>
+        </ol>
+        <p class="mt-3 mb-0"><a class="ent-link" asp-action="Index">@T["ent.dr_back"]</a></p>
+    </div>
 </div>
