@@ -76,7 +76,7 @@
     if (pf) pf.value = String(id);
     var ta = node.querySelector('.cmt-input-body');
     if (ta && name) {
-      ta.placeholder = 'پاسخ به ' + name + '…';
+      ta.placeholder = 'پاسخ به ' + name + '\u2026';
       ta.value = '@' + name.replace(/\s+/g, '') + ' ';
     }
     slot.appendChild(node);
@@ -126,4 +126,18 @@
       setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80);
     }
   }
+})();
+
+/* load Telegram-style @mention typeahead */
+(function(){
+  if (document.querySelector('script[data-cmt-mention]')) return;
+  var s = document.createElement('script');
+  s.src = '/js/comments-mention.js';
+  s.defer = true;
+  s.setAttribute('data-cmt-mention', '1');
+  document.head.appendChild(s);
+  var l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = '/css/comments-mention.css';
+  document.head.appendChild(l);
 })();
