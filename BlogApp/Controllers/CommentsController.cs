@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace BlogApp.Controllers;
 
-/// <summary>Comment likes, author edit window, staff pin.</summary>
+/// <summary>Comment likes, author edit window, staff pin. Login required.</summary>
 public class CommentsController : Controller
 {
     private readonly ApplicationDbContext _db;
@@ -33,6 +33,7 @@ public class CommentsController : Controller
     public async Task<IActionResult> ToggleLike(int commentId, string? returnUrl = null)
     {
         var userId = AuthorAccess.UserId(User)!;
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
 
         var comment = await _db.Comments
             .Include(c => c.Post)
@@ -69,7 +70,6 @@ public class CommentsController : Controller
         return RedirectToAction("Details", "Posts", new { slug = comment.Post.Slug });
     }
 
-    /// <summary>Author may edit own comment within EditWindowMinutes.</summary>
     [Authorize]
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, string body, string? returnUrl = null)
@@ -82,6 +82,8 @@ public class CommentsController : Controller
             TempData["CommentSubmitted"] = "متن دیدگاه معتبر نیست.";
             return LocalRedirectOrPost(returnUrl, null);
         }
+
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
 
         var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
         if (comment is null) return NotFound();
@@ -121,6 +123,8 @@ public class CommentsController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> TogglePin(int id, string? returnUrl = null)
     {
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
+
         var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
         if (comment is null) return NotFound();
         if (!AuthorAccess.OwnsPost(User, comment.Post))
