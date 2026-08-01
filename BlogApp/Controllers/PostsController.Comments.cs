@@ -13,11 +13,11 @@ namespace BlogApp.Controllers;
 public partial class PostsController
 {
     /// <summary>
-    /// Guest + authenticated comments. Honeypot field "website" must be empty.
-    /// Supports Twitter-style threaded replies via parentId (max depth).
-    /// Authors may comment on their own unpublished drafts; public still requires published.
+    /// Logged-in users only. Honeypot field "website" must be empty.
+    /// Supports threaded replies via parentId.
     /// </summary>
-    [HttpPost, ValidateAntiForgeryToken, AllowAnonymous]
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.Reader + "," + AppRoles.Author + "," + AppRoles.SuperAdmin)]
     [EnableRateLimiting("comment")]
     public async Task<IActionResult> AddComment(
         int postId,
@@ -30,7 +30,12 @@ public partial class PostsController
         var spamOpt = HttpContext.RequestServices.GetRequiredService<IOptions<CommentSpamOptions>>().Value;
         var spamSvc = HttpContext.RequestServices.GetRequiredService<ICommentSpamService>();
 
-        // Load post first (published OR owned draft) so we never 404 a valid owner flow
+        var userId = AuthorAccess.UserId(User);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return RedirectToAction("Login", "Account", new { returnUrl = Request.Path + Request.QueryString });
+        }
+
         var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
         if (post is null)
         {
@@ -38,9 +43,7 @@ public partial class PostsController
             return RedirectToAction("Index", "Home");
         }
 
-        var isAuth = User.Identity?.IsAuthenticated == true;
-        var userId = isAuth ? AuthorAccess.UserId(User) : null;
-        var ownsPost = isAuth && AuthorAccess.OwnsPost(User, post);
+        var ownsPost = AuthorAccess.OwnsPost(User, post);
 
         if (!post.IsPublished && !ownsPost)
         {
@@ -48,7 +51,6 @@ public partial class PostsController
             return Redirect($"/{post.LanguageCode}/post/{post.Slug}#comments");
         }
 
-        // Honeypot — bots fill hidden "website"
         if (!string.IsNullOrWhiteSpace(website))
         {
             _logger.LogWarning("Comment honeypot tripped PostId={PostId}", postId);
@@ -58,7 +60,18 @@ public partial class PostsController
 
         authorName = (authorName ?? string.Empty).Trim();
         body = (body ?? string.Empty).Trim();
-        authorEmail = string.IsNullOrWhiteSpace(authorEmail) ? null : authorEmail.Trim();
+
+        var appUser = await _db.Users.AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => new { u.DisplayName, u.Email })
+            .FirstOrDefaultAsync();
+
+        if (appUser is not null)
+        {
+            if (string.IsNullOrWhiteSpace(authorName) || authorName.Length < 2)
+                authorName = string.IsNullOrWhiteSpace(appUser.DisplayName) ? (User.Identity?.Name ?? "User") : appUser.DisplayName;
+            authorEmail = appUser.Email;
+        }
 
         if (authorName.Length < 2 || authorName.Length > 80 ||
             body.Length < 2 || body.Length > spamOpt.MaxBodyLength)
@@ -70,27 +83,6 @@ public partial class PostsController
         authorName = new string(authorName.Where(c => !char.IsControl(c)).ToArray());
         body = new string(body.Where(c => c is '\n' or '\r' or '\t' || !char.IsControl(c)).ToArray());
 
-        if (!isAuth && !spamOpt.GuestCommentsEnabled)
-        {
-            TempData["CommentSubmitted"] = "برای ارسال دیدگاه وارد شوید.";
-            return RedirectToAction("Login", "Account", new { returnUrl = $"/{post.LanguageCode}/post/{post.Slug}#comments" });
-        }
-
-        if (isAuth && !string.IsNullOrEmpty(userId))
-        {
-            var appUser = await _db.Users.AsNoTracking()
-                .Where(u => u.Id == userId)
-                .Select(u => new { u.DisplayName, u.Email })
-                .FirstOrDefaultAsync();
-            if (appUser is not null)
-            {
-                if (string.IsNullOrWhiteSpace(authorName) || authorName == User.Identity?.Name)
-                    authorName = string.IsNullOrWhiteSpace(appUser.DisplayName) ? authorName : appUser.DisplayName;
-                authorEmail ??= appUser.Email;
-            }
-        }
-
-        // Twitter-style threading: validate parent + max depth
         var maxDepth = Math.Clamp(spamOpt.MaxReplyDepth, 1, 12);
         if (parentId is int pid)
         {
@@ -122,16 +114,14 @@ public partial class PostsController
             }
         }
 
-        var isGuest = string.IsNullOrEmpty(userId);
-        var spam = spamSvc.Evaluate(authorName, body, authorEmail, isGuest);
+        var spam = spamSvc.Evaluate(authorName, body, authorEmail, isGuest: false);
 
         var status = CommentStatus.Pending;
         if (spam.IsSpam)
             status = CommentStatus.Spam;
-        else if (isAuth && spamOpt.AutoApproveAuthenticated)
+        else if (spamOpt.AutoApproveAuthenticated)
             status = CommentStatus.Approved;
 
-        // Ensure tracking for insert (DbContext default is NoTracking)
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
 
         var comment = new Comment
@@ -141,7 +131,7 @@ public partial class PostsController
             UserId = userId,
             AuthorName = authorName,
             AuthorEmail = authorEmail,
-            IsGuest = isGuest,
+            IsGuest = false,
             Body = body,
             Status = status,
             SpamScore = spam.Score,
@@ -162,26 +152,17 @@ public partial class PostsController
 
         if (status != CommentStatus.Spam)
         {
+            try { await _notify.NotifyNewCommentAsync(post, comment); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Notify new comment failed PostId={PostId}", postId); }
+
             try
             {
-                await _notify.NotifyNewCommentAsync(post, comment);
+                var mentions = HttpContext.RequestServices.GetRequiredService<MentionsService>();
+                await mentions.ProcessCommentMentionsAsync(body, userId, postId, comment.Id, post.Slug, post.LanguageCode);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Notify new comment failed PostId={PostId}", postId);
-            }
-
-            if (!string.IsNullOrEmpty(userId))
-            {
-                try
-                {
-                    var mentions = HttpContext.RequestServices.GetRequiredService<MentionsService>();
-                    await mentions.ProcessCommentMentionsAsync(body, userId, postId, comment.Id, post.Slug, post.LanguageCode);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Mentions failed CommentId={Id}", comment.Id);
-                }
+                _logger.LogWarning(ex, "Mentions failed CommentId={Id}", comment.Id);
             }
         }
 
