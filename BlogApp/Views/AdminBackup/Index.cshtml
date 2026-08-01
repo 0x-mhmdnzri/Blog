@@ -1,0 +1,195 @@
+@using BlogApp.Models.Enterprise
+@using BlogApp.Services.Backup
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "Backup & storage";
+    var backups = ViewBag.Backups as IReadOnlyList<BackupRecord> ?? Array.Empty<BackupRecord>();
+    var snap = ViewBag.Snapshot as BackupStorageSnapshot ?? new BackupStorageSnapshot();
+    var opts = ViewBag.Options as BackupOptions ?? new BackupOptions();
+}
+<link rel="stylesheet" href="~/css/admin-backup.css" asp-append-version="true" />
+
+<div class="bk-page" data-stats-url="@Url.Action("Stats")" data-poll-ms="2500">
+    @if (TempData["FlashOk"] is string ok)
+    {
+        <div class="bk-flash bk-flash-ok" role="status">@ok</div>
+    }
+    @if (TempData["FlashErr"] is string err)
+    {
+        <div class="bk-flash bk-flash-err" role="alert">@err</div>
+    }
+
+    <header class="bk-hero">
+        <div class="bk-hero-copy">
+            <p class="bk-eyebrow">SuperAdmin · Disaster recovery</p>
+            <h2 class="bk-title">Full application backup</h2>
+            <p class="bk-lead">
+                Hot SQLite snapshot + data tree compressed to a portable zip on the Docker volume.
+                Download for off-box retention. Live gauges track volume capacity and process I/O.
+            </p>
+        </div>
+        <div class="bk-hero-actions">
+            <form method="post" asp-action="Create" class="bk-create-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="download" value="true" />
+                <button type="submit" class="bk-btn bk-btn-primary" id="bkCreateBtn">
+                    <span class="bk-btn-icon" aria-hidden="true">↓</span>
+                    Create & download ZIP
+                </button>
+            </form>
+            <form method="post" asp-action="Create" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="download" value="false" />
+                <button type="submit" class="bk-btn bk-btn-ghost">Create only (keep on volume)</button>
+            </form>
+        </div>
+    </header>
+
+    <section class="bk-metrics" aria-label="Storage monitoring">
+        <article class="bk-card bk-gauge-card">
+            <div class="bk-card-head">
+                <h3>Volume</h3>
+                <span class="bk-live" id="bkLive"><span class="bk-live-dot"></span> Live</span>
+            </div>
+            <div class="bk-ring-wrap">
+                <svg class="bk-ring" viewBox="0 0 120 120" aria-hidden="true">
+                    <circle class="bk-ring-track" cx="60" cy="60" r="52" />
+                    <circle class="bk-ring-value" id="bkVolRing" cx="60" cy="60" r="52"
+                            stroke-dasharray="326.73" stroke-dashoffset="326.73" />
+                </svg>
+                <div class="bk-ring-label">
+                    <strong id="bkVolPct">@snap.VolumeUsedPercent.ToString("0.#")%</strong>
+                    <span>used</span>
+                </div>
+            </div>
+            <dl class="bk-kv">
+                <div><dt>Total</dt><dd id="bkVolTotal" class="ltr-field">—</dd></div>
+                <div><dt>Free</dt><dd id="bkVolFree" class="ltr-field">—</dd></div>
+                <div><dt>Mount</dt><dd id="bkVolRoot" class="ltr-field small">@(snap.VolumeRoot ?? "—")</dd></div>
+            </dl>
+        </article>
+
+        <article class="bk-card">
+            <div class="bk-card-head"><h3>Application data</h3></div>
+            <ul class="bk-bars">
+                <li>
+                    <div class="bk-bar-meta"><span>Database</span><span id="bkDbBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar"><i id="bkDbBar" style="width:0%"></i></div>
+                </li>
+                <li>
+                    <div class="bk-bar-meta"><span>WAL / SHM</span><span id="bkWalBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar"><i id="bkWalBar" style="width:0%"></i></div>
+                </li>
+                <li>
+                    <div class="bk-bar-meta"><span>Media / uploads</span><span id="bkMediaBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar"><i id="bkMediaBar" style="width:0%"></i></div>
+                </li>
+                <li>
+                    <div class="bk-bar-meta"><span>Data root (ex. backups)</span><span id="bkDataBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar"><i id="bkDataBar" style="width:0%"></i></div>
+                </li>
+                <li>
+                    <div class="bk-bar-meta"><span>Backups on volume</span><span id="bkBackupBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar bk-bar-accent"><i id="bkBackupBar" style="width:0%"></i></div>
+                </li>
+            </ul>
+            <p class="bk-path ltr-field" id="bkBackupPath">@snap.BackupDirectory</p>
+        </article>
+
+        <article class="bk-card">
+            <div class="bk-card-head"><h3>Process I/O</h3><span class="bk-hint" id="bkIoHint">/proc/self/io</span></div>
+            <div class="bk-io-grid">
+                <div class="bk-io-stat">
+                    <span class="bk-io-label">Read (cumulative)</span>
+                    <strong id="bkIoRead" class="ltr-field">—</strong>
+                    <span class="bk-io-rate" id="bkIoReadRate">—</span>
+                </div>
+                <div class="bk-io-stat">
+                    <span class="bk-io-label">Write (cumulative)</span>
+                    <strong id="bkIoWrite" class="ltr-field">—</strong>
+                    <span class="bk-io-rate" id="bkIoWriteRate">—</span>
+                </div>
+            </div>
+            <canvas id="bkIoChart" width="640" height="120" aria-label="I/O rate chart"></canvas>
+            <p class="bk-hint-sub">Rates are derived from consecutive samples of process cumulative bytes.</p>
+        </article>
+
+        <article class="bk-card bk-policy">
+            <div class="bk-card-head"><h3>Policy (RPO / RTO)</h3></div>
+            <dl class="bk-policy-list">
+                <div><dt>Scheduled</dt><dd>@(opts.Enabled ? "On" : "Off")</dd></div>
+                <div><dt>Interval (RPO)</dt><dd class="ltr-field">@opts.IntervalHours h</dd></div>
+                <div><dt>Target RTO</dt><dd class="ltr-field">@opts.TargetRtoMinutes min</dd></div>
+                <div><dt>Retention</dt><dd class="ltr-field">@opts.RetentionDays days · max @opts.MaxFiles files</dd></div>
+            </dl>
+            <form method="post" asp-action="Retention" class="mt-2">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="bk-btn bk-btn-ghost bk-btn-sm">Enforce retention now</button>
+            </form>
+            <a class="bk-link" asp-controller="AdminEnterprise" asp-action="DrRunbook">DR runbook →</a>
+        </article>
+    </section>
+
+    <section class="bk-table-card">
+        <div class="bk-card-head">
+            <h3>Backup archive</h3>
+            <span class="bk-count" id="bkFileCount">@backups.Count files</span>
+        </div>
+        @if (backups.Count == 0)
+        {
+            <div class="bk-empty">
+                <p>No backups yet. Create a full zip to populate the Docker volume archive.</p>
+            </div>
+        }
+        else
+        {
+            <div class="bk-table-wrap">
+                <table class="bk-table">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Kind</th>
+                            <th>Size</th>
+                            <th>Created (UTC)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var b in backups)
+                    {
+                        <tr>
+                            <td class="ltr-field bk-mono">@b.FileName</td>
+                            <td><span class="bk-pill">@b.Kind</span></td>
+                            <td class="ltr-field">@FormatSize(b.SizeBytes)</td>
+                            <td class="ltr-field">@b.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="bk-row-actions">
+                                <a class="bk-btn bk-btn-sm bk-btn-primary" asp-action="Download" asp-route-id="@b.Id">Download</a>
+                                <form method="post" asp-action="Delete" class="d-inline" onsubmit="return confirm('Delete this backup?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@b.Id" />
+                                    <button type="submit" class="bk-btn bk-btn-sm bk-btn-ghost">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@functions {
+    string FormatSize(long bytes)
+    {
+        string[] u = { "B", "KB", "MB", "GB", "TB" };
+        double v = bytes;
+        var i = 0;
+        while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
+        return $"{v:0.##} {u[i]}";
+    }
+}
+
+@section Scripts {
+<script src="~/js/admin-backup.js" asp-append-version="true"></script>
+}
