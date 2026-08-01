@@ -3,6 +3,12 @@
   if (!root) return;
   const url = root.getAttribute('data-stats-url');
   const pollMs = parseInt(root.getAttribute('data-poll-ms') || '2500', 10);
+  const i18n = {
+    creating: root.getAttribute('data-i18n-creating') || 'Creating snapshot…',
+    ioNa: root.getAttribute('data-i18n-io-na') || 'I/O N/A',
+    files: root.getAttribute('data-i18n-files') || '{0} files',
+    used: root.getAttribute('data-i18n-used') || 'used'
+  };
   const live = document.getElementById('bkLive');
   const canvas = document.getElementById('bkIoChart');
   const ctx = canvas ? canvas.getContext('2d') : null;
@@ -95,9 +101,9 @@
       setText('bkWalBytes', fmt(s.databaseWalBytes));
       setText('bkMediaBytes', fmt(s.mediaBytes));
       setText('bkDataBytes', fmt(s.dataRootBytes));
-      setText('bkBackupBytes', fmt(s.backupDirBytes) + ' · ' + (s.backupFileCount || 0) + ' files');
+      setText('bkBackupBytes', fmt(s.backupDirBytes) + ' · ' + (s.backupFileCount || 0));
       if (s.backupDirectory) setText('bkBackupPath', s.backupDirectory);
-      setText('bkFileCount', (s.backupFileCount || 0) + ' files');
+      setText('bkFileCount', i18n.files.replace('{0}', String(s.backupFileCount || 0)));
 
       const scale = Math.max(s.dataRootBytes, s.backupDirBytes, s.databaseBytes, 1);
       setBar('bkDbBar', s.databaseBytes, scale);
@@ -109,15 +115,15 @@
       setText('bkIoRead', fmt(s.processReadBytes));
       setText('bkIoWrite', fmt(s.processWriteBytes));
       if (!s.processIoAvailable) {
-        setText('bkIoHint', 'I/O N/A');
+        setText('bkIoHint', i18n.ioNa);
         setText('bkIoReadRate', '—');
         setText('bkIoWriteRate', '—');
       } else if (prev) {
         const dt = now - prevAt;
-        const rRate = (s.processReadBytes - prev.processReadBytes) / Math.max(dt / 1000, 0.001);
-        const wRate = (s.processWriteBytes - prev.processWriteBytes) / Math.max(dt / 1000, 0.001);
         setText('bkIoReadRate', rate(s.processReadBytes - prev.processReadBytes, dt));
         setText('bkIoWriteRate', rate(s.processWriteBytes - prev.processWriteBytes, dt));
+        const rRate = (s.processReadBytes - prev.processReadBytes) / Math.max(dt / 1000, 0.001);
+        const wRate = (s.processWriteBytes - prev.processWriteBytes) / Math.max(dt / 1000, 0.001);
         histR.push(Math.max(0, rRate));
         histW.push(Math.max(0, wRate));
         while (histR.length > histMax) histR.shift();
@@ -135,7 +141,7 @@
 
   document.getElementById('bkCreateBtn')?.addEventListener('click', function () {
     this.classList.add('is-busy');
-    this.textContent = 'Creating snapshot…';
+    this.textContent = i18n.creating;
   });
 
   tick();
