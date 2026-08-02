@@ -2,6 +2,15 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BlogApp.Models;
 
+/// <summary>Editorial review before public publish (authors submit; SuperAdmin approves).</summary>
+public enum PostReviewStatus
+{
+    None = 0,
+    PendingReview = 1,
+    Approved = 2,
+    Rejected = 3
+}
+
 public class Post
 {
     public int Id { get; set; }
@@ -25,6 +34,13 @@ public class Post
     public ApplicationUser Author { get; set; } = null!;
 
     public bool IsPublished { get; set; }
+
+    /// <summary>When author requests publish, SuperAdmin must approve before IsPublished=true.</summary>
+    public PostReviewStatus ReviewStatus { get; set; } = PostReviewStatus.None;
+
+    [MaxLength(500)]
+    public string? ReviewNote { get; set; }
+
     public DateTime? ScheduledPublishAtUtc { get; set; }
     public DateTime? ExpiresAtUtc { get; set; }
     public bool IsFeatured { get; set; }
