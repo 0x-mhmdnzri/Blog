@@ -144,6 +144,7 @@
 (function () {
   if (typeof BlogDT === 'undefined') return;
   BlogDT.init('#backupArchiveTable', {
+    stateSave: false,
     ajax: { url: '@Url.Action("ArchiveData", "AdminBackup")', type: 'GET' },
     columns: [
       { data: 0, className: 'col-file' },
