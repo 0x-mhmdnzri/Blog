@@ -15,11 +15,16 @@ public interface IAnalyticsTracker
 public sealed class AnalyticsTracker : IAnalyticsTracker
 {
     private readonly ApplicationDbContext _db;
+    private readonly AnalyticsBroadcaster _broadcaster;
     private readonly ILogger<AnalyticsTracker> _logger;
 
-    public AnalyticsTracker(ApplicationDbContext db, ILogger<AnalyticsTracker> logger)
+    public AnalyticsTracker(
+        ApplicationDbContext db,
+        AnalyticsBroadcaster broadcaster,
+        ILogger<AnalyticsTracker> logger)
     {
         _db = db;
+        _broadcaster = broadcaster;
         _logger = logger;
     }
 
@@ -76,6 +81,23 @@ public sealed class AnalyticsTracker : IAnalyticsTracker
         }
 
         await _db.SaveChangesAsync(ct);
+
+        try
+        {
+            _broadcaster.Publish(new
+            {
+                type = "view",
+                postId = post.Id,
+                postSlug = post.Slug,
+                postTitle = post.Title,
+                authorId = post.AuthorId,
+                at = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Analytics broadcast failed for view PostId={PostId}", post.Id);
+        }
     }
 
     public async Task TrackSearchAsync(HttpContext http, string query, int resultCount, CancellationToken ct = default)
@@ -91,6 +113,21 @@ public sealed class AnalyticsTracker : IAnalyticsTracker
             VisitorHash = VisitorIdentity.ComputeHash(http)
         });
         await _db.SaveChangesAsync(ct);
+
+        try
+        {
+            _broadcaster.Publish(new
+            {
+                type = "search",
+                query,
+                resultCount,
+                at = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Analytics broadcast failed for search");
+        }
     }
 
     public async Task TrackReadingDurationAsync(int postId, int seconds, string? visitorHash, CancellationToken ct = default)
@@ -122,24 +159,39 @@ public sealed class AnalyticsTracker : IAnalyticsTracker
             ClickedAtUtc = DateTime.UtcNow
         });
         await _db.SaveChangesAsync(ct);
+
+        try
+        {
+            _broadcaster.Publish(new
+            {
+                type = "heatmap",
+                postId,
+                x,
+                y,
+                at = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Analytics broadcast failed for heatmap PostId={PostId}", postId);
+        }
     }
 
     private static string GetOrCreateSessionKey(HttpContext http)
     {
-        const string cookie = "Blog.Sid";
-        if (http.Request.Cookies.TryGetValue(cookie, out var existing)
-            && !string.IsNullOrEmpty(existing)
-            && existing.Length <= 64)
+        const string cookie = "ba_sid";
+        if (http.Request.Cookies.TryGetValue(cookie, out var existing) &&
+            !string.IsNullOrWhiteSpace(existing) && existing.Length <= 64)
             return existing;
 
-        var key = Convert.ToHexString(Guid.NewGuid().ToByteArray());
+        var key = Guid.NewGuid().ToString("N");
         http.Response.Cookies.Append(cookie, key, new CookieOptions
         {
             HttpOnly = true,
             IsEssential = true,
             SameSite = SameSiteMode.Lax,
-            Secure = http.Request.IsHttps,
-            MaxAge = TimeSpan.FromHours(4)
+            MaxAge = TimeSpan.FromDays(30),
+            Secure = http.Request.IsHttps
         });
         return key;
     }
