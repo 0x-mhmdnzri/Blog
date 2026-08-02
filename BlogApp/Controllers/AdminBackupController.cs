@@ -91,7 +91,26 @@ public class AdminBackupController : Controller
 
         var total = await query.CountAsync();
 
-        if (!string.IsNullOrWhiteSpace(req.SearchValue))
+        // Prefer explicit column filters; otherwise global search.
+        // Avoid stacking empty/stale column searches on top of global term.
+        var colFile = req.Col(0);
+        var colKind = req.Col(1);
+        var hasColFilter = !string.IsNullOrWhiteSpace(colFile) || !string.IsNullOrWhiteSpace(colKind);
+
+        if (hasColFilter)
+        {
+            if (!string.IsNullOrWhiteSpace(colFile))
+            {
+                var f = colFile.Trim();
+                query = query.Where(b => b.FileName.Contains(f));
+            }
+            if (!string.IsNullOrWhiteSpace(colKind))
+            {
+                var k = colKind.Trim();
+                query = query.Where(b => b.Kind.Contains(k));
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(req.SearchValue))
         {
             var term = req.SearchValue.Trim();
             query = query.Where(b =>
@@ -99,11 +118,6 @@ public class AdminBackupController : Controller
                 || b.Kind.Contains(term)
                 || (b.Notes != null && b.Notes.Contains(term)));
         }
-
-        if (req.Col(0) is { } f)
-            query = query.Where(b => b.FileName.Contains(f));
-        if (req.Col(1) is { } k)
-            query = query.Where(b => b.Kind.Contains(k));
 
         var filtered = await query.CountAsync();
 
