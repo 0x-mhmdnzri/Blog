@@ -5,15 +5,13 @@
 #   # edit Admin__Password, Seo__BaseUrl, …
 #   docker compose up --build -d
 #   open http://localhost:${BLOG_HTTP_PORT}
+#   public site: https://mhmdnzr.drl.ink
 #
-# Compose only interpolates infrastructure vars (${BLOG_HTTP_PORT}, image names,
-# resource limits). Application settings are injected via env_file → container
-# environment (ASP.NET Core env vars map to appsettings with __ nesting).
-#
-# Redis starts with the stack (distributed cache / output-cache backplane keys).
-# RabbitMQ is opt-in:
-#   docker compose --profile rabbitmq up -d
-#   set RabbitMq__HostName=rabbitmq in .env, then: docker compose up -d blog
+# Host ports (defaults in .env.example — change if busy):
+#   blog        ${BLOG_HTTP_PORT:-8934}  → 8934
+#   redis       ${REDIS_PORT:-16379}     → 6379
+#   rabbitmq    ${RABBITMQ_PORT:-25672}  → 5672
+#   rabbit mgmt ${RABBITMQ_MGMT_PORT:-35672} → 15672
 # =============================================================================
 
 name: dark-pro-blog
@@ -24,20 +22,22 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        DOTNET_VERSION: "${DOTNET_VERSION}"
-    image: ${IMAGE_NAME}:${IMAGE_TAG}
-    container_name: ${CONTAINER_NAME}
+        DOTNET_VERSION: "${DOTNET_VERSION:-10.0}"
+    image: ${IMAGE_NAME:-dark-pro-blog}:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_NAME:-dark-pro-blog}
     restart: unless-stopped
     env_file:
       - .env
     ports:
-      - "${BLOG_HTTP_PORT}:8934"
+      - "${BLOG_HTTP_PORT:-8934}:8934"
     volumes:
-      # SQLite + /app/data/backups (scheduled full snapshots live on this volume)
       - blog_data:/app/data
       - blog_logs:/app/logs
     networks:
       - blog_net
+    depends_on:
+      redis:
+        condition: service_healthy
     security_opt:
       - no-new-privileges:true
     tmpfs:
@@ -45,23 +45,24 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "${BLOG_CPU_LIMIT}"
-          memory: ${BLOG_MEMORY_LIMIT}
+          cpus: "${BLOG_CPU_LIMIT:-1.0}"
+          memory: ${BLOG_MEMORY_LIMIT:-512M}
         reservations:
-          cpus: "${BLOG_CPU_RESERVE}"
-          memory: ${BLOG_MEMORY_RESERVE}
+          cpus: "${BLOG_CPU_RESERVE:-0.10}"
+          memory: ${BLOG_MEMORY_RESERVE:-128M}
     logging:
       driver: json-file
       options:
         max-size: "20m"
         max-file: "5"
         labels: "service=blog,app=dark-pro-blog"
+    # Image has no curl — TCP open on listen port is enough for container health.
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8934/health"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8934"]
       interval: 15s
       timeout: 3s
       retries: 5
-      start_period: 15s
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
@@ -69,7 +70,8 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      # Non-default host port avoids clash with system Redis on 6379
+      - "${REDIS_PORT:-16379}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -83,18 +85,17 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
-    container_name: ${RABBITMQ_CONTAINER}
+    container_name: ${RABBITMQ_CONTAINER:-dark-pro-rabbitmq}
     restart: unless-stopped
     profiles: ["rabbitmq"]
     env_file:
       - .env
     environment:
-      # Official image only accepts these specific names (not RabbitMq__*)
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-blog}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-blog_change_me}
     ports:
-      - "${RABBITMQ_PORT}:5672"
-      - "${RABBITMQ_MGMT_PORT}:15672"
+      - "${RABBITMQ_PORT:-25672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-35672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
@@ -108,15 +109,15 @@ services:
 
 volumes:
   blog_data:
-    name: ${VOLUME_DATA_NAME}
+    name: ${VOLUME_DATA_NAME:-dark-pro-blog-data}
   blog_logs:
-    name: ${VOLUME_LOGS_NAME}
+    name: ${VOLUME_LOGS_NAME:-dark-pro-blog-logs}
   redis_data:
     name: ${VOLUME_REDIS_NAME:-dark-pro-redis-data}
   rabbitmq_data:
-    name: ${VOLUME_RABBIT_NAME}
+    name: ${VOLUME_RABBIT_NAME:-dark-pro-rabbitmq-data}
 
 networks:
   blog_net:
-    name: ${NETWORK_NAME}
+    name: ${NETWORK_NAME:-dark-pro-blog-net}
     driver: bridge
