@@ -204,7 +204,7 @@
             '<td class="ltr-field">' + escapeHtml(createdStr) + '</td>' +
             '<td class="bk-row-actions">' +
               '<a class="bk-btn bk-btn-sm bk-btn-primary" href="' + escapeHtml(downloadUrl) + '">' + escapeHtml(i18n.download) + '</a> ' +
-              '<form method="post" action="/AdminBackup/Delete" class="d-inline" onsubmit="return confirm(\'' + escapeHtml(i18n.confirmDelete).replace(/'/g, '\\'') + '\');">' +
+              '<form method="post" action="/AdminBackup/Delete" class="d-inline" onsubmit="return confirm(' + JSON.stringify(String(i18n.confirmDelete || '')) + ');">' +
                 (token ? '<input type="hidden" name="__RequestVerificationToken" value="' + escapeHtml(token) + '" />' : '') +
                 '<input type="hidden" name="id" value="' + id + '" />' +
                 '<button type="submit" class="bk-btn bk-btn-sm bk-btn-ghost">' + escapeHtml(i18n.del) + '</button>' +
