@@ -9,7 +9,8 @@
 #
 # Host ports (defaults in .env.example — change if busy):
 #   blog        ${BLOG_HTTP_PORT:-8934}  → 8934
-#   redis       ${REDIS_PORT:-16379}     → 6379
+#   redis       not published (blog uses hostname "redis:6379" on blog_net)
+#               optional: uncomment ports in redis service for host redis-cli
 #   rabbitmq    ${RABBITMQ_PORT:-25672}  → 5672
 #   rabbit mgmt ${RABBITMQ_MGMT_PORT:-35672} → 15672
 # =============================================================================
@@ -69,9 +70,11 @@ services:
     container_name: ${REDIS_CONTAINER:-dark-pro-redis}
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
-    ports:
-      # Non-default host port avoids clash with system Redis on 6379
-      - "${REDIS_PORT:-16379}:6379"
+    # No host port mapping — avoids "Bind for 0.0.0.0:6379 failed: port is already allocated".
+    # Blog reaches Redis via Docker DNS: hostname redis, port 6379 on blog_net.
+    # Optional host publish for local redis-cli:
+    #   ports:
+    #     - "127.0.0.1:16379:6379"
     volumes:
       - redis_data:/data
     networks:
