@@ -155,3 +155,46 @@
   else boot();
   setInterval(boot, 25000);
 })();
+
+/* Load self from layout if missing — and SSE reconnect fallback */
+(function () {
+  if (!document.querySelector('script[src*="admin-live"]') && !window.__adminLiveBooted) {
+    /* already executing as admin-live */
+  }
+  window.__adminLiveBooted = true;
+  var indicator = document.getElementById('liveIndicator');
+  function setLive(on) {
+    if (!indicator) return;
+    indicator.classList.toggle('live-on', !!on);
+    indicator.classList.toggle('live-off', !on);
+  }
+  var tried = false;
+  setTimeout(function () {
+    if (tried) return;
+    if (indicator && indicator.classList.contains('live-on')) return;
+    tried = true;
+    var retry = 1500;
+    function connect() {
+      var es = new EventSource('/Admin/Stream');
+      es.onopen = function () {
+        setLive(true);
+        retry = 1500;
+        window.dispatchEvent(new CustomEvent('admin-sse-open'));
+      };
+      es.onerror = function () {
+        setLive(false);
+        try { es.close(); } catch (_) {}
+        setTimeout(connect, retry);
+        retry = Math.min(retry * 1.6, 20000);
+      };
+      es.onmessage = function (e) {
+        setLive(true);
+        try {
+          var data = JSON.parse(e.data);
+          window.dispatchEvent(new CustomEvent('admin-sse-message', { detail: data }));
+        } catch (_) {}
+      };
+    }
+    connect();
+  }, 8000);
+})();
