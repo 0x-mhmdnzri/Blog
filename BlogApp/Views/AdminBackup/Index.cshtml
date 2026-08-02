@@ -9,7 +9,6 @@
     var opts = ViewBag.Options as BackupOptions ?? new BackupOptions();
     var retentionText = string.Format(T["bk.retention_fmt"], opts.RetentionDays, opts.MaxFiles);
     var filesCountText = string.Format(T["bk.files_count"], backups.Count);
-    var confirmDelete = T["bk.confirm_delete"];
 }
 <link rel="stylesheet" href="~/css/admin-backup.css" asp-append-version="true" />
 
@@ -54,49 +53,31 @@
         <article class="bk-card bk-gauge-card">
             <div class="bk-card-head">
                 <h3>@T["bk.volume"]</h3>
-                <span class="bk-live" id="bkLive"><span class="bk-live-dot"></span> @T["bk.live"]</span>
+                <span class="bk-hint" id="bkVolHint">—</span>
             </div>
-            <div class="bk-ring-wrap">
-                <svg class="bk-ring" viewBox="0 0 120 120" aria-hidden="true">
-                    <circle class="bk-ring-track" cx="60" cy="60" r="52" />
-                    <circle class="bk-ring-value" id="bkVolRing" cx="60" cy="60" r="52"
-                            stroke-dasharray="326.73" stroke-dashoffset="326.73" />
+            <div class="bk-gauge" id="bkGauge" data-pct="0">
+                <svg viewBox="0 0 120 120" class="bk-gauge-svg" aria-hidden="true">
+                    <circle class="bk-gauge-track" cx="60" cy="60" r="52" />
+                    <circle class="bk-gauge-fill" id="bkGaugeFill" cx="60" cy="60" r="52" />
                 </svg>
-                <div class="bk-ring-label">
-                    <strong id="bkVolPct">@snap.VolumeUsedPercent.ToString("0.#")%</strong>
-                    <span id="bkUsedLabel">@T["bk.used"]</span>
+                <div class="bk-gauge-center">
+                    <strong id="bkVolPct" class="ltr-field">0%</strong>
+                    <span>@T["bk.used"]</span>
                 </div>
             </div>
-            <dl class="bk-kv">
-                <div><dt>@T["bk.total"]</dt><dd id="bkVolTotal" class="ltr-field">—</dd></div>
-                <div><dt>@T["bk.free"]</dt><dd id="bkVolFree" class="ltr-field">—</dd></div>
-                <div><dt>@T["bk.mount"]</dt><dd id="bkVolRoot" class="ltr-field small">@(snap.VolumeRoot ?? "—")</dd></div>
-            </dl>
+            <div class="bk-stat-row">
+                <div><span>@T["bk.free"]</span><strong id="bkVolFree" class="ltr-field">—</strong></div>
+                <div><span>@T["bk.total"]</span><strong id="bkVolTotal" class="ltr-field">—</strong></div>
+            </div>
         </article>
 
         <article class="bk-card">
-            <div class="bk-card-head"><h3>@T["bk.app_data"]</h3></div>
-            <ul class="bk-bars">
-                <li>
-                    <div class="bk-bar-meta"><span>@T["bk.database"]</span><span id="bkDbBytes" class="ltr-field">—</span></div>
-                    <div class="bk-bar"><i id="bkDbBar" style="width:0%"></i></div>
-                </li>
-                <li>
-                    <div class="bk-bar-meta"><span>@T["bk.wal"]</span><span id="bkWalBytes" class="ltr-field">—</span></div>
-                    <div class="bk-bar"><i id="bkWalBar" style="width:0%"></i></div>
-                </li>
-                <li>
-                    <div class="bk-bar-meta"><span>@T["bk.media"]</span><span id="bkMediaBytes" class="ltr-field">—</span></div>
-                    <div class="bk-bar"><i id="bkMediaBar" style="width:0%"></i></div>
-                </li>
-                <li>
-                    <div class="bk-bar-meta"><span>@T["bk.data_root"]</span><span id="bkDataBytes" class="ltr-field">—</span></div>
-                    <div class="bk-bar"><i id="bkDataBar" style="width:0%"></i></div>
-                </li>
-                <li>
-                    <div class="bk-bar-meta"><span>@T["bk.backups_on_volume"]</span><span id="bkBackupBytes" class="ltr-field">—</span></div>
-                    <div class="bk-bar bk-bar-accent"><i id="bkBackupBar" style="width:0%"></i></div>
-                </li>
+            <div class="bk-card-head"><h3>@T["bk.storage"]</h3></div>
+            <ul class="bk-stat-list">
+                <li><span>@T["bk.backup_dir"]</span><strong id="bkBackupBytes" class="ltr-field">—</strong></li>
+                <li><span>@T["bk.database"]</span><strong id="bkDbBytes" class="ltr-field">—</strong></li>
+                <li><span>@T["bk.media"]</span><strong id="bkMediaBytes" class="ltr-field">—</strong></li>
+                <li><span>@T["bk.data_root"]</span><strong id="bkDataRootBytes" class="ltr-field">—</strong></li>
             </ul>
             <p class="bk-path ltr-field" id="bkBackupPath">@snap.BackupDirectory</p>
         </article>
@@ -140,61 +121,41 @@
             <h3>@T["bk.archive"]</h3>
             <span class="bk-count" id="bkFileCount">@filesCountText</span>
         </div>
-        @if (backups.Count == 0)
-        {
-            <div class="bk-empty">
-                <p>@T["bk.empty"]</p>
-            </div>
-        }
-        else
-        {
-            <div class="bk-table-wrap">
-                <table class="bk-table">
-                    <thead>
-                        <tr>
-                            <th>@T["bk.col_file"]</th>
-                            <th>@T["bk.col_kind"]</th>
-                            <th>@T["bk.col_size"]</th>
-                            <th>@T["bk.col_created"]</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var b in backups)
-                    {
-                        <tr>
-                            <td class="ltr-field bk-mono">@b.FileName</td>
-                            <td><span class="bk-pill">@b.Kind</span></td>
-                            <td class="ltr-field">@FormatSize(b.SizeBytes)</td>
-                            <td class="ltr-field">@b.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
-                            <td class="bk-row-actions">
-                                <a class="bk-btn bk-btn-sm bk-btn-primary" asp-action="Download" asp-route-id="@b.Id">@T["bk.download"]</a>
-                                <form method="post" asp-action="Delete" class="d-inline" onsubmit="return confirm('@Html.Raw(confirmDelete.Replace("'", "\\'"));');">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@b.Id" />
-                                    <button type="submit" class="bk-btn bk-btn-sm bk-btn-ghost">@T["bk.delete"]</button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
-        }
+        @Html.AntiForgeryToken()
+        <div class="admin-table-wrap bk-table-wrap">
+            <table id="backupArchiveTable" class="admin-table bk-table display nowrap" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>@T["bk.col_file"]</th>
+                        <th>@T["bk.col_kind"]</th>
+                        <th>@T["bk.col_size"]</th>
+                        <th>@T["bk.col_created"]</th>
+                        <th>@T["col.actions"]</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
     </section>
 </div>
 
-@functions {
-    string FormatSize(long bytes)
-    {
-        string[] u = { "B", "KB", "MB", "GB", "TB" };
-        double v = bytes;
-        var i = 0;
-        while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
-        return $"{v:0.##} {u[i]}";
-    }
-}
-
 @section Scripts {
 <script src="~/js/admin-backup.js" asp-append-version="true"></script>
+<script>
+(function () {
+  if (typeof BlogDT === 'undefined') return;
+  BlogDT.init('#backupArchiveTable', {
+    ajax: { url: '@Url.Action("ArchiveData", "AdminBackup")', type: 'GET' },
+    columns: [
+      { data: 0, className: 'col-file' },
+      { data: 1, className: 'col-kind' },
+      { data: 2, className: 'ltr-field col-size' },
+      { data: 3, className: 'ltr-field col-date' },
+      { data: 4, orderable: false, searchable: false, className: 'col-actions' }
+    ],
+    order: [[3, 'desc']],
+    columnDefs: [{ orderable: false, targets: [4] }],
+    columnFilters: [true, true, false, false, false]
+  });
+})();
+</script>
 }
