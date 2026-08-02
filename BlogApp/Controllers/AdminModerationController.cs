@@ -2,19 +2,33 @@ using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
+using BlogApp.Services.Messaging;
+using BlogApp.Services.Performance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
 
-/// <summary>Unified moderation queue: pending comments + open content reports.</summary>
 [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
 public class AdminModerationController : Controller
 {
     private readonly ApplicationDbContext _db;
+    private readonly INotificationService _notify;
+    private readonly IBackgroundJobQueue? _jobs;
+    private readonly ILogger<AdminModerationController> _logger;
 
-    public AdminModerationController(ApplicationDbContext db) => _db = db;
+    public AdminModerationController(
+        ApplicationDbContext db,
+        INotificationService notify,
+        ILogger<AdminModerationController> logger,
+        IBackgroundJobQueue? jobs = null)
+    {
+        _db = db;
+        _notify = notify;
+        _logger = logger;
+        _jobs = jobs;
+    }
 
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -22,6 +36,7 @@ public class AdminModerationController : Controller
         ViewData["Title"] = "صف بررسی";
         var userId = AuthorAccess.UserId(User)!;
         var seeAll = AuthorAccess.CanModerateAllComments(User);
+        var isSuper = AuthorAccess.IsSuperAdmin(User);
 
         var commentQuery = _db.Comments.Include(c => c.Post)
             .Where(c => c.Status == CommentStatus.Pending);
@@ -47,7 +62,7 @@ public class AdminModerationController : Controller
         var reportQuery = _db.ContentReports.AsNoTracking()
             .Where(r => r.Status == ContentReportStatus.Open);
 
-        if (!AuthorAccess.IsSuperAdmin(User))
+        if (!isSuper)
         {
             var myPostIds = await _db.Posts.Where(p => p.AuthorId == userId).Select(p => p.Id).ToListAsync();
             var myCommentIds = await _db.Comments.Where(c => myPostIds.Contains(c.PostId)).Select(c => c.Id).ToListAsync();
@@ -58,10 +73,108 @@ public class AdminModerationController : Controller
 
         var openReports = await reportQuery.OrderByDescending(r => r.CreatedAtUtc).Take(50).ToListAsync();
 
+        var pendingPosts = new List<PendingPostReviewItem>();
+        if (isSuper)
+        {
+            pendingPosts = await _db.Posts.AsNoTracking()
+                .Include(p => p.Author)
+                .Where(p => !p.IsDeleted && p.ReviewStatus == PostReviewStatus.PendingReview)
+                .OrderByDescending(p => p.UpdatedAtUtc)
+                .Take(50)
+                .Select(p => new PendingPostReviewItem
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Slug = p.Slug,
+                    LanguageCode = p.LanguageCode,
+                    AuthorName = p.Author != null ? (p.Author.DisplayName ?? p.Author.UserName ?? "") : "",
+                    AuthorId = p.AuthorId,
+                    Summary = p.Summary,
+                    UpdatedAtUtc = p.UpdatedAtUtc,
+                    CreatedAtUtc = p.CreatedAtUtc
+                })
+                .ToListAsync();
+        }
+
         return View(new ModerationQueueViewModel
         {
             PendingComments = pendingComments,
-            OpenReports = openReports
+            OpenReports = openReports,
+            PendingPosts = pendingPosts
         });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.SuperAdmin)]
+    public async Task<IActionResult> ApprovePost(int id)
+    {
+        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+        if (post is null) return NotFound();
+        if (post.ReviewStatus != PostReviewStatus.PendingReview)
+        {
+            TempData["FlashOk"] = "این نوشته در صف بررسی نیست.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        post.IsPublished = true;
+        post.PublishedAtUtc ??= DateTime.UtcNow;
+        post.ScheduledPublishAtUtc = null;
+        post.ReviewStatus = PostReviewStatus.Approved;
+        post.ReviewNote = null;
+        post.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        try { if (_jobs is not null) await _jobs.EnqueueIndexPostAsync(post.Id); }
+        catch (Exception ex) { _logger.LogWarning(ex, "Index after ApprovePost {Id}", id); }
+
+        try
+        {
+            await _notify.NotifyAsync(
+                post.AuthorId,
+                NotificationKind.NewPost,
+                "نوشته شما منتشر شد",
+                "«" + post.Title + "» تأیید و منتشر شد.",
+                "/" + post.LanguageCode + "/post/" + post.Slug);
+        }
+        catch (Exception ex) { _logger.LogWarning(ex, "Notify after ApprovePost {Id}", id); }
+
+        TempData["FlashOk"] = "نوشته تأیید و منتشر شد.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.SuperAdmin)]
+    public async Task<IActionResult> RejectPost(int id, string? note = null)
+    {
+        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+        if (post is null) return NotFound();
+        if (post.ReviewStatus != PostReviewStatus.PendingReview)
+        {
+            TempData["FlashOk"] = "این نوشته در صف بررسی نیست.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        post.IsPublished = false;
+        post.ReviewStatus = PostReviewStatus.Rejected;
+        if (!string.IsNullOrWhiteSpace(note))
+        {
+            var n = note.Trim();
+            post.ReviewNote = n.Length > 500 ? n[..500] : n;
+        }
+        else post.ReviewNote = null;
+        post.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var body = string.IsNullOrEmpty(post.ReviewNote)
+                ? "«" + post.Title + "» برای انتشار تأیید نشد."
+                : "«" + post.Title + "» رد شد: " + post.ReviewNote;
+            await _notify.NotifyAsync(post.AuthorId, NotificationKind.AdminMessage, "نوشته رد شد", body, "/Posts/Edit/" + post.Id);
+        }
+        catch (Exception ex) { _logger.LogWarning(ex, "Notify after RejectPost {Id}", id); }
+
+        TempData["FlashOk"] = "نوشته رد شد.";
+        return RedirectToAction(nameof(Index));
     }
 }
