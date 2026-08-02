@@ -1,20 +1,25 @@
-/* Post reading layout: related | article | floating sticky TOC */
+/* Post reading layout — related (L) | article | TOC (R), sticky rails */
 
 .post-layout {
-  --post-aside-left: 240px;
-  --post-aside-toc: 300px;
-  --post-main: min(680px, 100%);
-  --post-gap: 2rem;
+  --post-aside-left: 220px;
+  --post-aside-toc: 280px;
+  --post-main: min(720px, 100%);
+  --post-gap: 1.75rem;
+  --post-sticky-top: 5.25rem;
   display: grid;
   grid-template-columns: var(--post-aside-left) minmax(0, var(--post-main)) var(--post-aside-toc);
   gap: var(--post-gap);
-  /* stretch so aside columns are as tall as the article — required for sticky to travel */
   align-items: stretch;
   justify-content: center;
-  max-width: calc(240px + 680px + 300px + 4rem);
+  max-width: calc(220px + 720px + 280px + 3.5rem);
   margin: 0 auto;
-  padding: 2.5rem 1.25rem 5rem;
+  padding: 2rem 1.25rem 4.5rem;
   direction: ltr;
+}
+
+.post-layout.no-toc {
+  grid-template-columns: var(--post-aside-left) minmax(0, var(--post-main));
+  max-width: calc(220px + 720px + 2rem);
 }
 
 .post-layout > * {
@@ -33,41 +38,30 @@ html[dir="ltr"] .post-layout > .post-aside-toc {
   direction: ltr;
 }
 
-.post-aside-related {
-  grid-column: 1;
-}
+.post-aside-related { grid-column: 1; }
+.post-main { grid-column: 2; }
+.post-aside-toc { grid-column: 3; }
 
-.post-main {
-  grid-column: 2;
-}
-
-.post-aside-toc {
-  grid-column: 3;
-}
-
-/*
- * Sticky follows page scroll while the user reads the article.
- * Parent aside is stretched to article height (align-items: stretch),
- * so position:sticky can slide down inside that tall column.
- */
 .post-aside-sticky {
   position: sticky;
-  top: 5.5rem;
-  max-height: calc(100vh - 6.5rem);
+  top: var(--post-sticky-top);
+  max-height: calc(100vh - var(--post-sticky-top) - 1.25rem);
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
   overscroll-behavior: contain;
-  align-self: start; /* sticky box itself stays content-sized at the top of the tall column */
+  align-self: start;
   width: 100%;
 }
 
-/* —— Related slider —— */
 .related-rail {
   border: 1px solid var(--border-soft, #1e2430);
-  border-radius: 14px;
-  background: var(--surface, #12161f);
-  padding: 0.85rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface, #12161f) 92%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.9rem 0.85rem 0.75rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
 }
 
 .related-rail-head {
@@ -75,24 +69,22 @@ html[dir="ltr"] .post-layout > .post-aside-toc {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 0.7rem;
+  margin-bottom: 0.65rem;
 }
 
 .related-rail-title {
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   font-weight: 650;
-  color: var(--text, #e6e9f0);
+  letter-spacing: 0.02em;
+  color: var(--text-muted, #8b93a7);
   margin: 0;
 }
 
-.related-rail-nav {
-  display: flex;
-  gap: 0.3rem;
-}
+.related-rail-nav { display: flex; gap: 0.25rem; }
 
 .related-rail-btn {
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 1.7rem;
+  height: 1.7rem;
   border-radius: 8px;
   border: 1px solid var(--border-soft, #1e2430);
   background: var(--surface-2, #171c27);
@@ -109,28 +101,22 @@ html[dir="ltr"] .post-layout > .post-aside-toc {
 
 .related-rail-btn:hover:not(:disabled) {
   color: var(--accent, #e3b341);
-  border-color: var(--accent-dim, #b8903a);
+  border-color: color-mix(in srgb, var(--accent, #e3b341) 45%, var(--border-soft, #1e2430));
 }
 
-.related-rail-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
+.related-rail-btn:disabled { opacity: 0.3; cursor: default; }
 
-.related-rail-viewport {
-  overflow: hidden;
-}
+.related-rail-viewport { overflow: hidden; border-radius: 10px; }
 
 .related-rail-track {
   display: flex;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
 
 .related-rail-card {
   flex: 0 0 100%;
   min-width: 100%;
-  padding: 0.1rem;
   box-sizing: border-box;
 }
 
@@ -139,7 +125,7 @@ html[dir="ltr"] .post-layout > .post-aside-toc {
   text-decoration: none;
   color: inherit;
   border-radius: 10px;
-  padding: 0.7rem 0.75rem;
+  padding: 0.65rem 0.7rem;
   border: 1px solid transparent;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -150,19 +136,19 @@ html[dir="ltr"] .post-layout > .post-aside-toc {
 }
 
 .related-rail-card-title {
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--text, #e6e9f0);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.35rem;
 }
 
 .related-rail-card-sum {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   color: var(--text-muted, #8b93a7);
   line-height: 1.45;
   display: -webkit-box;
@@ -172,8 +158,149 @@ html[dir="ltr"] .post-layout > .post-aside-toc {
   margin: 0;
 }
 
-/* Sidebar TOC */
-.post-aside-toc .post-toc--sidebar {
+.related-rail-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+  margin-top: 0.55rem;
+  min-height: 0.4rem;
+}
+
+.related-rail-dots span {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--border-soft, #1e2430);
+  transition: background 0.2s, width 0.2s;
+}
+
+.related-rail-dots span.is-on {
+  background: var(--accent, #e3b341);
+  width: 0.7rem;
+}
+
+.post-title {
+  font-size: clamp(1.55rem, 2.4vw, 2.05rem);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.75rem;
+  color: var(--text, #e6e9f0);
+}
+
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.35rem;
+  font-size: 0.84rem;
+  color: var(--text-muted, #8b93a7);
+  margin-bottom: 1.1rem;
+}
+
+.post-meta-author {
+  color: var(--text, #e6e9f0);
+  text-decoration: none;
+  font-weight: 550;
+}
+
+.post-meta-author:hover { color: var(--accent, #e3b341); }
+.post-meta-sep { opacity: 0.5; }
+
+.post-lead {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--text-muted, #8b93a7);
+  margin: 0 0 1.5rem;
+}
+
+.post-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.post-flash {
+  font-size: 0.84rem;
+  color: var(--text-muted, #8b93a7);
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft, #1e2430);
+  background: var(--surface, #12161f);
+  margin-bottom: 1rem;
+}
+
+.post-edit-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.post-edit-link {
+  appearance: none;
+  border: 1px solid var(--border-soft, #1e2430);
+  background: transparent;
+  color: var(--text-muted, #8b93a7);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.post-edit-link:hover {
+  color: var(--text, #e6e9f0);
+  border-color: var(--text-muted, #8b93a7);
+}
+
+.post-edit-link.is-danger:hover {
+  color: #f07178;
+  border-color: #f07178;
+}
+
+.post-edit-delete {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.post-edit-reason {
+  max-width: 12rem;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft, #1e2430);
+  background: var(--surface, #12161f);
+  color: var(--text, #e6e9f0);
+}
+
+.post-premium-lock {
+  text-align: center;
+  padding: 2rem 1.25rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft, #1e2430);
+  background: var(--surface, #12161f);
+  color: var(--text-muted, #8b93a7);
+}
+
+.post-actions-footer {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-soft, #1e2430);
+}
+
+.post-toc-mobile {
+  display: none;
+  margin-bottom: 1.5rem;
+}
+
+.post-toc-sidebar-wrap .post-toc--sidebar {
   margin: 0;
   width: 100%;
 }
@@ -182,55 +309,51 @@ html[dir="ltr"] .post-layout > .post-aside-toc {
   max-height: calc(100vh - 12rem);
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.5rem 0.4rem 0.75rem;
+  padding: 0.35rem 0.25rem 0.65rem;
   scrollbar-width: thin;
+  border-top: none;
 }
 
-.post-aside-toc .post-toc--sidebar .toc-link {
-  padding: 0.5rem 0.85rem;
-  font-size: 0.88rem;
-  line-height: 1.5;
-  word-break: break-word;
+.post-aside-toc .post-toc--sidebar .toc-toggle {
+  pointer-events: none;
+  cursor: default;
 }
 
-.post-aside-toc .post-toc--sidebar .toc-depth-0 > .toc-link {
-  font-size: 0.9rem;
-}
-
-.post-aside-toc .post-toc--sidebar .toc-link.is-active {
-  box-shadow: inset 3px 0 0 var(--accent, #e3b341);
-}
-
-html[dir="rtl"] .post-aside-toc .post-toc--sidebar .toc-link.is-active,
-.post-toc[dir="rtl"] .toc-link.is-active {
-  box-shadow: inset -3px 0 0 var(--accent, #e3b341);
+.post-aside-toc .post-toc--sidebar .toc-toggle-chevron {
+  display: none;
 }
 
 .md-heading {
   scroll-margin-top: 6rem;
 }
 
+.md-heading.is-section-active {
+  position: relative;
+}
+
 .md-heading.is-section-active::before {
   content: "";
   display: inline-block;
-  width: 0.35rem;
-  height: 0.35rem;
+  width: 0.32rem;
+  height: 0.32rem;
   border-radius: 50%;
   background: var(--accent, #e3b341);
-  margin-inline-end: 0.45rem;
+  margin-inline-end: 0.4rem;
   vertical-align: middle;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #e3b341) 25%, transparent);
 }
 
 @media (max-width: 1200px) {
   .post-layout {
-    --post-aside-left: 200px;
-    --post-aside-toc: 260px;
+    --post-aside-left: 190px;
+    --post-aside-toc: 240px;
     --post-gap: 1.25rem;
   }
 }
 
 @media (max-width: 1100px) {
-  .post-layout {
+  .post-layout,
+  .post-layout.no-toc {
     grid-template-columns: minmax(0, 1fr);
     max-width: 780px;
     align-items: start;
@@ -249,19 +372,20 @@ html[dir="rtl"] .post-aside-toc .post-toc--sidebar .toc-link.is-active,
   }
 
   .post-aside-toc {
-    order: -1;
+    display: none;
+  }
+
+  .post-toc-mobile {
+    display: block;
   }
 
   .post-aside-related {
-    order: 2;
+    order: 3;
+    margin-top: 1.5rem;
   }
 
   .post-main {
     order: 1;
-  }
-
-  .post-aside-toc .post-toc--sidebar .toc-body {
-    max-height: min(18rem, 50vh);
   }
 }
 
@@ -269,4 +393,9 @@ html[dir="rtl"] .post-aside-toc .post-toc--sidebar .toc-link.is-active,
   .related-rail-track {
     transition: none;
   }
+}
+
+html[data-theme="light"] .related-rail {
+  background: color-mix(in srgb, var(--surface, #fff) 94%, transparent);
+  border-color: var(--border-soft, #e4e7ee);
 }
