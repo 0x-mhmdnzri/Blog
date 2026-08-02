@@ -4,42 +4,72 @@
     var items = Model.Items;
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
-    string? lastGroup = null;
-}
-<nav class="admin-nav" id="adminNav" aria-label="Admin">
-@foreach (var item in items)
-{
-    if (item.GroupKey != lastGroup)
+    var depth = 0;
+
+    string Label(AVICRM.Services.AdminNavItem item)
     {
-        lastGroup = item.GroupKey;
-        <div class="admin-nav-group-label">@T[item.GroupKey!]</div>
+        var v = T[item.LabelKey];
+        return v == item.LabelKey ? item.LabelKey.Split('.').Last() : v;
     }
-    var active = item.Matches(controller, action);
-    <a class="admin-nav-link @(active ? "active" : "")"
-       asp-controller="@item.Controller"
-       asp-action="@item.Action"
-       data-nav-key="@item.Key"
-       title="@T[item.LabelKey]">
-        <span class="nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" focusable="false">
-                <path d="@item.Icon"/>
-            </svg>
-        </span>
-        <span class="nav-label">@T[item.LabelKey]</span>
-        <span class="nav-trail">
-            @if (item.ShowPendingBadge)
+
+    async Task RenderItems(IEnumerable<AVICRM.Services.AdminNavItem> list, int level)
+    {
+        foreach (var item in list)
+        {
+            if (item.IsSection)
             {
-                <span class="badge-count" id="pendingBadge" style="@(Model.PendingCount > 0 ? "" : "display:none;")">@Model.PendingCount</span>
+                var open = item.Matches(controller, action);
+                <div class="admin-nav-section @(open ? "is-open" : "") @(level > 0 ? "is-nested" : "")" data-nav-section="@item.Key" data-nav-depth="@level">
+                    <button type="button" class="admin-nav-section-btn" aria-expanded="@(open ? "true" : "false")" data-nav-accordion="@item.Key">
+                        <span class="nav-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" focusable="false">
+                                <path d="@item.Icon"/>
+                            </svg>
+                        </span>
+                        <span class="nav-label">@Label(item)</span>
+                        <span class="nav-chevron" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                        </span>
+                    </button>
+                    <div class="admin-nav-children" role="group" @(open ? null : "hidden")>
+                        @{ await RenderItems(item.Children!, level + 1); }
+                    </div>
+                </div>
             }
-            @if (item.DemoTag)
+            else
             {
-                <span class="soon-tag">@T["admin.demo"]</span>
+                var leafActive = item.Matches(controller, action);
+                var href = Url.Action(item.Action, item.Controller) ?? "#";
+                <a class="admin-nav-link @(level > 0 ? "is-child" : "") @(leafActive ? "active" : "")"
+                   href="@href"
+                   data-nav-key="@item.Key"
+                   data-nav-depth="@level"
+                   title="@Label(item)">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" focusable="false">
+                            <path d="@item.Icon"/>
+                        </svg>
+                    </span>
+                    <span class="nav-label">@Label(item)</span>
+                    <span class="nav-trail">
+                        @if (item.ShowPendingBadge)
+                        {
+                            <span class="badge-count" id="pendingBadge" style="@(Model.PendingCount > 0 ? "" : "display:none;")">@Model.PendingCount</span>
+                        }
+                        @if (item.DemoTag)
+                        {
+                            <span class="soon-tag">@T["admin.demo"]</span>
+                        }
+                        @if (item.SuperOnlyTag)
+                        {
+                            <span class="soon-tag">@T["admin.super_only"]</span>
+                        }
+                    </span>
+                </a>
             }
-            @if (item.SuperOnlyTag)
-            {
-                <span class="soon-tag">@T["admin.super_only"]</span>
-            }
-        </span>
-    </a>
+        }
+    }
 }
+<nav class="admin-nav" id="adminNav" aria-label="@T["crm.nav.aria"]">
+@{ await RenderItems(items, depth); }
 </nav>
