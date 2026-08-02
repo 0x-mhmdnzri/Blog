@@ -44,7 +44,7 @@
                             @foreach (var r in related)
                             {
                                 <div class="related-rail-card">
-                                    <a class="related-rail-card-link" href="/@r.LanguageCode/post/@r.Slug">
+                                    <a class="related-rail-card-link" href="/@Model.LanguageCode/post/@r.Slug">
                                         <p class="related-rail-card-title" dir="@MarkdownService.DetectDir(r.Title)">@r.Title</p>
                                         @if (!string.IsNullOrWhiteSpace(r.Summary))
                                         {
