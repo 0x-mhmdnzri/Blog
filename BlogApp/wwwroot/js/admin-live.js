@@ -5,6 +5,28 @@
 (function () {
   'use strict';
 
+  // Auto-tag AdminAnalytics KPI nodes if server markup lacks ids
+  function tagAnaKpis() {
+    if (document.getElementById('anaKpiViews')) return;
+    var cards = document.querySelectorAll('.kpi-card.kpi-compact .kpi-value');
+    if (cards.length >= 3) {
+      cards[0].id = 'anaKpiViews';
+      cards[1].id = 'anaKpiUnique';
+      cards[2].id = 'anaKpiBounce';
+    }
+    var subs = document.querySelectorAll('.kpi-card.kpi-compact .kpi-sub');
+    if (subs[0] && !document.getElementById('anaKpiSessions')) {
+      var span = subs[0].querySelector('.ltr-field') || subs[0];
+      if (!span.id) span.id = 'anaKpiSessions';
+    }
+    document.querySelectorAll('.ana-chip strong.ltr-field').forEach(function (el, i) {
+      if (el.id) return;
+      if (i === 0) el.id = 'anaKpiSearches';
+      if (i === 1) el.id = 'anaKpiHeatmap';
+    });
+  }
+  tagAnaKpis();
+
   function setText(id, val) {
     var el = document.getElementById(id);
     if (el) el.textContent = val;
@@ -64,6 +86,7 @@
 
   function applyAnaSnapshot(s) {
     if (!s || !s.ok) return;
+    tagAnaKpis();
     setText('anaKpiViews', s.totalViews);
     setText('anaKpiUnique', s.uniqueVisitors);
     setText('anaKpiBounce', (s.bounceRatePercent != null ? s.bounceRatePercent : '\u2014') + '%');
@@ -78,6 +101,7 @@
   }
 
   function fetchAnaSnapshot() {
+    tagAnaKpis();
     if (!document.getElementById('anaKpiViews')) return;
     var range = rangeFromQuery(30);
     var root = document.querySelector('[data-ana-range]');
@@ -148,6 +172,7 @@
   });
 
   function boot() {
+    tagAnaKpis();
     fetchAdminSnapshot();
     fetchAnaSnapshot();
   }
@@ -156,11 +181,8 @@
   setInterval(boot, 25000);
 })();
 
-/* Load self from layout if missing — and SSE reconnect fallback */
+/* SSE reconnect fallback if layout EventSource is down */
 (function () {
-  if (!document.querySelector('script[src*="admin-live"]') && !window.__adminLiveBooted) {
-    /* already executing as admin-live */
-  }
   window.__adminLiveBooted = true;
   var indicator = document.getElementById('liveIndicator');
   function setLive(on) {
