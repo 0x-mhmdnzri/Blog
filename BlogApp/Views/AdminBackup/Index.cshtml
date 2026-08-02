@@ -9,6 +9,7 @@
     var opts = ViewBag.Options as BackupOptions ?? new BackupOptions();
     var retentionText = string.Format(T["bk.retention_fmt"], opts.RetentionDays, opts.MaxFiles);
     var filesCountText = string.Format(T["bk.files_count"], backups.Count);
+    var confirmDelete = T["bk.confirm_delete"];
 }
 <link rel="stylesheet" href="~/css/admin-backup.css" asp-append-version="true" />
 
@@ -121,42 +122,61 @@
             <h3>@T["bk.archive"]</h3>
             <span class="bk-count" id="bkFileCount">@filesCountText</span>
         </div>
-        @Html.AntiForgeryToken()
-        <div class="admin-table-wrap bk-table-wrap">
-            <table id="backupArchiveTable" class="admin-table bk-table display nowrap" style="width:100%">
-                <thead>
-                    <tr>
-                        <th>@T["bk.col_file"]</th>
-                        <th>@T["bk.col_kind"]</th>
-                        <th>@T["bk.col_size"]</th>
-                        <th>@T["bk.col_created"]</th>
-                        <th>@T["col.actions"]</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
+        @if (backups.Count == 0)
+        {
+            <div class="bk-empty">
+                <p>@T["bk.empty"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="bk-table-wrap">
+                <table class="bk-table">
+                    <thead>
+                        <tr>
+                            <th>@T["bk.col_file"]</th>
+                            <th>@T["bk.col_kind"]</th>
+                            <th>@T["bk.col_size"]</th>
+                            <th>@T["bk.col_created"]</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var b in backups)
+                    {
+                        <tr>
+                            <td class="ltr-field bk-mono">@b.FileName</td>
+                            <td><span class="bk-pill">@b.Kind</span></td>
+                            <td class="ltr-field">@FormatSize(b.SizeBytes)</td>
+                            <td class="ltr-field">@b.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="bk-row-actions">
+                                <a class="bk-btn bk-btn-sm bk-btn-primary" asp-action="Download" asp-route-id="@b.Id">@T["bk.download"]</a>
+                                <form method="post" asp-action="Delete" class="d-inline" onsubmit="return confirm('@Html.Raw(confirmDelete.Replace("'", "\\'"));');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@b.Id" />
+                                    <button type="submit" class="bk-btn bk-btn-sm bk-btn-ghost">@T["bk.delete"]</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
     </section>
 </div>
 
+@functions {
+    string FormatSize(long bytes)
+    {
+        string[] u = { "B", "KB", "MB", "GB", "TB" };
+        double v = bytes;
+        var i = 0;
+        while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
+        return $"{v:0.##} {u[i]}";
+    }
+}
+
 @section Scripts {
 <script src="~/js/admin-backup.js" asp-append-version="true"></script>
-<script>
-(function () {
-  if (typeof BlogDT === 'undefined') return;
-  BlogDT.init('#backupArchiveTable', {
-    stateSave: false,
-    ajax: { url: '@Url.Action("ArchiveData", "AdminBackup")', type: 'GET' },
-    columns: [
-      { data: 0, className: 'col-file' },
-      { data: 1, className: 'col-kind' },
-      { data: 2, className: 'ltr-field col-size' },
-      { data: 3, className: 'ltr-field col-date' },
-      { data: 4, orderable: false, searchable: false, className: 'col-actions' }
-    ],
-    order: [[3, 'desc']],
-    columnDefs: [{ orderable: false, targets: [4] }],
-    columnFilters: [true, true, false, false, false]
-  });
-})();
-</script>
 }
