@@ -37,13 +37,26 @@ public partial class PostsController
         post.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
+        var actorName = User.Identity?.Name ?? actorId ?? "?";
+        try
+        {
+            var um = HttpContext.RequestServices.GetService<UserManager<ApplicationUser>>();
+            if (um is not null && actorId is not null)
+            {
+                var me = await um.FindByIdAsync(actorId);
+                if (me is not null)
+                    actorName = string.IsNullOrWhiteSpace(me.DisplayName) ? (me.UserName ?? actorName) : me.DisplayName;
+            }
+        }
+        catch { /* ignore */ }
+
         _logger.LogInformation(
-            "Post soft-deleted PostId={Id} Title={Title} By={UserId} Super={IsSuper}",
-            post.Id, post.Title, actorId, isSuper);
+            "Post soft-deleted PostId={Id} Title={Title} By={UserId} Name={Name} Super={IsSuper} Reason={Reason}",
+            post.Id, post.Title, actorId, actorName, isSuper, note ?? "");
 
         try
         {
-            await NotifyPostDeletedAsync(post, isSuper, note);
+            await NotifyPostDeletedAsync(post, isSuper, note, actorName, actorId);
         }
         catch (Exception ex)
         {
@@ -73,43 +86,52 @@ public partial class PostsController
         return RedirectToAction("Posts", "Admin");
     }
 
-    private async Task NotifyPostDeletedAsync(Post post, bool deletedBySuperAdmin, string? reason)
+    /// <summary>
+    /// Always inform SuperAdmins: who deleted which post and why.
+    /// If SuperAdmin deleted another author's post, also notify that author.
+    /// </summary>
+    private async Task NotifyPostDeletedAsync(
+        Post post,
+        bool deletedBySuperAdmin,
+        string? reason,
+        string actorDisplayName,
+        string? actorId)
     {
-        if (deletedBySuperAdmin)
-        {
-            var actorId = AuthorAccess.UserId(User);
-            if (string.IsNullOrEmpty(post.AuthorId)) return;
-            if (string.Equals(post.AuthorId, actorId, StringComparison.Ordinal)) return;
+        var why = string.IsNullOrWhiteSpace(reason) ? "بدون دلیل ذکر شده" : reason.Trim();
+        var roleLabel = deletedBySuperAdmin ? "سوپر ادمین" : "نویسنده";
+        var bodySuper =
+            roleLabel + " «" + actorDisplayName + "» نوشته «" + post.Title + "» (#" + post.Id + ") را حذف کرد.\nدلیل: " + why;
 
-            var body = string.IsNullOrEmpty(reason)
-                ? "«" + post.Title + "» توسط سوپر ادمین حذف شد."
-                : "«" + post.Title + "» توسط سوپر ادمین حذف شد. دلیل: " + reason;
+        var userManager = HttpContext.RequestServices.GetService<UserManager<ApplicationUser>>();
+        if (userManager is not null)
+        {
+            var supers = await userManager.GetUsersInRoleAsync(AppRoles.SuperAdmin);
+            foreach (var s in supers)
+            {
+                if (string.IsNullOrEmpty(s.Id)) continue;
+                if (actorId is not null && string.Equals(s.Id, actorId, StringComparison.Ordinal))
+                    continue;
+                await _notify.NotifyAsync(
+                    s.Id,
+                    NotificationKind.AdminMessage,
+                    "حذف نوشته",
+                    bodySuper,
+                    "/Admin/Posts");
+            }
+        }
+
+        if (deletedBySuperAdmin
+            && !string.IsNullOrEmpty(post.AuthorId)
+            && !string.Equals(post.AuthorId, actorId, StringComparison.Ordinal))
+        {
+            var bodyAuthor = string.IsNullOrWhiteSpace(reason)
+                ? "«" + post.Title + "» توسط سوپر ادمین (" + actorDisplayName + ") حذف شد."
+                : "«" + post.Title + "» توسط سوپر ادمین (" + actorDisplayName + ") حذف شد. دلیل: " + why;
 
             await _notify.NotifyAsync(
                 post.AuthorId,
                 NotificationKind.AdminMessage,
                 "نوشته شما حذف شد",
-                body,
-                "/Admin/Posts");
-            return;
-        }
-
-        var userManager = HttpContext.RequestServices.GetService<UserManager<ApplicationUser>>();
-        if (userManager is null) return;
-
-        var supers = await userManager.GetUsersInRoleAsync(AppRoles.SuperAdmin);
-        var authorName = User.Identity?.Name ?? post.AuthorId;
-        var bodyAuthor = string.IsNullOrEmpty(reason)
-            ? "نویسنده «" + authorName + "» نوشته «" + post.Title + "» را حذف کرد."
-            : "نویسنده «" + authorName + "» نوشته «" + post.Title + "» را حذف کرد. دلیل: " + reason;
-
-        foreach (var s in supers)
-        {
-            if (string.IsNullOrEmpty(s.Id)) continue;
-            await _notify.NotifyAsync(
-                s.Id,
-                NotificationKind.AdminMessage,
-                "حذف نوشته توسط نویسنده",
                 bodyAuthor,
                 "/Admin/Posts");
         }
