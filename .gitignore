@@ -9,7 +9,7 @@ obj/
 .env.*.local
 
 ## SQLite DB (generated at runtime)
-*.db
+*.db 
 *.db-shm
 *.db-wal
 
