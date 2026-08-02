@@ -41,8 +41,20 @@ public partial class PostsController
         if (!post.IsPublished && !AuthorAccess.OwnsPost(User, post))
             return NotFound();
 
-        post.ViewCount++;
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _analytics.TrackPostViewAsync(HttpContext, post);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "TrackPostView failed PostId={Id}", post.Id);
+            try
+            {
+                post.ViewCount++;
+                await _db.SaveChangesAsync();
+            }
+            catch { /* ignore */ }
+        }
 
         ViewBag.RenderedHtml = _markdown.RenderToHtmlWithToc(
             post.ContentMarkdown ?? string.Empty,
