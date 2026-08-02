@@ -64,4 +64,18 @@ public class ModerationQueueViewModel
 {
     public List<AdminCommentListItem> PendingComments { get; set; } = new();
     public List<ContentReport> OpenReports { get; set; } = new();
+    public List<PendingPostReviewItem> PendingPosts { get; set; } = new();
+}
+
+public class PendingPostReviewItem
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = "";
+    public string Slug { get; set; } = "";
+    public string LanguageCode { get; set; } = "fa";
+    public string AuthorName { get; set; } = "";
+    public string AuthorId { get; set; } = "";
+    public string? Summary { get; set; }
+    public DateTime UpdatedAtUtc { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
 }
