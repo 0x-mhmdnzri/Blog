@@ -7,6 +7,9 @@ public static partial class SchemaBootstrap
 {
     public static async Task EnsureAsync(ApplicationDbContext db, ILogger? logger = null)
     {
+        if (db.Database.GetDbConnection().State != System.Data.ConnectionState.Open)
+            await db.Database.OpenConnectionAsync();
+
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "RedirectRules" (
                 "Id" INTEGER NOT NULL CONSTRAINT "PK_RedirectRules" PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +51,35 @@ public static partial class SchemaBootstrap
         await TryAddColumnAsync(db, "Posts", "IsDeleted", "INTEGER NOT NULL DEFAULT 0");
         await TryAddColumnAsync(db, "Posts", "DeletedAtUtc", "TEXT NULL");
         await TryAddColumnAsync(db, "Posts", "ReadingTimeMinutes", "INTEGER NOT NULL DEFAULT 0");
+        await TryAddColumnAsync(db, "Posts", "IsPremium", "INTEGER NOT NULL DEFAULT 0");
+        await TryAddColumnAsync(db, "Posts", "IsSponsored", "INTEGER NOT NULL DEFAULT 0");
+        await TryAddColumnAsync(db, "Posts", "SponsoredLabel", "TEXT NULL");
+        await TryAddColumnAsync(db, "Posts", "LikeCount", "INTEGER NOT NULL DEFAULT 0");
+        await TryAddColumnAsync(db, "Posts", "LanguageCode", "TEXT NOT NULL DEFAULT 'fa'");
+        await TryAddColumnAsync(db, "Posts", "TranslationGroupId", "INTEGER NULL");
+        await TryAddColumnAsync(db, "Posts", "TranslationStatus", "INTEGER NOT NULL DEFAULT 0");
+        await TryAddColumnAsync(db, "Posts", "CoverMediaAssetId", "INTEGER NULL");
+
+        await TryAddColumnAsync(db, "AspNetUsers", "DisplayName", "TEXT NOT NULL DEFAULT ''");
+        await TryAddColumnAsync(db, "AspNetUsers", "Bio", "TEXT NULL");
+        await TryAddColumnAsync(db, "AspNetUsers", "ProfileImage", "BLOB NULL");
+        await TryAddColumnAsync(db, "AspNetUsers", "ProfileImageContentType", "TEXT NULL");
+        await TryAddColumnAsync(db, "AspNetUsers", "CreatedAtUtc", "TEXT NOT NULL DEFAULT '2020-01-01'");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS "PostLikes" (
+                "PostId" INTEGER NOT NULL,
+                "UserId" TEXT NOT NULL,
+                "CreatedAtUtc" TEXT NOT NULL,
+                CONSTRAINT "PK_PostLikes" PRIMARY KEY ("PostId", "UserId"),
+                CONSTRAINT "FK_PostLikes_Posts_PostId"
+                    FOREIGN KEY ("PostId") REFERENCES "Posts" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_PostLikes_AspNetUsers_UserId"
+                    FOREIGN KEY ("UserId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_PostLikes_UserId\" ON \"PostLikes\" (\"UserId\");");
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "PostRevisions" (
@@ -66,59 +98,6 @@ public static partial class SchemaBootstrap
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_PostRevisions_PostId\" ON \"PostRevisions\" (\"PostId\");");
 
-        await TryAddColumnAsync(db, "Categories", "ParentId", "INTEGER NULL");
-        await TryAddColumnAsync(db, "Categories", "Description", "TEXT NULL");
-        await TryAddColumnAsync(db, "Categories", "DisplayOrder", "INTEGER NOT NULL DEFAULT 0");
-        await TryAddColumnAsync(db, "Tags", "Description", "TEXT NULL");
-
-        await db.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS "PostSeries" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_PostSeries" PRIMARY KEY AUTOINCREMENT,
-                "Name" TEXT NOT NULL,
-                "Slug" TEXT NOT NULL,
-                "Description" TEXT NULL,
-                "CreatedAtUtc" TEXT NOT NULL
-            );
-            """);
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PostSeries_Slug\" ON \"PostSeries\" (\"Slug\");");
-
-        await db.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS "SeriesPosts" (
-                "SeriesId" INTEGER NOT NULL,
-                "PostId" INTEGER NOT NULL,
-                "SortOrder" INTEGER NOT NULL,
-                CONSTRAINT "PK_SeriesPosts" PRIMARY KEY ("SeriesId", "PostId"),
-                CONSTRAINT "FK_SeriesPosts_PostSeries_SeriesId" FOREIGN KEY ("SeriesId") REFERENCES "PostSeries" ("Id") ON DELETE CASCADE,
-                CONSTRAINT "FK_SeriesPosts_Posts_PostId" FOREIGN KEY ("PostId") REFERENCES "Posts" ("Id") ON DELETE CASCADE
-            );
-            """);
-
-        await db.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS "TopicCollections" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_TopicCollections" PRIMARY KEY AUTOINCREMENT,
-                "Name" TEXT NOT NULL,
-                "Slug" TEXT NOT NULL,
-                "Description" TEXT NULL,
-                "IsPublished" INTEGER NOT NULL,
-                "CreatedAtUtc" TEXT NOT NULL
-            );
-            """);
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TopicCollections_Slug\" ON \"TopicCollections\" (\"Slug\");");
-
-        await db.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS "TopicCollectionItems" (
-                "Id" INTEGER NOT NULL CONSTRAINT "PK_TopicCollectionItems" PRIMARY KEY AUTOINCREMENT,
-                "TopicCollectionId" INTEGER NOT NULL,
-                "CategoryId" INTEGER NULL,
-                "TagId" INTEGER NULL,
-                "SortOrder" INTEGER NOT NULL,
-                CONSTRAINT "FK_TopicCollectionItems_TopicCollections_TopicCollectionId"
-                    FOREIGN KEY ("TopicCollectionId") REFERENCES "TopicCollections" ("Id") ON DELETE CASCADE
-            );
-            """);
-
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "PostBookmarks" (
                 "UserId" TEXT NOT NULL,
@@ -136,6 +115,8 @@ public static partial class SchemaBootstrap
 
         await TryAddColumnAsync(db, "Comments", "LikeCount", "INTEGER NOT NULL DEFAULT 0");
         await EnsureCommentColumnsAsync(db);
+        await EnsurePostReviewColumnsAsync(db);
+        await EnsureAuthorApplicationColumnsAsync(db);
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "CommentLikes" (
