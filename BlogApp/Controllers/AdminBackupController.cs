@@ -45,10 +45,35 @@ public class AdminBackupController : Controller
     }
 
     [HttpGet("Stats")]
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Stats()
     {
         var snap = _backup.GetStorageSnapshot();
+        Response.Headers["Cache-Control"] = "no-store, no-cache";
         return Json(snap);
+    }
+
+    /// <summary>REST list of backup files for live table refresh.</summary>
+    [HttpGet("List")]
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public async Task<IActionResult> List(CancellationToken ct)
+    {
+        var list = await _backup.ListAsync(ct);
+        return Json(new
+        {
+            ok = true,
+            at = DateTime.UtcNow,
+            items = list.Select(b => new
+            {
+                id = b.Id,
+                fileName = b.FileName,
+                kind = b.Kind,
+                sizeBytes = b.SizeBytes,
+                createdAtUtc = b.CreatedAtUtc,
+                downloadUrl = Url.Action(nameof(Download), new { id = b.Id }),
+                deleteUrl = Url.Action(nameof(Delete))
+            })
+        });
     }
 
     [HttpPost("Create")]
@@ -77,15 +102,10 @@ public class AdminBackupController : Controller
     {
         var path = _backup.GetBackupFilePath(id);
         if (path is null)
-        {
-            TempData["FlashErr"] = _t["bk.flash_missing"];
-            return RedirectToAction(nameof(Index));
-        }
-
-        var list = await _backup.ListAsync(ct);
-        var rec = list.FirstOrDefault(b => b.Id == id);
-        var name = rec?.FileName ?? Path.GetFileName(path);
-        return PhysicalFile(path, "application/zip", name);
+            return NotFound();
+        var name = Path.GetFileName(path);
+        var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return File(stream, "application/zip", name);
     }
 
     [HttpPost("Delete")]
@@ -93,24 +113,13 @@ public class AdminBackupController : Controller
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var ok = await _backup.DeleteBackupAsync(id, ActorId, ct);
-        TempData[ok ? "FlashOk" : "FlashErr"] = ok ? _t["bk.flash_deleted"] : _t["bk.flash_not_found"];
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpPost("Retention")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Retention(CancellationToken ct)
-    {
-        var n = await _backup.EnforceRetentionAsync(ct);
-        TempData["FlashOk"] = n == 0
-            ? _t["bk.flash_purge_none"]
-            : string.Format(_t["bk.flash_purged"], n);
+        TempData[ok ? "FlashOk" : "FlashErr"] = ok ? _t["bk.flash_deleted"] : _t["bk.flash_delete_failed"];
         return RedirectToAction(nameof(Index));
     }
 
     private static string FormatBytes(long bytes)
     {
-        string[] u = ["B", "KB", "MB", "GB", "TB"];
+        string[] u = { "B", "KB", "MB", "GB", "TB" };
         double v = bytes;
         var i = 0;
         while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }

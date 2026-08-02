@@ -1,11 +1,10 @@
 /**
- * Admin + AdminAnalytics live data: listens to SSE from _AdminLayout
- * and polls REST snapshots to keep KPIs accurate.
+ * Admin + AdminAnalytics live data.
+ * REST snapshots are authoritative — no optimistic +1 (avoids +2 then -1 flicker).
  */
 (function () {
   'use strict';
 
-  // Auto-tag AdminAnalytics KPI nodes if server markup lacks ids
   function tagAnaKpis() {
     if (document.getElementById('anaKpiViews')) return;
     var cards = document.querySelectorAll('.kpi-card.kpi-compact .kpi-value');
@@ -71,6 +70,14 @@
     }
   }
 
+  window.__requestAdminSnapshot = function () {
+    clearTimeout(window.__liveSnapT);
+    window.__liveSnapT = setTimeout(function () {
+      fetchAdminSnapshot();
+      fetchAnaSnapshot();
+    }, 300);
+  };
+
   function fetchAdminSnapshot() {
     if (!document.getElementById('kpiViewsToday')) return;
     var range = rangeFromQuery(30);
@@ -116,53 +123,15 @@
       .catch(function () {});
   }
 
-  function bump(id, delta) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var n = parseInt(String(el.textContent).replace(/[^\d-]/g, ''), 10) || 0;
-    el.textContent = n + delta;
-  }
-
   window.addEventListener('admin-sse-message', function (e) {
     var d = e.detail;
     if (!d || !d.type) return;
-
-    if (d.type === 'view') {
-      bump('kpiViewsToday', 1);
-      bump('kpiViewsRange', 1);
-      bump('kpiViewsTotal', 1);
-      bump('anaKpiViews', 1);
-      if (window.__adminViewsChart) {
-        var data = window.__adminViewsChart.data.datasets[0].data;
-        if (data && data.length) {
-          data[data.length - 1] = (Number(data[data.length - 1]) || 0) + 1;
-          window.__adminViewsChart.update('none');
-        }
-      }
-      if (window.viewsChartAna) {
-        var d2 = window.viewsChartAna.data.datasets[0].data;
-        if (d2 && d2.length) {
-          d2[d2.length - 1] = (Number(d2[d2.length - 1]) || 0) + 1;
-          window.viewsChartAna.update('none');
-        }
-      }
+    if (d.type === 'view' || d.type === 'search' || d.type === 'heatmap' || d.type === 'comment') {
       clearTimeout(window.__liveSnapT);
       window.__liveSnapT = setTimeout(function () {
         fetchAdminSnapshot();
         fetchAnaSnapshot();
-      }, 1500);
-    }
-
-    if (d.type === 'search') {
-      bump('anaKpiSearches', 1);
-      clearTimeout(window.__liveSnapT);
-      window.__liveSnapT = setTimeout(fetchAnaSnapshot, 1200);
-    }
-
-    if (d.type === 'heatmap') {
-      bump('anaKpiHeatmap', 1);
-      clearTimeout(window.__liveSnapT);
-      window.__liveSnapT = setTimeout(fetchAnaSnapshot, 1200);
+      }, 400);
     }
   });
 
@@ -181,7 +150,6 @@
   setInterval(boot, 25000);
 })();
 
-/* SSE reconnect fallback if layout EventSource is down */
 (function () {
   window.__adminLiveBooted = true;
   var indicator = document.getElementById('liveIndicator');
