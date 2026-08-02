@@ -74,7 +74,7 @@ public partial class AdminController
             var idx = req.Start + i + 1;
             var statusHtml = StatusPill(p.IsDeleted, p.IsPublished, p.ScheduledPublishAtUtc);
             var featuresHtml = FeaturesHtml(p.IsFeatured, p.IsSticky);
-            var actionsHtml = PostActionsHtml(p.Id, p.IsDeleted, token);
+            var actionsHtml = PostActionsHtml(p.Id, p.Title, p.IsDeleted, token);
             var titleHtml = $"<a href=\"/post/{System.Net.WebUtility.HtmlEncode(p.Slug)}\" dir=\"auto\">{System.Net.WebUtility.HtmlEncode(p.Title)}</a>";
 
             if (seeAll)
@@ -207,7 +207,7 @@ public partial class AdminController
         return $"<div class=\"d-flex gap-1 flex-wrap\">{string.Join("", parts)}</div>";
     }
 
-    private string PostActionsHtml(int id, bool deleted, string token)
+    private string PostActionsHtml(int id, string title, bool deleted, string token)
     {
         if (deleted)
         {
@@ -217,17 +217,16 @@ public partial class AdminController
                    $"<button type=\"submit\" class=\"icon-btn approve\">{System.Net.WebUtility.HtmlEncode(_t["btn.restore"])}</button></form>";
         }
 
-        var confirm = System.Net.WebUtility.HtmlEncode(_t["msg.confirm_trash"]);
+        var attrTitle = System.Net.WebUtility.HtmlEncode(title ?? "").Replace("\"", """);
         return $"<div class=\"d-flex gap-1 flex-wrap\">" +
                $"<a class=\"icon-btn\" href=\"/Posts/Edit/{id}\">{System.Net.WebUtility.HtmlEncode(_t["btn.edit"])}</a>" +
                $"<form method=\"post\" action=\"/Posts/Duplicate\" class=\"d-inline\">" +
                $"<input type=\"hidden\" name=\"__RequestVerificationToken\" value=\"{token}\" />" +
                $"<input type=\"hidden\" name=\"id\" value=\"{id}\" />" +
                $"<button type=\"submit\" class=\"icon-btn\">{System.Net.WebUtility.HtmlEncode(_t["btn.duplicate"])}</button></form>" +
-               $"<form method=\"post\" action=\"/Posts/Delete\" class=\"d-inline\" data-confirm=\"{confirm}\">" +
-               $"<input type=\"hidden\" name=\"__RequestVerificationToken\" value=\"{token}\" />" +
-               $"<input type=\"hidden\" name=\"id\" value=\"{id}\" />" +
-               $"<button type=\"submit\" class=\"icon-btn reject\">{System.Net.WebUtility.HtmlEncode(_t["btn.delete"])}</button></form></div>";
+               $"<button type=\"button\" class=\"icon-btn reject\" data-post-delete " +
+               $"data-id=\"{id}\" data-title=\"{attrTitle}\" title=\"{System.Net.WebUtility.HtmlEncode(_t["btn.delete"])}\">" +
+               $"{System.Net.WebUtility.HtmlEncode(_t["btn.delete"])}</button></div>";
     }
 
     public async Task<IActionResult> Comments(string status = "pending")
