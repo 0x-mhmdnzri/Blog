@@ -3,9 +3,9 @@
 # Dark Pro Blog — .NET 10 multi-stage (fast cold start)
 # SQLite: /app/data  |  Logs: /app/logs + stdout
 #
-# .NET 10 no longer ships Debian bookworm-slim images.
-# Default / multi-platform tags use Ubuntu 24.04 "Noble".
-# See: https://learn.microsoft.com/en-us/dotnet/core/compatibility/containers/10.0/default-images-use-ubuntu
+# .NET 10 default tags use Ubuntu 24.04 "Noble" (no bookworm-slim).
+# Runtime stage avoids apt-get (flaky mirrors / exit 4) — no curl install.
+# Base aspnet image already ships non-root user app (UID 1654 / $APP_UID).
 # =============================================================================
 
 ARG DOTNET_VERSION=10.0
@@ -35,14 +35,9 @@ RUN dotnet publish BlogApp.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-noble AS runtime
 WORKDIR /app
 
-# curl only for HEALTHCHECK; keep image lean
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 1654 appgroup \
-    && useradd --uid 1654 --gid appgroup --create-home --shell /usr/sbin/nologin appuser \
-    && mkdir -p /app/data /app/logs \
-    && chown -R appuser:appgroup /app
+# Official image provides non-root "app" ($APP_UID=1654). No apt needed.
+RUN mkdir -p /app/data /app/logs \
+    && chown -R $APP_UID:$APP_UID /app/data /app/logs
 
 # Image defaults only — Compose injects full config via env_file (.env).
 # Never bake secrets here; override with .env / -e at runtime.
@@ -62,12 +57,13 @@ ENV ASPNETCORE_HTTP_PORTS=8934 \
 EXPOSE 8934
 VOLUME ["/app/data", "/app/logs"]
 
-COPY --from=build --chown=appuser:appgroup /app/publish .
+COPY --from=build --chown=$APP_UID:$APP_UID /app/publish .
 
-USER appuser
+USER $APP_UID
 
-# Lightweight endpoint — does not run full page pipeline
-HEALTHCHECK --interval=15s --timeout=3s --start-period=12s --retries=5 \
-    CMD curl -fsS http://127.0.0.1:8934/health || exit 1
+# No curl in image: open TCP to listen port (app must be up). Compose also
+# probes http://127.0.0.1:8934/health from the host network when needed.
+HEALTHCHECK --interval=15s --timeout=3s --start-period=15s --retries=5 \
+    CMD bash -c 'exec 3<>/dev/tcp/127.0.0.1/8934' || exit 1
 
 ENTRYPOINT ["dotnet", "BlogApp.dll"]
