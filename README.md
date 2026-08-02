@@ -46,7 +46,7 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-Open **http://localhost:8080** (or whatever `BLOG_HTTP_PORT` is in `.env`).
+Open **http://localhost:8934** (or whatever `BLOG_HTTP_PORT` is in `.env`).
 
 | Volume | Container path | Purpose |
 | --- | --- |

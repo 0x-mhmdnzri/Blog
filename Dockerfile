@@ -42,8 +42,8 @@ RUN apt-get update \
 
 # Image defaults only — Compose injects full config via env_file (.env).
 # Never bake secrets here; override with .env / -e at runtime.
-ENV ASPNETCORE_HTTP_PORTS=8080 \
-    ASPNETCORE_URLS=http://+:8080 \
+ENV ASPNETCORE_HTTP_PORTS=8934 \
+    ASPNETCORE_URLS=http://+:8934 \
     ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_EnableDiagnostics=0 \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
@@ -55,7 +55,7 @@ ENV ASPNETCORE_HTTP_PORTS=8080 \
     ForceHttps=false \
     RabbitMq__HostName=""
 
-EXPOSE 8080
+EXPOSE 8934
 VOLUME ["/app/data", "/app/logs"]
 
 COPY --from=build --chown=appuser:appgroup /app/publish .
@@ -64,6 +64,6 @@ USER appuser
 
 # Lightweight endpoint — does not run full page pipeline
 HEALTHCHECK --interval=15s --timeout=3s --start-period=12s --retries=5 \
-    CMD curl -fsS http://127.0.0.1:8080/health || exit 1
+    CMD curl -fsS http://127.0.0.1:8934/health || exit 1
 
 ENTRYPOINT ["dotnet", "BlogApp.dll"]
