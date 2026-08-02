@@ -16,6 +16,7 @@
     var sponsoredLabel = (ViewBag.SponsoredLabel as string) ?? Model.SponsoredLabel;
     var tocHtml = ViewBag.TocHtml as string;
     var related = ViewBag.RelatedPosts as IList<RelatedPostItem> ?? new List<RelatedPostItem>();
+    var hasToc = !string.IsNullOrWhiteSpace(tocHtml);
 }
 
 @section Head {
@@ -23,10 +24,12 @@
     <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
     <link rel="stylesheet" href="~/css/post-toc.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/post-layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/post-social.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/comments.css" asp-append-version="true" />
 }
 
-<div class="post-layout" data-analytics-post-id="@Model.Id">
+<div class="post-layout @(hasToc ? "has-toc" : "no-toc")" data-analytics-post-id="@Model.Id">
+
     <aside class="post-aside-related" aria-label="مطالب مرتبط">
         <div class="post-aside-sticky">
             @if (related.Count > 0)
@@ -40,7 +43,7 @@
                         </div>
                     </div>
                     <div class="related-rail-viewport">
-                        <div class="related-rail-track">
+                        <div class="related-rail-track" data-rail-track>
                             @foreach (var r in related)
                             {
                                 <div class="related-rail-card">
@@ -55,6 +58,7 @@
                             }
                         </div>
                     </div>
+                    <div class="related-rail-dots" data-rail-dots aria-hidden="true"></div>
                 </div>
             }
         </div>
@@ -63,34 +67,34 @@
     <article class="post-main post-article">
         @if (TempData["BookmarkMsg"] != null)
         {
-            <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["BookmarkMsg"]</div>
+            <div class="post-flash">@TempData["BookmarkMsg"]</div>
         }
         @if (TempData["ReportMsg"] != null)
         {
-            <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["ReportMsg"]</div>
+            <div class="post-flash">@TempData["ReportMsg"]</div>
         }
 
         @if (canEdit)
         {
-            <div class="d-flex gap-2 mb-4 flex-wrap align-items-center">
-                <a class="btn btn-ghost btn-sm" asp-action="Edit" asp-route-id="@Model.Id">ویرایش</a>
+            <div class="post-edit-bar">
+                <a class="post-edit-link" asp-action="Edit" asp-route-id="@Model.Id">ویرایش</a>
                 <form asp-action="Duplicate" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@Model.Id" />
-                    <button class="btn btn-ghost btn-sm" type="submit">کپی</button>
+                    <button class="post-edit-link" type="submit">کپی</button>
                 </form>
-                <form asp-action="Delete" method="post" class="d-inline-flex flex-wrap gap-1 align-items-center"
+                <form asp-action="Delete" method="post" class="post-edit-delete"
                       onsubmit="return confirm('انتقال به سطل زباله؟');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@Model.Id" />
-                    <input type="text" name="reason" class="form-control form-control-sm" style="max-width:14rem"
+                    <input type="text" name="reason" class="post-edit-reason"
                            placeholder="دلیل حذف (اختیاری)" maxlength="500" />
-                    <button class="btn btn-outline-danger-dark btn-sm" type="submit">حذف</button>
+                    <button class="post-edit-link is-danger" type="submit">حذف</button>
                 </form>
             </div>
         }
 
-        <div class="d-flex flex-wrap gap-2 mb-2">
+        <div class="post-badges">
             @if (Model.IsFeatured) { <span class="badge-category">ویژه</span> }
             @if (Model.IsSticky) { <span class="status-pill sticky">چسبان</span> }
             @if (Model.IsPremium) { <span class="status-pill featured">@T["mon.premium_badge"]</span> }
@@ -101,36 +105,64 @@
         </div>
 
         <h1 class="post-title" dir="@titleDir">@Model.Title</h1>
-        <div class="post-meta text-muted-dark small mb-3">
+
+        <div class="post-meta">
             @if (Model.Author != null)
             {
-                <a href="/author/@Model.Author.UserName">@Model.Author.DisplayName</a>
-                <span> · </span>
+                <a class="post-meta-author" href="/author/@Model.Author.UserName">@Model.Author.DisplayName</a>
+                <span class="post-meta-sep" aria-hidden="true">·</span>
             }
-            <span>@PersianDate.DateTime(published)</span>
-            <span> · @readingMinutes دقیقه</span>
-            <span> · @Model.ViewCount.ToString("N0") بازدید</span>
+            <time datetime="@published.ToString("o")">@PersianDate.DateTime(published)</time>
+            <span class="post-meta-sep" aria-hidden="true">·</span>
+            <span>@readingMinutes دقیقه</span>
+            <span class="post-meta-sep" aria-hidden="true">·</span>
+            <span>@Model.ViewCount.ToString("N0") بازدید</span>
         </div>
+
+        @await Html.PartialAsync("_SocialBar")
 
         @if (!string.IsNullOrWhiteSpace(Model.Summary))
         {
-            <p class="lead text-muted-dark" dir="@MarkdownService.DetectDir(Model.Summary)">@Model.Summary</p>
+            <p class="post-lead" dir="@MarkdownService.DetectDir(Model.Summary)">@Model.Summary</p>
         }
 
-        @if (!string.IsNullOrWhiteSpace(tocHtml))
+        @if (hasToc)
         {
-            <nav class="post-toc mb-4" aria-label="فهرست">@Html.Raw(tocHtml)</nav>
+            <div class="post-toc-mobile">
+                @Html.Raw(tocHtml)
+            </div>
         }
 
         @if (premiumLocked)
         {
-            <div class="card-surface p-4 text-center">@T["mon.premium_locked"]</div>
+            <div class="post-premium-lock">@T["mon.premium_locked"]</div>
         }
         else
         {
             <div class="post-body markdown-body" dir="auto">@Html.Raw(ViewBag.RenderedHtml)</div>
         }
 
+        <div class="post-actions-footer">
+            @await Html.PartialAsync("_SocialBar")
+        </div>
+
         @await Html.PartialAsync("_CommentsSection", Model)
     </article>
+
+    @if (hasToc)
+    {
+        <aside class="post-aside-toc" aria-label="فهرست مطالب">
+            <div class="post-aside-sticky">
+                <div class="post-toc-sidebar-wrap">
+                    @Html.Raw(tocHtml?.Replace("class=\"post-toc\"", "class=\"post-toc post-toc--sidebar is-open\"")
+                                      .Replace("class=\"post-toc ", "class=\"post-toc post-toc--sidebar is-open "))
+                </div>
+            </div>
+        </aside>
+    }
 </div>
+
+@section Scripts {
+    <script src="~/js/post-toc.js" asp-append-version="true" defer></script>
+    <script src="~/js/related-rail.js" asp-append-version="true" defer></script>
+}
