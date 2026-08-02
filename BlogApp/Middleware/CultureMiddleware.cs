@@ -4,7 +4,7 @@ using BlogApp.Services;
 namespace BlogApp.Middleware;
 
 /// <summary>
-/// Resolves culture from path prefix (/en/..., /fa/..., /ar/...), then cookie, then Accept-Language, then default.
+/// Resolves culture from path prefix (/en/..., /fa/..., /ar/...), then cookie, then site default (FA).
 /// Cookie is ALWAYS refreshed so the user's choice survives across pages and sessions (1 year sliding).
 /// Sets CultureInfo and stores CultureDescriptor in HttpContext.Items.
 /// Strips culture segment from Path for downstream routing when present.
@@ -17,7 +17,6 @@ public sealed class CultureMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // Skip static assets — no culture rewrite / cookie churn
         var path = context.Request.Path.Value ?? "/";
         if (IsStaticAsset(path))
         {
@@ -26,18 +25,14 @@ public sealed class CultureMiddleware
         }
 
         CultureDescriptor culture;
-        string? pathCulture = null;
 
-        // Path: /{culture}/... or /{culture}
         var segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length > 0)
         {
             var candidate = AppCultures.Find(segments[0]);
             if (candidate is not null)
             {
-                pathCulture = candidate.Code;
                 culture = candidate;
-                // Rewrite path without culture prefix so existing routes keep working
                 var rest = segments.Length > 1
                     ? "/" + string.Join('/', segments.Skip(1))
                     : "/";
@@ -46,18 +41,15 @@ public sealed class CultureMiddleware
             }
             else
             {
-                // No path culture → cookie is authoritative (never flip from Accept-Language mid-session)
-                culture = ResolveFromCookieOrHeader(context, preferCookieOnly: true);
+                culture = ResolveFromCookieOrHeader(context);
             }
         }
         else
         {
-            culture = ResolveFromCookieOrHeader(context, preferCookieOnly: true);
+            culture = ResolveFromCookieOrHeader(context);
         }
 
         context.Items[CultureService.HttpContextKey] = culture;
-
-        // Always (re)write cookie so preference slides and never expires while user browses
         WriteCultureCookie(context, culture.Code);
 
         var cultureInfo = new System.Globalization.CultureInfo(culture.Locale);
@@ -69,7 +61,6 @@ public sealed class CultureMiddleware
 
     private static void WriteCultureCookie(HttpContext context, string code)
     {
-        // Avoid writing cookie twice if response already started
         if (context.Response.HasStarted) return;
 
         context.Response.Cookies.Append(
@@ -77,7 +68,7 @@ public sealed class CultureMiddleware
             code,
             new CookieOptions
             {
-                HttpOnly = false, // readable by client if needed
+                HttpOnly = false,
                 IsEssential = true,
                 Secure = context.Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
@@ -88,39 +79,14 @@ public sealed class CultureMiddleware
     }
 
     /// <summary>
-    /// Cookie always wins when present. Accept-Language only used for first visit (no cookie).
+    /// Cookie always wins when present. Without a cookie the site default is FA (Persian).
+    /// Accept-Language is intentionally ignored so browsers set to English do not flip the UI.
     /// </summary>
-    private static CultureDescriptor ResolveFromCookieOrHeader(HttpContext context, bool preferCookieOnly)
+    private static CultureDescriptor ResolveFromCookieOrHeader(HttpContext context)
     {
         var cookie = context.Request.Cookies[CultureService.CookieName];
         var fromCookie = AppCultures.Find(cookie);
         if (fromCookie is not null) return fromCookie;
-
-        if (!preferCookieOnly)
-        {
-            var accept = context.Request.GetTypedHeaders().AcceptLanguage;
-            if (accept is { Count: > 0 })
-            {
-                foreach (var lang in accept.OrderByDescending(x => x.Quality ?? 1))
-                {
-                    var match = AppCultures.Find(lang.Value.Value);
-                    if (match is not null) return match;
-                }
-            }
-        }
-        else
-        {
-            // First visit without cookie: still honour Accept-Language once
-            var accept = context.Request.GetTypedHeaders().AcceptLanguage;
-            if (accept is { Count: > 0 })
-            {
-                foreach (var lang in accept.OrderByDescending(x => x.Quality ?? 1))
-                {
-                    var match = AppCultures.Find(lang.Value.Value);
-                    if (match is not null) return match;
-                }
-            }
-        }
 
         return AppCultures.Find(AppCultures.Default)!;
     }
