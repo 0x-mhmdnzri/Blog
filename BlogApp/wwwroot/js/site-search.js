@@ -34,6 +34,7 @@
       input.setAttribute('aria-expanded', 'true');
     }
     if (!input || !input.value.trim()) showIdle();
+    else runSearch(input.value.trim());
   }
 
   function close() {
@@ -95,8 +96,7 @@
       recentHtml = '<div class="site-search-scopes" style="justify-content:center;border:0;flex-wrap:wrap;padding-top:0.75rem">' +
         recent.map(function (r) {
           return '<button type="button" class="scope recent-q" data-q="' + escapeAttr(r) + '">' + escapeHtml(r) + '</button>';
-        }).join('') +
-        '</div>';
+        }).join('') + '</div>';
     }
     empty.innerHTML =
       '<p class="hint">جست‌وجو در نوشته‌ها</p>' +
@@ -124,18 +124,32 @@
     aborter = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var t0 = performance.now();
 
-    fetch('/Home/SearchSuggest?q=' + encodeURIComponent(q), {
-      signal: aborter ? aborter.signal : undefined,
-      headers: { Accept: 'application/json' },
-      credentials: 'same-origin'
-    })
-      .then(function (r) {
-        if (!r.ok) throw new Error('fail');
+    var urls = [
+      '/' + langPrefix + '/Home/SearchSuggest?q=' + encodeURIComponent(q),
+      '/Home/SearchSuggest?q=' + encodeURIComponent(q)
+    ];
+    var attempt = 0;
+    function tryFetch() {
+      var url = urls[attempt];
+      return fetch(url, {
+        signal: aborter ? aborter.signal : undefined,
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+      }).then(function (r) {
+        if (!r.ok) {
+          if (attempt < urls.length - 1) {
+            attempt++;
+            return tryFetch();
+          }
+          throw new Error('fail ' + r.status);
+        }
         return r.json();
-      })
+      });
+    }
+    tryFetch()
       .then(function (items) {
         var took = Math.round(performance.now() - t0);
-        render(items || [], q, took);
+        render(Array.isArray(items) ? items : (items && items.hits) || [], q, took);
         pushRecent(q);
       })
       .catch(function (err) {
@@ -150,28 +164,24 @@
 
   function render(items, q, tookMs) {
     if (skeleton) skeleton.hidden = true;
-    hits = items;
+    hits = items || [];
     active = hits.length ? 0 : -1;
 
     if (meta) meta.hidden = false;
     if (countEl) {
-      countEl.textContent = hits.length
-        ? (hits.length + ' نتیجه')
-        : 'بدون نتیجه';
+      countEl.textContent = hits.length ? (hits.length + ' نتیجه') : 'بدون نتیجه';
     }
     if (latencyEl) latencyEl.textContent = (tookMs || 0) + ' ms';
     if (fullLink) {
-      fullLink.href = '/' + langPrefix + '/?q=' + encodeURIComponent(q);
-      fullLink.hidden = false;
+      fullLink.hidden = !q;
+      fullLink.href = '/' + langPrefix + '/?q=' + encodeURIComponent(q || '');
     }
 
     if (!hits.length) {
-      if (list) list.hidden = true;
+      if (list) { list.hidden = true; list.innerHTML = ''; }
       if (empty) {
         empty.hidden = false;
-        empty.innerHTML =
-          '<p class="hint">نتیجه‌ای برای «' + escapeHtml(q) + '» نیست</p>' +
-          '<p class="hint-sub">عبارت دیگری امتحان کنید</p>';
+        empty.innerHTML = '<p class="hint">نتیجه‌ای برای «' + escapeHtml(q) + '» یافت نشد</p>';
       }
       return;
     }
@@ -179,23 +189,17 @@
     if (empty) empty.hidden = true;
     if (list) list.hidden = false;
 
-    var html = '<li class="site-search-group" aria-hidden="true">نوشته‌ها · ' + hits.length + '</li>';
-    hits.forEach(function (h, idx) {
+    list.innerHTML = hits.map(function (h, i) {
       var href = h.url || ('/' + (h.languageCode || langPrefix) + '/post/' + encodeURIComponent(h.slug || ''));
-      var sub = [h.category, h.author, h.summary].filter(Boolean).join(' · ');
-      if (sub.length > 110) sub = sub.slice(0, 108) + '…';
-      html +=
-        '<li role="option" data-idx="' + idx + '">' +
-        '<a class="site-search-item' + (idx === active ? ' is-active' : '') + '" href="' + escapeAttr(href) + '" data-idx="' + idx + '">' +
-        '<span class="ss-icon" aria-hidden="true">Po</span>' +
-        '<span class="ss-main">' +
-        '<div class="ss-title" dir="auto">' + highlight(h.title || '', q) + '</div>' +
-        (sub ? '<div class="ss-sub" dir="auto">' + escapeHtml(sub) + '</div>' : '') +
-        '</span>' +
-        '<span class="ss-meta ltr-field">' + escapeHtml((h.languageCode || '').toUpperCase()) + '</span>' +
-        '</a></li>';
-    });
-    list.innerHTML = html;
+      var sub = [h.category, h.author].filter(Boolean).join(' · ');
+      return '<li role="option">' +
+        '<a class="site-search-item' + (i === active ? ' is-active' : '') + '" href="' + escapeAttr(href) + '" data-idx="' + i + '">' +
+        '<span class="site-search-item-body">' +
+        '<span class="site-search-item-title">' + highlight(h.title, q) + '</span>' +
+        (sub ? '<span class="site-search-item-sub">' + escapeHtml(sub) + '</span>' : '') +
+        (h.summary ? '<span class="site-search-item-sum">' + highlight(h.summary, q) + '</span>' : '') +
+        '</span></a></li>';
+    }).join('');
 
     list.querySelectorAll('.site-search-item').forEach(function (a) {
       a.addEventListener('mouseenter', function () {
@@ -203,7 +207,7 @@
         paintActive();
       });
       a.addEventListener('click', function () {
-        pushRecent(q);
+        pushRecent(input ? input.value.trim() : '');
       });
     });
   }
@@ -214,7 +218,6 @@
       a.classList.toggle('is-active', Number(a.getAttribute('data-idx')) === active);
     });
   }
-
   function move(delta) {
     if (!hits.length) return;
     active = (active + delta + hits.length) % hits.length;
@@ -295,6 +298,5 @@
     }
   });
 
-  // Expose for ux.js bridge
   window.BlogSiteSearch = { open: open, close: close };
 })();
