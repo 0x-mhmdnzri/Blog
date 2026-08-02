@@ -2,12 +2,16 @@
 # =============================================================================
 # Dark Pro Blog — .NET 10 multi-stage (fast cold start)
 # SQLite: /app/data  |  Logs: /app/logs + stdout
+#
+# .NET 10 no longer ships Debian bookworm-slim images.
+# Default / multi-platform tags use Ubuntu 24.04 "Noble".
+# See: https://learn.microsoft.com/en-us/dotnet/core/compatibility/containers/10.0/default-images-use-ubuntu
 # =============================================================================
 
 ARG DOTNET_VERSION=10.0
 
 # ---- restore (cached when csproj unchanged) ---------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-bookworm-slim AS restore
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-noble AS restore
 WORKDIR /src
 COPY BlogApp/BlogApp.csproj BlogApp/
 RUN dotnet restore BlogApp/BlogApp.csproj --verbosity quiet
@@ -28,7 +32,7 @@ RUN dotnet publish BlogApp.csproj \
     -p:DebugSymbols=false
 
 # ---- runtime ----------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-bookworm-slim AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-noble AS runtime
 WORKDIR /app
 
 # curl only for HEALTHCHECK; keep image lean
