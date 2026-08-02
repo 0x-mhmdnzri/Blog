@@ -71,8 +71,8 @@ public partial class AdminAnalyticsController : Controller
         var bounceRate = sessions.Count == 0 ? 0 : Math.Round(100.0 * bounced / sessions.Count, 1);
 
         var durations = await _db.ReadingDurationLogs.AsNoTracking()
-            .Where(r => r.RecordedAtUtc >= rangeStart && myPostIds.Contains(r.PostId))
-            .Select(r => r.Seconds)
+            .Where(r => r.LoggedAtUtc >= rangeStart && myPostIds.Contains(r.PostId))
+            .Select(r => r.DurationSeconds)
             .ToListAsync();
         var avgRead = durations.Count == 0 ? 0 : (int)durations.Average();
 
