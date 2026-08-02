@@ -265,6 +265,7 @@
             };
         })();
     </script>
+    @await RenderSectionAsync("Styles", required: false)
     @await RenderSectionAsync("Scripts", required: false)
     <script>
         document.querySelector('.admin-content')?.classList.remove('is-loading');
