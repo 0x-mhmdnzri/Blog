@@ -1,28 +1,74 @@
-@model BlogApp.Models.Post
-@using BlogApp.Services
+@model Post
 @inject BlogApp.Services.IUiTranslator T
+@using BlogApp.Models.ViewModels
 @{
     ViewData["Title"] = Model.Title;
+    var readingMinutes = ViewBag.ReadingTimeMinutes as int? ?? Math.Max(1, Model.ReadingTimeMinutes);
     var canEdit = ViewBag.CanEdit as bool? ?? false;
-    var isSponsored = Model.IsSponsored;
-    var sponsoredLabel = Model.SponsoredLabel;
+    var isBookmarked = ViewBag.IsBookmarked as bool? ?? false;
+    var published = Model.PublishedAtUtc ?? Model.CreatedAtUtc;
+    var titleDir = MarkdownService.DetectDir(Model.Title);
+    var postUrl = Url.Action("Details", "Posts", new { slug = Model.Slug })!;
+    var canBookmark = User.Identity?.IsAuthenticated == true
+        && (User.IsInRole(AppRoles.Reader) || User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
+    var premiumLocked = ViewBag.PremiumLocked as bool? ?? false;
+    var isSponsored = ViewBag.IsSponsoredPost as bool? ?? Model.IsSponsored;
+    var sponsoredLabel = (ViewBag.SponsoredLabel as string) ?? Model.SponsoredLabel;
+    var tocHtml = ViewBag.TocHtml as string;
+    var related = ViewBag.RelatedPosts as IList<RelatedPostItem> ?? new List<RelatedPostItem>();
 }
 
-<article class="post-detail container py-4">
-    <header class="mb-4">
-        <h1 class="post-title" dir="auto">@Model.Title</h1>
-        <div class="post-meta text-muted-dark small d-flex flex-wrap gap-2 align-items-center">
-            @if (Model.Author != null)
+@section Head {
+    <script type="application/ld+json">@Html.Raw(ViewBag.PostJsonLd)</script>
+    <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
+    <link rel="stylesheet" href="~/css/post-toc.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/post-layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/comments.css" asp-append-version="true" />
+}
+
+<div class="post-layout" data-analytics-post-id="@Model.Id">
+    <aside class="post-aside-related" aria-label="مطالب مرتبط">
+        <div class="post-aside-sticky">
+            @if (related.Count > 0)
             {
-                <a href="/author/@Model.Author.UserName" class="text-decoration-none">@Model.Author.DisplayName</a>
+                <div class="related-rail" data-related-rail>
+                    <div class="related-rail-head">
+                        <h2 class="related-rail-title">مطالب مرتبط</h2>
+                        <div class="related-rail-nav">
+                            <button type="button" class="related-rail-btn" data-rail-prev aria-label="قبلی">‹</button>
+                            <button type="button" class="related-rail-btn" data-rail-next aria-label="بعدی">›</button>
+                        </div>
+                    </div>
+                    <div class="related-rail-viewport">
+                        <div class="related-rail-track">
+                            @foreach (var r in related)
+                            {
+                                <div class="related-rail-card">
+                                    <a class="related-rail-card-link" href="/@r.LanguageCode/post/@r.Slug">
+                                        <p class="related-rail-card-title" dir="@MarkdownService.DetectDir(r.Title)">@r.Title</p>
+                                        @if (!string.IsNullOrWhiteSpace(r.Summary))
+                                        {
+                                            <p class="related-rail-card-sum" dir="@MarkdownService.DetectDir(r.Summary)">@r.Summary</p>
+                                        }
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
             }
-            @if (Model.PublishedAtUtc is DateTime pub)
-            {
-                <span>· @PersianDate.DateTime(pub)</span>
-            }
-            <span>· @Model.ReadingTimeMinutes دقیقه مطالعه</span>
-            <span>· @Model.ViewCount.ToString("N0") بازدید</span>
         </div>
+    </aside>
+
+    <article class="post-main post-article">
+        @if (TempData["BookmarkMsg"] != null)
+        {
+            <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["BookmarkMsg"]</div>
+        }
+        @if (TempData["ReportMsg"] != null)
+        {
+            <div class="card-surface p-2 px-3 mb-3 small text-muted-dark">@TempData["ReportMsg"]</div>
+        }
 
         @if (canEdit)
         {
@@ -53,16 +99,38 @@
                 <span class="status-pill scheduled">@(string.IsNullOrWhiteSpace(sponsoredLabel) ? T["mon.sponsored_default"] : sponsoredLabel)</span>
             }
         </div>
-    </header>
 
-    @if (!string.IsNullOrWhiteSpace(Model.Summary))
-    {
-        <p class="lead text-muted-dark" dir="auto">@Model.Summary</p>
-    }
+        <h1 class="post-title" dir="@titleDir">@Model.Title</h1>
+        <div class="post-meta text-muted-dark small mb-3">
+            @if (Model.Author != null)
+            {
+                <a href="/author/@Model.Author.UserName">@Model.Author.DisplayName</a>
+                <span> · </span>
+            }
+            <span>@PersianDate.DateTime(published)</span>
+            <span> · @readingMinutes دقیقه</span>
+            <span> · @Model.ViewCount.ToString("N0") بازدید</span>
+        </div>
 
-    <div class="post-body markdown-body" dir="auto">
-        @Html.Raw(ViewBag.RenderedHtml)
-    </div>
+        @if (!string.IsNullOrWhiteSpace(Model.Summary))
+        {
+            <p class="lead text-muted-dark" dir="@MarkdownService.DetectDir(Model.Summary)">@Model.Summary</p>
+        }
 
-    @await Html.PartialAsync("_CommentsSection", Model)
-</article>
+        @if (!string.IsNullOrWhiteSpace(tocHtml))
+        {
+            <nav class="post-toc mb-4" aria-label="فهرست">@Html.Raw(tocHtml)</nav>
+        }
+
+        @if (premiumLocked)
+        {
+            <div class="card-surface p-4 text-center">@T["mon.premium_locked"]</div>
+        }
+        else
+        {
+            <div class="post-body markdown-body" dir="auto">@Html.Raw(ViewBag.RenderedHtml)</div>
+        }
+
+        @await Html.PartialAsync("_CommentsSection", Model)
+    </article>
+</div>
