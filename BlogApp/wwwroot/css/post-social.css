@@ -1,0 +1,206 @@
+/* Minimal social action bar — like, bookmark, share, reactions */
+
+.ps-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0 0 1.35rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft, #1e2430);
+  background: color-mix(in srgb, var(--surface, #12161f) 88%, transparent);
+}
+
+.ps-bar-primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ps-form {
+  display: inline;
+  margin: 0;
+}
+
+.ps-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft, #1e2430);
+  background: transparent;
+  color: var(--text-muted, #8b93a7);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 550;
+  line-height: 1.2;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.12s;
+}
+
+.ps-btn:hover {
+  color: var(--text, #e6e9f0);
+  border-color: color-mix(in srgb, var(--text-muted, #8b93a7) 50%, var(--border-soft, #1e2430));
+  background: var(--surface-2, #171c27);
+}
+
+.ps-btn:active {
+  transform: scale(0.97);
+}
+
+.ps-btn .ps-ico {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.ps-btn .ps-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.ps-btn.is-on {
+  color: var(--accent, #e3b341);
+  border-color: color-mix(in srgb, var(--accent, #e3b341) 40%, var(--border-soft, #1e2430));
+  background: color-mix(in srgb, var(--accent, #e3b341) 10%, transparent);
+}
+
+.ps-btn.ps-like.is-on {
+  color: #f07178;
+  border-color: color-mix(in srgb, #f07178 40%, var(--border-soft, #1e2430));
+  background: color-mix(in srgb, #f07178 10%, transparent);
+}
+
+.ps-btn.ps-bookmark.is-on {
+  color: var(--accent, #e3b341);
+}
+
+.ps-btn.ps-accent {
+  color: var(--bg, #0b0d12);
+  background: var(--accent, #e3b341);
+  border-color: transparent;
+  font-weight: 650;
+}
+
+.ps-btn.ps-accent:hover {
+  filter: brightness(1.05);
+  color: var(--bg, #0b0d12);
+}
+
+.ps-follow {
+  margin-inline-start: auto;
+}
+
+.ps-share {
+  position: relative;
+}
+
+.ps-share-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  inset-inline-start: 0;
+  z-index: 40;
+  min-width: 9.5rem;
+  padding: 0.35rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft, #1e2430);
+  background: var(--surface, #12161f);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.ps-share-item {
+  display: block;
+  width: 100%;
+  text-align: start;
+  padding: 0.45rem 0.7rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text, #e6e9f0);
+  font: inherit;
+  font-size: 0.82rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.ps-share-item:hover {
+  background: var(--surface-2, #171c27);
+  color: var(--accent, #e3b341);
+}
+
+.ps-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding-top: 0.15rem;
+  border-top: 1px solid color-mix(in srgb, var(--border-soft, #1e2430) 70%, transparent);
+}
+
+.ps-react {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.28rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted, #8b93a7);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+
+.ps-react:hover {
+  background: var(--surface-2, #171c27);
+  border-color: var(--border-soft, #1e2430);
+}
+
+.ps-react:active {
+  transform: scale(0.95);
+}
+
+.ps-react.is-on {
+  background: color-mix(in srgb, var(--accent, #e3b341) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent, #e3b341) 30%, transparent);
+}
+
+.ps-react.is-static {
+  cursor: default;
+}
+
+.ps-react-count {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.post-actions-footer .ps-bar {
+  margin-bottom: 0;
+}
+
+html[data-theme="light"] .ps-bar {
+  background: color-mix(in srgb, var(--surface, #fff) 94%, transparent);
+  border-color: var(--border-soft, #e4e7ee);
+}
+
+html[data-theme="light"] .ps-share-menu {
+  background: var(--surface, #fff);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+@media (max-width: 520px) {
+  .ps-btn .ps-label {
+    display: none;
+  }
+
+  .ps-follow {
+    margin-inline-start: 0;
+  }
+}

@@ -1,5 +1,5 @@
 /**
- * Post TOC — sticky + accordion + IntersectionObserver scroll-spy (deep posts) + smooth jump.
+ * Post TOC — sticky sidebar + accordion + IntersectionObserver scroll-spy + smooth jump.
  */
 (function () {
   'use strict';
@@ -15,9 +15,11 @@
     var toggle = nav.querySelector('[data-toc-toggle]');
     var body = nav.querySelector('.toc-body');
     var sticky = nav.closest('.post-aside-sticky');
+    var isSidebar = nav.classList.contains('post-toc--sidebar');
 
     function setOpen(open) {
       if (!toggle || !body) return;
+      if (isSidebar && window.matchMedia('(min-width: 1101px)').matches) open = true;
       nav.classList.toggle('is-open', open);
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (open) body.removeAttribute('hidden');
@@ -30,11 +32,13 @@
 
     if (toggle && body) {
       setOpen(true);
-      toggle.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        setOpen(!nav.classList.contains('is-open'));
-      });
+      if (!isSidebar) {
+        toggle.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(!nav.classList.contains('is-open'));
+        });
+      }
     }
 
     var links = Array.prototype.slice.call(nav.querySelectorAll('a.toc-link[href^="#"]'));
@@ -61,7 +65,6 @@
       item.a.setAttribute('aria-current', 'true');
       item.el.classList.add('is-section-active');
 
-      // Keep active link visible inside TOC panel
       var panel = body || sticky;
       if (panel && item.a && typeof item.a.scrollIntoView === 'function') {
         try {
@@ -103,7 +106,7 @@
 
         clickTimer = setTimeout(function () { clicking = false; }, 900);
 
-        if (window.matchMedia('(max-width: 1100px)').matches) {
+        if (!isSidebar && window.matchMedia('(max-width: 1100px)').matches) {
           setTimeout(function () { setOpen(false); }, 550);
         }
       });
@@ -119,7 +122,17 @@
       setActive(item);
     }
 
-    // Preferred: IntersectionObserver — stable on deep posts with tall sections
+    function pickFromScroll() {
+      if (clicking) return;
+      var y = window.scrollY + HEADER_OFFSET + 16;
+      var active = map[0];
+      for (var i = 0; i < map.length; i++) {
+        var top = map[i].el.getBoundingClientRect().top + window.pageYOffset;
+        if (top <= y) active = map[i];
+      }
+      if (active) activateById(active.id);
+    }
+
     if (typeof IntersectionObserver === 'function') {
       var ratios = {};
       map.forEach(function (m) { ratios[m.id] = 0; });
@@ -132,7 +145,6 @@
           ratios[id] = en.isIntersecting ? en.intersectionRatio : 0;
         });
 
-        // Highest ratio among visible; fall back to last section above the line
         var bestId = null;
         var bestRatio = 0;
         Object.keys(ratios).forEach(function (id) {
@@ -146,8 +158,6 @@
           activateById(bestId);
           return;
         }
-
-        // Fallback scroll position when nothing intersects the band
         pickFromScroll();
       }, {
         root: null,
@@ -156,17 +166,6 @@
       });
 
       map.forEach(function (m) { io.observe(m.el); });
-    }
-
-    function pickFromScroll() {
-      if (clicking) return;
-      var y = window.scrollY + HEADER_OFFSET + 16;
-      var active = map[0];
-      for (var i = 0; i < map.length; i++) {
-        var top = map[i].el.getBoundingClientRect().top + window.pageYOffset;
-        if (top <= y) active = map[i];
-      }
-      if (active) activateById(active.id);
     }
 
     var ticking = false;
