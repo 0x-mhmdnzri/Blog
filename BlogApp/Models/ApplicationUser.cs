@@ -3,6 +3,14 @@ using Microsoft.AspNetCore.Identity;
 
 namespace BlogApp.Models;
 
+public enum AuthorApplicationStatus
+{
+    None = 0,
+    Pending = 1,
+    Approved = 2,
+    Rejected = 3
+}
+
 /// <summary>
 /// Extended Identity user.
 /// Base hierarchy: SuperAdmin → Author → Reader.
@@ -22,6 +30,17 @@ public class ApplicationUser : IdentityUser
     public string? ProfileImageContentType { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Public "become an author" application pipeline.</summary>
+    public AuthorApplicationStatus AuthorApplicationStatus { get; set; } = AuthorApplicationStatus.None;
+
+    [MaxLength(500)]
+    public string? AuthorApplicationMessage { get; set; }
+
+    public DateTime? AuthorAppliedAtUtc { get; set; }
+
+    [MaxLength(500)]
+    public string? AuthorReviewNote { get; set; }
 
     public ICollection<Post> Posts { get; set; } = new List<Post>();
     public ICollection<PostBookmark> Bookmarks { get; set; } = new List<PostBookmark>();
@@ -64,13 +83,13 @@ public static class AppClaims
     {
         (CanManageAllPosts, "مدیریت همه نوشته‌ها", "Manage all posts", "📝"),
         (CanModerateAllComments, "مدیریت همه دیدگاه‌ها", "Moderate all comments", "💬"),
-        (CanViewAllAnalytics, "مشاهده همه آمار", "View all analytics", "📊"),
+        (CanViewAllAnalytics, "مشاهده تحلیل‌ها", "View all analytics", "📊"),
         (CanManageUsers, "مدیریت کاربران", "Manage users", "👥"),
-        (CanManageRoles, "مدیریت نقش‌ها و مجوزها", "Manage roles & permissions", "🔐"),
+        (CanManageRoles, "مدیریت نقش‌ها", "Manage roles", "🔑"),
         (CanManageSettings, "تنظیمات سایت", "Site settings", "⚙️"),
-        (CanManageThemes, "مدیریت تم‌ها", "Manage themes", "🎨"),
-        (CanManageMedia, "مدیریت رسانه", "Manage media", "🖼"),
-        (CanManageTaxonomy, "طبقه‌بندی", "Taxonomy", "🏷"),
+        (CanManageThemes, "تم‌ها", "Themes", "🎨"),
+        (CanManageMedia, "رسانه‌ها", "Media library", "🖼️"),
+        (CanManageTaxonomy, "دسته‌ها و برچسب‌ها", "Taxonomy", "🏷️"),
         (CanManageSeo, "ابزارهای سئو", "SEO tools", "🔍"),
         (CanManageNewsletter, "خبرنامه", "Newsletter", "✉"),
         (CanManageMonetization, "درآمدزایی", "Monetization", "💰"),
