@@ -217,7 +217,7 @@ public partial class AdminController
                    $"<button type=\"submit\" class=\"icon-btn approve\">{System.Net.WebUtility.HtmlEncode(_t["btn.restore"])}</button></form>";
         }
 
-        var attrTitle = System.Net.WebUtility.HtmlEncode(title ?? "").Replace("\"", """);
+        var attrTitle = System.Net.WebUtility.HtmlEncode(title ?? "").Replace("\"", "");
         return $"<div class=\"d-flex gap-1 flex-wrap\">" +
                $"<a class=\"icon-btn\" href=\"/Posts/Edit/{id}\">{System.Net.WebUtility.HtmlEncode(_t["btn.edit"])}</a>" +
                $"<form method=\"post\" action=\"/Posts/Duplicate\" class=\"d-inline\">" +
