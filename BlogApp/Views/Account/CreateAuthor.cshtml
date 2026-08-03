@@ -88,7 +88,7 @@
             <div class="row g-2">
                 <div class="col-md-6">
                     <label class="form-label" asp-for="Twitter">X / Twitter</label>
-                    <input class="form-control ltr-field" asp-for="Twitter" placeholder="@handle" maxlength="120" />
+                    <input class="form-control ltr-field" asp-for="Twitter" placeholder="@@handle" maxlength="120" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" asp-for="LinkedIn">LinkedIn</label>
@@ -96,7 +96,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" asp-for="Telegram">Telegram</label>
-                    <input class="form-control ltr-field" asp-for="Telegram" placeholder="@username" maxlength="120" />
+                    <input class="form-control ltr-field" asp-for="Telegram" placeholder="@@username" maxlength="120" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" asp-for="Phone">Phone</label>
@@ -108,7 +108,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" asp-for="Instagram">Instagram</label>
-                    <input class="form-control ltr-field" asp-for="Instagram" placeholder="@username" maxlength="120" />
+                    <input class="form-control ltr-field" asp-for="Instagram" placeholder="@@username" maxlength="120" />
                 </div>
                 <div class="col-12">
                     <label class="form-label" asp-for="Website">Website</label>
@@ -143,7 +143,7 @@
         <div class="wizard-actions">
             <a class="btn btn-ghost" asp-action="Authors">@T["btn.cancel"]</a>
             <div class="ms-auto d-flex gap-2">
-                <button type="button" class="btn btn-ghost" id="authorPrev" hidden>@T["wizard.prev"]</button>
+                <button type="button" class="btn btn-ghost" id="authorPrev" hidden>@T["wizard.next"]</button>
                 <button type="button" class="btn btn-accent" id="authorNext">@T["wizard.next"]</button>
                 <button type="submit" class="btn btn-accent" id="authorSubmit" hidden>@T["btn.new_author"]</button>
             </div>
