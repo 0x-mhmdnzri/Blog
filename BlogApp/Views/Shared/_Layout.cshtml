@@ -1,1 +1,365 @@
-PLACEHOLDER_LAYOUT
+@inject BlogApp.Services.SeoService Seo
+@inject BlogApp.Services.ISiteConfigService SiteConfig
+@inject BlogApp.Services.ICultureService Culture
+@inject BlogApp.Services.IUiTranslator T
+@using BlogApp.Models
+@{
+    var pageTitle = ViewData["Title"] as string;
+    var fullTitle = pageTitle != null ? $"{pageTitle} · {Seo.SiteName}" : $"{Seo.SiteName} — {Seo.SiteDescription}";
+    var description = ViewData["Description"] as string ?? Seo.SiteDescription;
+    var currentUrl = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+    var canonicalUrl = ViewData["Canonical"] as string ?? currentUrl;
+    var ogType = ViewData["OgType"] as string ?? "website";
+    var ogImage = ViewData["OgImage"] as string;
+    var noIndex = ViewData["NoIndex"] as bool? ?? false;
+    var isStaff = User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin);
+    var isReader = User.IsInRole(AppRoles.Reader) || isStaff;
+    var isAuth = User.Identity?.IsAuthenticated == true;
+    var userName = User.Identity?.Name;
+
+    var culture = Culture.Current;
+    var lang = culture.Code;
+    var dir = culture.Direction;
+    var locale = culture.Locale;
+
+    var hreflang = ViewBag.HreflangLinks as IEnumerable<dynamic>;
+
+    var ctrl = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLowerInvariant();
+    var act = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLowerInvariant();
+    var path = Context.Request.Path.Value ?? "";
+
+    string NavActive(string c, string? a = null)
+    {
+        if (!string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase)) return "";
+        if (a != null && !string.Equals(act, a, StringComparison.OrdinalIgnoreCase)) return "";
+        return "active";
+    }
+
+    var homeActive = (ctrl == "home" && act == "index") || path.TrimEnd('/').Equals($"/{lang}", StringComparison.OrdinalIgnoreCase) || path == "/" || path == $"/{lang}/";
+    var blogActive = path.Contains("/post/", StringComparison.OrdinalIgnoreCase)
+                     || (ctrl == "home" && act == "index" && Context.Request.Query.ContainsKey("tag"));
+}
+<!DOCTYPE html>
+<html lang="@lang" dir="@dir" data-bs-theme="dark" data-theme="dark" data-culture="@lang">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@fullTitle</title>
+
+    <meta name="description" content="@description" />
+    <meta name="author" content="@Seo.AuthorName" />
+    <meta name="robots" content="@(noIndex ? "noindex, nofollow" : "index, follow")" />
+    <link rel="canonical" href="@canonicalUrl" />
+    <meta name="theme-color" content="#0b0e14" id="meta-theme-color" />
+    <meta name="color-scheme" content="dark light" />
+
+    @if (hreflang != null)
+    {
+        foreach (var h in hreflang)
+        {
+            <link rel="alternate" hreflang="@h.Lang" href="@h.Href" />
+        }
+        <link rel="alternate" hreflang="x-default" href="@canonicalUrl" />
+    }
+
+    <meta property="og:site_name" content="@Seo.SiteName" />
+    <meta property="og:type" content="@ogType" />
+    <meta property="og:title" content="@(pageTitle ?? Seo.SiteName)" />
+    <meta property="og:description" content="@description" />
+    <meta property="og:url" content="@canonicalUrl" />
+    <meta property="og:locale" content="@locale" />
+    @if (!string.IsNullOrEmpty(ogImage))
+    {
+        <meta property="og:image" content="@ogImage" />
+    }
+
+    <meta name="twitter:card" content="@(string.IsNullOrEmpty(ogImage) ? "summary" : "summary_large_image")" />
+    <meta name="twitter:title" content="@(pageTitle ?? Seo.SiteName)" />
+    <meta name="twitter:description" content="@description" />
+    @if (!string.IsNullOrEmpty(Seo.TwitterHandle))
+    {
+        <meta name="twitter:site" content="@Seo.TwitterHandle" />
+    }
+    @if (!string.IsNullOrEmpty(ogImage))
+    {
+        <meta name="twitter:image" content="@ogImage" />
+    }
+
+    <script>
+        (function () {
+            try {
+                var fs = localStorage.getItem('blog-font-scale');
+                if (fs) document.documentElement.style.setProperty('--reader-font-scale', fs);
+                var ap = JSON.parse(localStorage.getItem('blog-a11y-prefs') || '{}');
+                if (ap.contrast === 'high') document.documentElement.setAttribute('data-a11y-contrast', 'high');
+                if (ap.motion === 'reduce') document.documentElement.setAttribute('data-a11y-motion', 'reduce');
+                if (ap.underline === 'on') document.documentElement.setAttribute('data-a11y-underline', 'on');
+                if (ap.text === 'large' || ap.text === 'xlarge') document.documentElement.setAttribute('data-a11y-text', ap.text);
+            } catch (e) {}
+        })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="@culture.BootstrapCss" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="/Themes/ActiveCss" />
+    <link rel="stylesheet" href="~/css/theme-system.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/media-blur.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/toastify-stack.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ux.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/a11y.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/persona.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/nav.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/datepicker.css" asp-append-version="true" />
+    <style>
+        .lang-switcher .dropdown-menu { background: var(--surface, #12161f); border: 1px solid var(--border-soft, #1e2430); }
+        .lang-switcher .dropdown-item { color: var(--text, #e8ecf4); font-size: .9rem; }
+        .lang-switcher .dropdown-item:hover,
+        .lang-switcher .dropdown-item.active { background: rgba(111,179,210,.15); color: #fff; }
+    </style>
+
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body>
+    <ul class="skip-links">
+        <li><a class="skip-link" href="#main-content">پرش به محتوا</a></li>
+        <li><a class="skip-link" href="#site-footer">پرش به پاورقی</a></li>
+    </ul>
+    <div id="reading-progress" class="reading-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="پیشرفت مطالعه"></div>
+
+    @await Component.InvokeAsync("SiteAnnounce")
+
+    <header class="site-header" id="site-header" role="banner">
+        <nav class="navbar navbar-expand-lg site-navbar py-2" aria-label="ناوبری اصلی">
+            <div class="container site-nav-inner">
+                <a class="navbar-brand brand" href="/@lang/" title="خانه">
+                    <span class="brand-cursor" aria-hidden="true"></span>
+                    <span class="ltr-signature">m.nazari</span>
+                </a>
+
+                <div class="nav-quick d-flex align-items-center gap-1 order-lg-last">
+                    <button type="button" class="btn btn-nav-icon" data-search-open title="جست‌وجو (Ctrl+K)" aria-label="جست‌وجو">
+                        <span aria-hidden="true">⌕</span>
+                        <span class="d-none d-xl-inline nav-icon-label">جست‌وجو</span>
+                    </button>
+                    <partial name="_ThemePicker" />
+                    <div class="d-none d-lg-block">
+                        <partial name="_LanguageSwitcher" />
+                    </div>
+                    <button class="navbar-toggler border-0 btn-nav-icon" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#navMain"
+                            aria-controls="navMain" aria-expanded="false" aria-label="منوی ناوبری">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+
+                <div class="collapse navbar-collapse" id="navMain">
+                    <ul class="navbar-nav nav-primary align-items-lg-center gap-lg-0 mx-lg-auto">
+                        <li class="nav-section-label d-lg-none">صفحات</li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link @(homeActive ? "active" : "")"
+                               href="/@lang/"
+                               aria-current="@(homeActive ? "page" : null)">خانه</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link @NavActive("pages", "about")"
+                               asp-controller="Pages" asp-action="About"
+                               aria-current="@(NavActive("pages", "about") == "active" ? "page" : null)">درباره</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link @NavActive("pages", "services")"
+                               asp-controller="Pages" asp-action="Services">خدمات</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link @NavActive("pages", "projects")"
+                               asp-controller="Pages" asp-action="Projects">پروژه‌ها</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link @(blogActive && !homeActive ? "active" : "")"
+                               href="/@lang/#blog-feed">وبلاگ</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link site-nav-link @NavActive("pages", "contact")"
+                               asp-controller="Pages" asp-action="Contact">تماس</a>
+                        </li>
+                    </ul>
+
+                    <ul class="navbar-nav nav-account align-items-lg-center gap-1 mt-2 mt-lg-0">
+                        <li class="nav-section-label d-lg-none">حساب و ابزار</li>
+                        <li class="nav-item d-lg-none">
+                            <partial name="_LanguageSwitcher" />
+                        </li>
+                        @if (isAuth)
+                        {
+                            <li class="nav-item d-flex align-items-center">
+                                <partial name="_NotificationBell" />
+                            </li>
+                        }
+                        @if (isReader)
+                        {
+                            <li class="nav-item d-lg-none">
+                                <a class="nav-link site-nav-link @NavActive("bookmarks")" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
+                            </li>
+                        }
+                        @if (isStaff)
+                        {
+                            <li class="nav-item d-lg-none">
+                                <a class="nav-link site-nav-link @NavActive("admin")" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a>
+                            </li>
+                        }
+                        @if (isAuth)
+                        {
+                            <li class="nav-item dropdown">
+                                <button class="btn btn-account dropdown-toggle" type="button"
+                                        data-bs-toggle="dropdown" aria-expanded="false"
+                                        id="accountMenuBtn" title="حساب کاربری" aria-label="منوی حساب کاربری">
+                                    <span class="account-avatar" aria-hidden="true">@(string.IsNullOrEmpty(userName) ? "؟" : char.ToUpperInvariant(userName[0]))</span>
+                                    <span class="d-none d-xl-inline account-name ltr-field">@(userName ?? "حساب")</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end account-menu" aria-labelledby="accountMenuBtn">
+                                    @if (!string.IsNullOrEmpty(userName))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Account" asp-action="PublicProfile" asp-route-userName="@userName">پروفایل عمومی</a>
+                                        </li>
+                                    }
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Manage">تنظیمات حساب</a></li>
+                                    <li><a class="dropdown-item" asp-controller="AccountApiKeys" asp-action="Index">کلیدهای API (PAT)</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Themes" asp-action="Index">گالری تم‌ها</a></li>
+                                    @if (isReader)
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Feed" asp-action="Index">فید فعالیت</a></li>
+                                    }
+                                    @if (isStaff)
+                                    {
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a></li>
+                                    }
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="px-3 py-1">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-ghost btn-sm w-100">@T["nav.logout"]</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="btn btn-nav-login" asp-controller="Account" asp-action="Login">@T["nav.login"]</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="site-main" id="main-content" role="main" tabindex="-1">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer py-4 mt-5" id="site-footer" role="contentinfo">
+        <div class="container">
+            <div class="d-flex justify-content-between flex-wrap gap-3 align-items-start">
+                <div>
+                    <div class="mb-1"><strong>محمد نظری</strong> — Senior .NET Backend Engineer</div>
+                    <div class="small text-muted-dark">&copy; @DateTime.UtcNow.Year · Tehran</div>
+                </div>
+                <nav class="d-flex flex-wrap gap-3 small" aria-label="پیوندهای پاورقی">
+                    <a asp-controller="Pages" asp-action="About">درباره</a>
+                    <a asp-controller="Pages" asp-action="Services">خدمات</a>
+                    <a asp-controller="Pages" asp-action="Projects">پروژه‌ها</a>
+                    <a href="/@lang/#blog-feed">وبلاگ</a>
+                    <a asp-controller="Pages" asp-action="Contact">تماس</a>
+                    <a asp-controller="Themes" asp-action="Index">تم‌ها</a>
+                </nav>
+                <span class="ltr-field small">@culture.NativeName · @culture.Code</span>
+            </div>
+        </div>
+    </footer>
+
+    <div id="search-overlay" class="site-search-overlay" hidden>
+        <div class="site-search-dialog" role="dialog" aria-modal="true" aria-label="جست‌وجو">
+            <div class="site-search-bar">
+                <span class="site-search-icon" aria-hidden="true">⌕</span>
+                <label class="sr-only" for="search-input">جست‌وجوی نوشته‌ها</label>
+                <input type="search" id="search-input" class="site-search-input"
+                       placeholder="جست‌وجو…" autocomplete="off" dir="auto"
+                       aria-autocomplete="list" aria-controls="search-list" aria-expanded="false" />
+                <button type="button" id="search-clear" class="site-search-clear" hidden aria-label="پاک کردن">×</button>
+            </div>
+            <div id="search-meta" class="site-search-meta" hidden>
+                <span id="search-count">—</span>
+                <span id="search-latency" class="site-search-latency ltr-field"></span>
+            </div>
+            <div class="site-search-body">
+                <div id="search-empty" class="site-search-empty">
+                    <p class="hint">جست‌وجو در نوشته‌ها</p>
+                    <p class="hint-sub">↑↓ پیمایش · Enter باز کردن · Esc بستن</p>
+                </div>
+                <div id="search-skeleton" class="site-search-skeleton" hidden>
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                </div>
+                <ul id="search-list" class="site-search-list" role="listbox" hidden></ul>
+            </div>
+            <div class="site-search-footer">
+                <span><kbd>↑</kbd><kbd>↓</kbd> پیمایش</span>
+                <span><kbd>Enter</kbd> باز</span>
+                <span><kbd>Esc</kbd> بستن</span>
+                <a id="search-full-link" class="site-search-full" href="/@lang/" hidden>همه نتایج →</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="a11y-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <button type="button" id="back-to-top" class="back-to-top" aria-label="بازگشت به بالا">↑</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="~/js/media-blur.js" asp-append-version="true" defer></script>
+    <script src="~/js/toastify-stack.js" asp-append-version="true" defer></script>
+    <script src="~/js/form-submit-observer.js" asp-append-version="true" defer></script>
+    <script src="~/js/notifications-bell.js" asp-append-version="true" defer></script>
+    <script src="~/js/site.js" asp-append-version="true" defer></script>
+    <script src="~/js/site-search.js" asp-append-version="true" defer></script>
+    <script src="~/js/ux.js" asp-append-version="true" defer></script>
+    <script src="~/js/a11y.js" asp-append-version="true" defer></script>
+    <script src="~/js/datepicker.js" asp-append-version="true" defer></script>
+    <script defer>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.ToastifyStack && !window.__blogToastBridged) {
+                window.__blogToastBridged = true;
+                window.blogToast = function (message, type) {
+                    var kind = type === 'success' ? 'success'
+                      : (type === 'error' || type === 'danger') ? 'error'
+                      : 'info';
+                    return ToastifyStack.push({ title: message, kind: kind, duration: 3200, linkUrl: null });
+                };
+            }
+            if (window.hljs) hljs.highlightAll();
+            var header = document.getElementById('site-header');
+            if (header) {
+                var onScroll = function () {
+                    if (window.scrollY > 8) header.classList.add('is-scrolled');
+                    else header.classList.remove('is-scrolled');
+                };
+                onScroll();
+                window.addEventListener('scroll', onScroll, { passive: true });
+            }
+            if (window.BlogDatePicker) window.BlogDatePicker.init();
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
