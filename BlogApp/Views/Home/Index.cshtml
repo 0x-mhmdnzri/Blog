@@ -15,6 +15,7 @@
 }
 
 @section Head {
+    <link rel="stylesheet" href="~/css/site-marketing.css" asp-append-version="true" />
     @if (ViewBag.WebsiteJsonLd is string websiteLd && !string.IsNullOrEmpty(websiteLd))
     {
         <script type="application/ld+json">@Html.Raw(websiteLd)</script>
@@ -98,8 +99,8 @@
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">▣</div>
-            <h3>Data &amp; Cache</h3>
-            <p>EF Core · Dapper · SQL Server · PostgreSQL · Redis lock &amp; cache</p>
+            <h3>Data & Cache</h3>
+            <p>EF Core · Dapper · SQL Server · PostgreSQL · Redis lock & cache</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">⇄</div>
