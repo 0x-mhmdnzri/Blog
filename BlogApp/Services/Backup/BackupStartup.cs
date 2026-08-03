@@ -1,4 +1,5 @@
 using BlogApp.Services.Enterprise;
+using BlogApp.Services.Seo;
 
 namespace BlogApp.Services.Backup;
 
@@ -12,6 +13,9 @@ public static class BackupStartup
 
         // Enterprise admin panel (tenants, SSO, GDPR, backup orchestration)
         services.AddScoped<IEnterpriseService, EnterpriseService>();
+
+        // Per-post Open Graph share cards (GitHub-style banners)
+        services.AddSingleton<IPostOgCardService, PostOgCardService>();
 
         return services;
     }
