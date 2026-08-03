@@ -1,11 +1,48 @@
 @model BlogApp.Models.ViewModels.PublicAuthorProfileViewModel
+@using BlogApp.Models
 @inject BlogApp.Services.IUiTranslator T
 @{
     ViewData["Title"] = Model.DisplayName;
     var initial = string.IsNullOrWhiteSpace(Model.DisplayName)
         ? "?"
         : Model.DisplayName.Trim()[0].ToString().ToUpperInvariant();
+
+    string? TwitterUrl() => string.IsNullOrWhiteSpace(Model.Twitter) ? null
+        : Model.Twitter.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? Model.Twitter
+            : "https://x.com/" + Model.Twitter.TrimStart('@');
+    string? LinkedInUrl() => string.IsNullOrWhiteSpace(Model.LinkedIn) ? null
+        : Model.LinkedIn.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? Model.LinkedIn
+            : "https://www.linkedin.com/in/" + Model.LinkedIn.TrimStart('/');
+    string? TelegramUrl() => string.IsNullOrWhiteSpace(Model.Telegram) ? null
+        : Model.Telegram.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? Model.Telegram
+            : "https://t.me/" + Model.Telegram.TrimStart('@');
+    string? GitHubUrl() => string.IsNullOrWhiteSpace(Model.GitHub) ? null
+        : Model.GitHub.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? Model.GitHub
+            : "https://github.com/" + Model.GitHub.TrimStart('@');
+    string? InstagramUrl() => string.IsNullOrWhiteSpace(Model.Instagram) ? null
+        : Model.Instagram.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? Model.Instagram
+            : "https://instagram.com/" + Model.Instagram.TrimStart('@');
+    string? WebsiteUrl() => string.IsNullOrWhiteSpace(Model.Website) ? null
+        : Model.Website.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? Model.Website
+            : "https://" + Model.Website;
+    string? PhoneTel() => string.IsNullOrWhiteSpace(Model.Phone) ? null
+        : "tel:" + new string(Model.Phone.Where(c => char.IsDigit(c) || c == '+').ToArray());
+
+    var genderLabel = Model.Gender switch
+    {
+        UserGender.Male => "him",
+        UserGender.Female => "her",
+        UserGender.Other => "they",
+        _ => null
+    };
 }
+<link rel="stylesheet" href="~/css/persona.css" asp-append-version="true" />
 
 <section class="author-profile">
     <div class="author-hero">
@@ -45,6 +82,10 @@
                         {
                             <span class="author-chip">@T["role.author"]</span>
                         }
+                        @if (genderLabel != null)
+                        {
+                            <span class="author-chip muted ltr-field">@genderLabel</span>
+                        }
                         <span class="author-chip muted ltr-field">
                             @Model.JoinedAtUtc.ToString("yyyy") · @T["author.joined"]
                         </span>
@@ -57,6 +98,40 @@
                     else
                     {
                         <p class="author-bio author-bio-empty">@T["author.no_bio"]</p>
+                    }
+
+                    @if (Model.HasAnySocial)
+                    {
+                        <ul class="author-socials" aria-label="Social links">
+                            @if (TwitterUrl() is string tw)
+                            {
+                                <li><a class="author-social" href="@tw" target="_blank" rel="noopener noreferrer me" title="X / Twitter">𝕏</a></li>
+                            }
+                            @if (LinkedInUrl() is string li)
+                            {
+                                <li><a class="author-social" href="@li" target="_blank" rel="noopener noreferrer me" title="LinkedIn">in</a></li>
+                            }
+                            @if (TelegramUrl() is string tg)
+                            {
+                                <li><a class="author-social" href="@tg" target="_blank" rel="noopener noreferrer me" title="Telegram">✈</a></li>
+                            }
+                            @if (GitHubUrl() is string gh)
+                            {
+                                <li><a class="author-social" href="@gh" target="_blank" rel="noopener noreferrer me" title="GitHub">⌘</a></li>
+                            }
+                            @if (InstagramUrl() is string ig)
+                            {
+                                <li><a class="author-social" href="@ig" target="_blank" rel="noopener noreferrer me" title="Instagram">◎</a></li>
+                            }
+                            @if (WebsiteUrl() is string web)
+                            {
+                                <li><a class="author-social" href="@web" target="_blank" rel="noopener noreferrer me" title="Website">↗</a></li>
+                            }
+                            @if (PhoneTel() is string tel)
+                            {
+                                <li><a class="author-social" href="@tel" title="@Model.Phone">☎</a></li>
+                            }
+                        </ul>
                     }
 
                     <div class="author-actions">
