@@ -1,0 +1,145 @@
+/* Markdown tables in posts — minimal */
+
+.post-body .md-table-wrap,
+.markdown-body .md-table-wrap,
+.readme-content .md-table-wrap {
+  margin: 1.6em 0;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft, #1e2430);
+  background: color-mix(in srgb, var(--surface, #12161f) 92%, transparent);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+.post-body .md-table-wrap:focus-visible,
+.markdown-body .md-table-wrap:focus-visible,
+.readme-content .md-table-wrap:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent, #e3b341) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.post-body table.md-table,
+.post-body table,
+.markdown-body table.md-table,
+.markdown-body table,
+.readme-content table.md-table,
+.readme-content table {
+  width: 100%;
+  min-width: 16rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text, #e6e9f0);
+}
+
+.post-body table.md-table th,
+.post-body table.md-table td,
+.post-body table th,
+.post-body table td,
+.markdown-body table th,
+.markdown-body table td,
+.readme-content table th,
+.readme-content table td {
+  padding: 0.7rem 1rem;
+  vertical-align: top;
+  border: none;
+  border-bottom: 1px solid var(--border-soft, #1e2430);
+  text-align: start;
+}
+
+.post-body table.md-table thead th,
+.post-body table thead th,
+.markdown-body table thead th,
+.readme-content table thead th,
+.post-body table.md-table > tr:first-child > th,
+.markdown-body table > tr:first-child > th,
+.readme-content table > tr:first-child > th {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #8b93a7);
+  background: color-mix(in srgb, var(--surface-2, #171c27) 88%, transparent);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-soft, #1e2430);
+}
+
+.post-body table.md-table tbody tr:nth-child(even) td,
+.markdown-body table tbody tr:nth-child(even) td,
+.readme-content table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--surface-2, #171c27) 35%, transparent);
+}
+
+.post-body table.md-table tbody tr:hover td,
+.markdown-body table tbody tr:hover td,
+.readme-content table tbody tr:hover td {
+  background: color-mix(in srgb, var(--accent, #e3b341) 7%, transparent);
+}
+
+.post-body table.md-table tbody tr:last-child td,
+.markdown-body table tbody tr:last-child td,
+.readme-content table tbody tr:last-child td,
+.post-body table.md-table tr:last-child td,
+.markdown-body table tr:last-child td,
+.readme-content table tr:last-child td {
+  border-bottom: none;
+}
+
+.post-body table th[dir="ltr"],
+.post-body table td[dir="ltr"],
+.markdown-body table th[dir="ltr"],
+.markdown-body table td[dir="ltr"],
+.readme-content table th[dir="ltr"],
+.readme-content table td[dir="ltr"] {
+  direction: ltr;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.post-body table th[dir="rtl"],
+.post-body table td[dir="rtl"],
+.markdown-body table th[dir="rtl"],
+.markdown-body table td[dir="rtl"],
+.readme-content table th[dir="rtl"],
+.readme-content table td[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+.post-body table code,
+.markdown-body table code,
+.readme-content table code {
+  font-size: 0.82em;
+  padding: 0.08em 0.35em;
+}
+
+html[data-theme="light"] .post-body .md-table-wrap,
+html[data-theme="light"] .markdown-body .md-table-wrap,
+html[data-theme="light"] .readme-content .md-table-wrap {
+  background: color-mix(in srgb, var(--surface, #fff) 96%, transparent);
+  border-color: var(--border-soft, #e4e7ee);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+html[data-theme="light"] .post-body table.md-table thead th,
+html[data-theme="light"] .markdown-body table thead th,
+html[data-theme="light"] .readme-content table thead th {
+  background: color-mix(in srgb, var(--surface-2, #f0f2f6) 90%, transparent);
+}
+
+@media (max-width: 640px) {
+  .post-body table.md-table th,
+  .post-body table.md-table td,
+  .markdown-body table th,
+  .markdown-body table td,
+  .readme-content table th,
+  .readme-content table td {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.84rem;
+  }
+}
