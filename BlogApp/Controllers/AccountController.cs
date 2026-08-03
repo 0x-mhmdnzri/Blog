@@ -222,6 +222,14 @@ public partial class AccountController : Controller
             DisplayName = user.DisplayName,
             Bio = user.Bio,
             HasProfileImage = user.ProfileImage is { Length: > 0 },
+            Gender = user.Gender,
+            Twitter = user.Twitter,
+            LinkedIn = user.LinkedIn,
+            Telegram = user.Telegram,
+            Phone = user.Phone,
+            Website = user.Website,
+            GitHub = user.GitHub,
+            Instagram = user.Instagram,
             CanFollow = canFollow,
             IsFollowing = isFollowing,
             IsOwnProfile = isOwn,
@@ -271,6 +279,14 @@ public partial class AccountController : Controller
             DisplayName = user.DisplayName,
             Bio = user.Bio,
             Email = user.Email,
+            Gender = user.Gender,
+            Twitter = user.Twitter,
+            LinkedIn = user.LinkedIn,
+            Telegram = user.Telegram,
+            Phone = user.Phone,
+            Website = user.Website,
+            GitHub = user.GitHub,
+            Instagram = user.Instagram,
             HasProfileImage = user.ProfileImage is { Length: > 0 }
         };
         return View(vm);
@@ -291,6 +307,8 @@ public partial class AccountController : Controller
 
         user.DisplayName = vm.DisplayName.Trim();
         user.Bio = string.IsNullOrWhiteSpace(vm.Bio) ? null : vm.Bio.Trim();
+        user.Gender = vm.Gender;
+        ApplySocials(user, vm.Twitter, vm.LinkedIn, vm.Telegram, vm.Phone, vm.Website, vm.GitHub, vm.Instagram);
 
         if (!string.IsNullOrWhiteSpace(vm.Email) && vm.Email != user.Email)
         {
@@ -300,25 +318,11 @@ public partial class AccountController : Controller
 
         if (vm.ProfileImageFile is { Length: > 0 })
         {
-            var check = SafeUpload.Validate(vm.ProfileImageFile);
-            if (!check.Ok || check.Kind != MediaKind.Image)
+            if (!await TrySetProfileImageAsync(user, vm.ProfileImageFile))
             {
-                ModelState.AddModelError(nameof(vm.ProfileImageFile), check.Error ?? "تصویر نامعتبر است.");
                 vm.HasProfileImage = user.ProfileImage is { Length: > 0 };
                 return View(vm);
             }
-
-            if (vm.ProfileImageFile.Length > 2 * 1024 * 1024)
-            {
-                ModelState.AddModelError(nameof(vm.ProfileImageFile), "حداکثر اندازه تصویر پروفایل ۲ مگابایت است.");
-                vm.HasProfileImage = user.ProfileImage is { Length: > 0 };
-                return View(vm);
-            }
-
-            await using var ms = new MemoryStream();
-            await vm.ProfileImageFile.CopyToAsync(ms);
-            user.ProfileImage = ms.ToArray();
-            user.ProfileImageContentType = check.ContentType;
         }
 
         if (vm.RemoveProfileImage)
@@ -357,8 +361,16 @@ public partial class AccountController : Controller
             Email = vm.Email.Trim(),
             EmailConfirmed = true,
             DisplayName = vm.DisplayName.Trim(),
-            Bio = string.IsNullOrWhiteSpace(vm.Bio) ? null : vm.Bio.Trim()
+            Bio = string.IsNullOrWhiteSpace(vm.Bio) ? null : vm.Bio.Trim(),
+            Gender = vm.Gender
         };
+        ApplySocials(user, vm.Twitter, vm.LinkedIn, vm.Telegram, vm.Phone, vm.Website, vm.GitHub, vm.Instagram);
+
+        if (vm.ProfileImageFile is { Length: > 0 })
+        {
+            if (!await TrySetProfileImageAsync(user, vm.ProfileImageFile))
+                return View(vm);
+        }
 
         var result = await _userManager.CreateAsync(user, vm.Password);
         if (!result.Succeeded)
@@ -400,6 +412,68 @@ public partial class AccountController : Controller
         return View(items);
     }
 
+    private async Task<bool> TrySetProfileImageAsync(ApplicationUser user, IFormFile file)
+    {
+        var check = SafeUpload.Validate(file);
+        if (!check.Ok || check.Kind != MediaKind.Image)
+        {
+            ModelState.AddModelError("ProfileImageFile", check.Error ?? "تصویر نامعتبر است.");
+            return false;
+        }
+
+        if (file.Length > 2 * 1024 * 1024)
+        {
+            ModelState.AddModelError("ProfileImageFile", "حداکثر اندازه تصویر پروفایل ۲ مگابایت است.");
+            return false;
+        }
+
+        await using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        user.ProfileImage = ms.ToArray();
+        user.ProfileImageContentType = check.ContentType;
+        return true;
+    }
+
+    private static void ApplySocials(
+        ApplicationUser user,
+        string? twitter, string? linkedIn, string? telegram,
+        string? phone, string? website, string? github, string? instagram)
+    {
+        user.Twitter = NormalizeHandle(twitter);
+        user.LinkedIn = NormalizeUrlOrHandle(linkedIn);
+        user.Telegram = NormalizeHandle(telegram);
+        user.Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+        user.Website = NormalizeUrlOrHandle(website);
+        user.GitHub = NormalizeHandle(github);
+        user.Instagram = NormalizeHandle(instagram);
+    }
+
+    private static string? NormalizeHandle(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var v = value.Trim();
+        if (v.StartsWith('@')) v = v[1..];
+        if (v.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || v.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var uri = new Uri(v);
+                var seg = uri.AbsolutePath.Trim('/');
+                if (!string.IsNullOrEmpty(seg))
+                    v = seg.Split('/')[0];
+            }
+            catch { /* keep as-is */ }
+        }
+        return string.IsNullOrWhiteSpace(v) ? null : v[..Math.Min(v.Length, 120)];
+    }
+
+    private static string? NormalizeUrlOrHandle(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var v = value.Trim();
+        return v.Length > 200 ? v[..200] : v;
+    }
 
     private async Task<IActionResult> RedirectAfterLoginAsync(string? returnUrl)
     {
