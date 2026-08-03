@@ -1,4 +1,5 @@
 @model BlogApp.Models.ViewModels.ProfileEditViewModel
+@using BlogApp.Models
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = "پروفایل من";
@@ -12,7 +13,7 @@
     </div>
 }
 
-<div class="card-surface p-4" style="max-width:560px;">
+<div class="card-surface p-4" style="max-width:640px;">
     <form asp-action="Profile" method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
 
@@ -33,7 +34,7 @@
             }
             <div>
                 <div class="form-label mb-1">تصویر پروفایل</div>
-                <input type="file" name="ProfileImageFile" accept="image/*" class="form-control form-control-sm" />
+                <input type="file" name="ProfileImageFile" accept="image/jpeg,image/png,image/webp" class="form-control form-control-sm" />
                 @if (Model.HasProfileImage)
                 {
                     <div class="form-check mt-2">
@@ -56,11 +57,57 @@
             <span asp-validation-for="Email" class="text-danger small"></span>
         </div>
 
+        <div class="mb-3">
+            <label class="form-label" asp-for="Gender">جنسیت (him / her)</label>
+            <select class="form-select" asp-for="Gender">
+                <option value="@((int)UserGender.Unspecified)">ترجیح می‌دهم نگویم</option>
+                <option value="@((int)UserGender.Male)">مرد · him</option>
+                <option value="@((int)UserGender.Female)">زن · her</option>
+                <option value="@((int)UserGender.Other)">سایر</option>
+            </select>
+        </div>
+
         <div class="mb-4">
             <label class="form-label" asp-for="Bio">بیو</label>
             <textarea class="form-control" asp-for="Bio" rows="3" dir="auto" maxlength="500"></textarea>
         </div>
 
+        <h3 class="h6 mb-3">شبکه‌های اجتماعی</h3>
+        <div class="row g-2 mb-4">
+            <div class="col-md-6">
+                <label class="form-label" asp-for="Twitter">X / Twitter</label>
+                <input class="form-control ltr-field" asp-for="Twitter" placeholder="@handle" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" asp-for="LinkedIn">LinkedIn</label>
+                <input class="form-control ltr-field" asp-for="LinkedIn" placeholder="in/username" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" asp-for="Telegram">Telegram</label>
+                <input class="form-control ltr-field" asp-for="Telegram" placeholder="@username" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" asp-for="Phone">Phone</label>
+                <input class="form-control ltr-field" asp-for="Phone" placeholder="+98…" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" asp-for="GitHub">GitHub</label>
+                <input class="form-control ltr-field" asp-for="GitHub" placeholder="username" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" asp-for="Instagram">Instagram</label>
+                <input class="form-control ltr-field" asp-for="Instagram" placeholder="@username" />
+            </div>
+            <div class="col-12">
+                <label class="form-label" asp-for="Website">Website</label>
+                <input class="form-control ltr-field" asp-for="Website" placeholder="https://…" />
+            </div>
+        </div>
+
         <button type="submit" class="btn btn-accent">ذخیره پروفایل</button>
+        @if (!string.IsNullOrEmpty(User.Identity?.Name))
+        {
+            <a class="btn btn-ghost ms-2" href="/author/@User.Identity.Name">صفحه عمومی</a>
+        }
     </form>
 </div>
