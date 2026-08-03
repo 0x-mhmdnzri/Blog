@@ -339,7 +339,8 @@ public class MarkdownService
     private static bool IsVideoPlaceholder(string plain) =>
         plain.StartsWith("[[VIDEO_EMBED_", StringComparison.Ordinal);
 
-    private static stringSlugifyHeading(string text) => slugifyHeading(text);
+    // NOTE: return type + method name must be separated by a space
+    private static string SlugifyHeading(string text) => slugifyHeading(text);
 
     private static string slugifyHeading(string text)
     {
