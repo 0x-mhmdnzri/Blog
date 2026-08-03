@@ -11,6 +11,15 @@ public enum AuthorApplicationStatus
     Rejected = 3
 }
 
+/// <summary>Optional public gender for author presentation (him / her / prefer not to say).</summary>
+public enum UserGender
+{
+    Unspecified = 0,
+    Male = 1,
+    Female = 2,
+    Other = 3
+}
+
 /// <summary>
 /// Extended Identity user.
 /// Base hierarchy: SuperAdmin → Author → Reader.
@@ -30,6 +39,32 @@ public class ApplicationUser : IdentityUser
     public string? ProfileImageContentType { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Public gender presentation (optional).</summary>
+    public UserGender Gender { get; set; } = UserGender.Unspecified;
+
+    /// <summary>Twitter / X handle or full URL (without leading @ preferred).</summary>
+    [MaxLength(120)]
+    public string? Twitter { get; set; }
+
+    [MaxLength(200)]
+    public string? LinkedIn { get; set; }
+
+    /// <summary>Telegram username or t.me link.</summary>
+    [MaxLength(120)]
+    public string? Telegram { get; set; }
+
+    [MaxLength(40)]
+    public string? Phone { get; set; }
+
+    [MaxLength(200)]
+    public string? Website { get; set; }
+
+    [MaxLength(120)]
+    public string? GitHub { get; set; }
+
+    [MaxLength(120)]
+    public string? Instagram { get; set; }
 
     /// <summary>Public "become an author" application pipeline.</summary>
     public AuthorApplicationStatus AuthorApplicationStatus { get; set; } = AuthorApplicationStatus.None;
