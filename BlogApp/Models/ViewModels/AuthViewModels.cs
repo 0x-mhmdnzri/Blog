@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using BlogApp.Attributes;
 using BlogApp.Models;
 using Microsoft.AspNetCore.Http;
 
@@ -44,94 +45,89 @@ public class ProfileEditViewModel
     public bool RemoveProfileImage { get; set; }
     public bool HasProfileImage { get; set; }
 }
-
 public class CreateAuthorViewModel
 {
-    [Required(ErrorMessage = "Username is required")]
-    [MaxLength(50, ErrorMessage = "Max 50 characters")]
+    [Required(ErrorMessage = "نام کاربری الزامی است")]
+    [MaxLength(50, ErrorMessage = "حداکثر ۵۰ نویسه")]
     [RegularExpression(@"^[a-zA-Z0-9._-]{3,50}$",
-        ErrorMessage = "3–50 chars: letters, numbers, . _ -")]
-    [Display(Name = "Username")]
+        ErrorMessage = "۳ تا ۵۰ نویسه: حروف، اعداد، . _ -")]
+    [Display(Name = "نام کاربری")]
     public string UserName { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Email is required")]
-    [EmailAddress(ErrorMessage = "Invalid email address")]
-    [MaxLength(256)]
-    [Display(Name = "Email")]
+
+    [ValidEmail]
+    [MaxLength(256, ErrorMessage = "حداکثر ۲۵۶ نویسه")]
+    [Display(Name = "ایمیل")]
     public string Email { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Display name is required")]
-    [MaxLength(100, ErrorMessage = "Max 100 characters")]
-    [MinLength(2, ErrorMessage = "At least 2 characters")]
-    [Display(Name = "Display name")]
+    [Required(ErrorMessage = "نام نمایشی الزامی است")]
+    [MaxLength(100, ErrorMessage = "حداکثر ۱۰۰ نویسه")]
+    [MinLength(2, ErrorMessage = "حداقل ۲ نویسه")]
+    [Display(Name = "نام نمایشی")]
     public string DisplayName { get; set; } = string.Empty;
 
-    [MaxLength(500, ErrorMessage = "Max 500 characters")]
-    [Display(Name = "Bio")]
+    [MaxLength(500, ErrorMessage = "حداکثر ۵۰۰ نویسه")]
+    [Display(Name = "بیوگرافی")]
     public string? Bio { get; set; }
 
-    [Display(Name = "Gender")]
+    [Display(Name = "جنسیت")]
     public UserGender Gender { get; set; } = UserGender.Unspecified;
 
-    [MaxLength(120)]
     public string? Twitter { get; set; }
 
-    [MaxLength(200)]
     public string? LinkedIn { get; set; }
 
-    [MaxLength(120)]
     public string? Telegram { get; set; }
 
-    [MaxLength(40)]
     public string? Phone { get; set; }
 
-    [MaxLength(200)]
     public string? Website { get; set; }
-
-    [MaxLength(120)]
     public string? GitHub { get; set; }
 
-    [MaxLength(120)]
     public string? Instagram { get; set; }
 
     public IFormFile? ProfileImageFile { get; set; }
 
-    [Required(ErrorMessage = "Password is required")]
-    [MinLength(10, ErrorMessage = "At least 10 characters")]
-    [MaxLength(128)]
+    [Required(ErrorMessage = "رمز عبور الزامی است")]
+    [MinLength(10, ErrorMessage = "حداقل ۱۰ نویسه")]
+    [MaxLength(128, ErrorMessage = "حداکثر ۱۲۸ نویسه")]
     [DataType(DataType.Password)]
     [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$",
-        ErrorMessage = "Need upper, lower, and a digit (min 10)")]
-    [Display(Name = "Password")]
+        ErrorMessage = "باید شامل حروف بزرگ، کوچک و عدد باشد (حداقل ۱۰ نویسه)")]
+    [Display(Name = "رمز عبور")]
     public string Password { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Confirm password is required")]
-    [Compare(nameof(Password), ErrorMessage = "Passwords do not match")]
+    [Required(ErrorMessage = "تکرار رمز عبور الزامی است")]
+    [Compare(nameof(Password), ErrorMessage = "رمز عبور و تکرار آن یکسان نیستند")]
     [DataType(DataType.Password)]
-    [Display(Name = "Confirm password")]
+    [Display(Name = "تکرار رمز عبور")]
     public string ConfirmPassword { get; set; } = string.Empty;
 }
 
 public class RegisterReaderViewModel
 {
-    [Required(ErrorMessage = "نام کاربری الزامی است"), MaxLength(50)]
+    [Required(ErrorMessage = "نام کاربری الزامی است")]
+    [MaxLength(50, ErrorMessage = "حداکثر ۵۰ نویسه")]
     [Display(Name = "نام کاربری")]
     public string UserName { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "ایمیل الزامی است"), EmailAddress]
+    [ValidEmail]
     [Display(Name = "ایمیل")]
     public string Email { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "نام نمایشی الزامی است"), MaxLength(100)]
+    [Required(ErrorMessage = "نام نمایشی الزامی است")]
+    [MaxLength(100, ErrorMessage = "حداکثر ۱۰۰ نویسه")]
     [Display(Name = "نام نمایشی")]
     public string DisplayName { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "رمز عبور الزامی است"), MinLength(10, ErrorMessage = "حداقل ۱۰ نویسه")]
+    [Required(ErrorMessage = "رمز عبور الزامی است")]
+    [MinLength(10, ErrorMessage = "حداقل ۱۰ نویسه")]
     [DataType(DataType.Password)]
     [Display(Name = "رمز عبور")]
     public string Password { get; set; } = string.Empty;
 
-    [Required, Compare(nameof(Password), ErrorMessage = "رمز عبور و تکرار آن یکسان نیستند")]
+    [Required(ErrorMessage = "تکرار رمز عبور الزامی است")]
+    [Compare(nameof(Password), ErrorMessage = "رمز عبور و تکرار آن یکسان نیستند")]
     [DataType(DataType.Password)]
     [Display(Name = "تکرار رمز عبور")]
     public string ConfirmPassword { get; set; } = string.Empty;
