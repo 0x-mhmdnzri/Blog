@@ -49,9 +49,18 @@ html[dir="ltr"] .post-layout > .post-main,
 html[dir="ltr"] .post-layout > .post-aside-related,
 html[dir="ltr"] .post-layout > .post-aside-toc { direction: ltr; }
 
-.post-aside-related { grid-column: 1; }
+.post-aside-related { grid-column: 1; align-self: start; }
 .post-main { grid-column: 2; }
-.post-aside-toc { grid-column: 3; }
+.post-aside-toc {
+  grid-column: 3;
+  position: sticky;
+  top: var(--post-sticky-top);
+  align-self: start;
+  max-height: calc(100vh - var(--post-sticky-top) - 1.25rem);
+  overflow: visible;
+  width: 100%;
+  z-index: 5;
+}
 
 .post-aside-sticky {
   position: sticky;
@@ -63,6 +72,38 @@ html[dir="ltr"] .post-layout > .post-aside-toc { direction: ltr; }
   overscroll-behavior: contain;
   align-self: start;
   width: 100%;
+}
+
+.post-aside-toc .post-aside-sticky {
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+
+.post-aside-toc .post-toc-sidebar-wrap {
+  max-height: calc(100vh - var(--post-sticky-top) - 1.25rem);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.post-aside-toc .post-toc--sidebar {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--post-sticky-top) - 1.25rem);
+  overflow: hidden;
+  margin: 0;
+}
+
+.post-aside-toc .post-toc--sidebar .toc-body {
+  flex: 1 1 auto;
+  max-height: none !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 0.25rem 0.35rem 0.75rem;
+  border-top: none;
 }
 
 .related-rail {
@@ -460,16 +501,9 @@ a.pd-chip:hover {
 
 .post-toc-mobile { display: none; margin-bottom: 1.5rem; }
 .post-toc-sidebar-wrap .post-toc--sidebar { margin: 0; width: 100%; }
-.post-aside-toc .post-toc--sidebar .toc-body {
-  max-height: calc(100vh - 12rem);
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0.35rem 0.25rem 0.65rem;
-  scrollbar-width: thin;
-  border-top: none;
-}
 .post-aside-toc .post-toc--sidebar .toc-toggle { pointer-events: none; cursor: default; }
 .post-aside-toc .post-toc--sidebar .toc-toggle-chevron { display: none; }
+.post-aside-toc .post-toc--sidebar .toc-count { display: none; }
 
 .md-heading { scroll-margin-top: 6rem; }
 .md-heading.is-section-active { position: relative; }
@@ -518,7 +552,11 @@ a.pd-chip:hover {
     max-height: none;
     overflow: visible;
   }
-  .post-aside-toc { display: none; }
+  .post-aside-toc {
+    display: none;
+    position: static;
+    max-height: none;
+  }
   .post-toc-mobile { display: block; }
   .post-aside-related {
     order: 3;
