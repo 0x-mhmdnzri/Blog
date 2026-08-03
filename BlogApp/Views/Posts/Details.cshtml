@@ -17,6 +17,13 @@
     var tocHtml = ViewBag.TocHtml as string;
     var related = ViewBag.RelatedPosts as IList<RelatedPostItem> ?? new List<RelatedPostItem>();
     var hasToc = !string.IsNullOrWhiteSpace(tocHtml);
+    var hasCover = Model.CoverMediaAssetId is > 0;
+    var hasAuthorImg = Model.Author?.ProfileImage is { Length: > 0 };
+    var tags = Model.PostTags?
+        .Where(pt => pt.Tag != null)
+        .Select(pt => pt.Tag!)
+        .OrderBy(t => t.Name)
+        .ToList() ?? new List<Tag>();
 }
 
 @section Head {
@@ -27,6 +34,8 @@
     <link rel="stylesheet" href="~/css/post-social.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/comments.css" asp-append-version="true" />
 }
+
+<div class="pd-progress" id="pdProgress" aria-hidden="true"><i id="pdProgressBar"></i></div>
 
 <div class="post-layout @(hasToc ? "has-toc" : "no-toc")" data-analytics-post-id="@Model.Id">
 
@@ -65,18 +74,19 @@
     </aside>
 
     <article class="post-main post-article">
+
         @if (TempData["BookmarkMsg"] != null)
         {
-            <div class="post-flash">@TempData["BookmarkMsg"]</div>
+            <div class="post-flash is-ok" role="status">@TempData["BookmarkMsg"]</div>
         }
         @if (TempData["ReportMsg"] != null)
         {
-            <div class="post-flash">@TempData["ReportMsg"]</div>
+            <div class="post-flash" role="status">@TempData["ReportMsg"]</div>
         }
 
         @if (canEdit)
         {
-            <div class="post-edit-bar">
+            <div class="post-edit-bar" role="toolbar" aria-label="admin">
                 <a class="post-edit-link" asp-action="Edit" asp-route-id="@Model.Id">ویرایش</a>
                 <form asp-action="Duplicate" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
@@ -94,32 +104,80 @@
             </div>
         }
 
-        <div class="post-badges">
-            @if (Model.IsFeatured) { <span class="badge-category">ویژه</span> }
-            @if (Model.IsSticky) { <span class="status-pill sticky">چسبان</span> }
-            @if (Model.IsPremium) { <span class="status-pill featured">@T["mon.premium_badge"]</span> }
-            @if (isSponsored)
-            {
-                <span class="status-pill scheduled">@(string.IsNullOrWhiteSpace(sponsoredLabel) ? T["mon.sponsored_default"] : sponsoredLabel)</span>
-            }
+        @if (hasCover)
+        {
+            <figure class="pd-cover">
+                <img src="/media/@Model.CoverMediaAssetId"
+                     alt=""
+                     loading="eager"
+                     decoding="async"
+                     class="pd-cover-img" />
+            </figure>
+        }
+
+        <header class="pd-header">
+            <div class="post-badges">
+                @if (Model.Category != null)
+                {
+                    <a class="pd-chip" href="/@Model.LanguageCode/category/@Model.Category.Slug">@Model.Category.Name</a>
+                }
+                @if (Model.IsFeatured) { <span class="pd-chip is-accent">@T["post.featured"]</span> }
+                @if (Model.IsSticky) { <span class="pd-chip">@T["post.sticky"]</span> }
+                @if (Model.IsPremium) { <span class="pd-chip is-premium">@T["mon.premium_badge"]</span> }
+                @if (isSponsored)
+                {
+                    <span class="pd-chip is-sponsored">@(string.IsNullOrWhiteSpace(sponsoredLabel) ? T["mon.sponsored_default"] : sponsoredLabel)</span>
+                }
+            </div>
+
+            <h1 class="post-title" dir="@titleDir">@Model.Title</h1>
+
+            <div class="pd-byline">
+                @if (Model.Author != null)
+                {
+                    <a class="pd-author" href="/author/@Model.Author.UserName">
+                        @if (hasAuthorImg)
+                        {
+                            <img class="pd-avatar"
+                                 src="@Url.Action("ProfileImage", "Account", new { userId = Model.AuthorId })"
+                                 alt="" width="40" height="40" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span class="pd-avatar pd-avatar-fallback" aria-hidden="true">
+                                @(string.IsNullOrEmpty(Model.Author.DisplayName) ? "?" : Model.Author.DisplayName.Trim()[0])
+                            </span>
+                        }
+                        <span class="pd-author-text">
+                            <span class="pd-author-name">@Model.Author.DisplayName</span>
+                            <span class="pd-author-meta">
+                                <time datetime="@published.ToString("o")">@PersianDate.DateTime(published)</time>
+                                <span class="post-meta-sep" aria-hidden="true">·</span>
+                                <span>@readingMinutes @T["post.reading_min"]</span>
+                                <span class="post-meta-sep" aria-hidden="true">·</span>
+                                <span class="ltr-field">@Model.ViewCount.ToString("N0")</span>
+                                <span>@T["post.views"]</span>
+                            </span>
+                        </span>
+                    </a>
+                }
+                else
+                {
+                    <div class="pd-author-meta-solo">
+                        <time datetime="@published.ToString("o")">@PersianDate.DateTime(published)</time>
+                        <span class="post-meta-sep" aria-hidden="true">·</span>
+                        <span>@readingMinutes @T["post.reading_min"]</span>
+                        <span class="post-meta-sep" aria-hidden="true">·</span>
+                        <span class="ltr-field">@Model.ViewCount.ToString("N0")</span>
+                        <span>@T["post.views"]</span>
+                    </div>
+                }
+            </div>
+        </header>
+
+        <div class="pd-social-top">
+            @await Html.PartialAsync("_SocialBar")
         </div>
-
-        <h1 class="post-title" dir="@titleDir">@Model.Title</h1>
-
-        <div class="post-meta">
-            @if (Model.Author != null)
-            {
-                <a class="post-meta-author" href="/author/@Model.Author.UserName">@Model.Author.DisplayName</a>
-                <span class="post-meta-sep" aria-hidden="true">·</span>
-            }
-            <time datetime="@published.ToString("o")">@PersianDate.DateTime(published)</time>
-            <span class="post-meta-sep" aria-hidden="true">·</span>
-            <span>@readingMinutes دقیقه</span>
-            <span class="post-meta-sep" aria-hidden="true">·</span>
-            <span>@Model.ViewCount.ToString("N0") بازدید</span>
-        </div>
-
-        @await Html.PartialAsync("_SocialBar")
 
         @if (!string.IsNullOrWhiteSpace(Model.Summary))
         {
@@ -135,16 +193,56 @@
 
         @if (premiumLocked)
         {
-            <div class="post-premium-lock">@T["mon.premium_locked"]</div>
+            <div class="post-premium-lock">
+                <p class="pd-lock-title">@T["mon.premium_locked"]</p>
+            </div>
         }
         else
         {
             <div class="post-body markdown-body" dir="auto">@Html.Raw(ViewBag.RenderedHtml)</div>
         }
 
+        @if (tags.Count > 0)
+        {
+            <footer class="pd-tags" aria-label="tags">
+                @foreach (var tag in tags)
+                {
+                    <a class="pd-tag" href="/@Model.LanguageCode/tag/@tag.Slug">#@tag.Name</a>
+                }
+            </footer>
+        }
+
         <div class="post-actions-footer">
             @await Html.PartialAsync("_SocialBar")
         </div>
+
+        @if (Model.Author != null)
+        {
+            <section class="pd-author-card">
+                <a class="pd-author-card-link" href="/author/@Model.Author.UserName">
+                    @if (hasAuthorImg)
+                    {
+                        <img class="pd-avatar pd-avatar-lg"
+                             src="@Url.Action("ProfileImage", "Account", new { userId = Model.AuthorId })"
+                             alt="" width="56" height="56" loading="lazy" />
+                    }
+                    else
+                    {
+                        <span class="pd-avatar pd-avatar-lg pd-avatar-fallback" aria-hidden="true">
+                            @(string.IsNullOrEmpty(Model.Author.DisplayName) ? "?" : Model.Author.DisplayName.Trim()[0])
+                        </span>
+                    }
+                    <span class="pd-author-card-body">
+                        <span class="pd-author-card-label">نوشته‌شده توسط</span>
+                        <span class="pd-author-card-name">@Model.Author.DisplayName</span>
+                        @if (!string.IsNullOrWhiteSpace(Model.Author.Bio))
+                        {
+                            <span class="pd-author-card-bio">@Model.Author.Bio</span>
+                        }
+                    </span>
+                </a>
+            </section>
+        }
 
         @await Html.PartialAsync("_CommentsSection", Model)
     </article>
@@ -165,4 +263,21 @@
 @section Scripts {
     <script src="~/js/post-toc.js" asp-append-version="true" defer></script>
     <script src="~/js/related-rail.js" asp-append-version="true" defer></script>
+    <script src="~/js/comments.js" asp-append-version="true" defer></script>
+    <script>
+    (function () {
+      var bar = document.getElementById('pdProgressBar');
+      var article = document.querySelector('.post-body') || document.querySelector('.post-article');
+      if (!bar || !article) return;
+      function onScroll() {
+        var rect = article.getBoundingClientRect();
+        var total = article.offsetHeight - window.innerHeight;
+        var scrolled = Math.min(Math.max(-rect.top, 0), Math.max(total, 1));
+        var pct = total > 0 ? (scrolled / total) * 100 : 0;
+        bar.style.width = pct.toFixed(1) + '%';
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+    </script>
 }
