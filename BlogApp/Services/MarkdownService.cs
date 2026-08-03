@@ -29,6 +29,9 @@ public class MarkdownService
     private static readonly Regex CellHtmlRegex =
         new(@"<(t[dh])(\s[^>]*)?>(.*?)</\1>", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
+    private static readonly Regex TableBlockRegex =
+        new(@"<table class=""md-table"">[\s\S]*?</table>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     private static readonly Regex PreHtmlRegex =
         new(@"<pre(\s[^>]*)?>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -38,7 +41,6 @@ public class MarkdownService
     private static readonly Regex ImgHtmlRegex =
         new(@"<img\s+([^>]*?)\s*/?>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-    // Non-verbatim: avoid quote-escape issues inside character classes
     private static readonly Regex MediaPathRegex =
         new("(?:https?://[^/\\s\"']+)?/media/(\\d+)(?:/w/\\d+)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -128,6 +130,8 @@ public class MarkdownService
             var dir = DetectDir(StripTags(inner));
             return $"<{tag} dir=\"{dir}\">{inner}</{tag}>";
         });
+        html = TableBlockRegex.Replace(html, m =>
+            $"<div class=\"md-table-wrap\" tabindex=\"0\">{m.Value}</div>");
 
         html = ImgHtmlRegex.Replace(html, m => EnhanceImageTag(m.Groups[1].Value));
 
@@ -215,7 +219,7 @@ public class MarkdownService
     {
         if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
 
-        var headings = new List<(int Level, string Text, string Slug, string Dir)>();
+        var headings = new List<(int Level, string Text, stringSlug, string Dir)>();
         foreach (Match m in HeadingRegex.Matches(markdown))
         {
             var level = m.Groups[1].Value.Length;
@@ -224,7 +228,7 @@ public class MarkdownService
             var text = Regex.Replace(m.Groups[2].Value.Trim(), @"[*_`\[\]()#]", "").Trim();
             if (string.IsNullOrWhiteSpace(text) || text.Length < 2) continue;
 
-            headings.Add((level, text, SlugifyHeading(text), DetectDir(text)));
+            headings.Add((level, text,SlugifyHeading(text), DetectDir(text)));
         }
 
         if (headings.Count < 2) return string.Empty;
