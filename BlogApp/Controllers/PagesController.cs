@@ -9,14 +9,19 @@ namespace BlogApp.Controllers;
 public class PagesController : Controller
 {
     private readonly SeoService _seo;
+    private readonly IUiTranslator _t;
 
-    public PagesController(SeoService seo) => _seo = seo;
+    public PagesController(SeoService seo, IUiTranslator t)
+    {
+        _seo = seo;
+        _t = t;
+    }
 
     [HttpGet("about")]
     public IActionResult About()
     {
-        ViewData["Title"] = "درباره من";
-        ViewData["Description"] = "محمد نظری — Senior .NET Backend Engineer؛ Clean Architecture، DDD، CQRS و سیستم‌های توزیع‌شده.";
+        ViewData["Title"] = _t["mkt.about.title"];
+        ViewData["Description"] = _t["mkt.about.desc"];
         ViewData["OgType"] = "profile";
         return View();
     }
@@ -24,24 +29,24 @@ public class PagesController : Controller
     [HttpGet("services")]
     public IActionResult Services()
     {
-        ViewData["Title"] = "خدمات";
-        ViewData["Description"] = "طراحی و پیاده‌سازی بک‌اند .NET، معماری میکروسرویس، پرداخت، ERP و زیرساخت پیام‌رسانی.";
+        ViewData["Title"] = _t["mkt.svc.title"];
+        ViewData["Description"] = _t["mkt.svc.desc"];
         return View();
     }
 
     [HttpGet("projects")]
     public IActionResult Projects()
     {
-        ViewData["Title"] = "پروژه‌ها";
-        ViewData["Description"] = "نمونه پروژه‌ها: Artix.API، Wallet، IDPServer، RabbitMQ patterns و File-Uploader.";
+        ViewData["Title"] = _t["mkt.prj.title"];
+        ViewData["Description"] = _t["mkt.prj.desc"];
         return View();
     }
 
     [HttpGet("contact")]
     public IActionResult Contact()
     {
-        ViewData["Title"] = "تماس";
-        ViewData["Description"] = "ارتباط با محمد نظری برای همکاری، مشاوره معماری و پروژه‌های .NET.";
+        ViewData["Title"] = _t["mkt.ctc.title"];
+        ViewData["Description"] = _t["mkt.ctc.desc"];
         return View();
     }
 }

@@ -1,78 +1,73 @@
+@inject BlogApp.Services.IUiTranslator T
 <link rel="stylesheet" href="~/css/site-marketing.css" asp-append-version="true" />
-@{
-    ViewData["Title"] = "درباره من";
-}
 
 <section class="persona-hero">
     <div class="container">
-        <div class="persona-kicker">$ whoami</div>
-        <h1 class="persona-title" dir="auto">محمد نظری</h1>
-        <p class="persona-lead" dir="auto">
-            مهندس بک‌اند .NET با تمرکز بر سیستم‌های توزیع‌شده.
-            تخصص در Clean Architecture، Domain-Driven Design، CQRS، Event-Driven Architecture و Microservices.
-        </p>
+        <div class="persona-kicker">@T["mkt.about.kicker"]</div>
+        <h1 class="persona-title" dir="auto">@T["mkt.about.name"]</h1>
+        <p class="persona-lead" dir="auto">@T["mkt.about.lead"]</p>
         <div class="persona-cta">
-            <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">تماس و همکاری</a>
-            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Projects">پروژه‌ها</a>
-            <a class="btn btn-ghost" asp-controller="Home" asp-action="Index">وبلاگ</a>
+            <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">@T["mkt.about.cta_contact"]</a>
+            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Projects">@T["mkt.about.cta_projects"]</a>
+            <a class="btn btn-ghost" asp-controller="Home" asp-action="Index">@T["mkt.about.cta_blog"]</a>
         </div>
     </div>
 </section>
 
 <div class="container persona-page">
-    <h2 class="section-title" dir="auto">تمرکز حرفه‌ای</h2>
-    <p class="section-sub" dir="auto">جایی که بیشترین ارزش را برای تیم‌ها و محصولات می‌سازم.</p>
+    <h2 class="section-title" dir="auto">@T["mkt.about.focus_title"]</h2>
+    <p class="section-sub" dir="auto">@T["mkt.about.focus_sub"]</p>
     <div class="skill-grid mb-4">
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">◇</div>
-            <h3 dir="auto">معماری نرم‌افزار</h3>
-            <p dir="auto">طراحی مرزهای دامنه، ماژولار monolith و مسیر مهاجرت به سرویس‌ها بدون پیچیدگی زودرس.</p>
+            <h3 dir="auto">@T["mkt.about.f1_t"]</h3>
+            <p dir="auto">@T["mkt.about.f1_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">⇄</div>
-            <h3 dir="auto">سیستم‌های توزیع‌شده</h3>
-            <p dir="auto">پیام‌رسانی قابل اتکا، consistency، idempotency و observability در محیط production.</p>
+            <h3 dir="auto">@T["mkt.about.f2_t"]</h3>
+            <p dir="auto">@T["mkt.about.f2_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">▣</div>
-            <h3 dir="auto">داده و عملکرد</h3>
-            <p dir="auto">مدل‌سازی داده، کش، قفل‌های توزیع‌شده و بهینه‌سازی مسیرهای پرمصرف.</p>
+            <h3 dir="auto">@T["mkt.about.f3_t"]</h3>
+            <p dir="auto">@T["mkt.about.f3_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">⬡</div>
-            <h3 dir="auto">امنیت و هویت</h3>
-            <p dir="auto">OAuth2 / OIDC، JWT، SSO و مرزهای امن برای API و اپلیکیشن‌های سازمانی.</p>
+            <h3 dir="auto">@T["mkt.about.f4_t"]</h3>
+            <p dir="auto">@T["mkt.about.f4_b"]</p>
         </div>
     </div>
 
-    <h2 class="section-title mt-2" dir="auto">حوزه‌های تجربه</h2>
-    <p class="section-sub" dir="auto">FinTech · ERP · HealthTech · IAM</p>
+    <h2 class="section-title mt-2" dir="auto">@T["mkt.about.domains_title"]</h2>
+    <p class="section-sub" dir="auto">@T["mkt.about.domains_sub"]</p>
     <div class="roadmap">
         <div class="roadmap-step">
             <div class="roadmap-num">01</div>
             <div>
-                <strong dir="auto">ساخت محصول</strong>
-                <p class="text-muted-dark small mb-0" dir="auto">از اسکوپ دامنه تا استقرار — با بازخورد کوتاه‌چرخه و کد قابل نگهداری.</p>
+                <strong dir="auto">@T["mkt.about.r1_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.about.r1_b"]</p>
             </div>
         </div>
         <div class="roadmap-step">
             <div class="roadmap-num">02</div>
             <div>
-                <strong dir="auto">مشاوره معماری</strong>
-                <p class="text-muted-dark small mb-0" dir="auto">بازبینی طراحی، کاهش بدهی فنی و انتخاب trade-offهای درست.</p>
+                <strong dir="auto">@T["mkt.about.r2_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.about.r2_b"]</p>
             </div>
         </div>
         <div class="roadmap-step">
             <div class="roadmap-num">03</div>
             <div>
-                <strong dir="auto">آموزش تیم</strong>
-                <p class="text-muted-dark small mb-0" dir="auto">معماری .NET، DDD و بهترین شیوه‌های مدرن C# برای تیم‌های در حال رشد.</p>
+                <strong dir="auto">@T["mkt.about.r3_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.about.r3_b"]</p>
             </div>
         </div>
     </div>
 
     <div class="mt-5 card-surface p-4 text-center">
-        <p class="mb-3" dir="auto">برای همکاری یا گفت‌وگوی فنی آماده‌ام.</p>
-        <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">شروع گفتگو</a>
+        <p class="mb-3" dir="auto">@T["mkt.about.cta_box"]</p>
+        <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">@T["mkt.about.cta_start"]</a>
     </div>
 </div>

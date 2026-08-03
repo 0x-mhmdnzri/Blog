@@ -1,18 +1,14 @@
+@inject BlogApp.Services.IUiTranslator T
 <link rel="stylesheet" href="~/css/site-marketing.css" asp-append-version="true" />
-@{
-    ViewData["Title"] = "پروژه‌ها";
-}
 
 <section class="persona-hero">
     <div class="container">
-        <div class="persona-kicker">$ ls ./projects</div>
-        <h1 class="persona-title" dir="auto">پروژه‌های منتخب</h1>
-        <p class="persona-lead" dir="auto">
-            نمونه‌هایی از معماری، پرداخت، هویت و پیام‌رسانی — خلاصه و شفاف.
-        </p>
+        <div class="persona-kicker">@T["mkt.prj.kicker"]</div>
+        <h1 class="persona-title" dir="auto">@T["mkt.prj.h1"]</h1>
+        <p class="persona-lead" dir="auto">@T["mkt.prj.lead"]</p>
         <div class="persona-cta">
-            <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">گفتگو درباره پروژه مشابه</a>
-            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Services">خدمات</a>
+            <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">@T["mkt.prj.cta_contact"]</a>
+            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Services">@T["mkt.prj.cta_services"]</a>
         </div>
     </div>
 </section>
@@ -21,8 +17,8 @@
     <div class="row g-3">
         <div class="col-md-6">
             <div class="skill-card project-card h-100">
-                <h3 dir="auto">ERP Core</h3>
-                <p dir="auto">هسته ERP با مرزهای دامنه شفاف، ماژولار monolith و آمادگی برای سرویس‌سازی تدریجی.</p>
+                <h3 dir="auto">@T["mkt.prj.p1_t"]</h3>
+                <p dir="auto">@T["mkt.prj.p1_b"]</p>
                 <div class="project-tags">
                     <span class="tag-pill">DDD</span><span class="tag-pill">CQRS</span>
                 </div>
@@ -30,8 +26,8 @@
         </div>
         <div class="col-md-6">
             <div class="skill-card project-card h-100">
-                <h3 dir="auto">Wallet</h3>
-                <p dir="auto">کیف پول دیجیتال با Redis caching و locking برای یکپارچگی تراکنش.</p>
+                <h3 dir="auto">@T["mkt.prj.p2_t"]</h3>
+                <p dir="auto">@T["mkt.prj.p2_b"]</p>
                 <div class="project-tags">
                     <span class="tag-pill">Redis</span><span class="tag-pill">Payments</span>
                 </div>
@@ -39,8 +35,8 @@
         </div>
         <div class="col-md-6">
             <div class="skill-card project-card h-100">
-                <h3 dir="auto">IDPServer</h3>
-                <p dir="auto">IAM با IdentityServer، OAuth2/OIDC برای SSO و مجوزدهی API.</p>
+                <h3 dir="auto">@T["mkt.prj.p3_t"]</h3>
+                <p dir="auto">@T["mkt.prj.p3_b"]</p>
                 <div class="project-tags">
                     <span class="tag-pill">IdentityServer</span><span class="tag-pill">OAuth2</span>
                 </div>
@@ -48,8 +44,8 @@
         </div>
         <div class="col-md-6">
             <div class="skill-card project-card h-100">
-                <h3 dir="auto">RabbitMQ Patterns</h3>
-                <p dir="auto">Work Queues، Pub/Sub، Routing، Topics، RPC با Publisher Confirms.</p>
+                <h3 dir="auto">@T["mkt.prj.p4_t"]</h3>
+                <p dir="auto">@T["mkt.prj.p4_b"]</p>
                 <div class="project-tags">
                     <span class="tag-pill">RabbitMQ</span><span class="tag-pill">EDA</span>
                 </div>
@@ -57,8 +53,8 @@
         </div>
         <div class="col-md-6">
             <div class="skill-card project-card h-100">
-                <h3 dir="auto">File-Uploader</h3>
-                <p dir="auto">آپلود ناهمزمان مقیاس‌پذیر با background jobs.</p>
+                <h3 dir="auto">@T["mkt.prj.p5_t"]</h3>
+                <p dir="auto">@T["mkt.prj.p5_b"]</p>
                 <div class="project-tags">
                     <span class="tag-pill">Async</span><span class="tag-pill">Jobs</span>
                 </div>
@@ -66,8 +62,8 @@
         </div>
         <div class="col-md-6">
             <div class="skill-card project-card h-100">
-                <h3 dir="auto">این وبلاگ (Blog CMS)</h3>
-                <p dir="auto">CMS فارسی با RTL، JSON-LD، رسانه، نظرات و UX — نمونه زنده ASP.NET Core.</p>
+                <h3 dir="auto">@T["mkt.prj.p6_t"]</h3>
+                <p dir="auto">@T["mkt.prj.p6_b"]</p>
                 <div class="project-tags">
                     <span class="tag-pill">ASP.NET Core</span><span class="tag-pill">SEO</span>
                 </div>
@@ -76,7 +72,7 @@
     </div>
 
     <div class="mt-5 card-surface p-4 text-center">
-        <p class="mb-3" dir="auto">می‌خواهید پشت صحنه معماری را بخوانید؟</p>
-        <a class="btn btn-accent" asp-controller="Home" asp-action="Index">ورود به وبلاگ</a>
+        <p class="mb-3" dir="auto">@T["mkt.prj.cta_box"]</p>
+        <a class="btn btn-accent" asp-controller="Home" asp-action="Index">@T["mkt.prj.cta_blog"]</a>
     </div>
 </div>

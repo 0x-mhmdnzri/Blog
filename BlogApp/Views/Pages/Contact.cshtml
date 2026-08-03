@@ -1,63 +1,71 @@
-@{
-    ViewData["Title"] = "تماس";
-}
+@inject BlogApp.Services.IUiTranslator T
+<link rel="stylesheet" href="~/css/site-marketing.css" asp-append-version="true" />
+
 <section class="persona-hero">
-    <div class="container" style="max-width:720px;">
-        <div class="persona-kicker">$ ping contact</div>
-        <h1 class="persona-title" dir="auto">ارتباط با من</h1>
+    <div class="container" style="max-width:40rem;">
+        <div class="persona-kicker">@T["mkt.ctc.kicker"]</div>
+        <h1 class="persona-title" dir="auto">@T["mkt.ctc.h1"]</h1>
         <p class="persona-lead" dir="auto">
-            برای همکاری پروژه‌ای، مشاوره معماری یا آموزش تیمی — پیام بفرستید.
-            قبل از تماس، نگاهی به <a asp-controller="Home" asp-action="Index">وبلاگ</a> و
-            <a asp-controller="Pages" asp-action="Projects">پروژه‌ها</a> کمک می‌کند.
+            @T["mkt.ctc.lead"]
         </p>
+        <div class="persona-cta">
+            <a class="btn btn-accent" href="mailto:nazari.mohammad80@icloud.com">@T["mkt.ctc.cta_email"]</a>
+            <a class="btn btn-ghost" asp-controller="Home" asp-action="Index">@T["mkt.ctc.lead_blog"]</a>
+            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Projects">@T["mkt.ctc.lead_projects"]</a>
+        </div>
+        <p class="ctc-note" dir="auto">@T["mkt.ctc.note"]</p>
     </div>
 </section>
 
-<div class="container py-5" style="max-width:720px;">
-    <div class="row g-4">
-        <div class="col-md-6">
-            <div class="contact-card h-100">
-                <div class="small text-muted-dark mb-2">Email</div>
-                <a class="ltr-field" href="mailto:nazari.mohammad80@icloud.com">nazari.mohammad80@icloud.com</a>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="contact-card h-100">
-                <div class="small text-muted-dark mb-2">Phone</div>
-                <a class="ltr-field" href="tel:+989203216120">+98 920 321 6120</a>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="contact-card h-100">
-                <div class="small text-muted-dark mb-2">GitHub</div>
-                <a class="ltr-field" href="https://github.com/0x-mhmdnzri" target="_blank" rel="noopener">github.com/0x-mhmdnzri</a>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="contact-card h-100">
-                <div class="small text-muted-dark mb-2">LinkedIn</div>
-                <a class="ltr-field" href="https://linkedin.com/in/mhmdnzr" target="_blank" rel="noopener">linkedin.com/in/mhmdnzr</a>
-            </div>
-        </div>
+<div class="container persona-page" style="max-width:48rem;">
+    <h2 class="section-title" dir="auto">@T["mkt.ctc.channels"]</h2>
+    <div class="ctc-grid">
+        <a class="ctc-card" href="mailto:nazari.mohammad80@icloud.com">
+            <span class="ctc-card-ico" aria-hidden="true">✉</span>
+            <span class="ctc-card-label">@T["mkt.ctc.email"]</span>
+            <span class="ctc-card-value ltr-field">nazari.mohammad80@icloud.com</span>
+        </a>
+        <a class="ctc-card" href="https://github.com/0x-mhmdnzri" target="_blank" rel="noopener">
+            <span class="ctc-card-ico" aria-hidden="true">⌘</span>
+            <span class="ctc-card-label">@T["mkt.ctc.github"]</span>
+            <span class="ctc-card-value ltr-field">github.com/0x-mhmdnzri</span>
+        </a>
+        <a class="ctc-card" href="https://linkedin.com/in/mhmdnzr" target="_blank" rel="noopener">
+            <span class="ctc-card-ico" aria-hidden="true">in</span>
+            <span class="ctc-card-label">@T["mkt.ctc.linkedin"]</span>
+            <span class="ctc-card-value ltr-field">linkedin.com/in/mhmdnzr</span>
+        </a>
     </div>
 
-    <h2 class="section-title mt-5" dir="auto">نقشه راه مشتری</h2>
+    <h2 class="section-title mt-5" dir="auto">@T["mkt.ctc.path_title"]</h2>
     <div class="roadmap mt-3">
         <div class="roadmap-step">
             <div class="roadmap-num">1</div>
-            <div><strong dir="auto">درباره</strong> — زمینه و تجربه</div>
+            <div>
+                <strong dir="auto">@T["mkt.ctc.p1_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.ctc.p1_b"]</p>
+            </div>
         </div>
         <div class="roadmap-step">
             <div class="roadmap-num">2</div>
-            <div><strong dir="auto">خدمات و پروژه‌ها</strong> — آنچه می‌توانم تحویل دهم</div>
+            <div>
+                <strong dir="auto">@T["mkt.ctc.p2_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.ctc.p2_b"]</p>
+            </div>
         </div>
         <div class="roadmap-step">
             <div class="roadmap-num">3</div>
-            <div><strong dir="auto">وبلاگ</strong> — عمق فنی و سبک کار</div>
+            <div>
+                <strong dir="auto">@T["mkt.ctc.p3_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.ctc.p3_b"]</p>
+            </div>
         </div>
         <div class="roadmap-step">
             <div class="roadmap-num">4</div>
-            <div><strong dir="auto">تماس</strong> — شروع گفتگو</div>
+            <div>
+                <strong dir="auto">@T["mkt.ctc.p4_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.ctc.p4_b"]</p>
+            </div>
         </div>
     </div>
 </div>

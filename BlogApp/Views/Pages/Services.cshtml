@@ -1,87 +1,83 @@
+@inject BlogApp.Services.IUiTranslator T
 <link rel="stylesheet" href="~/css/site-marketing.css" asp-append-version="true" />
-@{
-    ViewData["Title"] = "خدمات";
-}
 
 <section class="persona-hero">
     <div class="container">
-        <div class="persona-kicker">$ ./services --list</div>
-        <h1 class="persona-title" dir="auto">خدمات بک‌اند و معماری</h1>
-        <p class="persona-lead" dir="auto">
-            از طراحی دامنه تا پیاده‌سازی قابل اتکا — برای تیم‌هایی که به کیفیت و مقیاس اهمیت می‌دهند.
-        </p>
+        <div class="persona-kicker">@T["mkt.svc.kicker"]</div>
+        <h1 class="persona-title" dir="auto">@T["mkt.svc.h1"]</h1>
+        <p class="persona-lead" dir="auto">@T["mkt.svc.lead"]</p>
         <div class="persona-cta">
-            <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">درخواست همکاری</a>
-            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Projects">نمونه‌کارها</a>
+            <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">@T["mkt.svc.cta_contact"]</a>
+            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Projects">@T["mkt.svc.cta_projects"]</a>
         </div>
     </div>
 </section>
 
 <div class="container persona-page">
-    <h2 class="section-title" dir="auto">چه می‌توانم انجام دهم</h2>
-    <p class="section-sub" dir="auto">خدمات متمرکز بر بک‌اند .NET و سیستم‌های توزیع‌شده.</p>
+    <h2 class="section-title" dir="auto">@T["mkt.svc.list_title"]</h2>
+    <p class="section-sub" dir="auto">@T["mkt.svc.list_sub"]</p>
     <div class="skill-grid">
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">◇</div>
-            <h3 dir="auto">معماری نرم‌افزار</h3>
-            <p dir="auto">Clean Architecture، DDD، CQRS و طراحی مرزهای شفاف برای رشد بلندمدت.</p>
+            <h3 dir="auto">@T["mkt.svc.s1_t"]</h3>
+            <p dir="auto">@T["mkt.svc.s1_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">₿</div>
-            <h3 dir="auto">پرداخت و FinTech</h3>
-            <p dir="auto">موتور پردازش پرداخت، idempotency با Redis lock، تسویه و جلوگیری از race condition.</p>
+            <h3 dir="auto">@T["mkt.svc.s2_t"]</h3>
+            <p dir="auto">@T["mkt.svc.s2_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">⇄</div>
-            <h3 dir="auto">پیام‌رسانی</h3>
-            <p dir="auto">RabbitMQ: Work Queues، Pub/Sub، Routing، Topics، RPC و Publisher Confirms.</p>
+            <h3 dir="auto">@T["mkt.svc.s3_t"]</h3>
+            <p dir="auto">@T["mkt.svc.s3_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">◎</div>
-            <h3 dir="auto">زمان واقعی</h3>
-            <p dir="auto">SignalR برای نوتیفیکیشن لحظه‌ای داشبوردها و وضعیت تراکنش‌ها.</p>
+            <h3 dir="auto">@T["mkt.svc.s4_t"]</h3>
+            <p dir="auto">@T["mkt.svc.s4_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">⬡</div>
-            <h3 dir="auto">امنیت و هویت</h3>
-            <p dir="auto">OAuth2، OpenID Connect، JWT، IdentityServer و SSO.</p>
+            <h3 dir="auto">@T["mkt.svc.s5_t"]</h3>
+            <p dir="auto">@T["mkt.svc.s5_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">▣</div>
-            <h3 dir="auto">DevOps</h3>
-            <p dir="auto">Docker multi-stage، GitHub Actions CI/CD، بهینه‌سازی EF Core.</p>
+            <h3 dir="auto">@T["mkt.svc.s6_t"]</h3>
+            <p dir="auto">@T["mkt.svc.s6_b"]</p>
         </div>
     </div>
 
-    <h2 class="section-title mt-5" dir="auto">مسیر همکاری پیشنهادی</h2>
-    <p class="section-sub" dir="auto">نقشهٔ ساده از آشنایی تا تحویل.</p>
+    <h2 class="section-title mt-5" dir="auto">@T["mkt.svc.path_title"]</h2>
+    <p class="section-sub" dir="auto">@T["mkt.svc.path_sub"]</p>
     <div class="roadmap">
         <div class="roadmap-step">
             <div class="roadmap-num">1</div>
             <div>
-                <strong dir="auto">آشنایی با دامنه</strong>
-                <p class="text-muted-dark small mb-0" dir="auto">از صفحه درباره و پروژه‌ها شروع کنید.</p>
+                <strong dir="auto">@T["mkt.svc.p1_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.svc.p1_b"]</p>
             </div>
         </div>
         <div class="roadmap-step">
             <div class="roadmap-num">2</div>
             <div>
-                <strong dir="auto">مطالعه نوشتارهای فنی</strong>
-                <p class="text-muted-dark small mb-0" dir="auto">در <a asp-controller="Home" asp-action="Index">وبلاگ</a> معماری و درس‌آموخته‌ها را ببینید.</p>
+                <strong dir="auto">@T["mkt.svc.p2_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.svc.p2_b"]</p>
             </div>
         </div>
         <div class="roadmap-step">
             <div class="roadmap-num">3</div>
             <div>
-                <strong dir="auto">تماس و اسکوپ</strong>
-                <p class="text-muted-dark small mb-0" dir="auto">از صفحه <a asp-controller="Pages" asp-action="Contact">تماس</a> موضوع را مطرح کنید.</p>
+                <strong dir="auto">@T["mkt.svc.p3_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.svc.p3_b"]</p>
             </div>
         </div>
         <div class="roadmap-step">
             <div class="roadmap-num">4</div>
             <div>
-                <strong dir="auto">تحویل تکراری</strong>
-                <p class="text-muted-dark small mb-0" dir="auto">طراحی، پیاده‌سازی، تست و استقرار با بازخورد کوتاه‌چرخه.</p>
+                <strong dir="auto">@T["mkt.svc.p4_t"]</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">@T["mkt.svc.p4_b"]</p>
             </div>
         </div>
     </div>
