@@ -2,11 +2,15 @@
 @foreach (var post in Model)
 {
     <div class="col-md-6 col-lg-4">
-        <div class="post-card">
-            <div class="d-flex justify-content-between align-items-start mb-2">
+        <article class="post-card">
+            <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
                 @if (post.CategoryName != null)
                 {
                     <div class="eyebrow" dir="auto">@post.CategoryName</div>
+                }
+                else
+                {
+                    <span></span>
                 }
                 @if (!post.IsPublished)
                 {
@@ -16,8 +20,8 @@
             <h2 class="h5 mb-2" dir="auto">
                 <a asp-controller="Posts" asp-action="Details" asp-route-slug="@post.Slug">@post.Title</a>
             </h2>
-            <p class="text-muted-dark small mb-3" dir="auto">@post.Summary</p>
-            <div class="d-flex justify-content-between align-items-center">
+            <p class="text-muted-dark small post-card-summary" dir="auto">@post.Summary</p>
+            <div class="post-card-foot">
                 <span class="ltr-field small" style="color:var(--text-faint); font-size:.78rem;">
                     @PersianDate.Date(post.PublishedAtUtc)
                     @if (post.ReadingTimeMinutes > 0)
@@ -25,13 +29,13 @@
                         <span> · @post.ReadingTimeMinutes min</span>
                     }
                 </span>
-                <div class="d-flex gap-1">
+                <div class="d-flex gap-1 flex-wrap">
                     @foreach (var t in post.Tags.Take(2))
                     {
                         <span class="tag-pill" dir="auto">#@t</span>
                     }
                 </div>
             </div>
-        </div>
+        </article>
     </div>
 }

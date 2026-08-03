@@ -1,28 +1,29 @@
 @{
     ViewData["Title"] = "پروژه‌ها";
 }
+
 <section class="persona-hero">
-    <div class="container" style="max-width:900px;">
+    <div class="container">
         <div class="persona-kicker">$ ls ./projects</div>
         <h1 class="persona-title" dir="auto">پروژه‌های منتخب</h1>
         <p class="persona-lead" dir="auto">
-            نمونه‌هایی از پلتفرم API، کیف پول، IAM و الگوهای پیام‌رسانی — جزئیات بیشتر در وبلاگ.
+            نمونه‌هایی از معماری، پرداخت، هویت و پیام‌رسانی — خلاصه و شفاف.
         </p>
         <div class="persona-cta">
-            <a class="btn btn-accent" asp-controller="Home" asp-action="Index">خواندن در وبلاگ</a>
-            <a class="btn btn-ghost" href="https://github.com/0x-mhmdnzri" target="_blank" rel="noopener">GitHub</a>
+            <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">گفتگو درباره پروژه مشابه</a>
+            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Services">خدمات</a>
         </div>
     </div>
 </section>
 
-<div class="container py-5">
-    <div class="row g-4">
+<div class="container persona-page">
+    <div class="row g-3">
         <div class="col-md-6">
             <div class="skill-card project-card h-100">
-                <h3 dir="auto">Artix.API</h3>
-                <p dir="auto">پلتفرم API با Clean Architecture، DDD، CQRS، Docker و GitHub Actions.</p>
+                <h3 dir="auto">ERP Core</h3>
+                <p dir="auto">هسته ERP با مرزهای دامنه شفاف، ماژولار monolith و آمادگی برای سرویس‌سازی تدریجی.</p>
                 <div class="project-tags">
-                    <span class="tag-pill">.NET</span><span class="tag-pill">DDD</span><span class="tag-pill">CQRS</span>
+                    <span class="tag-pill">DDD</span><span class="tag-pill">CQRS</span>
                 </div>
             </div>
         </div>

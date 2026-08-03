@@ -1,72 +1,77 @@
 @{
     ViewData["Title"] = "درباره من";
 }
+
 <section class="persona-hero">
-    <div class="container" style="max-width:820px;">
+    <div class="container">
         <div class="persona-kicker">$ whoami</div>
         <h1 class="persona-title" dir="auto">محمد نظری</h1>
         <p class="persona-lead" dir="auto">
-            Senior .NET Backend Engineer با بیش از ۶ سال تجربه در طراحی سیستم‌های توزیع‌شده برای FinTech، ERP و HealthTech.
+            مهندس بک‌اند .NET با تمرکز بر سیستم‌های توزیع‌شده.
             تخصص در Clean Architecture، Domain-Driven Design، CQRS، Event-Driven Architecture و Microservices.
         </p>
         <div class="persona-cta">
-            <a class="btn btn-accent" asp-controller="Home" asp-action="Index">مطالعه وبلاگ</a>
-            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Contact">همکاری</a>
-            <a class="btn btn-ghost" href="https://github.com/0x-mhmdnzri" target="_blank" rel="noopener">GitHub</a>
+            <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">تماس و همکاری</a>
+            <a class="btn btn-ghost" asp-controller="Pages" asp-action="Projects">پروژه‌ها</a>
+            <a class="btn btn-ghost" asp-controller="Home" asp-action="Index">وبلاگ</a>
         </div>
     </div>
 </section>
 
-<div class="container py-5" style="max-width:820px;">
-    <h2 class="section-title" dir="auto">مسیر حرفه‌ای</h2>
-    <p class="section-sub" dir="auto">از درگاه‌های پرداخت و ERP تا زیرساخت نوتیفیکیشن لحظه‌ای.</p>
-
-    <div class="timeline-item">
-        <div class="timeline-role" dir="auto">Software Engineer — Dr. Link Psychological Clinics</div>
-        <div class="timeline-meta">May 2025 – Present · Tehran</div>
-        <p class="text-muted-dark small mb-0" dir="auto">
-            موتور پرداخت با Clean Architecture و CQRS/MediatR، Redis distributed lock، RabbitMQ با Publisher Confirms،
-            SignalR برای داشبورد لحظه‌ای، Docker و GitHub Actions CI/CD.
-        </p>
-    </div>
-    <div class="timeline-item">
-        <div class="timeline-role" dir="auto">Backend Developer — SAAP / سامانه اندیشمند پگاه</div>
-        <div class="timeline-meta">Jan 2024 – Dec 2024 · Tehran</div>
-        <p class="text-muted-dark small mb-0" dir="auto">
-            پلتفرم ERP توزیع و فروش؛ Modular Monolith + DDD، CQRS برای audit trail،
-            همگام‌سازی انبار با RabbitMQ Topic و بهینه‌سازی EF Core.
-        </p>
-    </div>
-    <div class="timeline-item">
-        <div class="timeline-role" dir="auto">Full Stack Engineer — SepandPay (PSP Gateway)</div>
-        <div class="timeline-meta">Mar 2022 – Jul 2023 · Tehran</div>
-        <p class="text-muted-dark small mb-0" dir="auto">
-            سیستم مدیریت پذیرنده چندمستأجری، schema جدا per tenant، SSO با OAuth2/OIDC و Redis برای idempotency.
-        </p>
-    </div>
-    <div class="timeline-item">
-        <div class="timeline-role" dir="auto">Founder — NILL</div>
-        <div class="timeline-meta">Apr 2022 – Present</div>
-        <p class="text-muted-dark small mb-0" dir="auto">مشاوره و تحویل راه‌حل‌های توزیع‌شده برای استارتاپ‌ها و سازمان‌ها.</p>
-    </div>
-    <div class="timeline-item">
-        <div class="timeline-role" dir="auto">Instructor — ICT Training Center</div>
-        <div class="timeline-meta">Nov 2025 – Apr 2026</div>
-        <p class="text-muted-dark small mb-0" dir="auto">آموزش معماری .NET، DDD، Microservices و بهترین شیوه‌های مدرن C#.</p>
+<div class="container persona-page">
+    <h2 class="section-title" dir="auto">تمرکز حرفه‌ای</h2>
+    <p class="section-sub" dir="auto">جایی که بیشترین ارزش را برای تیم‌ها و محصولات می‌سازم.</p>
+    <div class="skill-grid mb-4">
+        <div class="skill-card">
+            <div class="skill-ico" aria-hidden="true">◇</div>
+            <h3 dir="auto">معماری نرم‌افزار</h3>
+            <p dir="auto">طراحی مرزهای دامنه، ماژولار monolith و مسیر مهاجرت به سرویس‌ها بدون پیچیدگی زودرس.</p>
+        </div>
+        <div class="skill-card">
+            <div class="skill-ico" aria-hidden="true">⇄</div>
+            <h3 dir="auto">سیستم‌های توزیع‌شده</h3>
+            <p dir="auto">پیام‌رسانی قابل اتکا، consistency، idempotency و observability در محیط production.</p>
+        </div>
+        <div class="skill-card">
+            <div class="skill-ico" aria-hidden="true">▣</div>
+            <h3 dir="auto">داده و عملکرد</h3>
+            <p dir="auto">مدل‌سازی داده، کش، قفل‌های توزیع‌شده و بهینه‌سازی مسیرهای پرمصرف.</p>
+        </div>
+        <div class="skill-card">
+            <div class="skill-ico" aria-hidden="true">⬡</div>
+            <h3 dir="auto">امنیت و هویت</h3>
+            <p dir="auto">OAuth2 / OIDC، JWT، SSO و مرزهای امن برای API و اپلیکیشن‌های سازمانی.</p>
+        </div>
     </div>
 
-    <h2 class="section-title mt-5" dir="auto">تحصیلات</h2>
-    <div class="timeline-item">
-        <div class="timeline-role" dir="auto">کارشناسی ارشد — Network and System Administration</div>
-        <div class="timeline-meta">Islamic Azad University · Aug 2024</div>
-    </div>
-    <div class="timeline-item">
-        <div class="timeline-role" dir="auto">کارشناسی — Computer Software Engineering</div>
-        <div class="timeline-meta">Semnan University · 2019 – 2024</div>
+    <h2 class="section-title mt-2" dir="auto">حوزه‌های تجربه</h2>
+    <p class="section-sub" dir="auto">FinTech · ERP · HealthTech · IAM</p>
+    <div class="roadmap">
+        <div class="roadmap-step">
+            <div class="roadmap-num">01</div>
+            <div>
+                <strong dir="auto">ساخت محصول</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">از اسکوپ دامنه تا استقرار — با بازخورد کوتاه‌چرخه و کد قابل نگهداری.</p>
+            </div>
+        </div>
+        <div class="roadmap-step">
+            <div class="roadmap-num">02</div>
+            <div>
+                <strong dir="auto">مشاوره معماری</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">بازبینی طراحی، کاهش بدهی فنی و انتخاب trade-offهای درست.</p>
+            </div>
+        </div>
+        <div class="roadmap-step">
+            <div class="roadmap-num">03</div>
+            <div>
+                <strong dir="auto">آموزش تیم</strong>
+                <p class="text-muted-dark small mb-0" dir="auto">معماری .NET، DDD و بهترین شیوه‌های مدرن C# برای تیم‌های در حال رشد.</p>
+            </div>
+        </div>
     </div>
 
-    <div class="mt-5 d-flex flex-wrap gap-2">
-        <a class="btn btn-accent" asp-controller="Pages" asp-action="Services">خدمات برای مشتریان</a>
-        <a class="btn btn-ghost" asp-controller="Home" asp-action="Index">نوشته‌های فنی در وبلاگ</a>
+    <div class="mt-5 card-surface p-4 text-center">
+        <p class="mb-3" dir="auto">برای همکاری یا گفت‌وگوی فنی آماده‌ام.</p>
+        <a class="btn btn-accent" asp-controller="Pages" asp-action="Contact">شروع گفتگو</a>
     </div>
 </div>
