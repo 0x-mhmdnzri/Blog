@@ -32,36 +32,32 @@
     <div class="container">
         <div class="row align-items-center g-4 g-lg-5">
             <div class="col-lg-7">
-                <div class="persona-kicker">Senior .NET Backend Engineer · Tehran</div>
-                <h1 class="persona-title" dir="auto">محمد نظری</h1>
-                <p class="persona-lead" dir="auto">
-                    طراحی و ساخت سیستم‌های توزیع‌شده برای FinTech، ERP و HealthTech —
-                    Clean Architecture، DDD، CQRS، RabbitMQ و Redis در مقیاس واقعی.
-                    این وبلاگ جای درس‌آموخته‌های فنی و مسیر کار با مشتریان است.
-                </p>
+                <div class="persona-kicker">@T["mkt.home.kicker"]</div>
+                <h1 class="persona-title" dir="auto">@T["mkt.home.title"]</h1>
+                <p class="persona-lead" dir="auto">@T["mkt.home.lead"]</p>
                 <div class="persona-cta">
-                    <a class="btn btn-accent" href="#blog-feed">مطالعه وبلاگ</a>
-                    <a class="btn btn-ghost" asp-controller="Pages" asp-action="About">درباره من</a>
-                    <a class="btn btn-ghost" asp-controller="Pages" asp-action="Contact">همکاری با من</a>
+                    <a class="btn btn-accent" href="#blog-feed">@T["mkt.home.cta_blog"]</a>
+                    <a class="btn btn-ghost" asp-controller="Pages" asp-action="About">@T["mkt.home.cta_about"]</a>
+                    <a class="btn btn-ghost" asp-controller="Pages" asp-action="Contact">@T["mkt.home.cta_contact"]</a>
                 </div>
             </div>
             <div class="col-lg-5">
-                <div class="persona-stats" aria-label="آمار">
+                <div class="persona-stats" aria-label="@T["mkt.home.stats_label"]">
                     <div class="persona-stat">
                         <div class="num ltr-field">6+</div>
-                        <div class="lbl" dir="auto">سال تجربه</div>
+                        <div class="lbl" dir="auto">@T["mkt.home.stat_years"]</div>
                     </div>
                     <div class="persona-stat">
                         <div class="num ltr-field">.NET 8</div>
-                        <div class="lbl" dir="auto">استک اصلی</div>
+                        <div class="lbl" dir="auto">@T["mkt.home.stat_stack"]</div>
                     </div>
                     <div class="persona-stat">
                         <div class="num ltr-field">DDD</div>
-                        <div class="lbl" dir="auto">معماری دامنه</div>
+                        <div class="lbl" dir="auto">@T["mkt.home.stat_arch"]</div>
                     </div>
                     <div class="persona-stat">
                         <div class="num ltr-field">EDA</div>
-                        <div class="lbl" dir="auto">پیام‌رسانی</div>
+                        <div class="lbl" dir="auto">@T["mkt.home.stat_msg"]</div>
                     </div>
                 </div>
             </div>
@@ -72,45 +68,45 @@
 <div class="container persona-page pt-4 pb-0">
     <div class="persona-highlights">
         <div class="persona-highlight">
-            <strong dir="auto"><a asp-controller="Pages" asp-action="Services">خدمات</a></strong>
-            <span dir="auto">معماری، FinTech، Messaging و امنیت</span>
+            <strong dir="auto"><a asp-controller="Pages" asp-action="Services">@T["mkt.home.hl_services_t"]</a></strong>
+            <span dir="auto">@T["mkt.home.hl_services_d"]</span>
         </div>
         <div class="persona-highlight">
-            <strong dir="auto"><a asp-controller="Pages" asp-action="Projects">پروژه‌ها</a></strong>
-            <span dir="auto">نمونه‌های منتخب از ERP تا Wallet</span>
+            <strong dir="auto"><a asp-controller="Pages" asp-action="Projects">@T["mkt.home.hl_projects_t"]</a></strong>
+            <span dir="auto">@T["mkt.home.hl_projects_d"]</span>
         </div>
         <div class="persona-highlight">
-            <strong dir="auto"><a href="#blog-feed">وبلاگ</a></strong>
-            <span dir="auto">درس‌آموخته‌های فنی و معماری</span>
+            <strong dir="auto"><a href="#blog-feed">@T["mkt.home.hl_blog_t"]</a></strong>
+            <span dir="auto">@T["mkt.home.hl_blog_d"]</span>
         </div>
         <div class="persona-highlight">
-            <strong dir="auto"><a asp-controller="Pages" asp-action="Contact">تماس</a></strong>
-            <span dir="auto">همکاری و اسکوپ پروژه</span>
+            <strong dir="auto"><a asp-controller="Pages" asp-action="Contact">@T["mkt.home.hl_contact_t"]</a></strong>
+            <span dir="auto">@T["mkt.home.hl_contact_d"]</span>
         </div>
     </div>
 
-    <h2 class="section-title" dir="auto">مهارت‌های کلیدی</h2>
-    <p class="section-sub" dir="auto">ابزارهایی که در پروژه‌های واقعی با آن‌ها کار می‌کنم.</p>
+    <h2 class="section-title" dir="auto">@T["mkt.home.skills_title"]</h2>
+    <p class="section-sub" dir="auto">@T["mkt.home.skills_sub"]</p>
     <div class="skill-grid mb-1">
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">◇</div>
-            <h3>Architecture</h3>
-            <p>Clean Architecture · DDD · CQRS · Microservices · Modular Monolith</p>
+            <h3>@T["mkt.home.skill_arch_t"]</h3>
+            <p>@T["mkt.home.skill_arch_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">▣</div>
-            <h3>Data & Cache</h3>
-            <p>EF Core · Dapper · SQL Server · PostgreSQL · Redis lock & cache</p>
+            <h3>@T["mkt.home.skill_data_t"]</h3>
+            <p>@T["mkt.home.skill_data_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">⇄</div>
-            <h3>Messaging</h3>
-            <p>RabbitMQ patterns · SignalR · Event-driven flows</p>
+            <h3>@T["mkt.home.skill_msg_t"]</h3>
+            <p>@T["mkt.home.skill_msg_b"]</p>
         </div>
         <div class="skill-card">
             <div class="skill-ico" aria-hidden="true">⬡</div>
-            <h3>Security</h3>
-            <p>OAuth2 · OIDC · IdentityServer · JWT · SSO</p>
+            <h3>@T["mkt.home.skill_sec_t"]</h3>
+            <p>@T["mkt.home.skill_sec_b"]</p>
         </div>
     </div>
 </div>
@@ -119,40 +115,40 @@
 <div class="container py-5" id="blog-feed">
     <div class="feed-head">
         <div>
-            <h2 class="section-title" dir="auto">@(isFeedOnly ? T["home.title"] : "از وبلاگ")</h2>
+            <h2 class="section-title" dir="auto">@(isFeedOnly ? T["home.title"] : T["mkt.home.feed_title"])</h2>
             @if (!isFeedOnly)
             {
-                <p class="section-sub" dir="auto">نوشته‌های فنی، معماری و تجربه پروژه — برای مشتریان و مهندسان.</p>
+                <p class="section-sub" dir="auto">@T["mkt.home.feed_sub"]</p>
             }
         </div>
     </div>
 
     <form method="get" class="ux-filters" action="">
-        <input type="search" name="q" value="@q" placeholder="جست‌وجو…" dir="auto" aria-label="جست‌وجو" />
-        <select name="sort" aria-label="مرتب‌سازی">
-            <option value="">جدیدترین</option>
-            @if (sort == "popular") { <option value="popular" selected>محبوب</option> } else { <option value="popular">محبوب</option> }
-            @if (sort == "oldest") { <option value="oldest" selected>قدیمی‌تر</option> } else { <option value="oldest">قدیمی‌تر</option> }
-            @if (sort == "read") { <option value="read" selected>کوتاه‌تر</option> } else { <option value="read">کوتاه‌تر</option> }
+        <input type="search" name="q" value="@q" placeholder="@T["mkt.home.search_ph"]" dir="auto" aria-label="@T["mkt.home.search_ph"]" />
+        <select name="sort" aria-label="@T["btn.filter"]">
+            <option value="">@T["mkt.home.sort_newest"]</option>
+            @if (sort == "popular") { <option value="popular" selected>@T["mkt.home.sort_popular"]</option> } else { <option value="popular">@T["mkt.home.sort_popular"]</option> }
+            @if (sort == "oldest") { <option value="oldest" selected>@T["mkt.home.sort_oldest"]</option> } else { <option value="oldest">@T["mkt.home.sort_oldest"]</option> }
+            @if (sort == "read") { <option value="read" selected>@T["mkt.home.sort_read"]</option> } else { <option value="read">@T["mkt.home.sort_read"]</option> }
         </select>
         <label>
             <input type="checkbox" name="featured" value="true" @(featured == true ? "checked" : null) />
-            ویژه
+            @T["mkt.home.featured"]
         </label>
-        <select name="minRead" aria-label="مدت مطالعه">
-            <option value="">هر مدت</option>
-            @if (minRead == 3) { <option value="3" selected>≤ ۳ دقیقه</option> } else { <option value="3">≤ ۳ دقیقه</option> }
-            @if (minRead == 5) { <option value="5" selected>≤ ۵ دقیقه</option> } else { <option value="5">≤ ۵ دقیقه</option> }
-            @if (minRead == 10) { <option value="10" selected>≤ ۱۰ دقیقه</option> } else { <option value="10">≤ ۱۰ دقیقه</option> }
+        <select name="minRead" aria-label="@T["mkt.home.min_any"]">
+            <option value="">@T["mkt.home.min_any"]</option>
+            @if (minRead == 3) { <option value="3" selected>@T["mkt.home.min_3"]</option> } else { <option value="3">@T["mkt.home.min_3"]</option> }
+            @if (minRead == 5) { <option value="5" selected>@T["mkt.home.min_5"]</option> } else { <option value="5">@T["mkt.home.min_5"]</option> }
+            @if (minRead == 10) { <option value="10" selected>@T["mkt.home.min_10"]</option> } else { <option value="10">@T["mkt.home.min_10"]</option> }
         </select>
-        <button type="submit" class="btn btn-ghost btn-sm">اعمال</button>
+        <button type="submit" class="btn btn-ghost btn-sm">@T["mkt.home.apply"]</button>
     </form>
 
     @if (categories.Count > 0)
     {
-        <div class="cat-pills" role="navigation" aria-label="دسته‌ها">
+        <div class="cat-pills" role="navigation" aria-label="@T["mkt.home.cats_label"]">
             <a class="tag-pill @(string.IsNullOrEmpty(currentCategory) ? "is-active" : null)"
-               asp-action="Index">همه</a>
+               asp-action="Index">@T["home.all"]</a>
             @foreach (var c in categories)
             {
                 <a class="tag-pill @(string.Equals(currentCategory, c.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
