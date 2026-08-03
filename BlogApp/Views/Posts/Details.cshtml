@@ -31,13 +31,14 @@
     <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
     <link rel="stylesheet" href="~/css/post-toc.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/post-layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/post-page.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/post-social.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/comments.css" asp-append-version="true" />
 }
 
 <div class="pd-progress" id="pdProgress" aria-hidden="true"><i id="pdProgressBar"></i></div>
 
-<div class="post-layout @(hasToc ? "has-toc" : "no-toc")" data-analytics-post-id="@Model.Id">
+<div class="post-page post-layout @(hasToc ? "has-toc" : "no-toc")" data-analytics-post-id="@Model.Id">
 
     <aside class="post-aside-related" aria-label="مطالب مرتبط">
         <div class="post-aside-sticky">
@@ -88,18 +89,11 @@
         {
             <div class="post-edit-bar" role="toolbar" aria-label="admin">
                 <a class="post-edit-link" asp-action="Edit" asp-route-id="@Model.Id">ویرایش</a>
-                <form asp-action="Duplicate" method="post" class="d-inline">
+                <form method="post" asp-action="SoftDelete" asp-route-id="@Model.Id" class="d-inline"
+                      data-post-delete data-post-id="@Model.Id" data-post-title="@Model.Title">
                     @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@Model.Id" />
-                    <button class="post-edit-link" type="submit">کپی</button>
-                </form>
-                <form asp-action="Delete" method="post" class="post-edit-delete"
-                      onsubmit="return confirm('انتقال به سطل زباله؟');">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@Model.Id" />
-                    <input type="text" name="reason" class="post-edit-reason"
-                           placeholder="دلیل حذف (اختیاری)" maxlength="500" />
-                    <button class="post-edit-link is-danger" type="submit">حذف</button>
+                    <input type="hidden" name="reason" value="" />
+                    <button type="submit" class="post-edit-link" style="background:none;border:0;cursor:pointer;color:#f07178;">حذف</button>
                 </form>
             </div>
         }
@@ -109,9 +103,8 @@
             <figure class="pd-cover">
                 <img src="/media/@Model.CoverMediaAssetId"
                      alt=""
-                     loading="eager"
-                     decoding="async"
-                     class="pd-cover-img" />
+                     class="pd-cover-img"
+                     loading="eager" />
             </figure>
         }
 
@@ -176,30 +169,20 @@
         </header>
 
         <div class="pd-social-top">
-            @await Html.PartialAsync("_SocialBar")
+            @await Html.PartialAsync("_PostSocialBar", Model)
         </div>
-
-        @if (!string.IsNullOrWhiteSpace(Model.Summary))
-        {
-            <p class="post-lead" dir="@MarkdownService.DetectDir(Model.Summary)">@Model.Summary</p>
-        }
-
-        @if (hasToc)
-        {
-            <div class="post-toc-mobile">
-                @Html.Raw(tocHtml)
-            </div>
-        }
 
         @if (premiumLocked)
         {
-            <div class="post-premium-lock">
+            <div class="pd-lock">
                 <p class="pd-lock-title">@T["mon.premium_locked"]</p>
             </div>
         }
         else
         {
-            <div class="post-body markdown-body" dir="auto">@Html.Raw(ViewBag.RenderedHtml)</div>
+            <div class="post-body markdown-body">
+                @Html.Raw(ViewBag.HtmlContent)
+            </div>
         }
 
         @if (tags.Count > 0)
@@ -211,10 +194,6 @@
                 }
             </footer>
         }
-
-        <div class="post-actions-footer">
-            @await Html.PartialAsync("_SocialBar")
-        </div>
 
         @if (Model.Author != null)
         {
