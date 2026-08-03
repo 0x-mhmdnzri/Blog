@@ -219,13 +219,13 @@ public class MarkdownService
     {
         if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
 
-        var headings = new List<(int Level, string Text, string Slug, string Dir)>();
+        var headings = new List<(int Level, string Text, stringSlug, string Dir)>();
         foreach (Match m in HeadingRegex.Matches(markdown))
         {
             var level = m.Groups[1].Value.Length;
             var text = m.Groups[2].Value.Trim();
             if (string.IsNullOrEmpty(text)) continue;
-            headings.Add((level, text,SlugifyHeading(text), DetectDir(text)));
+            headings.Add((level, text, SlugifyHeading(text), DetectDir(text)));
         }
 
         if (headings.Count == 0) return string.Empty;
@@ -309,7 +309,6 @@ public class MarkdownService
             var cat = char.GetUnicodeCategory(ch);
             if (cat is UnicodeCategory.OtherLetter)
             {
-                // Arabic/Persian/Hebrew ranges
                 if (ch is >= '\u0600' and <= '\u06FF'
                     or >= '\u0750' and <= '\u077F'
                     or >= '\u08A0' and <= '\u08FF'
@@ -341,7 +340,7 @@ public class MarkdownService
     private static bool IsVideoPlaceholder(string plain) =>
         plain.StartsWith("[[VIDEO_EMBED_", StringComparison.Ordinal);
 
-    private static stringSlugifyHeading(string text) => slugifyHeading(text);
+    private static string SlugifyHeading(string text) => slugifyHeading(text);
 
     private static string slugifyHeading(string text)
     {
