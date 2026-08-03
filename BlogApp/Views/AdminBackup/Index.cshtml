@@ -13,11 +13,18 @@
 }
 <link rel="stylesheet" href="~/css/admin-backup.css" asp-append-version="true" />
 
-<div class="bk-page" data-stats-url="@Url.Action("Stats")" data-poll-ms="2500"
+<div class="bk-page"
+     data-stats-url="@Url.Action("Stats")"
+     data-list-url="@Url.Action("List")"
+     data-poll-ms="3000"
      data-i18n-creating="@T["bk.creating"]"
      data-i18n-io-na="@T["bk.io_na"]"
      data-i18n-files="@T["bk.files_count"]"
-     data-i18n-used="@T["bk.used"]">
+     data-i18n-used="@T["bk.used"]"
+     data-i18n-download="@T["bk.download"]"
+     data-i18n-delete="@T["bk.delete"]"
+     data-i18n-confirm-delete="@confirmDelete">
+
     @if (TempData["FlashOk"] is string ok)
     {
         <div class="bk-flash bk-flash-ok" role="status">@ok</div>
@@ -38,11 +45,11 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="download" value="true" />
                 <button type="submit" class="bk-btn bk-btn-primary" id="bkCreateBtn">
-                    <span class="bk-btn-icon" aria-hidden="true">↓</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                     @T["bk.create_download"]
                 </button>
             </form>
-            <form method="post" asp-action="Create" class="d-inline">
+            <form method="post" asp-action="Create">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="download" value="false" />
                 <button type="submit" class="bk-btn bk-btn-ghost">@T["bk.create_only"]</button>
@@ -51,40 +58,67 @@
     </header>
 
     <section class="bk-metrics" aria-label="@T["bk.volume"]">
-        <article class="bk-card bk-gauge-card">
+        @* Volume *@
+        <article class="bk-card">
             <div class="bk-card-head">
                 <h3>@T["bk.volume"]</h3>
-                <span class="bk-hint" id="bkVolHint">—</span>
+                <span class="bk-live" id="bkLive" title="live">
+                    <span class="bk-live-dot" aria-hidden="true"></span>
+                    live
+                </span>
             </div>
-            <div class="bk-gauge" id="bkGauge" data-pct="0">
-                <svg viewBox="0 0 120 120" class="bk-gauge-svg" aria-hidden="true">
-                    <circle class="bk-gauge-track" cx="60" cy="60" r="52" />
-                    <circle class="bk-gauge-fill" id="bkGaugeFill" cx="60" cy="60" r="52" />
+            <div class="bk-ring-wrap">
+                <svg class="bk-ring" viewBox="0 0 120 120" aria-hidden="true">
+                    <circle class="bk-ring-track" cx="60" cy="60" r="52" />
+                    <circle class="bk-ring-value" id="bkVolRing" cx="60" cy="60" r="52"
+                            style="stroke-dasharray: 326.73; stroke-dashoffset: 326.73;" />
                 </svg>
-                <div class="bk-gauge-center">
+                <div class="bk-ring-label">
                     <strong id="bkVolPct" class="ltr-field">0%</strong>
                     <span>@T["bk.used"]</span>
                 </div>
             </div>
-            <div class="bk-stat-row">
-                <div><span>@T["bk.free"]</span><strong id="bkVolFree" class="ltr-field">—</strong></div>
-                <div><span>@T["bk.total"]</span><strong id="bkVolTotal" class="ltr-field">—</strong></div>
-            </div>
+            <dl class="bk-kv">
+                <div><dt>@T["bk.free"]</dt><dd id="bkVolFree" class="ltr-field">—</dd></div>
+                <div><dt>@T["bk.total"]</dt><dd id="bkVolTotal" class="ltr-field">—</dd></div>
+                <div><dt>root</dt><dd id="bkVolRoot" class="ltr-field bk-mono-sm">—</dd></div>
+            </dl>
         </article>
 
+        @* Storage breakdown *@
         <article class="bk-card">
             <div class="bk-card-head"><h3>@T["bk.storage"]</h3></div>
-            <ul class="bk-stat-list">
-                <li><span>@T["bk.backup_dir"]</span><strong id="bkBackupBytes" class="ltr-field">—</strong></li>
-                <li><span>@T["bk.database"]</span><strong id="bkDbBytes" class="ltr-field">—</strong></li>
-                <li><span>@T["bk.media"]</span><strong id="bkMediaBytes" class="ltr-field">—</strong></li>
-                <li><span>@T["bk.data_root"]</span><strong id="bkDataRootBytes" class="ltr-field">—</strong></li>
+            <ul class="bk-bars">
+                <li>
+                    <div class="bk-bar-meta"><span>@T["bk.database"]</span><span id="bkDbBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar"><i id="bkDbBar"></i></div>
+                </li>
+                <li>
+                    <div class="bk-bar-meta"><span>WAL / journal</span><span id="bkWalBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar"><i id="bkWalBar"></i></div>
+                </li>
+                <li>
+                    <div class="bk-bar-meta"><span>@T["bk.media"]</span><span id="bkMediaBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar"><i id="bkMediaBar"></i></div>
+                </li>
+                <li>
+                    <div class="bk-bar-meta"><span>@T["bk.data_root"]</span><span id="bkDataBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar"><i id="bkDataBar"></i></div>
+                </li>
+                <li>
+                    <div class="bk-bar-meta"><span>@T["bk.backup_dir"]</span><span id="bkBackupBytes" class="ltr-field">—</span></div>
+                    <div class="bk-bar bk-bar-accent"><i id="bkBackupBar"></i></div>
+                </li>
             </ul>
             <p class="bk-path ltr-field" id="bkBackupPath">@snap.BackupDirectory</p>
         </article>
 
+        @* Process I/O *@
         <article class="bk-card">
-            <div class="bk-card-head"><h3>@T["bk.process_io"]</h3><span class="bk-hint" id="bkIoHint">/proc/self/io</span></div>
+            <div class="bk-card-head">
+                <h3>@T["bk.process_io"]</h3>
+                <span class="bk-hint" id="bkIoHint">/proc/self/io</span>
+            </div>
             <div class="bk-io-grid">
                 <div class="bk-io-stat">
                     <span class="bk-io-label">@T["bk.read_cum"]</span>
@@ -97,10 +131,11 @@
                     <span class="bk-io-rate" id="bkIoWriteRate">—</span>
                 </div>
             </div>
-            <canvas id="bkIoChart" width="640" height="120" aria-label="@T["bk.process_io"]"></canvas>
+            <canvas id="bkIoChart" width="640" height="100" aria-label="@T["bk.process_io"]"></canvas>
             <p class="bk-hint-sub">@T["bk.io_sub"]</p>
         </article>
 
+        @* Policy *@
         <article class="bk-card bk-policy">
             <div class="bk-card-head"><h3>@T["bk.policy"]</h3></div>
             <dl class="bk-policy-list">
@@ -109,7 +144,7 @@
                 <div><dt>@T["bk.target_rto"]</dt><dd class="ltr-field">@opts.TargetRtoMinutes @T["bk.minutes_abbr"]</dd></div>
                 <div><dt>@T["bk.retention"]</dt><dd class="ltr-field">@retentionText</dd></div>
             </dl>
-            <form method="post" asp-action="Retention" class="mt-2">
+            <form method="post" asp-action="Retention" class="bk-retention-form">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="bk-btn bk-btn-ghost bk-btn-sm">@T["bk.enforce_retention"]</button>
             </form>
@@ -122,36 +157,35 @@
             <h3>@T["bk.archive"]</h3>
             <span class="bk-count" id="bkFileCount">@filesCountText</span>
         </div>
-        @if (backups.Count == 0)
-        {
-            <div class="bk-empty">
-                <p>@T["bk.empty"]</p>
-            </div>
-        }
-        else
-        {
-            <div class="bk-table-wrap">
-                <table class="bk-table">
-                    <thead>
-                        <tr>
-                            <th>@T["bk.col_file"]</th>
-                            <th>@T["bk.col_kind"]</th>
-                            <th>@T["bk.col_size"]</th>
-                            <th>@T["bk.col_created"]</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var b in backups)
+        <div class="bk-table-wrap">
+            <table class="bk-table">
+                <thead>
+                    <tr>
+                        <th>@T["bk.col_file"]</th>
+                        <th>@T["bk.col_kind"]</th>
+                        <th>@T["bk.col_size"]</th>
+                        <th>@T["bk.col_created"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="bkTableBody">
+                @if (backups.Count == 0)
+                {
+                    <tr class="bk-empty-row"><td colspan="5" class="bk-empty">@T["bk.empty"]</td></tr>
+                }
+                else
+                {
+                    foreach (var b in backups)
                     {
-                        <tr>
+                        <tr data-id="@b.Id">
                             <td class="ltr-field bk-mono">@b.FileName</td>
                             <td><span class="bk-pill">@b.Kind</span></td>
                             <td class="ltr-field">@FormatSize(b.SizeBytes)</td>
                             <td class="ltr-field">@b.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
                             <td class="bk-row-actions">
                                 <a class="bk-btn bk-btn-sm bk-btn-primary" asp-action="Download" asp-route-id="@b.Id">@T["bk.download"]</a>
-                                <form method="post" asp-action="Delete" class="d-inline" onsubmit="return confirm('@Html.Raw(confirmDelete.Replace("'", "\\'"));');">
+                                <form method="post" asp-action="Delete" class="d-inline"
+                                      onsubmit="return confirm(@System.Text.Json.JsonSerializer.Serialize(confirmDelete));">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@b.Id" />
                                     <button type="submit" class="bk-btn bk-btn-sm bk-btn-ghost">@T["bk.delete"]</button>
@@ -159,10 +193,10 @@
                             </td>
                         </tr>
                     }
-                    </tbody>
-                </table>
-            </div>
-        }
+                }
+                </tbody>
+            </table>
+        </div>
     </section>
 </div>
 
