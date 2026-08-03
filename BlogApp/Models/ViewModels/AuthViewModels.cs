@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using BlogApp.Models;
 using Microsoft.AspNetCore.Http;
 
 namespace BlogApp.Models.ViewModels;
@@ -13,6 +14,31 @@ public class ProfileEditViewModel
 
     [EmailAddress]
     public string? Email { get; set; }
+
+    public UserGender Gender { get; set; } = UserGender.Unspecified;
+
+    [MaxLength(120)]
+    public string? Twitter { get; set; }
+
+    [MaxLength(200)]
+    public string? LinkedIn { get; set; }
+
+    [MaxLength(120)]
+    public string? Telegram { get; set; }
+
+    [MaxLength(40)]
+    [Phone]
+    public string? Phone { get; set; }
+
+    [MaxLength(200)]
+    [Url]
+    public string? Website { get; set; }
+
+    [MaxLength(120)]
+    public string? GitHub { get; set; }
+
+    [MaxLength(120)]
+    public string? Instagram { get; set; }
 
     public IFormFile? ProfileImageFile { get; set; }
     public bool RemoveProfileImage { get; set; }
@@ -43,6 +69,32 @@ public class CreateAuthorViewModel
     [MaxLength(500, ErrorMessage = "Max 500 characters")]
     [Display(Name = "Bio")]
     public string? Bio { get; set; }
+
+    [Display(Name = "Gender")]
+    public UserGender Gender { get; set; } = UserGender.Unspecified;
+
+    [MaxLength(120)]
+    public string? Twitter { get; set; }
+
+    [MaxLength(200)]
+    public string? LinkedIn { get; set; }
+
+    [MaxLength(120)]
+    public string? Telegram { get; set; }
+
+    [MaxLength(40)]
+    public string? Phone { get; set; }
+
+    [MaxLength(200)]
+    public string? Website { get; set; }
+
+    [MaxLength(120)]
+    public string? GitHub { get; set; }
+
+    [MaxLength(120)]
+    public string? Instagram { get; set; }
+
+    public IFormFile? ProfileImageFile { get; set; }
 
     [Required(ErrorMessage = "Password is required")]
     [MinLength(10, ErrorMessage = "At least 10 characters")]
@@ -105,6 +157,14 @@ public class PublicAuthorProfileViewModel
     public string DisplayName { get; set; } = string.Empty;
     public string? Bio { get; set; }
     public bool HasProfileImage { get; set; }
+    public UserGender Gender { get; set; }
+    public string? Twitter { get; set; }
+    public string? LinkedIn { get; set; }
+    public string? Telegram { get; set; }
+    public string? Phone { get; set; }
+    public string? Website { get; set; }
+    public string? GitHub { get; set; }
+    public string? Instagram { get; set; }
     public bool IsFollowing { get; set; }
     public bool CanFollow { get; set; }
     public bool IsOwnProfile { get; set; }
@@ -115,6 +175,15 @@ public class PublicAuthorProfileViewModel
     public int PostCount { get; set; }
     public long TotalViews { get; set; }
     public List<AuthorPostItem> Posts { get; set; } = new();
+
+    public bool HasAnySocial =>
+        !string.IsNullOrWhiteSpace(Twitter)
+        || !string.IsNullOrWhiteSpace(LinkedIn)
+        || !string.IsNullOrWhiteSpace(Telegram)
+        || !string.IsNullOrWhiteSpace(Phone)
+        || !string.IsNullOrWhiteSpace(Website)
+        || !string.IsNullOrWhiteSpace(GitHub)
+        || !string.IsNullOrWhiteSpace(Instagram);
 }
 
 public class AuthorPostItem
