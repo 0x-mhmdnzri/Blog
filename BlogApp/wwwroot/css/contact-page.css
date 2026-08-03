@@ -1,0 +1,9 @@
+/* Contact page */
+.ctc-note{margin:1.25rem 0 0;font-size:.84rem;color:var(--text-muted,#9aa3b5)}
+.ctc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:.85rem;margin-top:.75rem}
+.ctc-card{display:flex;flex-direction:column;gap:.35rem;padding:1.15rem 1.2rem;border-radius:14px;border:1px solid var(--border-soft,#1e2430);background:color-mix(in srgb,var(--surface,#12161f) 94%,transparent);text-decoration:none;color:inherit;transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease}
+.ctc-card:hover{border-color:color-mix(in srgb,var(--accent,#6fb3d2) 40%,var(--border-soft));transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,0,0,.2);color:inherit;text-decoration:none}
+.ctc-card-ico{width:2rem;height:2rem;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:650;color:var(--accent,#6fb3d2);background:color-mix(in srgb,var(--accent,#6fb3d2) 12%,transparent);margin-bottom:.35rem}
+.ctc-card-label{font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted,#9aa3b5)}
+.ctc-card-value{font-size:.88rem;font-weight:550;color:var(--text,#e8ecf4);word-break:break-all}
+html[data-theme=light] .ctc-card{background:color-mix(in srgb,var(--surface,#fff) 96%,transparent)}
