@@ -117,6 +117,7 @@ public static partial class SchemaBootstrap
         await EnsureCommentColumnsAsync(db);
         await EnsurePostReviewColumnsAsync(db);
         await EnsureAuthorApplicationColumnsAsync(db);
+        await EnsureAuthorProfileColumnsAsync(db);
 
         await db.Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "CommentLikes" (
