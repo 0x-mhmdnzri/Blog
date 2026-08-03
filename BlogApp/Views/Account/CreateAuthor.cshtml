@@ -1,10 +1,11 @@
 @model BlogApp.Models.ViewModels.CreateAuthorViewModel
+@using BlogApp.Models
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = T["btn.new_author"];
 }
 
-<div class="wizard" style="max-width:560px;">
+<div class="wizard" style="max-width:640px;">
     <div class="wizard-steps" id="authorWizardSteps" role="tablist">
         <button type="button" class="wizard-step active" data-step="1" aria-selected="true">
             <span class="wizard-step-num">1</span>
@@ -20,7 +21,8 @@
         </button>
     </div>
 
-    <form asp-action="CreateAuthor" method="post" class="card-surface p-4 wizard-form" id="authorWizardForm" novalidate>
+    <form asp-action="CreateAuthor" method="post" enctype="multipart/form-data"
+          class="card-surface p-4 wizard-form" id="authorWizardForm" novalidate>
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="wizard-alert danger" id="authorValSummary"></div>
 
@@ -30,9 +32,9 @@
                 <label class="form-label" asp-for="UserName">@T["col.username"] <span class="text-danger">*</span></label>
                 <input class="form-control ltr-field" asp-for="UserName" autocomplete="username"
                        required minlength="3" maxlength="50" pattern="[a-zA-Z0-9._-]{3,50}"
-                       placeholder="jane.doe" />
+                       placeholder="mhmdnzr" />
                 <span asp-validation-for="UserName" class="field-error"></span>
-                <div class="form-text">@T["wizard.username_help"]</div>
+                <div class="form-text">@T["wizard.username_help"] · /author/<span class="ltr-field">username</span></div>
             </div>
             <div class="mb-3">
                 <label class="form-label" asp-for="Email">@T["col.email"] <span class="text-danger">*</span></label>
@@ -48,13 +50,70 @@
         </div>
 
         <div class="wizard-pane" data-pane="2" hidden>
-            <p class="wizard-hint">@T["wizard.author_step2_hint"]</p>
-            <div class="mb-1">
+            <p class="wizard-hint">Avatar, gender, bio & optional socials</p>
+
+            <div class="mb-3 d-flex align-items-center gap-3">
+                <div class="author-avatar-preview rounded-circle d-flex align-items-center justify-content-center"
+                     id="avatarPreview"
+                     style="width:72px;height:72px;background:var(--surface-2);border:2px solid var(--border-soft);font-size:1.4rem;overflow:hidden;flex-shrink:0;">
+                    <span id="avatarInitial">?</span>
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label" for="ProfileImageFile">تصویر پروفایل</label>
+                    <input type="file" name="ProfileImageFile" id="ProfileImageFile" accept="image/jpeg,image/png,image/webp"
+                           class="form-control form-control-sm" />
+                    <div class="form-text">JPG / PNG / WebP · max 2 MB</div>
+                    <span asp-validation-for="ProfileImageFile" class="field-error"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" asp-for="Gender">جنسیت (him / her)</label>
+                <select class="form-select" asp-for="Gender">
+                    <option value="@((int)UserGender.Unspecified)">ترجیح می‌دهم نگویم</option>
+                    <option value="@((int)UserGender.Male)">مرد · him</option>
+                    <option value="@((int)UserGender.Female)">زن · her</option>
+                    <option value="@((int)UserGender.Other)">سایر</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label" asp-for="Bio">@T["wizard.bio_optional"]</label>
-                <textarea class="form-control" asp-for="Bio" rows="4" dir="auto" maxlength="500"
+                <textarea class="form-control" asp-for="Bio" rows="3" dir="auto" maxlength="500"
                           placeholder="…"></textarea>
                 <span asp-validation-for="Bio" class="field-error"></span>
                 <div class="form-text"><span id="bioCount">0</span> / 500</div>
+            </div>
+
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Twitter">X / Twitter</label>
+                    <input class="form-control ltr-field" asp-for="Twitter" placeholder="@handle" maxlength="120" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="LinkedIn">LinkedIn</label>
+                    <input class="form-control ltr-field" asp-for="LinkedIn" placeholder="in/username or URL" maxlength="200" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Telegram">Telegram</label>
+                    <input class="form-control ltr-field" asp-for="Telegram" placeholder="@username" maxlength="120" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Phone">Phone</label>
+                    <input class="form-control ltr-field" asp-for="Phone" placeholder="+98…" maxlength="40" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="GitHub">GitHub</label>
+                    <input class="form-control ltr-field" asp-for="GitHub" placeholder="username" maxlength="120" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Instagram">Instagram</label>
+                    <input class="form-control ltr-field" asp-for="Instagram" placeholder="@username" maxlength="120" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label" asp-for="Website">Website</label>
+                    <input class="form-control ltr-field" asp-for="Website" placeholder="https://…" maxlength="200" />
+                </div>
             </div>
         </div>
 
@@ -105,6 +164,10 @@
   var submit = document.getElementById('authorSubmit');
   var bio = form.querySelector('[name="Bio"]');
   var bioCount = document.getElementById('bioCount');
+  var fileInput = document.getElementById('ProfileImageFile');
+  var preview = document.getElementById('avatarPreview');
+  var initial = document.getElementById('avatarInitial');
+  var displayName = form.querySelector('[name="DisplayName"]');
 
   function show(n) {
     step = n;
@@ -133,7 +196,7 @@
 
   function fieldsInPane(n) {
     var pane = form.querySelector('.wizard-pane[data-pane="' + n + '"]');
-    return pane ? pane.querySelectorAll('input,textarea,select') : [];
+    return pane ? pane.querySelectorAll('input:not([type=file]),textarea,select') : [];
   }
 
   function validatePane(n) {
@@ -184,6 +247,20 @@
     var upd = function () { bioCount.textContent = String((bio.value || '').length); };
     bio.addEventListener('input', upd);
     upd();
+  }
+  if (displayName && initial) {
+    displayName.addEventListener('input', function () {
+      var v = (displayName.value || '').trim();
+      initial.textContent = v ? v.charAt(0).toUpperCase() : '?';
+    });
+  }
+  if (fileInput && preview) {
+    fileInput.addEventListener('change', function () {
+      var f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      var url = URL.createObjectURL(f);
+      preview.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;" />';
+    });
   }
   show(1);
 })();
