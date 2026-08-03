@@ -219,20 +219,19 @@ public class MarkdownService
     {
         if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
 
-        var headings = new List<(int Level, string Text, string Slug, string Dir)>();
+        var headings = new List<(int Level, string Text, stringSlug, string Dir)>();
         foreach (Match m in HeadingRegex.Matches(markdown))
         {
             var level = m.Groups[1].Value.Length;
             var text = m.Groups[2].Value.Trim();
             if (string.IsNullOrEmpty(text)) continue;
-            headings.Add((level, text,SlugifyHeading(text), DetectDir(text)));
+            headings.Add((level, text, SlugifyHeading(text), DetectDir(text)));
         }
 
         if (headings.Count == 0) return string.Empty;
 
         var tocDir = cultureCode is "fa" or "ar" ? "rtl" : "ltr";
         var title = tocDir == "rtl" ? "فهرست مطالب" : "Table of contents";
-        var openLabel = tocDir == "rtl" ? "باز کردن فهرست" : "Expand table of contents";
         var closeLabel = tocDir == "rtl" ? "بستن فهرست" : "Collapse table of contents";
 
         var sb = new StringBuilder();
@@ -282,7 +281,7 @@ public class MarkdownService
             var inner = m.Groups[3].Value;
             var plain = StripTags(inner);
             var dir = DetectDir(plain);
-            var slug =SlugifyHeading(plain);
+            var slug = SlugifyHeading(plain);
             attrs = AttrIdRegex.Replace(attrs, "");
             attrs = AttrDirRegex.Replace(attrs, "");
             return $"<h{level} id=\"{slug}\" dir=\"{dir}\"{attrs}>{inner}</h{level}>";
