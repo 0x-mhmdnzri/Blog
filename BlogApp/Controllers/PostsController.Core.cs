@@ -37,7 +37,6 @@ public partial class PostsController
             return NotFound();
         }
 
-        // Unpublished: only the author or SuperAdmin (CanManageAllPosts)
         if (!post.IsPublished && !AuthorAccess.OwnsPost(User, post))
             return NotFound();
 
@@ -69,6 +68,8 @@ public partial class PostsController
         ViewBag.CanEdit = AuthorAccess.OwnsPost(User, post);
         ViewBag.CurrentUserId = AuthorAccess.UserId(User);
         ViewData["Title"] = post.Title;
+
+        ApplyPostSeo(post);
 
         try { await LoadTaxonomyContextAsync(post); } catch (Exception ex) { _logger.LogDebug(ex, "Taxonomy context"); }
         try { await LoadSocialContextAsync(post); } catch (Exception ex) { _logger.LogDebug(ex, "Social context"); }
@@ -224,26 +225,10 @@ public partial class PostsController
             {
                 vm.ContentMarkdown = post.ContentMarkdown;
                 ModelState.Remove(nameof(vm.ContentMarkdown));
-                _logger.LogWarning(
-                    "Edit PostId={Id}: empty ContentMarkdown in form — kept existing body ({Len} chars)",
-                    id, post.ContentMarkdown.Length);
             }
             else
             {
-                var lastRev = await _db.PostRevisions.AsNoTracking()
-                    .Where(r => r.PostId == id && r.ContentMarkdown != null && r.ContentMarkdown != "")
-                    .OrderByDescending(r => r.CreatedAtUtc)
-                    .Select(r => r.ContentMarkdown)
-                    .FirstOrDefaultAsync();
-                if (!string.IsNullOrWhiteSpace(lastRev))
-                {
-                    vm.ContentMarkdown = lastRev;
-                    ModelState.Remove(nameof(vm.ContentMarkdown));
-                }
-                else
-                {
-                    ModelState.AddModelError(nameof(vm.ContentMarkdown), "محتوای نوشته الزامی است");
-                }
+                ModelState.AddModelError(nameof(vm.ContentMarkdown), "محتوای نوشته الزامی است");
             }
         }
 
@@ -278,10 +263,6 @@ public partial class PostsController
         await ApplyTagsAsync(post, vm.TagsCsv);
         await _db.SaveChangesAsync();
         if (changed) await SaveRevisionAsync(post, authorId, "after-edit");
-
-        _logger.LogInformation(
-            "Edit saved PostId={Id} Published={Pub} Scheduled={Sched} BodyLen={Len}",
-            post.Id, post.IsPublished, post.ScheduledPublishAtUtc, post.ContentMarkdown?.Length ?? 0);
 
         try
         {
