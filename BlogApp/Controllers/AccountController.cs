@@ -17,19 +17,22 @@ public partial class AccountController : Controller
     private readonly ApplicationDbContext _db;
     private readonly ILogger<AccountController> _logger;
     private readonly IConfiguration _config;
+    private readonly IUiTranslator _ui;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         ApplicationDbContext db,
         ILogger<AccountController> logger,
-        IConfiguration config)
+        IConfiguration config,
+        IUiTranslator ui)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _db = db;
         _logger = logger;
         _config = config;
+        _ui = ui;
     }
 
     [HttpGet]
@@ -61,7 +64,7 @@ public partial class AccountController : Controller
 
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || password.Length > 256)
         {
-            ModelState.AddModelError(string.Empty, "نام کاربری یا رمز عبور نادرست است.");
+            ModelState.AddModelError(string.Empty, _ui["auth.login.error_invalid"]);
             ViewBag.ReturnUrl = returnUrl;
             return View();
         }
@@ -90,7 +93,7 @@ public partial class AccountController : Controller
             if (result.IsLockedOut)
             {
                 _logger.LogWarning("Login locked out UserName={UserName}", username);
-                ModelState.AddModelError(string.Empty, "حساب موقتاً قفل شده است. کمی بعد دوباره تلاش کنید.");
+                ModelState.AddModelError(string.Empty, _ui["auth.login.error_locked"]);
                 ViewBag.ReturnUrl = returnUrl;
                 return View();
             }
@@ -103,7 +106,7 @@ public partial class AccountController : Controller
             await Task.Delay(Random.Shared.Next(80, 180));
         }
 
-        ModelState.AddModelError(string.Empty, "نام کاربری یا رمز عبور نادرست است.");
+        ModelState.AddModelError(string.Empty, _ui["auth.login.error_invalid"]);
         ViewBag.ReturnUrl = returnUrl;
         return View();
     }
@@ -120,7 +123,11 @@ public partial class AccountController : Controller
     public async Task<IActionResult> Register(RegisterReaderViewModel vm)
     {
         vm.ReturnUrl = SanitizeReturnUrl(vm.ReturnUrl);
-        if (!ModelState.IsValid) return View(vm);
+        if (!ModelState.IsValid)
+        {
+            LocalizeAuthValidation();
+            return View(vm);
+        }
 
         var user = new ApplicationUser
         {
@@ -473,6 +480,25 @@ public partial class AccountController : Controller
         if (string.IsNullOrWhiteSpace(value)) return null;
         var v = value.Trim();
         return v.Length > 200 ? v[..200] : v;
+    }
+
+    /// <summary>Translate DataAnnotation messages that store catalog keys (auth.val.*).</summary>
+    private void LocalizeAuthValidation()
+    {
+        foreach (var key in ModelState.Keys.ToList())
+        {
+            var entry = ModelState[key];
+            if (entry is null || entry.Errors.Count == 0) continue;
+            var msgs = entry.Errors.Select(e => e.ErrorMessage).ToList();
+            entry.Errors.Clear();
+            foreach (var msg in msgs)
+            {
+                if (string.IsNullOrEmpty(msg)) continue;
+                entry.Errors.Add(msg.StartsWith("auth.", StringComparison.Ordinal)
+                    ? _ui[msg]
+                    : msg);
+            }
+        }
     }
 
     private async Task<IActionResult> RedirectAfterLoginAsync(string? returnUrl)
