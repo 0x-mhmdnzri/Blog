@@ -39,7 +39,7 @@
         "msg.confirm_delete", "msg.confirm_trash", "msg.confirm_delete_comment"
     };
 
-    var searchPlaceholder = lang == "fa" ? "جستجو در پنل مدیریت…" : "Search admin panel…";
+    var searchPlaceholder = T["search.admin.placeholder"];
 }
 <!DOCTYPE html>
 <html lang="@lang" dir="@dir" data-bs-theme="@themeMode" data-theme="@themeMode" data-culture="@lang">
@@ -68,6 +68,7 @@
     <link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-rtl.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-sidebar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin-mobile.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/cms-ui.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/datatables-admin.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/notifications-bell.css" asp-append-version="true" />
@@ -76,6 +77,7 @@
     <link rel="stylesheet" href="/Themes/ActiveCss" />
     <link rel="stylesheet" href="~/css/datepicker.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/a11y.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/search-spotlight.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-search.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin-theme-chrome.css" asp-append-version="true" />
     <script>
@@ -98,13 +100,13 @@
     </style>
 </head>
 <body class="admin-body sidebar-collapsed">
-    <a class="skip-link" href="#admin-main-content">پرش به محتوا</a>
+    <a class="skip-link" href="#admin-main-content">@T["a11y.skip_content"]</a>
     <div id="adminPageOverlay" class="admin-page-overlay" aria-hidden="true">
         <div class="admin-page-spinner" role="status"></div>
     </div>
     <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop"></div>
     <div class="admin-shell">
-        <aside class="admin-sidebar is-collapsed" id="adminSidebar" aria-label="منوی مدیریت">
+        <aside class="admin-sidebar is-collapsed" id="adminSidebar" aria-label="@T["admin.panel"]">
             <div class="admin-brand">
                 <span class="brand-cursor"></span>
                 <span class="brand-text">@T["admin.brand"]</span>
@@ -145,8 +147,8 @@
         <main class="admin-main" id="admin-main-content" role="main" tabindex="-1">
             <header class="admin-topbar">
                 <div class="admin-topbar-start d-flex align-items-center gap-2">
+                    <button class="btn btn-ghost btn-sm admin-menu-toggle d-md-none" type="button" data-admin-toggle title="Menu" aria-label="@T["nav.menu"]">☰</button>
                     <partial name="_AdminProfileMenu" />
-                    <button class="btn btn-ghost btn-sm admin-menu-toggle d-md-none" type="button" data-admin-toggle title="Menu" aria-label="باز کردن منو">☰</button>
                     <div class="admin-topbar-titles">
                         <nav class="admin-breadcrumb" aria-label="breadcrumb">
                             <a asp-controller="Admin" asp-action="Index" class="bc-link">@panelTitle</a>
