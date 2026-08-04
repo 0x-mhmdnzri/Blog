@@ -1,5 +1,5 @@
 /**
- * Public Spotlight search — macOS-style modal (parity with admin search).
+ * Public Spotlight search — macOS-style modal.
  * Opens via [data-search-open] / Ctrl+K · queries /Home/SearchSuggest
  */
 (function () {
@@ -25,6 +25,10 @@
   var timer = null;
   var aborter = null;
 
+  function t(key, fallback) {
+    return overlay.getAttribute('data-i18n-' + key) || fallback;
+  }
+
   function open() {
     overlay.hidden = false;
     document.body.style.overflow = 'hidden';
@@ -46,22 +50,22 @@
 
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+      return ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c];
     });
   }
   function escapeAttr(s) {
     return escapeHtml(s).replace(/`/g, '');
   }
   function highlight(text, q) {
-    var t = escapeHtml(text);
-    if (!q) return t;
+    var str = escapeHtml(text);
+    if (!q) return str;
     try {
       var parts = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(/\s+/).filter(Boolean);
-      if (!parts.length) return t;
+      if (!parts.length) return str;
       var re = new RegExp('(' + parts.join('|') + ')', 'ig');
-      return t.replace(re, '<mark>$1</mark>');
+      return str.replace(re, '<mark>$1</mark>');
     } catch (_) {
-      return t;
+      return str;
     }
   }
 
@@ -93,14 +97,17 @@
     var recent = loadRecent();
     var recentHtml = '';
     if (recent.length) {
-      recentHtml = '<div class="site-search-scopes" style="justify-content:center;border:0;flex-wrap:wrap;padding-top:0.75rem">' +
+      recentHtml =
+        '<p class="hint-sub" style="margin-top:1rem;margin-bottom:.4rem">' + escapeHtml(t('recent', 'Recent')) + '</p>' +
+        '<div class="site-search-scopes" style="justify-content:center;border:0;flex-wrap:wrap;padding-top:0">' +
         recent.map(function (r) {
           return '<button type="button" class="scope recent-q" data-q="' + escapeAttr(r) + '">' + escapeHtml(r) + '</button>';
-        }).join('') + '</div>';
+        }).join('') +
+        '</div>';
     }
     empty.innerHTML =
-      '<p class="hint">جست‌وجو در نوشته‌ها</p>' +
-      '<p class="hint-sub">↑↓ پیمایش · Enter باز کردن · Esc بستن · Ctrl+K</p>' +
+      '<p class="hint">' + escapeHtml(t('idle', 'Search posts')) + '</p>' +
+      '<p class="hint-sub">' + escapeHtml(t('keys', '↑↓ navigate · Enter open · Esc close')) + '</p>' +
       recentHtml;
     empty.querySelectorAll('[data-q]').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -157,9 +164,15 @@
         if (skeleton) skeleton.hidden = true;
         if (empty) {
           empty.hidden = false;
-          empty.innerHTML = '<p class="hint">جست‌وجو موقتاً در دسترس نیست</p>';
+          empty.innerHTML = '<p class="hint">' + escapeHtml(t('unavailable', 'Search temporarily unavailable')) + '</p>';
         }
       });
+  }
+
+  function iconFor(h) {
+    var cat = (h.category || h.type || 'post').toString();
+    var letter = cat.charAt(0).toUpperCase();
+    return letter || '·';
   }
 
   function render(items, q, tookMs) {
@@ -169,19 +182,26 @@
 
     if (meta) meta.hidden = false;
     if (countEl) {
-      countEl.textContent = hits.length ? (hits.length + ' نتیجه') : 'بدون نتیجه';
+      var resultsLabel = t('results', '{n} results').replace('{n}', String(hits.length));
+      countEl.textContent = hits.length
+        ? resultsLabel
+        : t('no-results', 'No results');
     }
     if (latencyEl) latencyEl.textContent = (tookMs || 0) + ' ms';
     if (fullLink) {
       fullLink.hidden = !q;
       fullLink.href = '/' + langPrefix + '/?q=' + encodeURIComponent(q || '');
+      fullLink.textContent = t('all', 'All results') + ' →';
     }
 
     if (!hits.length) {
       if (list) { list.hidden = true; list.innerHTML = ''; }
       if (empty) {
         empty.hidden = false;
-        empty.innerHTML = '<p class="hint">نتیجه‌ای برای «' + escapeHtml(q) + '» یافت نشد</p>';
+        empty.innerHTML =
+          '<p class="hint">' +
+          escapeHtml(t('no-results', 'No results')) +
+          ' «' + escapeHtml(q) + '»</p>';
       }
       return;
     }
@@ -192,13 +212,19 @@
     list.innerHTML = hits.map(function (h, i) {
       var href = h.url || ('/' + (h.languageCode || langPrefix) + '/post/' + encodeURIComponent(h.slug || ''));
       var sub = [h.category, h.author].filter(Boolean).join(' · ');
-      return '<li role="option">' +
+      var metaRight = h.publishedAt || h.date || h.relativeTime || '';
+      return (
+        '<li role="option">' +
         '<a class="site-search-item' + (i === active ? ' is-active' : '') + '" href="' + escapeAttr(href) + '" data-idx="' + i + '">' +
-        '<span class="site-search-item-body">' +
-        '<span class="site-search-item-title">' + highlight(h.title, q) + '</span>' +
-        (sub ? '<span class="site-search-item-sub">' + escapeHtml(sub) + '</span>' : '') +
+        '<span class="ss-icon" aria-hidden="true">' + escapeHtml(iconFor(h)) + '</span>' +
+        '<span class="ss-main">' +
+        '<span class="ss-title">' + highlight(h.title, q) + '</span>' +
+        (sub ? '<span class="ss-sub">' + escapeHtml(sub) + '</span>' : '') +
         (h.summary ? '<span class="site-search-item-sum">' + highlight(h.summary, q) + '</span>' : '') +
-        '</span></a></li>';
+        '</span>' +
+        (metaRight ? '<span class="ss-meta">' + escapeHtml(metaRight) + '</span>' : '<span class="ss-meta"></span>') +
+        '</a></li>'
+      );
     }).join('');
 
     list.querySelectorAll('.site-search-item').forEach(function (a) {
