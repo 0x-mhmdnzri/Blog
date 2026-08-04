@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using IOPath = System.IO.Path;
 
 namespace BlogApp.Services.Seo;
 
@@ -57,10 +58,10 @@ public sealed class PostOgCardService : IPostOgCardService
     {
         try
         {
-            var dir = Path.Combine(_env.ContentRootPath, "App_Data", "og-cards");
+            var dir = IOPath.Combine(_env.ContentRootPath, "App_Data", "og-cards");
             Directory.CreateDirectory(dir);
             var hash = ContentHash(post);
-            var path = Path.Combine(dir, $"{post.Id}-{hash}.png");
+            var path = IOPath.Combine(dir, $"{post.Id}-{hash}.png");
             if (File.Exists(path))
                 return await File.ReadAllBytesAsync(path, ct);
 
@@ -84,10 +85,10 @@ public sealed class PostOgCardService : IPostOgCardService
     {
         try
         {
-            var dir = Path.Combine(_env.ContentRootPath, "App_Data", "og-cards");
+            var dir = IOPath.Combine(_env.ContentRootPath, "App_Data", "og-cards");
             Directory.CreateDirectory(dir);
             var hash = SiteHash();
-            var path = Path.Combine(dir, $"site-{hash}.png");
+            var path = IOPath.Combine(dir, $"site-{hash}.png");
             if (File.Exists(path))
                 return await File.ReadAllBytesAsync(path, ct);
 
@@ -344,13 +345,13 @@ public sealed class PostOgCardService : IPostOgCardService
                 "C:/Windows/Fonts/tahoma.ttf",
                 "C:/Windows/Fonts/segoeui.ttf"
             };
-            foreach (var path in candidates)
+            foreach (var candidate in candidates)
             {
-                if (!File.Exists(path)) continue;
+                if (!File.Exists(candidate)) continue;
                 try
                 {
                     var col = new FontCollection();
-                    _family = col.Add(path);
+                    _family = col.Add(candidate);
                     return _family.Value;
                 }
                 catch { /* next */ }
