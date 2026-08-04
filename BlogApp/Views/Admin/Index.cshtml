@@ -293,42 +293,11 @@ else
                 setTimeout(() => el.classList.remove('kpi-flash'), 900);
             }
 
-            function isRelevantView(data) {
-                if (seeAllAnalytics) return true;
-                return !!(data.authorId && data.authorId === currentUserId);
-            }
-
-            function bumpViewsChart() {
-                if (!viewsChart) return;
-                const values = viewsChart.data.datasets[0].data;
-                const last = values.length - 1;
-                if (last < 0) return;
-                values[last] = (Number(values[last]) || 0) + 1;
-                viewsChart.update();
-            }
-
-            function bumpTopPost(data) {
-                const slug = data.postSlug;
-                if (!slug) return;
-                const row = document.querySelector('#topPostsBody tr[data-slug="' + CSS.escape(slug) + '"]');
-                if (!row) return;
-                const totalEl = row.querySelector('[data-total-views]');
-                const rangeEl = row.querySelector('[data-range-views]');
-                if (totalEl) totalEl.textContent = (parseInt(totalEl.textContent, 10) || 0) + 1;
-                if (rangeEl) rangeEl.textContent = (parseInt(rangeEl.textContent, 10) || 0) + 1;
-            }
-
+            // View KPIs: no optimistic +1. admin-live.js LiveSnapshot is authoritative
+            // (scoped to !IsDeleted posts) so totals never jump high → low after soft-delete.
             window.addEventListener('admin-sse-message', function (e) {
                 const data = e.detail;
                 if (!data || !data.type) return;
-
-                if (data.type === 'view' && isRelevantView(data)) {
-                    bump('kpiViewsToday', 1);
-                    bump('kpiViewsRange', 1);
-                    bump('kpiViewsTotal', 1);
-                    bumpViewsChart();
-                    bumpTopPost(data);
-                }
 
                 if (data.type === 'comment') {
                     if (data.status === 'pending') {
@@ -419,6 +388,7 @@ else
                     }
                 });
             });
+            window.__adminViewsChart = viewsChart;
 
             commentStatusChart = safeChart('commentStatusChart', function () {
                 return new Chart(document.getElementById('commentStatusChart'), {
@@ -440,6 +410,7 @@ else
                     }
                 });
             });
+            window.__adminCommentChart = commentStatusChart;
 
             safeChart('postsByMonthChart', function () {
                 return new Chart(document.getElementById('postsByMonthChart'), {
