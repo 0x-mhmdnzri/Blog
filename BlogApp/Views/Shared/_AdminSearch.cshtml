@@ -1,26 +1,31 @@
-@* Spotlight modal only — trigger lives in admin topbar (wide field) *@
-<div id="adminSearchRoot" class="admin-search" data-api="/AdminSearch/api">
+@inject BlogApp.Services.IUiTranslator T
+@* Spotlight modal — trigger lives in admin topbar *@
+<div id="adminSearchRoot" class="admin-search" data-api="/AdminSearch/api"
+     data-i18n-idle="@T["search.admin.idle_hint"]"
+     data-i18n-keys="@T["search.admin.idle_keys"]"
+     data-i18n-no-results="@T["search.no_results"]"
+     data-i18n-results="@T["search.results"]">
     <div class="admin-search-overlay" id="adminSearchOverlay" hidden>
-        <div class="admin-search-dialog" role="dialog" aria-modal="true" aria-label="Admin search">
+        <div class="admin-search-dialog" role="dialog" aria-modal="true" aria-label="@T["search.admin.aria"]">
             <div class="admin-search-bar">
-                <svg class="admin-search-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-                    <path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                </svg>
+                <span class="admin-search-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                </span>
                 <input type="search" id="adminSearchInput" class="admin-search-input"
-                       placeholder="Search posts, users, pages…"
+                       placeholder="@T["search.admin.placeholder"]"
                        autocomplete="off" spellcheck="false" role="combobox"
                        aria-autocomplete="list" aria-controls="adminSearchResults" aria-expanded="false" />
-                <button type="button" class="admin-search-clear" id="adminSearchClear" hidden aria-label="Clear">✕</button>
+                <button type="button" class="admin-search-clear" id="adminSearchClear" hidden aria-label="@T["search.clear"]">×</button>
             </div>
 
-            <div class="admin-search-scopes" role="tablist" aria-label="Scope">
-                <button type="button" class="scope is-active" data-scope="all" role="tab" aria-selected="true">All</button>
-                <button type="button" class="scope" data-scope="post" role="tab">Posts</button>
-                <button type="button" class="scope" data-scope="comment" role="tab">Comments</button>
-                <button type="button" class="scope" data-scope="user" role="tab">People</button>
-                <button type="button" class="scope" data-scope="media" role="tab">Media</button>
-                <button type="button" class="scope" data-scope="page" role="tab">Pages</button>
-                <button type="button" class="scope" data-scope="theme" role="tab">Themes</button>
+            <div class="admin-search-scopes" role="tablist" aria-label="@T["search.admin.scope"]">
+                <button type="button" class="scope is-active" data-scope="all" role="tab" aria-selected="true">@T["search.admin.scope_all"]</button>
+                <button type="button" class="scope" data-scope="post" role="tab">@T["search.admin.scope_post"]</button>
+                <button type="button" class="scope" data-scope="comment" role="tab">@T["search.admin.scope_comment"]</button>
+                <button type="button" class="scope" data-scope="user" role="tab">@T["search.admin.scope_user"]</button>
+                <button type="button" class="scope" data-scope="media" role="tab">@T["search.admin.scope_media"]</button>
+                <button type="button" class="scope" data-scope="page" role="tab">@T["search.admin.scope_page"]</button>
+                <button type="button" class="scope" data-scope="theme" role="tab">@T["search.admin.scope_theme"]</button>
             </div>
 
             <div class="admin-search-meta" id="adminSearchMeta" hidden>
@@ -30,8 +35,8 @@
 
             <div class="admin-search-body" id="adminSearchResults" role="listbox">
                 <div class="admin-search-empty" id="adminSearchEmpty">
-                    <p class="hint">Type to search across the admin panel</p>
-                    <p class="hint-sub">↑↓ navigate · Enter open · Esc close</p>
+                    <p class="hint">@T["search.admin.idle_hint"]</p>
+                    <p class="hint-sub">@T["search.admin.idle_keys"]</p>
                 </div>
                 <div class="admin-search-skeleton" id="adminSearchSkeleton" hidden>
                     <div class="sk-row"></div><div class="sk-row"></div><div class="sk-row"></div>
@@ -41,9 +46,9 @@
             </div>
 
             <div class="admin-search-footer">
-                <span><kbd>↵</kbd> open</span>
-                <span><kbd>esc</kbd> close</span>
-                <a href="/AdminSearch" class="admin-search-full">Full results</a>
+                <span><kbd>↵</kbd> @T["search.open"]</span>
+                <span><kbd>esc</kbd> @T["search.close"]</span>
+                <a href="/AdminSearch" class="admin-search-full">@T["search.admin.full"]</a>
             </div>
         </div>
     </div>
