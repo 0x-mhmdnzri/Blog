@@ -20,6 +20,10 @@
   let timer = null;
   let aborter = null;
 
+  function t(key, fallback) {
+    return root.getAttribute('data-i18n-' + key) || fallback;
+  }
+
   function open() {
     if (!overlay) return;
     overlay.hidden = false;
@@ -36,7 +40,6 @@
     active = -1;
   }
 
-  // Topbar wide field + any [data-admin-search-open] / #adminSearchOpen
   document.querySelectorAll('#adminSearchOpen, [data-admin-search-open], .admin-search-field').forEach(el => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
@@ -93,7 +96,9 @@
     if (list) { list.hidden = true; list.innerHTML = ''; }
     if (empty) {
       empty.hidden = false;
-      empty.innerHTML = '<p class="hint">Type to search across the admin panel</p><p class="hint-sub">↑↓ navigate · Enter open · Esc close</p>';
+      empty.innerHTML =
+        '<p class="hint">' + escapeHtml(t('idle', 'Search the admin panel')) + '</p>' +
+        '<p class="hint-sub">' + escapeHtml(t('keys', '↑↓ navigate · Enter open · Esc close')) + '</p>';
     }
     if (meta) meta.hidden = true;
     hits = [];
@@ -120,7 +125,7 @@
       if (skeleton) skeleton.hidden = true;
       if (empty) {
         empty.hidden = false;
-        empty.innerHTML = '<p class="hint">Search temporarily unavailable</p>';
+        empty.innerHTML = '<p class="hint">' + escapeHtml(t('no-results', 'Search temporarily unavailable')) + '</p>';
       }
     }
   }
@@ -131,7 +136,7 @@
     active = hits.length ? 0 : -1;
 
     if (meta) meta.hidden = false;
-    if (countEl) countEl.textContent = data.totalHitsLabel || (hits.length + ' results');
+    if (countEl) countEl.textContent = data.totalHitsLabel || (hits.length + ' ' + t('results', 'results'));
     const cacheTag = data.fromCache ? ' · cache' : '';
     if (latencyEl) latencyEl.textContent = `${data.tookMs || 0} ms${cacheTag}`;
 
@@ -142,7 +147,7 @@
         const sug = (data.suggestions || []).map(s =>
           `<button type="button" class="scope" data-suggest="${escapeAttr(s)}">${escapeHtml(s)}</button>`
         ).join(' ');
-        empty.innerHTML = `<p class="hint">No results for “${escapeHtml(q)}”</p>` +
+        empty.innerHTML = `<p class="hint">${escapeHtml(t('no-results', 'No results'))} “${escapeHtml(q)}”</p>` +
           (sug ? `<div class="admin-search-scopes" style="justify-content:center;border:0">${sug}</div>` : '');
         empty.querySelectorAll('[data-suggest]').forEach(b => b.addEventListener('click', () => {
           if (input) input.value = b.dataset.suggest;
@@ -161,7 +166,15 @@
 
     let html = '';
     const order = ['page', 'post', 'user', 'comment', 'media', 'theme', 'taxonomy'];
-    const labels = { page: 'Pages', post: 'Posts', user: 'People', comment: 'Comments', media: 'Media', theme: 'Themes', taxonomy: 'Taxonomy' };
+    const labels = {
+      page: t('group-page', 'Pages'),
+      post: t('group-post', 'Posts'),
+      user: t('group-user', 'People'),
+      comment: t('group-comment', 'Comments'),
+      media: t('group-media', 'Media'),
+      theme: t('group-theme', 'Themes'),
+      taxonomy: t('group-taxonomy', 'Taxonomy')
+    };
     let flatIdx = 0;
     order.forEach(type => {
       const items = groups[type];
@@ -213,15 +226,15 @@
     return ({ post: 'Po', comment: 'Co', user: 'Pe', media: 'Me', theme: 'Th', page: 'Pg', taxonomy: 'Tx' })[t] || '·';
   }
   function escapeHtml(s) {
-    return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' }[c]));
   }
   function escapeAttr(s) { return escapeHtml(s).replace(/`/g, ''); }
   function highlight(text, q) {
-    const t = escapeHtml(text);
-    if (!q) return t;
+    const str = escapeHtml(text);
+    if (!q) return str;
     try {
       const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(/\s+/).filter(Boolean).join('|') + ')', 'ig');
-      return t.replace(re, '<mark>$1</mark>');
-    } catch { return t; }
+      return str.replace(re, '<mark>$1</mark>');
+    } catch { return str; }
   }
 })();
