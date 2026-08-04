@@ -4,6 +4,12 @@ public static partial class UiTranslationCatalog
 {
     public static readonly (string Key, string Group, string Fa, string En, string Ar)[] Media =
     {
+        ("media.subtitle", "media", "کتابخانه رسانه — آپلود، جست‌وجو، کپی لینک و مدیریت فایل‌ها", "Media library — upload, search, copy links, manage files", "مكتبة الوسائط — رفع وبحث ونسخ الروابط"),
+        ("media.stats_aria", "media", "آمار رسانه", "Media stats", "إحصاءات الوسائط"),
+        ("media.view_aria", "media", "نمای شبکه / لیست", "Grid / list view", "عرض شبكة / قائمة"),
+        ("media.view_grid", "media", "شبکه", "Grid", "شبكة"),
+        ("media.view_list", "media", "لیست", "List", "قائمة"),
+
         ("media.kpi_total", "media", "کل رسانه", "Total media", "إجمالي الوسائط"),
         ("media.kpi_images", "media", "تصاویر", "Images", "صور"),
         ("media.kpi_videos", "media", "ویدیوها", "Videos", "فيديوهات"),
