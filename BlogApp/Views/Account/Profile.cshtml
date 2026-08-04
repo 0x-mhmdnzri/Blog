@@ -2,14 +2,14 @@
 @using BlogApp.Models
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "پروفایل من";
+    ViewData["Title"] = T["auth.profile.title"];
     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
 @if (TempData["ProfileSaved"] != null)
 {
     <div class="alert alert-success mb-4" style="background:rgba(34,197,94,.12); color:#4ade80; border:1px solid rgba(34,197,94,.3);">
-        @TempData["ProfileSaved"]
+        @T["auth.profile.saved"]
     </div>
 }
 
@@ -21,58 +21,59 @@
             @if (Model.HasProfileImage && userId != null)
             {
                 <img src="@Url.Action("ProfileImage", "Account", new { userId })"
-                     alt="avatar"
+                     alt=""
                      class="rounded-circle"
                      style="width:72px;height:72px;object-fit:cover;border:2px solid var(--border-soft);" />
             }
             else
             {
                 <div class="rounded-circle d-flex align-items-center justify-content-center"
-                     style="width:72px;height:72px;background:var(--surface-2);border:2px solid var(--border-soft);font-size:1.5rem;">
+                     style="width:72px;height:72px;background:var(--surface-2);border:2px solid var(--border-soft);font-size:1.5rem;"
+                     aria-hidden="true">
                     @(Model.DisplayName?.FirstOrDefault().ToString().ToUpper() ?? "?")
                 </div>
             }
             <div>
-                <div class="form-label mb-1">تصویر پروفایل</div>
+                <div class="form-label mb-1">@T["auth.profile.avatar"]</div>
                 <input type="file" name="ProfileImageFile" accept="image/jpeg,image/png,image/webp" class="form-control form-control-sm" />
                 @if (Model.HasProfileImage)
                 {
                     <div class="form-check mt-2">
                         <input class="form-check-input" type="checkbox" name="RemoveProfileImage" value="true" id="removeImg" />
-                        <label class="form-check-label small" for="removeImg">حذف تصویر فعلی</label>
+                        <label class="form-check-label small" for="removeImg">@T["auth.profile.remove_photo"]</label>
                     </div>
                 }
             </div>
         </div>
 
         <div class="mb-3">
-            <label class="form-label" asp-for="DisplayName">نام نمایشی</label>
+            <label class="form-label" asp-for="DisplayName">@T["auth.profile.display_name"]</label>
             <input class="form-control" asp-for="DisplayName" dir="auto" />
             <span asp-validation-for="DisplayName" class="text-danger small"></span>
         </div>
 
         <div class="mb-3">
-            <label class="form-label" asp-for="Email">ایمیل</label>
+            <label class="form-label" asp-for="Email">@T["auth.profile.email"]</label>
             <input class="form-control ltr-field" asp-for="Email" />
             <span asp-validation-for="Email" class="text-danger small"></span>
         </div>
 
         <div class="mb-3">
-            <label class="form-label" asp-for="Gender">جنسیت (him / her)</label>
+            <label class="form-label" asp-for="Gender">@T["auth.profile.gender"]</label>
             <select class="form-select" asp-for="Gender">
-                <option value="@((int)UserGender.Unspecified)">ترجیح می‌دهم نگویم</option>
-                <option value="@((int)UserGender.Male)">مرد · him</option>
-                <option value="@((int)UserGender.Female)">زن · her</option>
-                <option value="@((int)UserGender.Other)">سایر</option>
+                <option value="@((int)UserGender.Unspecified)">@T["auth.profile.gender_unspecified"]</option>
+                <option value="@((int)UserGender.Male)">@T["auth.profile.gender_male"]</option>
+                <option value="@((int)UserGender.Female)">@T["auth.profile.gender_female"]</option>
+                <option value="@((int)UserGender.Other)">@T["auth.profile.gender_other"]</option>
             </select>
         </div>
 
         <div class="mb-4">
-            <label class="form-label" asp-for="Bio">بیو</label>
+            <label class="form-label" asp-for="Bio">@T["auth.profile.bio"]</label>
             <textarea class="form-control" asp-for="Bio" rows="3" dir="auto" maxlength="500"></textarea>
         </div>
 
-        <h3 class="h6 mb-3">شبکه‌های اجتماعی</h3>
+        <h3 class="h6 mb-3">@T["auth.profile.social"]</h3>
         <div class="row g-2 mb-4">
             <div class="col-md-6">
                 <label class="form-label" asp-for="Twitter">X / Twitter</label>
@@ -104,10 +105,10 @@
             </div>
         </div>
 
-        <button type="submit" class="btn btn-accent">ذخیره پروفایل</button>
+        <button type="submit" class="btn btn-accent">@T["auth.profile.save_btn"]</button>
         @if (!string.IsNullOrEmpty(User.Identity?.Name))
         {
-            <a class="btn btn-ghost ms-2" href="/author/@User.Identity.Name">صفحه عمومی</a>
+            <a class="btn btn-ghost ms-2" href="/author/@User.Identity.Name">@T["auth.profile.public_page"]</a>
         }
     </form>
 </div>
