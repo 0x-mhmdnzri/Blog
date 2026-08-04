@@ -13,6 +13,7 @@
     @Html.AntiForgeryToken()
 
     <h2 class="h6 text-muted-dark mb-3">@T["settings.section_seo"]</h2>
+    <p class="small text-muted-dark mb-3">این مقادیر در پایگاه داده ذخیره می‌شوند و روی متاتگ‌ها و JSON-LD هر صفحه اثر می‌گذارند (نه در appsettings یا .env).</p>
     <div class="mb-3">
         <label class="form-label" asp-for="SiteName">@T["settings.site_name"]</label>
         <input class="form-control" asp-for="SiteName" dir="auto" />
@@ -35,6 +36,52 @@
     <div class="mb-4">
         <label class="form-label" asp-for="BaseUrl">@T["settings.base_url"]</label>
         <input class="form-control ltr-field" asp-for="BaseUrl" placeholder="https://example.com" />
+    </div>
+
+    <h2 class="h6 text-muted-dark mb-3">SMTP / ایمیل</h2>
+    <p class="small text-muted-dark mb-3">تنظیمات ارسال ایمیل (خبرنامه، اعلان‌ها). فقط SuperAdmin. پس از ذخیره از دیتابیس خوانده می‌شود.</p>
+    <div class="form-check mb-3">
+        <input class="form-check-input" asp-for="SmtpEnabled" />
+        <label class="form-check-label" asp-for="SmtpEnabled">فعال‌سازی SMTP</label>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-8">
+            <label class="form-label" asp-for="SmtpHost">میزبان (Host)</label>
+            <input class="form-control ltr-field" asp-for="SmtpHost" placeholder="smtp.example.com" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" asp-for="SmtpPort">پورت</label>
+            <input class="form-control ltr-field" asp-for="SmtpPort" type="number" min="1" max="65535" />
+        </div>
+    </div>
+    <div class="form-check mb-3">
+        <input class="form-check-input" asp-for="SmtpEnableSsl" />
+        <label class="form-check-label" asp-for="SmtpEnableSsl">SSL / TLS</label>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label class="form-label" asp-for="SmtpUserName">نام کاربری</label>
+            <input class="form-control ltr-field" asp-for="SmtpUserName" autocomplete="off" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" asp-for="SmtpPassword">رمز عبور</label>
+            <input class="form-control ltr-field" asp-for="SmtpPassword" type="password" autocomplete="new-password" placeholder="@(Model.SmtpPasswordIsSet ? "••••••••  (خالی = بدون تغییر)" : "")" />
+            @if (Model.SmtpPasswordIsSet)
+            {
+                <div class="form-text small text-muted-dark">رمز قبلاً ذخیره شده؛ برای تغییر مقدار جدید وارد کنید.</div>
+            }
+        </div>
+    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <label class="form-label" asp-for="SmtpFromAddress">آدرس فرستنده</label>
+            <input class="form-control ltr-field" asp-for="SmtpFromAddress" placeholder="noreply@example.com" />
+            <span asp-validation-for="SmtpFromAddress" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" asp-for="SmtpFromDisplayName">نام نمایشی فرستنده</label>
+            <input class="form-control" asp-for="SmtpFromDisplayName" dir="auto" placeholder="وبلاگ دارک‌پرو" />
+        </div>
     </div>
 
     <h2 class="h6 text-muted-dark mb-3">@T["settings.section_maintenance"]</h2>
