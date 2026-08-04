@@ -1,0 +1,311 @@
+/* AdminAnalytics — Geography map (full-bleed, Power BI feel) */
+
+.ana-geo {
+  --geo-accent: var(--accent, #e3b341);
+  --geo-accent-soft: color-mix(in srgb, var(--accent, #e3b341) 22%, transparent);
+  --geo-land: color-mix(in srgb, var(--surface-2, #171c27) 88%, #3a4256);
+  --geo-land-hover: color-mix(in srgb, var(--accent, #e3b341) 18%, var(--surface-2, #171c27));
+  --geo-stroke: color-mix(in srgb, var(--border, #232838) 70%, transparent);
+  --geo-bg: radial-gradient(ellipse 80% 60% at 50% 45%,
+    color-mix(in srgb, var(--surface, #12161f) 92%, var(--accent, #e3b341) 4%) 0%,
+    var(--bg, #0b0d12) 100%);
+  position: relative;
+  border: 1px solid var(--border-soft, #1e2430);
+  border-radius: var(--radius-lg, 14px);
+  background: var(--surface, #12161f);
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.ana-geo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  padding: 0.95rem 1.15rem;
+  border-bottom: 1px solid var(--border-soft, #1e2430);
+  background: linear-gradient(180deg, var(--surface-2, #171c27) 0%, var(--surface, #12161f) 100%);
+}
+
+.ana-geo-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text, #e8ecf4);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ana-geo-title .pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--geo-accent);
+  box-shadow: 0 0 0 0 var(--geo-accent-soft);
+  animation: geo-pulse 2s ease-out infinite;
+}
+
+@keyframes geo-pulse {
+  0% { box-shadow: 0 0 0 0 var(--geo-accent-soft); }
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.ana-geo-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ana-geo-kpi {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 4.5rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg, #0b0d12) 55%, transparent);
+  border: 1px solid var(--border-soft, #1e2430);
+}
+
+.ana-geo-kpi .k {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint, #6b7280);
+}
+
+.ana-geo-kpi .v {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text, #e8ecf4);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.ana-geo-kpi.is-accent .v { color: var(--geo-accent); }
+
+.ana-geo-body {
+  display: grid;
+  grid-template-columns: 1fr minmax(200px, 260px);
+  min-height: 380px;
+}
+
+@media (max-width: 900px) {
+  .ana-geo-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ana-geo-map-wrap {
+  position: relative;
+  min-height: 360px;
+  background: var(--geo-bg);
+  overflow: hidden;
+}
+
+.ana-geo-map-wrap #anaGeoMap {
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+}
+
+/* jsvectormap overrides */
+.ana-geo-map-wrap .jvm-container {
+  background: transparent !important;
+}
+.ana-geo-map-wrap .jvm-element {
+  stroke: var(--geo-stroke) !important;
+  stroke-width: 0.4 !important;
+}
+.ana-geo-map-wrap .jvm-region {
+  fill: var(--geo-land) !important;
+  transition: fill 0.2s ease;
+}
+.ana-geo-map-wrap .jvm-region:hover {
+  fill: var(--geo-land-hover) !important;
+  cursor: pointer;
+}
+
+.ana-geo-flow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Tooltip / popup */
+.ana-geo-tip {
+  position: absolute;
+  z-index: 20;
+  min-width: 160px;
+  max-width: 240px;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--geo-accent) 35%, var(--border, #232838));
+  background: color-mix(in srgb, var(--surface, #12161f) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--geo-accent) 12%, transparent),
+    0 16px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.ana-geo-tip.is-visible {
+  opacity: 1;
+  transform: none;
+}
+.ana-geo-tip .tip-code {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--geo-accent);
+  margin-bottom: 0.15rem;
+}
+.ana-geo-tip .tip-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text, #e8ecf4);
+  margin-bottom: 0.45rem;
+}
+.ana-geo-tip .tip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted, #8b93a7);
+}
+.ana-geo-tip .tip-row strong {
+  color: var(--text, #e8ecf4);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+}
+.ana-geo-tip .tip-bar {
+  margin-top: 0.55rem;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-muted) 18%, transparent);
+  overflow: hidden;
+}
+.ana-geo-tip .tip-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--geo-accent), color-mix(in srgb, var(--geo-accent) 60%, #6fb3d2));
+  width: 0;
+  transition: width 0.35s ease;
+}
+
+/* Ranking sidebar */
+.ana-geo-rank {
+  border-inline-start: 1px solid var(--border-soft, #1e2430);
+  background: color-mix(in srgb, var(--surface-2, #171c27) 70%, transparent);
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+}
+@media (max-width: 900px) {
+  .ana-geo-rank {
+    border-inline-start: none;
+    border-top: 1px solid var(--border-soft, #1e2430);
+    max-height: 220px;
+  }
+}
+
+.ana-geo-rank-head {
+  padding: 0.7rem 0.95rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint, #6b7280);
+  border-bottom: 1px solid var(--border-soft, #1e2430);
+  flex-shrink: 0;
+}
+
+.ana-geo-rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+}
+
+.ana-geo-rank-item {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.5rem 0.55rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.ana-geo-rank-item:hover,
+.ana-geo-rank-item.is-active {
+  background: var(--geo-accent-soft);
+}
+.ana-geo-rank-item .idx {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-faint, #6b7280);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.ana-geo-rank-item .name {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text, #e8ecf4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ana-geo-rank-item .cnt {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--geo-accent);
+  font-variant-numeric: tabular-nums;
+}
+.ana-geo-rank-item .bar {
+  grid-column: 2 / -1;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-muted) 15%, transparent);
+  margin-top: -0.15rem;
+  overflow: hidden;
+}
+.ana-geo-rank-item .bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--geo-accent);
+}
+
+.ana-geo-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #8b93a7);
+  font-size: 0.9rem;
+  z-index: 5;
+  background: color-mix(in srgb, var(--surface, #12161f) 40%, transparent);
+}
+
+html[data-theme="light"] .ana-geo {
+  --geo-land: #d8dce6;
+  --geo-land-hover: color-mix(in srgb, var(--accent, #c9a227) 20%, #e8ebf2);
+  --geo-stroke: #c5cad6;
+  --geo-bg: radial-gradient(ellipse 80% 60% at 50% 45%, #f4f6fa 0%, #e8ebf2 100%);
+}
