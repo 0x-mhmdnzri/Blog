@@ -86,7 +86,6 @@
             @T["media.videos"] <span class="ml-seg-n">@Model.VideoCount</span>
         </a>
     </div>
-
     <div class="ml-toolbar-end">
         <form method="get" asp-action="Media" class="ml-search" role="search">
             @if (!string.IsNullOrEmpty(Model.FilterKind))
@@ -94,10 +93,8 @@
                 <input type="hidden" name="kind" value="@Model.FilterKind" />
             }
             <svg class="ml-search-ico" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-            <input type="search" name="q" value="@Model.Search" class="ml-search-input"
-                   placeholder="@T["media.search"]" autocomplete="off" id="mediaSearchInput" />
+            <input type="search" name="q" value="@Model.Search" class="ml-search-input" placeholder="@T["media.search"]" autocomplete="off" id="mediaSearchInput" />
         </form>
-
         <div class="ml-view-toggle" role="group" aria-label="@T["media.view_aria"]">
             <button type="button" class="ml-view-btn is-active" data-view="grid" title="@T["media.view_grid"]" aria-pressed="true">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z"/></svg>
@@ -109,4 +106,121 @@
     </div>
 </div>
 
-<p class="text-muted-dark small">Media page body continues in next commit if truncated — use local Admin_Media.cshtml from artifacts for full file.</p>
+<div class="ml-sel" id="mediaSelectionBar" data-active="0">
+    <label class="ml-sel-all">
+        <input type="checkbox" id="mediaSelectAll" />
+        <span>@T["media.select_all"]</span>
+    </label>
+    <span class="ml-sel-count" id="mediaSelCount">@T["media.selected_zero"]</span>
+    <div class="ml-sel-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="mediaClearSel" disabled>@T["media.clear_sel"]</button>
+        <button type="submit" form="mediaBulkForm" class="btn btn-sm ml-btn-danger" id="bulkDeleteBtn" disabled>@T["media.bulk_delete"]</button>
+    </div>
+</div>
+
+<form asp-action="MediaBulkDelete" method="post" id="mediaBulkForm" onsubmit="return confirm('@T["media.confirm_bulk"]');">
+    @Html.AntiForgeryToken()
+    @if (Model.Items.Count == 0)
+    {
+        <div class="ml-empty">
+            <p class="ml-empty-title">@T["media.empty"]</p>
+            <p class="ml-empty-hint">@T["media.empty_hint"]</p>
+            <button type="button" class="btn btn-accent btn-sm" id="mediaEmptyPick">@T["media.pick_file"]</button>
+        </div>
+    }
+    else
+    {
+        <div class="ml-grid" id="mediaGrid" data-view="grid">
+            @foreach (var m in Model.Items)
+            {
+                var md = m.Kind == BlogApp.Models.MediaKind.Image
+                    ? $"![img]({m.Url})"
+                    : m.Kind == BlogApp.Models.MediaKind.Video
+                        ? $"{{{{video:{m.Id}}}}}"
+                        : $"[{m.FileName}]({m.Url})";
+                var kindLabel = m.Kind == BlogApp.Models.MediaKind.Image ? "IMG"
+                    : m.Kind == BlogApp.Models.MediaKind.Video ? "VID" : "FILE";
+                <article class="ml-card" data-id="@m.Id" data-name="@m.FileName.ToLowerInvariant()" data-kind="@m.Kind">
+                    <label class="ml-check">
+                        <input type="checkbox" name="ids" value="@m.Id" class="media-cb" aria-label="@m.FileName" />
+                    </label>
+                    <button type="button" class="ml-thumb" data-lightbox="@m.Url" data-kind="@m.Kind" data-title="@m.FileName" title="@T["media.preview"]">
+                        @if (m.Kind == BlogApp.Models.MediaKind.Image)
+                        {
+                            <img src="@m.Url" alt="" loading="lazy" decoding="async" />
+                        }
+                        else if (m.Kind == BlogApp.Models.MediaKind.Video)
+                        {
+                            <video src="@m.Url" muted preload="metadata" playsinline></video>
+                            <span class="ml-kind-badge">@kindLabel</span>
+                        }
+                        else
+                        {
+                            <div class="ml-file-ph">@kindLabel</div>
+                        }
+                    </button>
+                    <div class="ml-card-body">
+                        <div class="ml-card-name" title="@m.FileName">@m.FileName</div>
+                        <div class="ml-card-meta">
+                            <span class="ltr-field">@m.SizeLabel</span>
+                            <span class="ml-dot" aria-hidden="true">·</span>
+                            <span class="ltr-field">#@m.Id</span>
+                        </div>
+                        <div class="ml-card-actions">
+                            <button type="button" class="ml-act" data-copy="@m.Url" title="@T["media.copy_url"]">URL</button>
+                            <button type="button" class="ml-act" data-md="@md" title="@T["media.copy_md"]">MD</button>
+                            <button type="button" class="ml-act" data-usage="@m.Id" title="@T["media.usage"]">@T["media.usage"]</button>
+                            <button type="submit" class="ml-act ml-act-danger" form="del-@m.Id" title="@T["btn.delete"]">@T["btn.delete"]</button>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+        <p class="ml-visible-hint" id="mediaVisibleHint" hidden></p>
+    }
+</form>
+
+@foreach (var m in Model.Items)
+{
+    <form asp-action="MediaDelete" method="post" class="d-none" id="del-@m.Id"
+          onsubmit="return confirm('@T["msg.confirm_delete"]');">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@m.Id" />
+    </form>
+}
+
+<div class="modal fade" id="usageModal" tabindex="-1" aria-labelledby="usageModalTitle">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content ml-modal">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="usageModalTitle">@T["media.usage_title"]</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="usageBody">
+                <p class="text-muted-dark small mb-0">…</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="ml-lightbox" id="mediaLightbox" hidden>
+    <button type="button" class="ml-lb-close" id="mediaLbClose" aria-label="Close">×</button>
+    <div class="ml-lb-body" id="mediaLbBody"></div>
+    <div class="ml-lb-caption" id="mediaLbCaption"></div>
+</div>
+
+<div class="ml-toast" id="mediaToast" hidden role="status"></div>
+
+<link rel="stylesheet" href="~/css/media-library.css" asp-append-version="true" />
+
+@section Scripts {
+<script>
+  window.__mediaI18n = {
+    selected: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["media.selected_n"].ToString())),
+    selectedZero: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["media.selected_zero"].ToString())),
+    copied: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["media.copied"].ToString())),
+    usageNone: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["media.usage_none"].ToString()))
+  };
+</script>
+<script src="~/js/media-library.js" asp-append-version="true"></script>
+}
