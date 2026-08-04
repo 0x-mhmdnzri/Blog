@@ -141,14 +141,10 @@ public sealed class PostOgCardService : IPostOgCardService
         image.Mutate(ctx =>
         {
             ctx.Fill(bg);
-            // Main panel with soft inset
             ctx.Fill(panel, new RectangleF(32, 32, Width - 64, Height - 64));
-            ctx.Draw(border, 2, new RectangularPolygon(32, 32, Width - 64, Height - 64));
-
-            // Left accent stripe
+            ctx.Draw(border, 2f, new RectangularPolygon(32, 32, Width - 64, Height - 64));
             ctx.Fill(accent, new RectangleF(32, 32, 8, Height - 64));
 
-            // Top brand bar
             var family = ResolveFontFamily();
             var brandFont = family.CreateFont(20, FontStyle.Regular);
             var titleFont = family.CreateFont(46, FontStyle.Bold);
@@ -156,7 +152,6 @@ public sealed class PostOgCardService : IPostOgCardService
             var chipFont = family.CreateFont(20, FontStyle.Regular);
             var smallFont = family.CreateFont(18, FontStyle.Regular);
 
-            // Site name top-right
             var brandOpts = new RichTextOptions(brandFont)
             {
                 Origin = new PointF(Width - 56, 56),
@@ -165,15 +160,12 @@ public sealed class PostOgCardService : IPostOgCardService
             };
             ctx.DrawText(brandOpts, site, muted);
 
-            // Category pill top-left
-            var labelY = 58f;
             if (!string.IsNullOrWhiteSpace(category))
             {
                 var cat = category.Length > 28 ? category[..25] + "\u2026" : category;
-                DrawChip(ctx, 64, labelY, cat, chipFont, chipBg, accent);
+                DrawChip(ctx, 64, 58, cat, chipFont, chipBg, accent);
             }
 
-            // Title
             var titleOpts = new RichTextOptions(titleFont)
             {
                 Origin = new PointF(64, 120),
@@ -184,7 +176,6 @@ public sealed class PostOgCardService : IPostOgCardService
             };
             ctx.DrawText(titleOpts, title, titleColor);
 
-            // Summary under title
             if (!string.IsNullOrWhiteSpace(summary))
             {
                 var subOpts = new RichTextOptions(bodyFont)
@@ -196,15 +187,13 @@ public sealed class PostOgCardService : IPostOgCardService
                 ctx.DrawText(subOpts, summary, muted);
             }
 
-            // Stats row (GitHub-style)
             var statsY = Height - 150f;
             float x = 64;
-            x = DrawStatChip(ctx, x, statsY, "views", views, chipFont, chipBg, muted, titleColor);
-            x = DrawStatChip(ctx, x + 12, statsY, "likes", likes, chipFont, chipBg, muted, titleColor);
-            x = DrawStatChip(ctx, x + 12, statsY, "read", $"{readMin} min", chipFont, chipBg, muted, titleColor);
-            x = DrawStatChip(ctx, x + 12, statsY, "date", dateStr, chipFont, chipBg, muted, titleColor);
+            x = DrawStatChip(ctx, x, statsY, "views", views, chipFont, chipBg, titleColor);
+            x = DrawStatChip(ctx, x + 12, statsY, "likes", likes, chipFont, chipBg, titleColor);
+            x = DrawStatChip(ctx, x + 12, statsY, "read", $"{readMin} min", chipFont, chipBg, titleColor);
+            DrawStatChip(ctx, x + 12, statsY, "date", dateStr, chipFont, chipBg, titleColor);
 
-            // Footer: author · site
             var footer = $"{author}  \u00b7  {site}";
             var footOpts = new RichTextOptions(smallFont)
             {
@@ -212,8 +201,6 @@ public sealed class PostOgCardService : IPostOgCardService
                 HorizontalAlignment = HorizontalAlignment.Left
             };
             ctx.DrawText(footOpts, footer, accent);
-
-            // Accent underline under footer
             ctx.Fill(accent, new RectangleF(64, Height - 58, 120, 4));
         });
 
@@ -241,7 +228,7 @@ public sealed class PostOgCardService : IPostOgCardService
         {
             ctx.Fill(bg);
             ctx.Fill(panel, new RectangleF(32, 32, Width - 64, Height - 64));
-            ctx.Draw(border, 2, new RectangularPolygon(32, 32, Width - 64, Height - 64));
+            ctx.Draw(border, 2f, new RectangularPolygon(32, 32, Width - 64, Height - 64));
             ctx.Fill(accent, new RectangleF(32, 32, 8, Height - 64));
 
             var family = ResolveFontFamily();
@@ -249,28 +236,25 @@ public sealed class PostOgCardService : IPostOgCardService
             var bodyFont = family.CreateFont(26, FontStyle.Regular);
             var smallFont = family.CreateFont(20, FontStyle.Regular);
 
-            var titleOpts = new RichTextOptions(titleFont)
+            ctx.DrawText(new RichTextOptions(titleFont)
             {
                 Origin = new PointF(72, 200),
                 WrappingLength = Width - 180,
                 HorizontalAlignment = HorizontalAlignment.Left
-            };
-            ctx.DrawText(titleOpts, site, titleColor);
+            }, site, titleColor);
 
-            var subOpts = new RichTextOptions(bodyFont)
+            ctx.DrawText(new RichTextOptions(bodyFont)
             {
                 Origin = new PointF(72, 300),
                 WrappingLength = Width - 180,
                 HorizontalAlignment = HorizontalAlignment.Left
-            };
-            ctx.DrawText(subOpts, desc, muted);
+            }, desc, muted);
 
-            var footOpts = new RichTextOptions(smallFont)
+            ctx.DrawText(new RichTextOptions(smallFont)
             {
                 Origin = new PointF(72, Height - 90),
                 HorizontalAlignment = HorizontalAlignment.Left
-            };
-            ctx.DrawText(footOpts, "Open Graph  \u00b7  Share card", accent);
+            }, "Open Graph  \u00b7  Share card", accent);
             ctx.Fill(accent, new RectangleF(72, Height - 68, 100, 4));
         });
 
@@ -292,8 +276,7 @@ public sealed class PostOgCardService : IPostOgCardService
         var padY = 8f;
         var w = measure.Width + padX * 2;
         var h = measure.Height + padY * 2;
-        var rect = new RoundedRectangle(x, y, w, h, 8);
-        ctx.Fill(bg, rect);
+        ctx.Fill(bg, new RectangleF(x, y, w, h));
         ctx.DrawText(new RichTextOptions(font)
         {
             Origin = new PointF(x + padX, y + padY),
@@ -309,7 +292,6 @@ public sealed class PostOgCardService : IPostOgCardService
         string value,
         Font font,
         Color bg,
-        Color labelColor,
         Color valueColor)
     {
         var text = $"{label}  {value}";
@@ -318,17 +300,13 @@ public sealed class PostOgCardService : IPostOgCardService
         var padY = 10f;
         var w = measure.Width + padX * 2;
         var h = measure.Height + padY * 2;
-        var rect = new RoundedRectangle(x, y, w, h, 10);
-        ctx.Fill(bg, rect);
-
-        // label in muted, value brighter — draw as one string with value emphasis via single color for simplicity
+        ctx.Fill(bg, new RectangleF(x, y, w, h));
         ctx.DrawText(new RichTextOptions(font)
         {
             Origin = new PointF(x + padX, y + padY),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
         }, text, valueColor);
-
         return x + w;
     }
 
@@ -382,7 +360,6 @@ public sealed class PostOgCardService : IPostOgCardService
         }
     }
 
-    /// <summary>Hash content fields + coarse view tier so cards refresh when stats jump.</summary>
     private static string ContentHash(Post post)
     {
         var viewTier = post.ViewCount switch
@@ -406,31 +383,5 @@ public sealed class PostOgCardService : IPostOgCardService
         var raw = $"site|{_seo.SiteName}|{_seo.SiteDescription}";
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(hash.AsSpan(0, 6)).ToLowerInvariant();
-    }
-
-    private sealed class RoundedRectangle : IPath
-    {
-        private readonly IPath _path;
-
-        public RoundedRectangle(float x, float y, float w, float h, float r)
-        {
-            var builder = new PathBuilder();
-            builder.AddArc(new RectangleF(x, y, r * 2, r * 2), 180, 90);
-            builder.AddArc(new RectangleF(x + w - r * 2, y, r * 2, r * 2), 270, 90);
-            builder.AddArc(new RectangleF(x + w - r * 2, y + h - r * 2, r * 2, r * 2), 0, 90);
-            builder.AddArc(new RectangleF(x, y + h - r * 2, r * 2, r * 2), 90, 90);
-            builder.CloseFigure();
-            _path = builder.Build();
-        }
-
-        public PathTypes PathType => _path.PathType;
-        public RectangleF Bounds => _path.Bounds;
-        public int MaxDegree => _path.MaxDegree;
-        public IPath Transform(Matrix3x2 matrix) => _path.Transform(matrix);
-        public IPath AsClosedPath() => _path.AsClosedPath();
-        public IEnumerable<ISimplePath> Flatten() => _path.Flatten();
-        public IEnumerable<ISimplePath> Flatten(float minLineLength) => _path.Flatten(minLineLength);
-        public IEnumerable<ISimplePath> Flatten(float minLineLength, float maxCurveLength) =>
-            _path.Flatten(minLineLength, maxCurveLength);
     }
 }
