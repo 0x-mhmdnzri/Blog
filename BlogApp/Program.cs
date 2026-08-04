@@ -218,7 +218,7 @@ try
     builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
     builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 
-    builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+    // SMTP is DB-backed (SiteSettings via /AdminSettings). Sms/Push/Digest remain config-driven.
     builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection("Sms"));
     builder.Services.Configure<PushOptions>(builder.Configuration.GetSection("Push"));
     builder.Services.Configure<DigestOptions>(builder.Configuration.GetSection("Digest"));
