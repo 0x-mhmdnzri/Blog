@@ -1,3 +1,8 @@
+@inject BlogApp.Services.IUiTranslator T
+@inject BlogApp.Services.ICultureService Culture
+@{
+    var lang = Culture.Current.Code;
+}
 <div id="search-overlay" class="site-search-overlay" hidden
      data-i18n-idle="@T["search.idle_hint"]"
      data-i18n-keys="@T["search.idle_keys"]"
