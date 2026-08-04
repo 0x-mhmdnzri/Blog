@@ -1,30 +1,31 @@
+@inject BlogApp.Services.IUiTranslator T
 @{
-    ViewData["Title"] = "ورود";
+    ViewData["Title"] = T["auth.login.title"];
     var returnUrl = ViewBag.ReturnUrl as string;
     var googleOn = ViewBag.GoogleLoginEnabled as bool? ?? false;
     var githubOn = ViewBag.GitHubLoginEnabled as bool? ?? false;
 }
 
 <div class="container py-5" style="max-width:420px;">
-    <h1 class="h4 mb-4" dir="auto">ورود</h1>
+    <h1 class="h4 mb-4" dir="auto">@T["auth.login.heading"]</h1>
 
     <form asp-action="Login" method="post" class="card-surface p-4">
         @Html.AntiForgeryToken()
         <input type="hidden" name="returnUrl" value="@returnUrl" />
         <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
         <div class="mb-3">
-            <label class="form-label" for="username">نام کاربری یا ایمیل</label>
+            <label class="form-label" for="username">@T["auth.login.username"]</label>
             <input class="form-control ltr-field" id="username" name="username" autocomplete="username" required />
         </div>
         <div class="mb-3">
-            <label class="form-label" for="password">رمز عبور</label>
+            <label class="form-label" for="password">@T["auth.login.password"]</label>
             <input class="form-control ltr-field" id="password" name="password" type="password" autocomplete="current-password" required />
         </div>
-        <button type="submit" class="btn btn-accent w-100">ورود</button>
+        <button type="submit" class="btn btn-accent w-100">@T["auth.login.submit"]</button>
     </form>
 
     <div class="mt-4 card-surface p-3">
-        <div class="small text-muted-dark mb-2" dir="auto">ورود اجتماعی (OAuth)</div>
+        <div class="small text-muted-dark mb-2" dir="auto">@T["auth.login.oauth"]</div>
         @if (googleOn || githubOn)
         {
             <div class="d-flex flex-column gap-2">
@@ -50,14 +51,12 @@
         }
         else
         {
-            <p class="small text-muted-dark mb-0" dir="auto">
-                برای فعال‌سازی، کلیدهای <span class="ltr-field">Authentication:Google</span> و
-                <span class="ltr-field">Authentication:GitHub</span> را در تنظیمات قرار دهید و پکیج OAuth مربوطه را اضافه کنید.
-            </p>
+            <p class="small text-muted-dark mb-0" dir="auto">@T["auth.login.oauth_hint"]</p>
         }
     </div>
 
     <p class="mt-3 small text-center">
-        <a asp-action="Register">ثبت‌نام</a>
+        <span class="text-muted-dark">@T["auth.login.no_account"]</span>
+        <a asp-action="Register">@T["auth.login.register_link"]</a>
     </p>
 </div>

@@ -1,0 +1,21 @@
+@inject BlogApp.Services.IUiTranslator T
+@{
+    var keys = new[]
+    {
+        "a11y.fab_label", "a11y.fab_title", "a11y.panel_title", "a11y.close",
+        "a11y.high_contrast", "a11y.underline_links", "a11y.reduce_motion", "a11y.text_size",
+        "a11y.text_normal", "a11y.text_large", "a11y.text_xlarge",
+        "a11y.motion_system", "a11y.motion_reduce", "a11y.motion_full",
+        "a11y.reset", "a11y.contrast_on", "a11y.contrast_off",
+        "a11y.underline_on", "a11y.underline_off", "a11y.motion_updated",
+        "a11y.text_updated", "a11y.reset_done", "a11y.hint"
+    };
+}
+<script>
+  window.__a11yI18n = {
+@foreach (var k in keys)
+{
+    @:    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(k)): @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T[k])),
+}
+  };
+</script>
