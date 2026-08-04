@@ -32,6 +32,33 @@ public class SiteSettingsViewModel
 
     [MaxLength(20)]
     public string AnnouncementStyle { get; set; } = "info";
+
+    // ── SMTP (DB-backed; SuperAdmin only) ──
+    public bool SmtpEnabled { get; set; }
+
+    [MaxLength(200)]
+    public string? SmtpHost { get; set; }
+
+    [Range(1, 65535)]
+    public int SmtpPort { get; set; } = 587;
+
+    public bool SmtpEnableSsl { get; set; } = true;
+
+    [MaxLength(200)]
+    public string? SmtpUserName { get; set; }
+
+    /// <summary>Leave blank on save to keep the existing password.</summary>
+    [MaxLength(200)]
+    public string? SmtpPassword { get; set; }
+
+    /// <summary>True when a password is already stored (UI hint; never exposes the secret).</summary>
+    public bool SmtpPasswordIsSet { get; set; }
+
+    [MaxLength(200), EmailAddress]
+    public string? SmtpFromAddress { get; set; }
+
+    [MaxLength(120)]
+    public string? SmtpFromDisplayName { get; set; }
 }
 
 public class AdminUserListItem
