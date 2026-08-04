@@ -6,7 +6,7 @@ namespace BlogApp.Controllers;
 
 public partial class AdminAnalyticsController
 {
-    /// <summary>REST snapshot for /AdminAnalytics — corrects SSE drift.</summary>
+    /// <summary>REST snapshot for /AdminAnalytics — corrects SSE drift. Scoped to non-deleted posts only.</summary>
     [HttpGet]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public async Task<IActionResult> LiveSnapshot(int range = 30)
@@ -17,14 +17,19 @@ public partial class AdminAnalyticsController
         var today = DateTime.UtcNow.Date;
         var rangeStart = today.AddDays(-(range - 1));
 
-        var postQuery = _db.Posts.AsQueryable().Where(p => !p.IsDeleted);
+        // Never include soft-deleted posts in analytics KPIs.
+        var postQuery = _db.Posts.AsNoTracking().Where(p => !p.IsDeleted);
         if (!seeAll) postQuery = postQuery.Where(p => p.AuthorId == userId);
         var myPostIds = await postQuery.Select(p => p.Id).ToListAsync();
 
-        var views = await _db.PostViews.AsNoTracking()
-            .Where(v => v.ViewedAtUtc >= rangeStart && myPostIds.Contains(v.PostId))
-            .Select(v => new { v.ViewedAtUtc, v.VisitorHash, v.PostId })
-            .ToListAsync();
+        var views = myPostIds.Count == 0
+            ? new List<(DateTime ViewedAtUtc, string? VisitorHash, int PostId)>()
+            : (await _db.PostViews.AsNoTracking()
+                .Where(v => v.ViewedAtUtc >= rangeStart && myPostIds.Contains(v.PostId))
+                .Select(v => new { v.ViewedAtUtc, v.VisitorHash, v.PostId })
+                .ToListAsync())
+                .Select(v => (v.ViewedAtUtc, v.VisitorHash, v.PostId))
+                .ToList();
 
         var unique = views.Select(v => v.VisitorHash).Where(h => h != null).Distinct().Count();
         var viewsByDay = new List<object>();
