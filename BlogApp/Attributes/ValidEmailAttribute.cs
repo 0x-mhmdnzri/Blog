@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 
 namespace BlogApp.Attributes;
@@ -34,7 +34,7 @@ public class ValidEmailAttribute : ValidationAttribute
     {
         if (value is null || string.IsNullOrWhiteSpace(value.ToString()))
         {
-            ErrorMessage = "ایمیل الزامی است";
+            ErrorMessage = "auth.val.email_required";
             return false;
         }
 
@@ -42,7 +42,7 @@ public class ValidEmailAttribute : ValidationAttribute
 
         if (!EmailRegex.IsMatch(email))
         {
-            ErrorMessage = "ایمیل نامعتبر است";
+            ErrorMessage = "auth.val.email_invalid";
             return false;
         }
 
@@ -50,7 +50,7 @@ public class ValidEmailAttribute : ValidationAttribute
 
         if (!ValidDomains.Contains(domain))
         {
-            ErrorMessage = "لطفا یک ایمیل معتبر وارد کنید.";
+            ErrorMessage = "auth.val.email_domain";
             return false;
         }
 

@@ -35,7 +35,7 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="provider" value="Google" />
                         <input type="hidden" name="returnUrl" value="@returnUrl" />
-                        <button type="submit" class="btn btn-ghost w-100">Google</button>
+                        <button type="submit" class="btn btn-ghost w-100">@T["auth.login.oauth_google"]</button>
                     </form>
                 }
                 @if (githubOn)
@@ -44,7 +44,7 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="provider" value="GitHub" />
                         <input type="hidden" name="returnUrl" value="@returnUrl" />
-                        <button type="submit" class="btn btn-ghost w-100">GitHub</button>
+                        <button type="submit" class="btn btn-ghost w-100">@T["auth.login.oauth_github"]</button>
                     </form>
                 }
             </div>

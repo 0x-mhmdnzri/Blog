@@ -6,9 +6,9 @@
 
 <div class="container py-5 d-flex justify-content-center">
     <div class="card-surface p-4" style="max-width:420px; width:100%;">
-        <div class="hero-prompt mb-2">$ auth register --role reader</div>
-        <h1 class="h4 mb-2">@T["auth.register.heading"]</h1>
-        <p class="text-muted-dark small mb-4">@T["auth.register.lead"]</p>
+        <div class="hero-prompt mb-2" dir="auto">@T["auth.register.prompt"]</div>
+        <h1 class="h4 mb-2" dir="auto">@T["auth.register.heading"]</h1>
+        <p class="text-muted-dark small mb-4" dir="auto">@T["auth.register.lead"]</p>
 
         @if (!ViewData.ModelState.IsValid)
         {
@@ -21,24 +21,24 @@
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="ReturnUrl" />
             <div class="mb-3">
-                <label class="form-label" asp-for="UserName"></label>
+                <label class="form-label" for="UserName">@T["auth.register.username"]</label>
                 <input class="form-control ltr-field" asp-for="UserName" required autofocus />
             </div>
             <div class="mb-3">
-                <label class="form-label" asp-for="Email"></label>
+                <label class="form-label" for="Email">@T["auth.register.email"]</label>
                 <input class="form-control ltr-field" asp-for="Email" required />
             </div>
             <div class="mb-3">
-                <label class="form-label" asp-for="DisplayName"></label>
+                <label class="form-label" for="DisplayName">@T["auth.register.display_name"]</label>
                 <input class="form-control" asp-for="DisplayName" dir="auto" required />
             </div>
             <div class="mb-3">
-                <label class="form-label" asp-for="Password"></label>
+                <label class="form-label" for="Password">@T["auth.register.password"]</label>
                 <input class="form-control ltr-field" asp-for="Password" required />
                 <div class="form-text">@T["auth.register.password_hint"]</div>
             </div>
             <div class="mb-4">
-                <label class="form-label" asp-for="ConfirmPassword"></label>
+                <label class="form-label" for="ConfirmPassword">@T["auth.register.confirm_password"]</label>
                 <input class="form-control ltr-field" asp-for="ConfirmPassword" required />
             </div>
             <button class="btn btn-accent w-100" type="submit">@T["auth.register.submit"]</button>
