@@ -346,7 +346,11 @@
   }
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) {
-      return ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' })[c];
+      if (c === '&') return String.fromCharCode(38) + 'amp;';
+      if (c === '<') return String.fromCharCode(38) + 'lt;';
+      if (c === '>') return String.fromCharCode(38) + 'gt;';
+      if (c === '"') return String.fromCharCode(38) + 'quot;';
+      return String.fromCharCode(38) + '#39;';
     });
   }
 

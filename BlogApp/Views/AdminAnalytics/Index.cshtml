@@ -16,7 +16,7 @@
     var geoTop = Model.Countries.OrderByDescending(c => c.Count).FirstOrDefault();
 }
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/css/jsvectormap.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/jsvectormap.min.css" />
 <link rel="stylesheet" href="~/css/ana-geo-map.css" asp-append-version="true" />
 
 <div class="ana-toolbar d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -310,7 +310,7 @@ window.__anaGeo = {
     Model.Countries.Select(c => new { code = c.Name, name = c.Name, count = c.Count }), json))
 };
 </script>
-<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/js/jsvectormap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/jsvectormap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/maps/world.js"></script>
 <script src="~/js/ana-geo-map.js" asp-append-version="true"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
