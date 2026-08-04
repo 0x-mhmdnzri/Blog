@@ -1,0 +1,235 @@
+/* =========================================================================
+   Admin — mobile drawer + responsive topbar + global table responsiveness
+   Single source of truth for phone layout (not per-page hacks)
+   ========================================================================= */
+
+/* Backdrop for mobile sidebar drawer */
+.admin-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+.admin-sidebar-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Mobile topbar: compact, sticky, clear hierarchy */
+@media (max-width: 767.98px) {
+  .admin-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    background: color-mix(in srgb, var(--bg, #0b0d12) 92%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-soft, #1e2430);
+  }
+
+  .admin-topbar-start {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .admin-topbar-titles h1 {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 42vw;
+  }
+
+  .admin-breadcrumb {
+    display: none;
+  }
+
+  .admin-menu-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 10px;
+    border: 1px solid var(--border, #232838);
+    background: var(--surface, #12161f);
+    color: var(--text, #e8ecf4);
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .admin-topbar-search {
+    position: static !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    flex: 0 0 auto;
+  }
+
+  .admin-search-field {
+    min-height: 2.4rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: 10px;
+  }
+
+  .admin-search-field-text,
+  .admin-search-field-kbd {
+    display: none !important;
+  }
+
+  .admin-topbar-end {
+    flex: 0 0 auto;
+    gap: 0.35rem !important;
+  }
+
+  .admin-topbar-end .live-indicator {
+    display: none;
+  }
+
+  /* Off-canvas sidebar drawer */
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0;
+    bottom: 0;
+    inset-inline-start: 0;
+    width: min(280px, 88vw) !important;
+    z-index: 50;
+    transform: translateX(-105%);
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+    box-shadow: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  html[dir="rtl"] .admin-sidebar {
+    transform: translateX(105%);
+  }
+  .admin-sidebar.open {
+    transform: translateX(0) !important;
+    box-shadow: 16px 0 48px rgba(0, 0, 0, 0.4);
+  }
+  html[dir="rtl"] .admin-sidebar.open {
+    box-shadow: -16px 0 48px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Always show labels in mobile drawer */
+  .admin-sidebar .nav-label,
+  .admin-sidebar .nav-trail,
+  .admin-sidebar .admin-nav-group-label,
+  .admin-sidebar .brand-text {
+    display: initial !important;
+  }
+  .admin-sidebar .admin-nav-link {
+    justify-content: flex-start !important;
+    padding: 0.7rem 0.95rem !important;
+  }
+  .admin-sidebar .nav-label { display: inline !important; }
+  .admin-sidebar .nav-trail { display: inline-flex !important; }
+  .admin-sidebar .admin-nav-group-label { display: block !important; }
+  .admin-sidebar .admin-brand {
+    justify-content: flex-start !important;
+    padding-inline: 1rem !important;
+  }
+  .admin-sidebar .sidebar-lock-btn {
+    display: none !important;
+  }
+
+  .admin-main {
+    margin: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+  }
+
+  .admin-content {
+    padding: 0.85rem 0.75rem 1.5rem !important;
+  }
+}
+
+/* =========================================================================
+   Global responsive tables — one rule for all admin tables
+   ========================================================================= */
+.admin-table-wrap {
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table-wrap .dt-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* Card-stack mode on very small screens for non-DataTables tables */
+@media (max-width: 575.98px) {
+  .admin-table-wrap table.admin-table:not(.dataTable),
+  .admin-content > .table-responsive > table.table:not(.dataTable) {
+    min-width: 0 !important;
+  }
+
+  /* DataTables keep horizontal scroll — never collapse to broken layout */
+  .admin-table-wrap table.dataTable {
+    min-width: 640px;
+  }
+
+  .admin-table-wrap .dt-toolbar-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+  }
+
+  .admin-table-wrap .dt-toolbar-start,
+  .admin-table-wrap .dt-toolbar-end {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .admin-table-wrap .dataTables_filter {
+    width: 100%;
+  }
+
+  .admin-table-wrap .dataTables_filter input {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .admin-table-wrap .dataTables_wrapper > .row.dt-footer,
+  .admin-table-wrap .dataTables_wrapper > .row:last-child {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .admin-table-wrap .dataTables_paginate {
+    justify-content: center;
+  }
+
+  /* Generic Bootstrap tables in admin content */
+  .admin-content .table-responsive {
+    border-radius: 12px;
+    border: 1px solid var(--border-soft, #1e2430);
+    background: var(--surface, #12161f);
+  }
+
+  .admin-content .table-responsive > table {
+    margin-bottom: 0;
+  }
+}
+
+/* Safe area for notched phones */
+@supports (padding: max(0px)) {
+  @media (max-width: 767.98px) {
+    .admin-sidebar {
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+    .admin-topbar {
+      padding-top: max(0.65rem, env(safe-area-inset-top));
+    }
+  }
+}
