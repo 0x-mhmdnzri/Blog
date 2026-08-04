@@ -1,9 +1,14 @@
 using System.Net;
 using System.Net.Mail;
+using BlogApp.Models;
 using Microsoft.Extensions.Options;
 
 namespace BlogApp.Services.Messaging;
 
+/// <summary>
+/// Legacy options type kept for optional one-time bootstrap only.
+/// Runtime values come from SiteSettings (DB) via ISiteConfigService.
+/// </summary>
 public class SmtpOptions
 {
     public bool Enabled { get; set; }
@@ -16,21 +21,26 @@ public class SmtpOptions
     public string FromDisplayName { get; set; } = "Blog";
 }
 
-/// <summary>Uses classic SmtpClient so you only fill Smtp:* in appsettings / .env.</summary>
+/// <summary>
+/// Sends mail using SMTP settings stored in the database (SuperAdmin → /AdminSettings).
+/// Not bound to appsettings.json / .env at runtime.
+/// </summary>
 public sealed class SmtpEmailSender : IEmailSender
 {
-    private readonly SmtpOptions _opt;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<SmtpEmailSender> _logger;
 
-    public SmtpEmailSender(IOptions<SmtpOptions> opt, ILogger<SmtpEmailSender> logger)
+    public SmtpEmailSender(IServiceScopeFactory scopeFactory, ILogger<SmtpEmailSender> logger)
     {
-        _opt = opt.Value;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
     public async Task SendAsync(string to, string subject, string body, bool isHtml = true, CancellationToken ct = default)
     {
-        if (!_opt.Enabled || string.IsNullOrWhiteSpace(_opt.Host))
+        var opt = await LoadFromDbAsync(ct);
+
+        if (!opt.Enabled || string.IsNullOrWhiteSpace(opt.Host))
         {
             _logger.LogDebug("SMTP disabled — skip email To={To} Subject={Subject}", to, subject);
             return;
@@ -38,21 +48,23 @@ public sealed class SmtpEmailSender : IEmailSender
 
         using var msg = new MailMessage
         {
-            From = new MailAddress(_opt.FromAddress, _opt.FromDisplayName),
+            From = new MailAddress(
+                string.IsNullOrWhiteSpace(opt.FromAddress) ? "noreply@localhost" : opt.FromAddress,
+                string.IsNullOrWhiteSpace(opt.FromDisplayName) ? "Blog" : opt.FromDisplayName),
             Subject = subject,
             Body = body,
             IsBodyHtml = isHtml
         };
         msg.To.Add(to);
 
-        using var client = new SmtpClient(_opt.Host, _opt.Port)
+        using var client = new SmtpClient(opt.Host, opt.Port)
         {
-            EnableSsl = _opt.EnableSsl,
+            EnableSsl = opt.EnableSsl,
             DeliveryMethod = SmtpDeliveryMethod.Network
         };
 
-        if (!string.IsNullOrEmpty(_opt.UserName))
-            client.Credentials = new NetworkCredential(_opt.UserName, _opt.Password);
+        if (!string.IsNullOrEmpty(opt.UserName))
+            client.Credentials = new NetworkCredential(opt.UserName, opt.Password);
 
         try
         {
@@ -64,6 +76,27 @@ public sealed class SmtpEmailSender : IEmailSender
             _logger.LogError(ex, "Email failed To={To} Subject={Subject}", to, subject);
             throw;
         }
+    }
+
+    private async Task<SmtpOptions> LoadFromDbAsync(CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var cfg = scope.ServiceProvider.GetRequiredService<ISiteConfigService>();
+
+        var portRaw = await cfg.GetAsync(SiteSettingKeys.SmtpPort, ct);
+        if (!int.TryParse(portRaw, out var port) || port <= 0) port = 587;
+
+        return new SmtpOptions
+        {
+            Enabled = await cfg.GetBoolAsync(SiteSettingKeys.SmtpEnabled, false, ct),
+            Host = (await cfg.GetAsync(SiteSettingKeys.SmtpHost, ct))?.Trim() ?? "",
+            Port = port,
+            EnableSsl = await cfg.GetBoolAsync(SiteSettingKeys.SmtpEnableSsl, true, ct),
+            UserName = (await cfg.GetAsync(SiteSettingKeys.SmtpUserName, ct)) ?? "",
+            Password = (await cfg.GetAsync(SiteSettingKeys.SmtpPassword, ct)) ?? "",
+            FromAddress = (await cfg.GetAsync(SiteSettingKeys.SmtpFromAddress, ct))?.Trim() ?? "noreply@localhost",
+            FromDisplayName = (await cfg.GetAsync(SiteSettingKeys.SmtpFromDisplayName, ct))?.Trim() ?? "Blog"
+        };
     }
 }
 
@@ -98,7 +131,6 @@ public sealed class ConfigurableSmsSender : ISmsSender
             return Task.CompletedTask;
         }
 
-        // Hook: call _opt.Endpoint with ApiKey/Secret/FromNumber using HttpClient in your deployment.
         _logger.LogInformation(
             "SMS queued Provider={Provider} To={Phone} Len={Len} (wire your provider in ConfigurableSmsSender)",
             _opt.Provider, phoneE164, message.Length);
