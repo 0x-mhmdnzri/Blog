@@ -106,30 +106,30 @@ public class CreateAuthorViewModel
 
 public class RegisterReaderViewModel
 {
-    [Required(ErrorMessage = "نام کاربری الزامی است")]
-    [MaxLength(50, ErrorMessage = "حداکثر ۵۰ نویسه")]
-    [Display(Name = "نام کاربری")]
+    [Required(ErrorMessage = "auth.val.username_required")]
+    [MaxLength(50, ErrorMessage = "auth.val.username_max")]
+    [Display(Name = "Username")]
     public string UserName { get; set; } = string.Empty;
 
     [ValidEmail]
-    [Display(Name = "ایمیل")]
+    [Display(Name = "Email")]
     public string Email { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "نام نمایشی الزامی است")]
-    [MaxLength(100, ErrorMessage = "حداکثر ۱۰۰ نویسه")]
-    [Display(Name = "نام نمایشی")]
+    [Required(ErrorMessage = "auth.val.display_required")]
+    [MaxLength(100, ErrorMessage = "auth.val.display_max")]
+    [Display(Name = "Display name")]
     public string DisplayName { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "رمز عبور الزامی است")]
-    [MinLength(10, ErrorMessage = "حداقل ۱۰ نویسه")]
+    [Required(ErrorMessage = "auth.val.password_required")]
+    [MinLength(10, ErrorMessage = "auth.val.password_min")]
     [DataType(DataType.Password)]
-    [Display(Name = "رمز عبور")]
+    [Display(Name = "Password")]
     public string Password { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "تکرار رمز عبور الزامی است")]
-    [Compare(nameof(Password), ErrorMessage = "رمز عبور و تکرار آن یکسان نیستند")]
+    [Required(ErrorMessage = "auth.val.confirm_required")]
+    [Compare(nameof(Password), ErrorMessage = "auth.val.confirm_mismatch")]
     [DataType(DataType.Password)]
-    [Display(Name = "تکرار رمز عبور")]
+    [Display(Name = "Confirm password")]
     public string ConfirmPassword { get; set; } = string.Empty;
 
     public string? ReturnUrl { get; set; }
