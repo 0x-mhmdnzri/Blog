@@ -176,3 +176,97 @@ public partial class AdminController : Controller
         TempData["AnalyticsReset"] = _t["msg.analytics_reset"];
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveComment([FromForm] int id, [FromForm] string? returnStatus)
+    {
+        if (id <= 0)
+        {
+            return BadRequest();
+        }
+
+        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        if (comment is null) return NotFound();
+
+        if (!AuthorAccess.CanModeratePost(User, comment.Post))
+            return Forbid();
+
+        comment.Status = CommentStatus.Approved;
+        await _db.SaveChangesAsync();
+        _broadcaster.Publish(new { type = "comment", status = "approved", id = comment.Id });
+
+        if (!string.IsNullOrEmpty(returnStatus))
+            return RedirectToAction("Comments", new { status = returnStatus });
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectComment([FromForm] int id, [FromForm] string? returnStatus)
+    {
+        if (id <= 0) return BadRequest();
+
+        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        if (comment is null) return NotFound();
+
+        if (!AuthorAccess.CanModeratePost(User, comment.Post))
+            return Forbid();
+
+        comment.Status = CommentStatus.Rejected;
+        await _db.SaveChangesAsync();
+        _broadcaster.Publish(new { type = "comment", status = "rejected", id = comment.Id });
+
+        if (!string.IsNullOrEmpty(returnStatus))
+            return RedirectToAction("Comments", new { status = returnStatus });
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteComment([FromForm] int id, [FromForm] string? returnStatus)
+    {
+        if (id <= 0) return BadRequest();
+
+        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        if (comment is null) return NotFound();
+
+        if (!AuthorAccess.CanModeratePost(User, comment.Post))
+            return Forbid();
+
+        _db.Comments.Remove(comment);
+        await _db.SaveChangesAsync();
+        _broadcaster.Publish(new { type = "comment", status = "deleted", id = id });
+
+        if (!string.IsNullOrEmpty(returnStatus))
+            return RedirectToAction("Comments", new { status = returnStatus });
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task Stream(CancellationToken cancellationToken)
+    {
+        Response.Headers.Append("Content-Type", "text/event-stream");
+        Response.Headers.Append("Cache-Control", "no-cache");
+        Response.Headers.Append("Connection", "keep-alive");
+
+        var (id, reader) = _broadcaster.Subscribe();
+        try
+        {
+            await Response.WriteAsync("data: {\"type\":\"hello\"}\n\n", cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var json = await reader.ReadAsync(cancellationToken);
+                await Response.WriteAsync($"data: {json}\n\n", cancellationToken);
+                await Response.Body.FlushAsync(cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // client disconnected
+        }
+        finally
+        {
+            _broadcaster.Unsubscribe(id);
+        }
+    }
+}
