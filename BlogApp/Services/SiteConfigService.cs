@@ -33,6 +33,8 @@ public sealed class SiteConfigService : ISiteConfigService
 
     public async Task EnsureDefaultsAsync(CancellationToken ct = default)
     {
+        // One-time seed: prefer any leftover env/appsettings values, then hardcoded fallbacks.
+        // After seed, SuperAdmin owns all of these via /AdminSettings (DB).
         var defaults = new Dictionary<string, string?>
         {
             [SiteSettingKeys.SiteName] = _config["Seo:SiteName"] ?? "وبلاگ",
@@ -45,7 +47,16 @@ public sealed class SiteConfigService : ISiteConfigService
             [SiteSettingKeys.AnnouncementEnabled] = "false",
             [SiteSettingKeys.AnnouncementText] = "",
             [SiteSettingKeys.AnnouncementStyle] = "info",
-            [SiteSettingKeys.AnnouncementVersion] = "0"
+            [SiteSettingKeys.AnnouncementVersion] = "0",
+
+            [SiteSettingKeys.SmtpEnabled] = _config["Smtp:Enabled"] ?? "false",
+            [SiteSettingKeys.SmtpHost] = _config["Smtp:Host"] ?? "",
+            [SiteSettingKeys.SmtpPort] = _config["Smtp:Port"] ?? "587",
+            [SiteSettingKeys.SmtpEnableSsl] = _config["Smtp:EnableSsl"] ?? "true",
+            [SiteSettingKeys.SmtpUserName] = _config["Smtp:UserName"] ?? "",
+            [SiteSettingKeys.SmtpPassword] = _config["Smtp:Password"] ?? "",
+            [SiteSettingKeys.SmtpFromAddress] = _config["Smtp:FromAddress"] ?? "noreply@localhost",
+            [SiteSettingKeys.SmtpFromDisplayName] = _config["Smtp:FromDisplayName"] ?? (_config["Seo:SiteName"] ?? "وبلاگ")
         };
 
         foreach (var (key, value) in defaults)
