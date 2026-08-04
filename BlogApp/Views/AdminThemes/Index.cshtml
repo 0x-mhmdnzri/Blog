@@ -24,6 +24,7 @@
                 <a class="btn btn-ghost btn-sm" asp-route-status="">همه</a>
                 <a class="btn btn-accent btn-sm" asp-route-status="pending">در انتظار (@pending)</a>
                 <a class="btn btn-ghost btn-sm" asp-route-status="approved">تأییدشده</a>
+                <a class="btn btn-ghost btn-sm" asp-route-status="rejected">رد شده</a>
             }
             <a class="btn btn-accent btn-sm" asp-action="Create">تم جدید</a>
         </div>
@@ -69,9 +70,10 @@
 
     @foreach (var t in Model)
     {
+        var canReview = isSuper && t.Status is ThemeApprovalStatus.Pending or ThemeApprovalStatus.Draft or ThemeApprovalStatus.Rejected;
         <article class="card-surface p-3 mb-2">
             <div class="d-flex flex-wrap justify-content-between gap-2">
-                <div>
+                <div style="flex:1;min-width:200px">
                     <strong>@t.Name</strong>
                     @if (t.IsActive) { <span class="badge-category">فعال سایت</span> }
                     @if (t.IsSystem) { <span class="small text-muted-dark">سیستم</span> }
@@ -96,33 +98,46 @@
                         }
                     </div>
                 </div>
-                <div class="d-flex flex-wrap gap-1">
-                    @if (isSuper && t.Status == ThemeApprovalStatus.Pending)
+                <div class="d-flex flex-column gap-2" style="min-width:160px">
+                    <div class="d-flex flex-wrap gap-1 justify-content-end">
+                        @if (canReview)
+                        {
+                            <form asp-controller="AdminThemes" asp-action="Approve" asp-route-id="@t.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-accent btn-sm" type="submit">تأیید</button>
+                            </form>
+                        }
+                        @if (isSuper && t.Status == ThemeApprovalStatus.Approved && !t.IsActive)
+                        {
+                            <form asp-controller="AdminThemes" asp-action="Activate" asp-route-id="@t.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-accent btn-sm" type="submit">فعال‌سازی سایت</button>
+                            </form>
+                        }
+
+                        @if (!isSuper && t.Status is ThemeApprovalStatus.Draft or ThemeApprovalStatus.Rejected)
+                        {
+                            <form asp-controller="AdminThemes" asp-action="Submit" asp-route-id="@t.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-accent btn-sm" type="submit">ارسال برای تأیید</button>
+                            </form>
+                        }
+
+                        @if (!t.IsSystem && !t.IsActive)
+                        {
+                            <form asp-controller="AdminThemes" asp-action="Delete" asp-route-id="@t.Id" method="post" onsubmit="return confirm('حذف؟');">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-ghost btn-sm" type="submit">حذف</button>
+                            </form>
+                        }
+                    </div>
+                    @if (canReview)
                     {
-                        <form asp-action="Approve" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@t.Id" /><button class="btn btn-accent btn-sm" type="submit">تأیید</button></form>
-                        <form asp-action="Reject" method="post" onsubmit="var r=prompt('دلیل رد:'); if(r===null)return false; this.querySelector('[name=reason]').value=r;">
+                        <form asp-controller="AdminThemes" asp-action="Reject" asp-route-id="@t.Id" method="post" class="d-flex flex-wrap gap-1 align-items-center">
                             @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@t.Id" /><input type="hidden" name="reason" value="" />
+                            <input type="text" name="reason" class="form-control form-control-sm" placeholder="دلیل رد (اختیاری)" maxlength="400" style="min-width:140px;flex:1" />
                             <button class="btn btn-outline-danger-dark btn-sm" type="submit">رد</button>
                         </form>
-                    }
-                    else if (isSuper && t.Status == ThemeApprovalStatus.Approved && !t.IsActive)
-                    {
-                        <form asp-action="Activate" method="post">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@t.Id" /><button class="btn btn-accent btn-sm" type="submit">فعال‌سازی سایت</button></form>
-                    }
-
-                    @if (!isSuper && t.Status is ThemeApprovalStatus.Draft or ThemeApprovalStatus.Rejected)
-                    {
-                        <form asp-action="Submit" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@t.Id" />
-                            <button class="btn btn-accent btn-sm" type="submit">ارسال برای تأیید</button>
-                        </form>
-                    }
-
-                    @if (!t.IsSystem && !t.IsActive)
-                    {
-                        <form asp-action="Delete" method="post" onsubmit="return confirm('حذف؟');">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@t.Id" /><button class="btn btn-ghost btn-sm" type="submit">حذف</button></form>
                     }
                 </div>
             </div>
