@@ -22,7 +22,6 @@
     <div class="ml-alert ml-alert-err mb-3" role="alert">@err</div>
 }
 
-@* ── Page header ── *@
 <header class="ml-header">
     <div class="ml-header-text">
         <h1 class="ml-title">@T["admin.nav.media"]</h1>
@@ -36,7 +35,6 @@
     </div>
 </header>
 
-@* ── KPI strip ── *@
 <div class="ml-kpis" role="group" aria-label="@T["media.stats_aria"]">
     <div class="ml-kpi">
         <span class="ml-kpi-label">@T["media.kpi_total"]</span>
@@ -55,3 +53,60 @@
         <span class="ml-kpi-value ml-kpi-size">@FmtBytes(Model.TotalBytes)</span>
     </div>
 </div>
+
+<div class="ml-drop" id="mediaDropzone" tabindex="0" role="button" aria-label="@T["media.drop_title"]">
+    <form asp-action="MediaUpload" method="post" enctype="multipart/form-data" id="mediaUploadForm">
+        @Html.AntiForgeryToken()
+        <input type="file" name="file" id="mediaFileInput" class="d-none"
+               accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg" required />
+        <div class="ml-drop-inner">
+            <div class="ml-drop-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+            </div>
+            <div class="ml-drop-copy">
+                <div class="ml-drop-title">@T["media.drop_title"]</div>
+                <p class="ml-drop-hint">@T["media.upload_hint"]</p>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" id="mediaPickBtn">@T["media.pick_file"]</button>
+            <div class="ml-picked" id="mediaPickedName" hidden></div>
+            <button type="submit" class="btn btn-accent btn-sm" id="mediaUploadSubmit" hidden>@T["media.upload_btn"]</button>
+        </div>
+    </form>
+</div>
+
+<div class="ml-toolbar">
+    <div class="ml-seg" role="tablist">
+        <a class="ml-seg-item @(string.IsNullOrEmpty(Model.FilterKind) ? "is-active" : "")" asp-action="Media" role="tab">
+            @T["media.all"] <span class="ml-seg-n">@Model.TotalCount</span>
+        </a>
+        <a class="ml-seg-item @(Model.FilterKind == "Image" ? "is-active" : "")" asp-action="Media" asp-route-kind="Image" role="tab">
+            @T["media.images"] <span class="ml-seg-n">@Model.ImageCount</span>
+        </a>
+        <a class="ml-seg-item @(Model.FilterKind == "Video" ? "is-active" : "")" asp-action="Media" asp-route-kind="Video" role="tab">
+            @T["media.videos"] <span class="ml-seg-n">@Model.VideoCount</span>
+        </a>
+    </div>
+
+    <div class="ml-toolbar-end">
+        <form method="get" asp-action="Media" class="ml-search" role="search">
+            @if (!string.IsNullOrEmpty(Model.FilterKind))
+            {
+                <input type="hidden" name="kind" value="@Model.FilterKind" />
+            }
+            <svg class="ml-search-ico" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="search" name="q" value="@Model.Search" class="ml-search-input"
+                   placeholder="@T["media.search"]" autocomplete="off" id="mediaSearchInput" />
+        </form>
+
+        <div class="ml-view-toggle" role="group" aria-label="@T["media.view_aria"]">
+            <button type="button" class="ml-view-btn is-active" data-view="grid" title="@T["media.view_grid"]" aria-pressed="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z"/></svg>
+            </button>
+            <button type="button" class="ml-view-btn" data-view="list" title="@T["media.view_list"]" aria-pressed="false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<p class="text-muted-dark small">Media page body continues in next commit if truncated — use local Admin_Media.cshtml from artifacts for full file.</p>
