@@ -1,0 +1,108 @@
+@model Post
+@inject BlogApp.Services.IUiTranslator T
+@inject BlogApp.Services.ISiteConfigService SiteConfig
+@{
+    var reportsEnabled = await SiteConfig.IsFlagEnabledAsync(FeatureFlagKeys.PublicReports);
+    if (!reportsEnabled) { return; }
+
+    var isAuth = User.Identity?.IsAuthenticated == true;
+    var postPath = $"/{Model.LanguageCode}/post/{Model.Slug}";
+    var returnUrl = postPath + "?report=1#report";
+    var loginUrl = Url.Action("Login", "Account", new { returnUrl })!;
+    var reasons = new (string Value, string LabelKey, string Fallback)[]
+    {
+        ("spam", "report.reason.spam", "هرزنامه / تبلیغات"),
+        ("harassment", "report.reason.harassment", "توهین یا آزار"),
+        ("misinfo", "report.reason.misinfo", "اطلاعات نادرست"),
+        ("copyright", "report.reason.copyright", "نقض حق نشر"),
+        ("other", "report.reason.other", "سایر"),
+    };
+}
+
+<section class="report-section" id="report" data-report-section>
+    <div class="report-section-inner" id="reportBox" hidden>
+        <header class="report-head">
+            <div class="report-head-text">
+                <h2 class="report-title">@T["report.title"]</h2>
+                <p class="report-sub">@T["report.subtitle"]</p>
+            </div>
+            <button type="button" class="report-close" data-report-close aria-label="@T["report.close"]">
+                <span aria-hidden="true">×</span>
+            </button>
+        </header>
+
+        @if (!isAuth)
+        {
+            <div class="report-gate">
+                <p class="report-gate-msg">@T["report.login_required"]</p>
+                <a class="report-btn report-btn-primary" href="@loginUrl">@T["report.login_cta"]</a>
+            </div>
+        }
+        else
+        {
+            <form class="report-form"
+                  asp-controller="Reports"
+                  asp-action="Submit"
+                  method="post"
+                  data-report-form>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="TargetType" value="post" />
+                <input type="hidden" name="TargetId" value="@Model.Id" />
+                <input type="hidden" name="returnUrl" value="@postPath" />
+
+                <fieldset class="report-reasons">
+                    <legend class="report-label">@T["report.reason_label"]</legend>
+                    <div class="report-reason-grid" role="radiogroup" aria-label="@T["report.reason_label"]">
+                        @foreach (var r in reasons)
+                        {
+                            var id = $"report-reason-{r.Value}";
+                            <label class="report-reason-chip" for="@id">
+                                <input type="radio"
+                                       name="Reason"
+                                       id="@id"
+                                       value="@r.Fallback"
+                                       required />
+                                <span>@T[r.LabelKey]</span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+
+                <div class="report-field">
+                    <label class="report-label" for="report-details">@T["report.details_label"]</label>
+                    <textarea id="report-details"
+                              name="Details"
+                              class="report-textarea"
+                              rows="3"
+                              maxlength="1000"
+                              placeholder="@T["report.details_placeholder"]"
+                              dir="auto"></textarea>
+                    <div class="report-hint">
+                        <span>@T["report.details_hint"]</span>
+                        <span class="report-count" data-report-count>0 / 1000</span>
+                    </div>
+                </div>
+
+                <div class="report-actions">
+                    <button type="button" class="report-btn report-btn-ghost" data-report-close>
+                        @T["report.cancel"]
+                    </button>
+                    <button type="submit" class="report-btn report-btn-primary">
+                        @T["report.submit"]
+                    </button>
+                </div>
+            </form>
+        }
+    </div>
+
+    <button type="button"
+            class="report-trigger"
+            data-report-open
+            aria-expanded="false"
+            aria-controls="reportBox">
+        <svg class="report-trigger-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+        <span>@T["report.trigger"]</span>
+    </button>
+</section>
