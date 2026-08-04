@@ -33,8 +33,7 @@ public sealed class SiteConfigService : ISiteConfigService
 
     public async Task EnsureDefaultsAsync(CancellationToken ct = default)
     {
-        // One-time seed: prefer any leftover env/appsettings values, then hardcoded fallbacks.
-        // After seed, SuperAdmin owns all of these via /AdminSettings (DB).
+        // One-time seed only when the key is missing. After that SuperAdmin owns values in DB.
         var defaults = new Dictionary<string, string?>
         {
             [SiteSettingKeys.SiteName] = _config["Seo:SiteName"] ?? "وبلاگ",
@@ -107,24 +106,32 @@ public sealed class SiteConfigService : ISiteConfigService
         return map.TryGetValue(key, out var v) ? v : null;
     }
 
+    /// <summary>
+    /// Persist a setting. Uses ExecuteUpdate so it works even when the DbContext
+    /// default tracking behavior is NoTracking (Program.cs).
+    /// </summary>
     public async Task SetAsync(string key, string? value, CancellationToken ct = default)
     {
-        var row = await _db.SiteSettings.FindAsync(new object[] { key }, ct);
-        if (row is null)
+        var now = DateTime.UtcNow;
+
+        // Direct SQL-style update — does not depend on change-tracker state.
+        var updated = await _db.SiteSettings
+            .Where(s => s.Key == key)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.Value, value)
+                .SetProperty(x => x.UpdatedAtUtc, now), ct);
+
+        if (updated == 0)
         {
             _db.SiteSettings.Add(new SiteSetting
             {
                 Key = key,
                 Value = value,
-                UpdatedAtUtc = DateTime.UtcNow
+                UpdatedAtUtc = now
             });
+            await _db.SaveChangesAsync(ct);
         }
-        else
-        {
-            row.Value = value;
-            row.UpdatedAtUtc = DateTime.UtcNow;
-        }
-        await _db.SaveChangesAsync(ct);
+
         Invalidate();
     }
 
@@ -146,11 +153,15 @@ public sealed class SiteConfigService : ISiteConfigService
 
     public async Task SetFlagAsync(string key, bool enabled, CancellationToken ct = default)
     {
-        var flag = await _db.FeatureFlags.FindAsync(new object[] { key }, ct);
-        if (flag is null) return;
-        flag.IsEnabled = enabled;
-        flag.UpdatedAtUtc = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        var now = DateTime.UtcNow;
+        var updated = await _db.FeatureFlags
+            .Where(f => f.Key == key)
+            .ExecuteUpdateAsync(f => f
+                .SetProperty(x => x.IsEnabled, enabled)
+                .SetProperty(x => x.UpdatedAtUtc, now), ct);
+
+        if (updated == 0) return;
+
         Invalidate();
     }
 
