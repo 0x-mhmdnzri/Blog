@@ -41,7 +41,8 @@ public partial class AdminController : Controller
         var rangeStart = today.AddDays(-(range - 1));
         var previousRangeStart = rangeStart.AddDays(-range);
 
-        var postQuery = _db.Posts.AsQueryable();
+        // Exclude soft-deleted posts so initial KPIs match LiveSnapshot/SSE (no high→low flicker).
+        var postQuery = _db.Posts.AsQueryable().Where(p => !p.IsDeleted);
         if (!seeAll)
             postQuery = postQuery.Where(p => p.AuthorId == userId);
 
@@ -67,29 +68,30 @@ public partial class AdminController : Controller
 
         double trendPercent = previousRangeViews.Count == 0
             ? (currentRangeViews.Count > 0 ? 100 : 0)
-            : Math.Round((currentRangeViews.Count - previousRangeViews.Count) / (double)previousRangeViews.Count * 100, 1);
+            : Math.Round((currentRangeViews.Count - previousRangeViews.Count) * 100.0 / previousRangeViews.Count, 1);
 
-        var sixMonthsAgo = new DateTime(today.Year, today.Month, 1).AddMonths(-5);
         var recentPostDates = await postQuery
-            .Where(p => p.CreatedAtUtc >= sixMonthsAgo)
+            .Where(p => p.CreatedAtUtc >= today.AddMonths(-5))
             .Select(p => p.CreatedAtUtc)
             .ToListAsync();
 
         var postsByMonth = new List<ChartPoint>();
-        for (var month = sixMonthsAgo; month <= today; month = month.AddMonths(1))
+        for (var i = 5; i >= 0; i--)
         {
+            var month = today.AddMonths(-i);
+            var label = month.ToString("yyyy-MM");
             postsByMonth.Add(new ChartPoint
             {
-                Label = month.ToString("yyyy-MM"),
+                Label = label,
                 Value = recentPostDates.Count(d => d.Year == month.Year && d.Month == month.Month)
             });
         }
 
-        var uncategorized = _t["msg.uncategorized"];
         var postsByCategory = await postQuery
-            .GroupBy(p => p.Category != null ? p.Category.Name : uncategorized)
-            .Select(g => new NamedCount { Name = g.Key, Count = g.Count() })
-            .OrderByDescending(g => g.Count)
+            .GroupBy(p => p.Category != null ? p.Category.Name : _t["msg.uncategorized"])
+            .Select(g => new ChartPoint { Label = g.Key, Value = g.Count() })
+            .OrderByDescending(x => x.Value)
+            .Take(8)
             .ToListAsync();
 
         var topPostsRaw = await postQuery
@@ -98,22 +100,24 @@ public partial class AdminController : Controller
             .Select(p => new { p.Id, p.Title, p.Slug, p.ViewCount })
             .ToListAsync();
 
-        var topPosts = topPostsRaw.Select(p => new TopPostItem
+        var topIds = topPostsRaw.Select(p => p.Id).ToList();
+        var topRangeViews = currentRangeViews
+            .Where(v => topIds.Contains(v.PostId))
+            .GroupBy(v => v.PostId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var topPosts = topPostsRaw.Select(p => new AdminTopPostItem
         {
             Title = p.Title,
-            Slug = p.Slug,
+           Slug = p.Slug,
             Views = p.ViewCount,
-            RangeViews = currentRangeViews.Count(v => v.PostId == p.Id)
+            RangeViews = topRangeViews.GetValueOrDefault(p.Id, 0)
         }).ToList();
 
-        var commentQuery = _db.Comments.AsQueryable();
-        if (!seeAll)
-            commentQuery = commentQuery.Where(c => myPostIds.Contains(c.PostId));
+        var commentQuery = _db.Comments.AsNoTracking()
+            .Where(c => myPostIds.Contains(c.PostId));
 
         var currentUser = await _userManager.GetUserAsync(User);
-
-        ViewBag.CurrentUserId = userId;
-        ViewBag.SeeAllAnalytics = seeAll;
 
         var vm = new AdminDashboardViewModel
         {
@@ -172,235 +176,3 @@ public partial class AdminController : Controller
         TempData["AnalyticsReset"] = _t["msg.analytics_reset"];
         return RedirectToAction(nameof(Index));
     }
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApproveComment([FromForm] int id, [FromForm] string? returnStatus)
-    {
-        if (id <= 0)
-        {
-            TempData["CommentModError"] = "شناسه دیدگاه نامعتبر است.";
-            return CommentModResult(false, "شناسه دیدگاه نامعتبر است.", returnStatus);
-        }
-
-        var comment = await _db.Comments
-            .AsTracking()
-            .IgnoreQueryFilters()
-            .Include(c => c.Post)
-            .FirstOrDefaultAsync(c => c.Id == id);
-
-        if (comment is null)
-        {
-            TempData["CommentModError"] = "دیدگاه پیدا نشد.";
-            return CommentModResult(false, "دیدگاه پیدا نشد.", returnStatus);
-        }
-
-        if (!AuthorAccess.CanModerateComment(User, comment.Post))
-        {
-            TempData["CommentModError"] = "اجازه تایید این دیدگاه را ندارید.";
-            return CommentModResult(false, "اجازه تایید این دیدگاه را ندارید.", returnStatus);
-        }
-
-        var wasApproved = comment.Status == CommentStatus.Approved;
-        if (!wasApproved)
-        {
-            var updated = await _db.Comments
-                .Where(c => c.Id == comment.Id)
-                .ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, CommentStatus.Approved));
-            if (updated == 0)
-            {
-                TempData["CommentModError"] = "ذخیره وضعیت دیدگاه ناموفق بود.";
-                return CommentModResult(false, "ذخیره وضعیت دیدگاه ناموفق بود.", returnStatus);
-            }
-            comment.Status = CommentStatus.Approved;
-        }
-
-        _broadcaster.Publish(new
-        {
-            type = "comment",
-            status = "approved",
-            commentId = comment.Id,
-            postId = comment.PostId,
-            authorName = comment.AuthorName
-        });
-
-        if (!wasApproved && !string.IsNullOrEmpty(comment.UserId))
-        {
-            try
-            {
-                var notify = HttpContext.RequestServices.GetService<INotificationService>();
-                if (notify is not null)
-                {
-                    var postTitle = comment.Post?.Title ?? "نوشته";
-                    var slug = comment.Post?.Slug;
-                    var link = string.IsNullOrEmpty(slug)
-                        ? "/Notifications"
-                        : $"/post/{slug}#comment-{comment.Id}";
-                    await notify.NotifyAsync(
-                        comment.UserId,
-                        NotificationKind.CommentApproved,
-                        "کامنت شما با تایید مدیریت منتشر شد",
-                        $"دیدگاه شما روی «{postTitle}» تایید و منتشر شد.",
-                        link);
-                }
-            }
-            catch { }
-        }
-
-        TempData["CommentModOk"] = "دیدگاه تایید و منتشر شد.";
-        return CommentModResult(true, "دیدگاه تایید و منتشر شد.", returnStatus ?? "pending");
-    }
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> RejectComment([FromForm] int id, [FromForm] string? returnStatus)
-    {
-        if (id <= 0)
-            return CommentModResult(false, "شناسه دیدگاه نامعتبر است.", returnStatus);
-
-        var comment = await _db.Comments.AsTracking().IgnoreQueryFilters()
-            .Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
-        if (comment is null)
-            return CommentModResult(false, "دیدگاه پیدا نشد.", returnStatus);
-        if (!AuthorAccess.CanModerateComment(User, comment.Post))
-            return CommentModResult(false, "اجازه رد این دیدگاه را ندارید.", returnStatus);
-
-        await _db.Comments.Where(c => c.Id == comment.Id)
-            .ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, CommentStatus.Rejected));
-        comment.Status = CommentStatus.Rejected;
-        _broadcaster.Publish(new { type = "comment", status = "rejected", commentId = id });
-        TempData["CommentModOk"] = "دیدگاه رد شد.";
-        return CommentModResult(true, "دیدگاه رد شد.", returnStatus ?? "pending");
-    }
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteComment([FromForm] int id, [FromForm] string? returnStatus)
-    {
-        if (id <= 0)
-            return CommentModResult(false, "شناسه دیدگاه نامعتبر است.", returnStatus);
-
-        var comment = await _db.Comments.AsTracking().IgnoreQueryFilters()
-            .Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
-        if (comment is null)
-            return CommentModResult(false, "دیدگاه پیدا نشد.", returnStatus);
-        if (!AuthorAccess.CanModerateComment(User, comment.Post))
-            return CommentModResult(false, "اجازه حذف این دیدگاه را ندارید.", returnStatus);
-
-        await _db.Comments.Where(c => c.Id == comment.Id).ExecuteDeleteAsync();
-        _broadcaster.Publish(new { type = "comment", status = "deleted", commentId = id });
-        TempData["CommentModOk"] = "دیدگاه حذف شد.";
-        return CommentModResult(true, "دیدگاه حذف شد.", returnStatus ?? "pending");
-    }
-
-    private IActionResult CommentModResult(bool ok, string message, string? returnStatus)
-    {
-        var wantsJson =
-            string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
-            || (Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase)
-                && !Request.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase));
-
-        if (wantsJson)
-            return Json(new { ok, message, redirect = Url.Action(nameof(Comments), new { status = returnStatus ?? "pending" }) });
-
-        if (!ok)
-            TempData["CommentModError"] = message;
-        else
-            TempData["CommentModOk"] = message;
-
-        return RedirectToAction(nameof(Comments), new { status = returnStatus ?? "pending" });
-    }
-
-    [HttpGet]
-    public async Task Stream(CancellationToken cancellationToken)
-    {
-        Response.ContentType = "text/event-stream";
-        Response.Headers["Cache-Control"] = "no-cache";
-        Response.Headers["X-Accel-Buffering"] = "no";
-
-        var bufferingFeature = HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>();
-        bufferingFeature?.DisableBuffering();
-
-        var (id, reader) = _broadcaster.Subscribe();
-        try
-        {
-            await Response.WriteAsync(": connected\n\n", cancellationToken);
-            await Response.Body.FlushAsync(cancellationToken);
-
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                using var heartbeat = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-                using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, heartbeat.Token);
-
-                string? message = null;
-                try { message = await reader.ReadAsync(linked.Token); }
-                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { }
-
-                if (cancellationToken.IsCancellationRequested) break;
-
-                if (message is not null)
-                    await Response.WriteAsync($"data: {message}\n\n", cancellationToken);
-                else
-                    await Response.WriteAsync(": ping\n\n", cancellationToken);
-
-                await Response.Body.FlushAsync(cancellationToken);
-            }
-        }
-        catch (OperationCanceledException) { }
-        finally { _broadcaster.Unsubscribe(id); }
-    }
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> TogglePublish(int id)
-    {
-        var post = await _db.Posts.FindAsync(id);
-        if (post is not null && AuthorAccess.OwnsPost(User, post))
-        {
-            post.IsPublished = !post.IsPublished;
-            if (post.IsPublished && post.PublishedAtUtc is null)
-                post.PublishedAtUtc = DateTime.UtcNow;
-            post.UpdatedAtUtc = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
-        }
-        return RedirectToAction(nameof(Posts));
-    }
-
-    public IActionResult CategoriesAdmin() => View("ComingSoon", new ComingSoonViewModel
-    {
-        Title = _t["admin.nav.taxonomy"],
-        Description = "Manage content structure without hand-editing the DB.",
-        DemoFeatures =
-        [
-            "Add / edit / delete categories",
-            "Nested categories",
-            "Tag merge",
-            "Post counts per category"
-        ]
-    });
-
-    [HttpGet]
-    public IActionResult Settings()
-    {
-        if (AuthorAccess.IsSuperAdmin(User))
-            return RedirectToAction("Index", "AdminSettings");
-
-        return View("ComingSoon", new ComingSoonViewModel
-        {
-            Title = _t["admin.nav.settings"],
-            Description = "Site configuration is SuperAdmin-only.",
-            DemoFeatures =
-            [
-                "Site name & description",
-                "Maintenance mode",
-                "Announcement banner",
-                "Feature flags"
-            ]
-        });
-    }
-
-    [HttpGet]
-    public IActionResult Newsletter()
-    {
-        if (AuthorAccess.IsSuperAdmin(User))
-            return RedirectToAction("Index", "AdminNewsletter");
-
-        return Forbid();
-    }
-}
