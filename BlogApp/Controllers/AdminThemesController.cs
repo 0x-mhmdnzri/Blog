@@ -54,17 +54,21 @@ public class AdminThemesController : Controller
         {
             var q = _db.CustomThemes.AsNoTracking().Include(t => t.Owner).AsQueryable();
             if (status == "pending")
-                q = q.Where(t => t.Status == ThemeApprovalStatus.Pending);
+                q = q.Where(t => t.Status == ThemeApprovalStatus.Pending || t.Status == ThemeApprovalStatus.Draft);
             else if (status == "approved")
                 q = q.Where(t => t.Status == ThemeApprovalStatus.Approved);
             else if (status == "rejected")
                 q = q.Where(t => t.Status == ThemeApprovalStatus.Rejected);
 
-            var list = await q.OrderByDescending(t => t.Status == ThemeApprovalStatus.Pending)
+            // Pending / Draft first so SuperAdmin sees items needing review
+            var list = await q
+                .OrderByDescending(t => t.Status == ThemeApprovalStatus.Pending)
+                .ThenByDescending(t => t.Status == ThemeApprovalStatus.Draft)
                 .ThenByDescending(t => t.UpdatedAtUtc)
                 .ToListAsync();
 
-            ViewBag.PendingCount = await _db.CustomThemes.CountAsync(t => t.Status == ThemeApprovalStatus.Pending);
+            ViewBag.PendingCount = await _db.CustomThemes.CountAsync(t =>
+                t.Status == ThemeApprovalStatus.Pending || t.Status == ThemeApprovalStatus.Draft);
             ViewBag.Status = status;
             return View(list);
         }
@@ -119,8 +123,6 @@ public class AdminThemesController : Controller
             return View(model);
         }
 
-        // Authors always submit as Pending (need SuperAdmin approval for public gallery).
-        // SuperAdmin may save as Approved draft-system optional via action.
         if (IsSuper && string.Equals(action, "approve", StringComparison.OrdinalIgnoreCase))
         {
             model.Status = ThemeApprovalStatus.Approved;
@@ -151,7 +153,6 @@ public class AdminThemesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    /// <summary>Author / SuperAdmin upload .blogtheme as own theme (Pending unless SuperAdmin).</summary>
     [HttpPost, ValidateAntiForgeryToken]
     [RequestSizeLimit(64 * 1024)]
     public async Task<IActionResult> ImportFile(IFormFile? file, string? action)
@@ -276,7 +277,6 @@ public class AdminThemesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    /// <summary>Delete own theme (authors) or any non-system (SuperAdmin).</summary>
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
@@ -301,8 +301,6 @@ public class AdminThemesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // ── SuperAdmin only ──────────────────────────────────────────────
-
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = AppRoles.SuperAdmin)]
     public async Task<IActionResult> Reimport()
@@ -315,7 +313,6 @@ public class AdminThemesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    /// <summary>SuperAdmin system pack import (OwnerUserId null, Approved).</summary>
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = AppRoles.SuperAdmin)]
     [RequestSizeLimit(64 * 1024)]
