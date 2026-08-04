@@ -1,19 +1,23 @@
 /* Site navbar — minimal product design
    Desktop: brand · centered links · utilities
-   Mobile: frosted bar + off-canvas drawer
+   Mobile: frosted bar + off-canvas drawer (portal on body)
 */
 
 :root {
   --nav-h: 3.5rem;
   --nav-drawer-w: min(20rem, 88vw);
   --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --nav-z: 1040;
+  --nav-drawer-z: 3000;
 }
 
 .site-header {
   position: sticky;
   top: 0;
-  z-index: 1040;
-  height: var(--nav-h);
+  z-index: var(--nav-z);
+  min-height: var(--nav-h);
+  height: auto;
+  overflow: visible;
   border-bottom: 1px solid transparent;
   background: color-mix(in srgb, var(--bg, #0b0d12) 72%, transparent);
   backdrop-filter: saturate(160%) blur(16px);
@@ -132,7 +136,7 @@ html[data-theme="light"] .site-header.is-scrolled {
   font-weight: 500;
 }
 
-.nav-menu-btn { position: relative; }
+.nav-menu-btn { position: relative; z-index: 1; }
 .nav-menu-btn .nav-burger {
   display: flex;
   flex-direction: column;
@@ -242,22 +246,31 @@ html[data-theme="light"] .site-header.is-scrolled {
 
 .site-nav-utils .nav-account-desktop { display: none; }
 
+/* ── Drawer lives on <body> (not inside header) so fixed positioning works.
+   Header has backdrop-filter which creates a containing block and would
+   clip any fixed child to the 3.5rem bar. ── */
 .site-nav-drawer {
   position: fixed;
   inset: 0;
-  z-index: 1050;
+  z-index: var(--nav-drawer-z);
   pointer-events: none;
+  visibility: hidden;
 }
-.site-nav-drawer.is-open { pointer-events: auto; }
+.site-nav-drawer.is-open {
+  pointer-events: auto;
+  visibility: visible;
+}
 
 .site-nav-drawer-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.48);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   opacity: 0;
   transition: opacity 0.25s ease;
+  cursor: pointer;
 }
 .site-nav-drawer.is-open .site-nav-drawer-backdrop { opacity: 1; }
 
@@ -266,23 +279,25 @@ html[data-theme="light"] .site-header.is-scrolled {
   top: 0;
   bottom: 0;
   inset-inline-end: 0;
+  z-index: 2;
   width: var(--nav-drawer-w);
   max-width: 100%;
   display: flex;
   flex-direction: column;
   background: var(--surface, #12161f);
   border-inline-start: 1px solid var(--border, #232838);
-  box-shadow: -16px 0 48px rgba(0, 0, 0, 0.35);
-  transform: translateX(105%);
+  box-shadow: -16px 0 48px rgba(0, 0, 0, 0.45);
+  transform: translate3d(100%, 0, 0);
   transition: transform 0.32s var(--nav-ease);
   overflow: hidden;
+  will-change: transform;
 }
 html[dir="rtl"] .site-nav-drawer-panel {
-  box-shadow: 16px 0 48px rgba(0, 0, 0, 0.35);
-  transform: translateX(-105%);
+  box-shadow: 16px 0 48px rgba(0, 0, 0, 0.45);
+  transform: translate3d(-100%, 0, 0);
 }
 .site-nav-drawer.is-open .site-nav-drawer-panel {
-  transform: translateX(0) !important;
+  transform: translate3d(0, 0, 0) !important;
 }
 
 .site-nav-drawer-head {
@@ -293,6 +308,7 @@ html[dir="rtl"] .site-nav-drawer-panel {
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--border-soft, #1e2430);
   min-height: var(--nav-h);
+  flex-shrink: 0;
 }
 .site-nav-drawer-title {
   font-size: 0.78rem;
@@ -339,6 +355,7 @@ html[dir="rtl"] .site-nav-drawer-panel {
   flex-direction: column;
   gap: 0.55rem;
   background: color-mix(in srgb, var(--surface, #12161f) 92%, transparent);
+  flex-shrink: 0;
 }
 .site-nav-drawer-footer .btn-nav-login,
 .site-nav-drawer-footer .btn-account {
