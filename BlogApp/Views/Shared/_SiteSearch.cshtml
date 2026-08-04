@@ -1,0 +1,43 @@
+<div id="search-overlay" class="site-search-overlay" hidden
+     data-i18n-idle="@T["search.idle_hint"]"
+     data-i18n-keys="@T["search.idle_keys"]"
+     data-i18n-recent="@T["search.recent"]"
+     data-i18n-no-results="@T["search.no_results"]"
+     data-i18n-results="@T["search.results"]"
+     data-i18n-all="@T["search.all_results"]">
+    <div class="site-search-dialog" role="dialog" aria-modal="true" aria-label="@T["search.aria"]">
+        <div class="site-search-bar">
+            <span class="site-search-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            </span>
+            <label class="sr-only" for="search-input">@T["search.label"]</label>
+            <input type="search" id="search-input" class="site-search-input"
+                   placeholder="@T["search.placeholder"]" autocomplete="off" dir="auto"
+                   aria-autocomplete="list" aria-controls="search-list" aria-expanded="false" />
+            <button type="button" id="search-clear" class="site-search-clear" hidden aria-label="@T["search.clear"]">×</button>
+        </div>
+        <div id="search-meta" class="site-search-meta" hidden>
+            <span id="search-count">—</span>
+            <span id="search-latency" class="site-search-latency ltr-field"></span>
+        </div>
+        <div class="site-search-body">
+            <div id="search-empty" class="site-search-empty">
+                <p class="hint">@T["search.idle_hint"]</p>
+                <p class="hint-sub">@T["search.idle_keys"]</p>
+            </div>
+            <div id="search-skeleton" class="site-search-skeleton" hidden>
+                <div class="sk-row"></div>
+                <div class="sk-row"></div>
+                <div class="sk-row"></div>
+                <div class="sk-row"></div>
+            </div>
+            <ul id="search-list" class="site-search-list" role="listbox" hidden></ul>
+        </div>
+        <div class="site-search-footer">
+            <span><kbd>↑</kbd><kbd>↓</kbd> @T["search.nav"]</span>
+            <span><kbd>↵</kbd> @T["search.open"]</span>
+            <span><kbd>esc</kbd> @T["search.close"]</span>
+            <a id="search-full-link" class="site-search-full" href="/@lang/" hidden>@T["search.all_results"] →</a>
+        </div>
+    </div>
+</div>
