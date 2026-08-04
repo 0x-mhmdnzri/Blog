@@ -214,63 +214,64 @@
                 </button>
             </div>
         </nav>
+    </header>
 
-        <div class="site-nav-drawer" id="siteNavDrawer" aria-hidden="true">
-            <div class="site-nav-drawer-backdrop" data-nav-drawer-close></div>
-            <div class="site-nav-drawer-panel" role="dialog" aria-modal="true" aria-label="@T["nav.menu"]">
-                <div class="site-nav-drawer-head">
-                    <span class="site-nav-drawer-title">@T["nav.menu"]</span>
-                    <button type="button" class="btn-nav-icon" data-nav-drawer-close aria-label="@T["search.close"]">×</button>
-                </div>
-                <div class="site-nav-drawer-body">
-                    <div class="nav-section-label">@T["nav.pages"]</div>
-                    <a class="site-nav-link @(homeActive ? "active" : "")" href="/@lang/">@T["nav.home"]</a>
-                    <a class="site-nav-link @NavActive("pages", "about")" asp-controller="Pages" asp-action="About">@T["nav.about"]</a>
-                    <a class="site-nav-link @NavActive("pages", "services")" asp-controller="Pages" asp-action="Services">@T["nav.services"]</a>
-                    <a class="site-nav-link @NavActive("pages", "projects")" asp-controller="Pages" asp-action="Projects">@T["nav.projects"]</a>
-                    <a class="site-nav-link @(blogActive && !homeActive ? "active" : "")" href="/@lang/#blog-feed">@T["nav.blog"]</a>
-                    <a class="site-nav-link @NavActive("pages", "contact")" asp-controller="Pages" asp-action="Contact">@T["nav.contact"]</a>
-                    @if (isReader || isStaff)
+    @* Drawer must NOT live inside .site-header — header backdrop-filter creates a containing block that clips fixed children to the bar height. *@
+    <div class="site-nav-drawer" id="siteNavDrawer" aria-hidden="true">
+        <div class="site-nav-drawer-backdrop" data-nav-drawer-close></div>
+        <div class="site-nav-drawer-panel" role="dialog" aria-modal="true" aria-label="@T["nav.menu"]">
+            <div class="site-nav-drawer-head">
+                <span class="site-nav-drawer-title">@T["nav.menu"]</span>
+                <button type="button" class="btn-nav-icon" data-nav-drawer-close aria-label="@T["search.close"]">×</button>
+            </div>
+            <div class="site-nav-drawer-body">
+                <div class="nav-section-label">@T["nav.pages"]</div>
+                <a class="site-nav-link @(homeActive ? "active" : "")" href="/@lang/">@T["nav.home"]</a>
+                <a class="site-nav-link @NavActive("pages", "about")" asp-controller="Pages" asp-action="About">@T["nav.about"]</a>
+                <a class="site-nav-link @NavActive("pages", "services")" asp-controller="Pages" asp-action="Services">@T["nav.services"]</a>
+                <a class="site-nav-link @NavActive("pages", "projects")" asp-controller="Pages" asp-action="Projects">@T["nav.projects"]</a>
+                <a class="site-nav-link @(blogActive && !homeActive ? "active" : "")" href="/@lang/#blog-feed">@T["nav.blog"]</a>
+                <a class="site-nav-link @NavActive("pages", "contact")" asp-controller="Pages" asp-action="Contact">@T["nav.contact"]</a>
+                @if (isReader || isStaff)
+                {
+                    <div class="nav-section-label">@T["nav.account_tools"]</div>
+                    @if (isReader)
                     {
-                        <div class="nav-section-label">@T["nav.account_tools"]</div>
-                        @if (isReader)
-                        {
-                            <a class="site-nav-link @NavActive("bookmarks")" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
-                        }
-                        @if (isStaff)
-                        {
-                            <a class="site-nav-link @NavActive("admin")" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a>
-                        }
+                        <a class="site-nav-link @NavActive("bookmarks")" asp-controller="Bookmarks" asp-action="Index">@T["nav.bookmarks"]</a>
                     }
-                </div>
-                <div class="site-nav-drawer-footer">
-                    <div class="lang-slot"><partial name="_LanguageSwitcher" /></div>
-                    @if (isAuth)
+                    @if (isStaff)
                     {
-                        <div class="dropdown w-100">
-                            <button class="btn-account dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
-                                <span class="account-avatar">@(string.IsNullOrEmpty(userName) ? "?" : char.ToUpperInvariant(userName[0]))</span>
-                                <span class="account-name ltr-field">@(userName ?? T["nav.account"])</span>
-                            </button>
-                            <ul class="dropdown-menu account-menu w-100">
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Manage">@T["nav.account_settings"]</a></li>
-                                <li>
-                                    <form asp-controller="Account" asp-action="Logout" method="post" class="px-3 py-1">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-ghost btn-sm w-100">@T["nav.logout"]</button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </div>
+                        <a class="site-nav-link @NavActive("admin")" asp-controller="Admin" asp-action="Index">@T["nav.admin"]</a>
                     }
-                    else
-                    {
-                        <a class="btn-nav-login" asp-controller="Account" asp-action="Login">@T["nav.login"]</a>
-                    }
-                </div>
+                }
+            </div>
+            <div class="site-nav-drawer-footer">
+                <div class="lang-slot"><partial name="_LanguageSwitcher" /></div>
+                @if (isAuth)
+                {
+                    <div class="dropdown w-100">
+                        <button class="btn-account dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                            <span class="account-avatar">@(string.IsNullOrEmpty(userName) ? "?" : char.ToUpperInvariant(userName[0]))</span>
+                            <span class="account-name ltr-field">@(userName ?? T["nav.account"])</span>
+                        </button>
+                        <ul class="dropdown-menu account-menu w-100">
+                            <li><a class="dropdown-item" asp-controller="Account" asp-action="Manage">@T["nav.account_settings"]</a></li>
+                            <li>
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="px-3 py-1">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-ghost btn-sm w-100">@T["nav.logout"]</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <a class="btn-nav-login" asp-controller="Account" asp-action="Login">@T["nav.login"]</a>
+                }
             </div>
         </div>
-    </header>
+    </div>
 
     <main class="site-main" id="main-content" role="main" tabindex="-1">
         @RenderBody()
