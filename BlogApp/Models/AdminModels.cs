@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BlogApp.Models;
 
-/// <summary>Key/value site configuration (settings, maintenance, announcement).</summary>
+/// <summary>Key/value site configuration (settings, maintenance, announcement, SMTP).</summary>
 public class SiteSetting
 {
     [Key, MaxLength(80)]
@@ -104,7 +104,7 @@ public class ContentReport
     public string? ResolvedByUserId { get; set; }
 }
 
-/// <summary>Well-known setting keys.</summary>
+/// <summary>Well-known setting keys (SEO + SMTP live in DB; SuperAdmin edits via /AdminSettings).</summary>
 public static class SiteSettingKeys
 {
     public const string SiteName = "SiteName";
@@ -119,6 +119,16 @@ public static class SiteSettingKeys
     public const string AnnouncementStyle = "AnnouncementStyle"; // info | warn | success
     /// <summary>Bumped when announcement content changes so dismissed users see the new banner.</summary>
     public const string AnnouncementVersion = "AnnouncementVersion";
+
+    // ── SMTP (full stack in DB; not appsettings / .env) ──
+    public const string SmtpEnabled = "Smtp.Enabled";
+    public const string SmtpHost = "Smtp.Host";
+    public const string SmtpPort = "Smtp.Port";
+    public const string SmtpEnableSsl = "Smtp.EnableSsl";
+    public const string SmtpUserName = "Smtp.UserName";
+    public const string SmtpPassword = "Smtp.Password";
+    public const string SmtpFromAddress = "Smtp.FromAddress";
+    public const string SmtpFromDisplayName = "Smtp.FromDisplayName";
 }
 
 /// <summary>Default feature flag keys seeded on bootstrap.</summary>
