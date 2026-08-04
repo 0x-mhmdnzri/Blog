@@ -26,6 +26,10 @@ public class AdminSettingsController : Controller
     public async Task<IActionResult> Index()
     {
         ViewData["Title"] = "تنظیمات سایت";
+        var smtpPass = await _config.GetAsync(SiteSettingKeys.SmtpPassword);
+        var portRaw = await _config.GetAsync(SiteSettingKeys.SmtpPort);
+        if (!int.TryParse(portRaw, out var port) || port <= 0) port = 587;
+
         var vm = new SiteSettingsViewModel
         {
             SiteName = await _config.GetAsync(SiteSettingKeys.SiteName) ?? "",
@@ -37,7 +41,17 @@ public class AdminSettingsController : Controller
             MaintenanceMessage = await _config.GetAsync(SiteSettingKeys.MaintenanceMessage) ?? "",
             AnnouncementEnabled = await _config.GetBoolAsync(SiteSettingKeys.AnnouncementEnabled),
             AnnouncementText = await _config.GetAsync(SiteSettingKeys.AnnouncementText) ?? "",
-            AnnouncementStyle = await _config.GetAsync(SiteSettingKeys.AnnouncementStyle) ?? "info"
+            AnnouncementStyle = await _config.GetAsync(SiteSettingKeys.AnnouncementStyle) ?? "info",
+
+            SmtpEnabled = await _config.GetBoolAsync(SiteSettingKeys.SmtpEnabled),
+            SmtpHost = await _config.GetAsync(SiteSettingKeys.SmtpHost) ?? "",
+            SmtpPort = port,
+            SmtpEnableSsl = await _config.GetBoolAsync(SiteSettingKeys.SmtpEnableSsl, true),
+            SmtpUserName = await _config.GetAsync(SiteSettingKeys.SmtpUserName) ?? "",
+            SmtpPassword = null, // never echo secret into the form
+            SmtpPasswordIsSet = !string.IsNullOrEmpty(smtpPass),
+            SmtpFromAddress = await _config.GetAsync(SiteSettingKeys.SmtpFromAddress) ?? "",
+            SmtpFromDisplayName = await _config.GetAsync(SiteSettingKeys.SmtpFromDisplayName) ?? ""
         };
         return View(vm);
     }
@@ -65,7 +79,6 @@ public class AdminSettingsController : Controller
         await _config.SetAsync(SiteSettingKeys.AnnouncementText, newText);
         await _config.SetAsync(SiteSettingKeys.AnnouncementStyle, newStyle);
 
-        // New content / style / re-enable → bump version so dismissed clients see it again
         if (vm.AnnouncementEnabled
             && (newText != prevText || newStyle != prevStyle || !prevOn || string.IsNullOrWhiteSpace(prevText)))
         {
@@ -73,8 +86,20 @@ public class AdminSettingsController : Controller
                 DateTime.UtcNow.Ticks.ToString());
         }
 
+        // ── SMTP ──
+        await _config.SetBoolAsync(SiteSettingKeys.SmtpEnabled, vm.SmtpEnabled);
+        await _config.SetAsync(SiteSettingKeys.SmtpHost, vm.SmtpHost?.Trim());
+        await _config.SetAsync(SiteSettingKeys.SmtpPort, (vm.SmtpPort <= 0 ? 587 : vm.SmtpPort).ToString());
+        await _config.SetBoolAsync(SiteSettingKeys.SmtpEnableSsl, vm.SmtpEnableSsl);
+        await _config.SetAsync(SiteSettingKeys.SmtpUserName, vm.SmtpUserName?.Trim());
+        await _config.SetAsync(SiteSettingKeys.SmtpFromAddress, vm.SmtpFromAddress?.Trim());
+        await _config.SetAsync(SiteSettingKeys.SmtpFromDisplayName, vm.SmtpFromDisplayName?.Trim());
+        // Only overwrite password when the admin typed a new one
+        if (!string.IsNullOrEmpty(vm.SmtpPassword))
+            await _config.SetAsync(SiteSettingKeys.SmtpPassword, vm.SmtpPassword);
+
         await _audit.LogAsync("settings.update", "SiteSetting", null,
-            $"Maintenance={vm.MaintenanceMode}; Announcement={vm.AnnouncementEnabled}", HttpContext);
+            $"Maintenance={vm.MaintenanceMode}; Announcement={vm.AnnouncementEnabled}; Smtp={vm.SmtpEnabled}", HttpContext);
 
         TempData["Saved"] = "تنظیمات ذخیره شد.";
         return RedirectToAction(nameof(Index));
