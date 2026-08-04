@@ -31,7 +31,8 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.Marketing)
             .Concat(UiTranslationCatalog.Search)
             .Concat(UiTranslationCatalog.Auth)
-            .Concat(UiTranslationCatalog.NavExtra);
+            .Concat(UiTranslationCatalog.NavExtra)
+            .Concat(UiTranslationCatalog.Themes);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
@@ -58,7 +59,8 @@ public sealed partial class UiTranslatorService
                         || t.Group == "bk" || t.Key == "admin.nav.backup"
                         || t.Group == "ent" || t.Key == "admin.nav.enterprise"
                         || t.Group == "mkt" || t.Group == "nav" || t.Group == "search"
-                        || t.Group == "auth" || t.Group == "a11y" || t.Group == "apikey")
+                        || t.Group == "auth" || t.Group == "a11y" || t.Group == "apikey"
+                        || t.Group == "themes" || t.Group == "media")
             .ToListAsync(ct);
 
         var byId = tracked.ToDictionary(t => t.Key + "|" + t.LanguageCode, StringComparer.OrdinalIgnoreCase);
@@ -105,6 +107,8 @@ public sealed partial class UiTranslatorService
         UpsertCatalog(UiTranslationCatalog.Auth);
         UpsertCatalog(UiTranslationCatalog.NavExtra);
         UpsertCatalog(UiTranslationCatalog.Accessibility);
+        UpsertCatalog(UiTranslationCatalog.Themes);
+        UpsertCatalog(UiTranslationCatalog.Media);
 
         if (added > 0 || changed > 0)
             await _db.SaveChangesAsync(ct);
