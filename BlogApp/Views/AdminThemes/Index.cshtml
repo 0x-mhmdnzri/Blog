@@ -2,7 +2,7 @@
 @using BlogApp.Models
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "تم‌ها";
+    ViewData["Title"] = T["themes.title"];
     var isSuper = ViewBag.IsSuper as bool? ?? User.IsInRole(AppRoles.SuperAdmin);
     var pending = (int)(ViewBag.PendingCount ?? 0);
 }
@@ -11,22 +11,22 @@
         <p class="small text-muted-dark mb-0">
             @if (isSuper)
             {
-                <text>سوپرادمین: تأیید / رد / فعال‌سازی سایت. نویسندگان فقط تم خود را می‌سازند و آپلود می‌کنند.</text>
+                <text>@T["themes.super_hint"]</text>
             }
             else
             {
-                <text>شما می‌توانید تم بسازید یا فایل <code>.blogtheme</code> آپلود کنید. پس از تأیید سوپرادمین در گالری عمومی ظاهر می‌شود.</text>
+                <text>@T["themes.author_hint"]</text>
             }
         </p>
         <div class="d-flex gap-1 flex-wrap">
             @if (isSuper)
             {
-                <a class="btn btn-ghost btn-sm" asp-route-status="">همه</a>
-                <a class="btn btn-accent btn-sm" asp-route-status="pending">در انتظار (@pending)</a>
-                <a class="btn btn-ghost btn-sm" asp-route-status="approved">تأییدشده</a>
-                <a class="btn btn-ghost btn-sm" asp-route-status="rejected">رد شده</a>
+                <a class="btn btn-ghost btn-sm" asp-route-status="">@T["themes.all"]</a>
+                <a class="btn btn-accent btn-sm" asp-route-status="pending">@T["themes.pending"] (@pending)</a>
+                <a class="btn btn-ghost btn-sm" asp-route-status="approved">@T["themes.approved"]</a>
+                <a class="btn btn-ghost btn-sm" asp-route-status="rejected">@T["themes.rejected"]</a>
             }
-            <a class="btn btn-accent btn-sm" asp-action="Create">تم جدید</a>
+            <a class="btn btn-accent btn-sm" asp-action="Create">@T["themes.create"]</a>
         </div>
     </div>
 
@@ -35,11 +35,11 @@
             <form asp-action="ImportFile" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
                 @Html.AntiForgeryToken()
                 <div>
-                    <label class="form-label small mb-1">آپلود تم شخصی (.blogtheme)</label>
+                    <label class="form-label small mb-1">@T["themes.upload"]</label>
                     <input type="file" name="file" accept=".blogtheme,application/json,.json" class="form-control form-control-sm" required />
                 </div>
-                <button type="submit" name="action" value="submit" class="btn btn-accent btn-sm">آپلود و ارسال برای تأیید</button>
-                <button type="submit" name="action" value="draft" class="btn btn-ghost btn-sm">آپلود پیش‌نویس</button>
+                <button type="submit" name="action" value="submit" class="btn btn-accent btn-sm">@T["themes.upload_submit"]</button>
+                <button type="submit" name="action" value="draft" class="btn btn-ghost btn-sm">@T["themes.upload_draft"]</button>
             </form>
             @if (isSuper)
             {
@@ -47,14 +47,14 @@
                     <form asp-action="ImportSystemPack" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
                         @Html.AntiForgeryToken()
                         <div>
-                            <label class="form-label small mb-1">واردات سیستمی (تأیید خودکار)</label>
+                            <label class="form-label small mb-1">@T["themes.import_system"]</label>
                             <input type="file" name="file" accept=".blogtheme" class="form-control form-control-sm" required />
                         </div>
-                        <button type="submit" class="btn btn-ghost btn-sm">واردات سیستم</button>
+                        <button type="submit" class="btn btn-ghost btn-sm">@T["themes.import_btn"]</button>
                     </form>
                     <form asp-action="Reimport" method="post">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-ghost btn-sm" title="اسکن مجدد themes/*.blogtheme">اسکن پوشه themes</button>
+                        <button type="submit" class="btn btn-ghost btn-sm" title="@T["themes.scan_title"]">@T["themes.scan_folder"]</button>
                     </form>
                 </div>
             }
@@ -65,7 +65,7 @@
 
     @if (Model.Count == 0)
     {
-        <p class="text-muted-dark small">تمی نیست. «تم جدید» یا آپلود فایل را امتحان کنید.</p>
+        <p class="text-muted-dark small">@T["themes.empty"]</p>
     }
 
     @foreach (var t in Model)
@@ -75,15 +75,15 @@
             <div class="d-flex flex-wrap justify-content-between gap-2">
                 <div style="flex:1;min-width:200px">
                     <strong>@t.Name</strong>
-                    @if (t.IsActive) { <span class="badge-category">فعال سایت</span> }
-                    @if (t.IsSystem) { <span class="small text-muted-dark">سیستم</span> }
+                    @if (t.IsActive) { <span class="badge-category">@T["themes.active_site"]</span> }
+                    @if (t.IsSystem) { <span class="small text-muted-dark">@T["themes.system"]</span> }
                     <div class="small text-muted-dark">
                         @(t.Owner?.UserName ?? t.OwnerUserId ?? "—") ·
                         @(t.Status switch {
-                            ThemeApprovalStatus.Pending => "در انتظار تأیید",
-                            ThemeApprovalStatus.Approved => "تأییدشده",
-                            ThemeApprovalStatus.Rejected => "رد شده",
-                            _ => "پیش‌نویس"
+                            ThemeApprovalStatus.Pending => T["themes.pending_review"],
+                            ThemeApprovalStatus.Approved => T["themes.approved"],
+                            ThemeApprovalStatus.Rejected => T["themes.rejected"],
+                            _ => T["themes.draft"]
                         })
                         · contrast @t.ContrastTextOnBg:1
                     </div>
@@ -104,14 +104,14 @@
                         {
                             <form asp-controller="AdminThemes" asp-action="Approve" asp-route-id="@t.Id" method="post">
                                 @Html.AntiForgeryToken()
-                                <button class="btn btn-accent btn-sm" type="submit">تأیید</button>
+                                <button class="btn btn-accent btn-sm" type="submit">@T["themes.approve"]</button>
                             </form>
                         }
                         @if (isSuper && t.Status == ThemeApprovalStatus.Approved && !t.IsActive)
                         {
                             <form asp-controller="AdminThemes" asp-action="Activate" asp-route-id="@t.Id" method="post">
                                 @Html.AntiForgeryToken()
-                                <button class="btn btn-accent btn-sm" type="submit">فعال‌سازی سایت</button>
+                                <button class="btn btn-accent btn-sm" type="submit">@T["themes.activate"]</button>
                             </form>
                         }
 
@@ -119,15 +119,15 @@
                         {
                             <form asp-controller="AdminThemes" asp-action="Submit" asp-route-id="@t.Id" method="post">
                                 @Html.AntiForgeryToken()
-                                <button class="btn btn-accent btn-sm" type="submit">ارسال برای تأیید</button>
+                                <button class="btn btn-accent btn-sm" type="submit">@T["themes.submit_review"]</button>
                             </form>
                         }
 
                         @if (!t.IsSystem && !t.IsActive)
                         {
-                            <form asp-controller="AdminThemes" asp-action="Delete" asp-route-id="@t.Id" method="post" onsubmit="return confirm('حذف؟');">
+                            <form asp-controller="AdminThemes" asp-action="Delete" asp-route-id="@t.Id" method="post" onsubmit="return confirm('@T["themes.delete_confirm"]');">
                                 @Html.AntiForgeryToken()
-                                <button class="btn btn-ghost btn-sm" type="submit">حذف</button>
+                                <button class="btn btn-ghost btn-sm" type="submit">@T["themes.delete"]</button>
                             </form>
                         }
                     </div>
@@ -135,8 +135,8 @@
                     {
                         <form asp-controller="AdminThemes" asp-action="Reject" asp-route-id="@t.Id" method="post" class="d-flex flex-wrap gap-1 align-items-center">
                             @Html.AntiForgeryToken()
-                            <input type="text" name="reason" class="form-control form-control-sm" placeholder="دلیل رد (اختیاری)" maxlength="400" style="min-width:140px;flex:1" />
-                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">رد</button>
+                            <input type="text" name="reason" class="form-control form-control-sm" placeholder="@T["themes.reject_reason"]" maxlength="400" style="min-width:140px;flex:1" />
+                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">@T["themes.reject"]</button>
                         </form>
                     }
                 </div>
