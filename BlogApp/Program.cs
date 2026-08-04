@@ -245,6 +245,9 @@ try
     builder.Services.AddSingleton<NotificationHub>();
     builder.Services.AddScoped<INotificationService, NotificationService>();
     builder.Services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+    // Outbound webhooks (MassTransit WebhookDispatchConsumer → IWebhookDeliveryService)
+    builder.Services.AddHttpClient("webhooks");
+    builder.Services.AddScoped<IWebhookDeliveryService, WebhookDeliveryService>();
     builder.Services.AddHostedService<WeeklyDigestHostedService>();
     builder.Services.AddHostedService<NotificationRealtimeHostedService>();
     builder.Services.AddHostedService<NotificationSchedulerHostedService>();
