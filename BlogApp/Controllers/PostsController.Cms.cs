@@ -43,7 +43,9 @@ public partial class PostsController
         var toPublish = await _db.Posts
             .Where(p => !p.IsDeleted && !p.IsPublished
                         && p.ScheduledPublishAtUtc != null
-                        && p.ScheduledPublishAtUtc <= now)
+                        && p.ScheduledPublishAtUtc <= now
+                        && p.ReviewStatus != PostReviewStatus.PendingReview
+                        && p.ReviewStatus != PostReviewStatus.Rejected)
             .ToListAsync();
 
         foreach (var p in toPublish)
@@ -106,31 +108,84 @@ public partial class PostsController
         }
     }
 
-    /// <summary>Apply schedule vs immediate publish rules. Dates arrive as user-local converted to UTC.</summary>
+    /// <summary>Apply schedule vs immediate publish. Non–SuperAdmin authors go to PendingReview (not public).</summary>
     private void ApplyPublishState(Post post, bool wantPublish, DateTime? scheduledLocalOrUtc, DateTime? expiresLocalOrUtc, bool wasPublished)
     {
         var offset = ReadClientTimezoneOffset();
-        // Client prepares forms to UTC wall-clock; offset is fallback only
         var clientConverted = Request.Form.ContainsKey("__dt_utc_converted")
                               || string.Equals(Request.Headers["X-Dt-Utc-Converted"], "1", StringComparison.Ordinal);
 
         post.ExpiresAtUtc = DateTimeUserLocal.ToUtc(expiresLocalOrUtc, offset, clientConverted || offset is null);
         var scheduled = DateTimeUserLocal.ToUtc(scheduledLocalOrUtc, offset, clientConverted || offset is null);
+        var isSuper = AuthorAccess.IsSuperAdmin(User);
 
         if (scheduled is DateTime when && when > DateTime.UtcNow)
         {
             post.IsPublished = false;
             post.ScheduledPublishAtUtc = when;
+            if (!isSuper)
+                post.ReviewStatus = PostReviewStatus.PendingReview;
+            else if (post.ReviewStatus is PostReviewStatus.None or PostReviewStatus.PendingReview or PostReviewStatus.Rejected)
+                post.ReviewStatus = PostReviewStatus.Approved;
             _logger.LogInformation(
-                "PostId={Id} scheduled for {When:o} UTC (now={Now:o}, offsetMin={Off})",
-                post.Id, when, DateTime.UtcNow, offset);
+                "PostId={Id} scheduled for {When:o} UTC (now={Now:o}, offsetMin={Off}, review={Rev})",
+                post.Id, when, DateTime.UtcNow, offset, post.ReviewStatus);
+        }
+        else if (wantPublish)
+        {
+            if (!isSuper)
+            {
+                // Author publish request → queue for SuperAdmin; never public until approved
+                post.IsPublished = false;
+                post.ScheduledPublishAtUtc = null;
+                post.ReviewStatus = PostReviewStatus.PendingReview;
+            }
+            else
+            {
+                post.IsPublished = true;
+                post.ScheduledPublishAtUtc = null;
+                if (!wasPublished)
+                    post.PublishedAtUtc = DateTime.UtcNow;
+                post.ReviewStatus = PostReviewStatus.Approved;
+                post.ReviewNote = null;
+            }
         }
         else
         {
-            post.IsPublished = wantPublish;
+            post.IsPublished = false;
             post.ScheduledPublishAtUtc = null;
-            if (wantPublish && !wasPublished)
-                post.PublishedAtUtc = DateTime.UtcNow;
+            if (post.ReviewStatus == PostReviewStatus.PendingReview)
+                post.ReviewStatus = PostReviewStatus.None;
+        }
+    }
+
+    private async Task NotifySuperAdminsPendingPostAsync(Post post)
+    {
+        try
+        {
+            var superIds = await (
+                from ur in _db.UserRoles
+                join r in _db.Roles on ur.RoleId equals r.Id
+                where r.Name == AppRoles.SuperAdmin
+                select ur.UserId
+            ).Distinct().ToListAsync();
+
+            if (superIds.Count == 0) return;
+
+            var authorLabel = User.Identity?.Name ?? post.AuthorId;
+            var title = "نوشته در انتظار تأیید";
+            var body = "«" + post.Title + "» توسط " + authorLabel + " برای انتشار ارسال شد.";
+            var link = "/AdminModeration";
+
+            foreach (var uid in superIds)
+            {
+                if (string.Equals(uid, post.AuthorId, StringComparison.Ordinal)) continue;
+                await _notify.NotifyAsync(uid, NotificationKind.AdminMessage, title, body, link);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "NotifySuperAdminsPendingPost failed for PostId={Id}", post.Id);
         }
     }
 
