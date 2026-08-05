@@ -4,114 +4,207 @@
     ViewData["Title"] = T["page.settings"];
 }
 
-@if (TempData["Saved"] != null)
-{
-    <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
+<div class="stgs" id="adminSettings">
+    <header class="stgs-hero">
+        <div>
+            <p class="stgs-eyebrow">@T["page.settings"]</p>
+            <h1 class="stgs-title">@T["settings.page_title"]</h1>
+            <p class="stgs-sub">@T["settings.page_sub"]</p>
+        </div>
+        @if (TempData["Saved"] != null)
+        {
+            <div class="stgs-toast" role="status">@TempData["Saved"]</div>
+        }
+    </header>
+
+    <form method="post" class="stgs-form" id="settingsForm">
+        @Html.AntiForgeryToken()
+
+        <div class="stgs-layout">
+            <nav class="stgs-nav" aria-label="@T["page.settings"]">
+                <button type="button" class="stgs-nav-item is-active" data-stgs-tab="seo">
+                    <span class="stgs-nav-dot" aria-hidden="true"></span>
+                    <span class="stgs-nav-label">@T["settings.section_seo"]</span>
+                </button>
+                <button type="button" class="stgs-nav-item" data-stgs-tab="smtp">
+                    <span class="stgs-nav-dot" aria-hidden="true"></span>
+                    <span class="stgs-nav-label">@T["settings.section_smtp"]</span>
+                    <span class="stgs-nav-badge @(Model.SmtpEnabled ? "is-on" : "is-off")" data-stgs-badge="smtp">@(Model.SmtpEnabled ? T["settings.badge_on"] : T["settings.badge_off"])</span>
+                </button>
+                <button type="button" class="stgs-nav-item" data-stgs-tab="maintenance">
+                    <span class="stgs-nav-dot" aria-hidden="true"></span>
+                    <span class="stgs-nav-label">@T["settings.section_maintenance"]</span>
+                    <span class="stgs-nav-badge @(Model.MaintenanceMode ? "is-warn" : "is-off")" data-stgs-badge="maintenance">@(Model.MaintenanceMode ? T["settings.badge_on"] : T["settings.badge_off"])</span>
+                </button>
+                <button type="button" class="stgs-nav-item" data-stgs-tab="announce">
+                    <span class="stgs-nav-dot" aria-hidden="true"></span>
+                    <span class="stgs-nav-label">@T["settings.section_announcement"]</span>
+                    <span class="stgs-nav-badge @(Model.AnnouncementEnabled ? "is-on" : "is-off")" data-stgs-badge="announce">@(Model.AnnouncementEnabled ? T["settings.badge_on"] : T["settings.badge_off"])</span>
+                </button>
+            </nav>
+
+            <div class="stgs-panels">
+                <section class="stgs-panel is-active" data-stgs-panel="seo" id="stgs-seo">
+                    <div class="stgs-card">
+                        <div class="stgs-card-head">
+                            <div>
+                                <h2 class="stgs-card-title">@T["settings.section_seo"]</h2>
+                                <p class="stgs-card-hint">@T["settings.seo_hint"]</p>
+                            </div>
+                        </div>
+                        <div class="stgs-card-body">
+                            <div class="stgs-field">
+                                <label class="stgs-label" asp-for="SiteName">@T["settings.site_name"]</label>
+                                <input class="form-control" asp-for="SiteName" dir="auto" autocomplete="organization" />
+                                <span asp-validation-for="SiteName" class="field-error"></span>
+                            </div>
+                            <div class="stgs-field">
+                                <label class="stgs-label" asp-for="SiteDescription">@T["settings.site_description"]</label>
+                                <textarea class="form-control" asp-for="SiteDescription" rows="3" dir="auto"></textarea>
+                            </div>
+                            <div class="stgs-grid-2">
+                                <div class="stgs-field">
+                                    <label class="stgs-label" asp-for="AuthorName">@T["settings.author_name"]</label>
+                                    <input class="form-control" asp-for="AuthorName" dir="auto" />
+                                </div>
+                                <div class="stgs-field">
+                                    <label class="stgs-label" asp-for="TwitterHandle">@T["settings.twitter"]</label>
+                                    <input class="form-control ltr-field" asp-for="TwitterHandle" placeholder="@@handle" />
+                                </div>
+                            </div>
+                            <div class="stgs-field">
+                                <label class="stgs-label" asp-for="BaseUrl">@T["settings.base_url"]</label>
+                                <input class="form-control ltr-field" asp-for="BaseUrl" placeholder="https://example.com" inputmode="url" />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="stgs-panel" data-stgs-panel="smtp" id="stgs-smtp" hidden>
+                    <div class="stgs-card">
+                        <div class="stgs-card-head">
+                            <div>
+                                <h2 class="stgs-card-title">@T["settings.section_smtp"]</h2>
+                                <p class="stgs-card-hint">@T["settings.smtp_hint"]</p>
+                            </div>
+                            <label class="stgs-switch">
+                                <input type="checkbox" asp-for="SmtpEnabled" data-stgs-toggle="smtp" />
+                                <span class="stgs-switch-ui" aria-hidden="true"></span>
+                                <span class="stgs-switch-label">@T["settings.smtp_enable"]</span>
+                            </label>
+                        </div>
+                        <div class="stgs-card-body" data-stgs-gated="smtp">
+                            <div class="stgs-grid-2">
+                                <div class="stgs-field stgs-span-2">
+                                    <label class="stgs-label" asp-for="SmtpHost">@T["settings.smtp_host"]</label>
+                                    <input class="form-control ltr-field" asp-for="SmtpHost" placeholder="smtp.example.com" />
+                                </div>
+                                <div class="stgs-field">
+                                    <label class="stgs-label" asp-for="SmtpPort">@T["settings.smtp_port"]</label>
+                                    <input class="form-control ltr-field" asp-for="SmtpPort" type="number" min="1" max="65535" />
+                                </div>
+                                <div class="stgs-field stgs-field-inline">
+                                    <label class="stgs-check">
+                                        <input class="form-check-input" asp-for="SmtpEnableSsl" />
+                                        <span>@T["settings.smtp_ssl"]</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="stgs-grid-2">
+                                <div class="stgs-field">
+                                    <label class="stgs-label" asp-for="SmtpUserName">@T["settings.smtp_user"]</label>
+                                    <input class="form-control ltr-field" asp-for="SmtpUserName" autocomplete="off" />
+                                </div>
+                                <div class="stgs-field">
+                                    <label class="stgs-label" asp-for="SmtpPassword">@T["settings.smtp_password"]</label>
+                                    <input class="form-control ltr-field" asp-for="SmtpPassword" type="password" autocomplete="new-password"
+                                           placeholder="@(Model.SmtpPasswordIsSet ? T["settings.smtp_password_placeholder"] : "")" />
+                                    @if (Model.SmtpPasswordIsSet)
+                                    {
+                                        <p class="stgs-help">@T["settings.smtp_password_hint"]</p>
+                                    }
+                                </div>
+                            </div>
+                            <div class="stgs-grid-2">
+                                <div class="stgs-field">
+                                    <label class="stgs-label" asp-for="SmtpFromAddress">@T["settings.smtp_from"]</label>
+                                    <input class="form-control ltr-field" asp-for="SmtpFromAddress" placeholder="noreply@example.com" />
+                                    <span asp-validation-for="SmtpFromAddress" class="field-error"></span>
+                                </div>
+                                <div class="stgs-field">
+                                    <label class="stgs-label" asp-for="SmtpFromDisplayName">@T["settings.smtp_from_name"]</label>
+                                    <input class="form-control" asp-for="SmtpFromDisplayName" dir="auto" placeholder="Blog" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="stgs-panel" data-stgs-panel="maintenance" id="stgs-maintenance" hidden>
+                    <div class="stgs-card">
+                        <div class="stgs-card-head">
+                            <div>
+                                <h2 class="stgs-card-title">@T["settings.section_maintenance"]</h2>
+                                <p class="stgs-card-hint">@T["settings.maintenance_hint"]</p>
+                            </div>
+                            <label class="stgs-switch">
+                                <input type="checkbox" asp-for="MaintenanceMode" data-stgs-toggle="maintenance" />
+                                <span class="stgs-switch-ui" aria-hidden="true"></span>
+                                <span class="stgs-switch-label">@T["settings.maintenance_enable"]</span>
+                            </label>
+                        </div>
+                        <div class="stgs-card-body">
+                            <div class="stgs-field">
+                                <label class="stgs-label" asp-for="MaintenanceMessage">@T["settings.maintenance_message"]</label>
+                                <textarea class="form-control" asp-for="MaintenanceMessage" rows="3" dir="auto"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="stgs-panel" data-stgs-panel="announce" id="stgs-announce" hidden>
+                    <div class="stgs-card">
+                        <div class="stgs-card-head">
+                            <div>
+                                <h2 class="stgs-card-title">@T["settings.section_announcement"]</h2>
+                                <p class="stgs-card-hint">@T["settings.announcement_hint"]</p>
+                            </div>
+                            <label class="stgs-switch">
+                                <input type="checkbox" asp-for="AnnouncementEnabled" data-stgs-toggle="announce" />
+                                <span class="stgs-switch-ui" aria-hidden="true"></span>
+                                <span class="stgs-switch-label">@T["settings.announcement_enable"]</span>
+                            </label>
+                        </div>
+                        <div class="stgs-card-body">
+                            <div class="stgs-field">
+                                <label class="stgs-label" asp-for="AnnouncementText">@T["settings.announcement_text"]</label>
+                                <input class="form-control" asp-for="AnnouncementText" dir="auto" />
+                            </div>
+                            <div class="stgs-field" style="max-width:14rem">
+                                <label class="stgs-label" asp-for="AnnouncementStyle">@T["settings.announcement_style"]</label>
+                                <select class="form-select" asp-for="AnnouncementStyle">
+                                    <option value="info">@T["settings.style_info"]</option>
+                                    <option value="warn">@T["settings.style_warn"]</option>
+                                    <option value="success">@T["settings.style_success"]</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <footer class="stgs-footer">
+            <p class="stgs-footer-hint">@T["settings.save_hint"]</p>
+            <button type="submit" class="btn btn-accent stgs-save">@T["btn.save_settings"]</button>
+        </footer>
+    </form>
+</div>
+
+@section Styles {
+<link rel="stylesheet" href="~/css/admin-settings.css" asp-append-version="true" />
 }
 
-<form method="post" class="card-surface p-4 admin-form-center">
-    @Html.AntiForgeryToken()
-
-    <h2 class="h6 text-muted-dark mb-3">@T["settings.section_seo"]</h2>
-    <p class="small text-muted-dark mb-3">@T["settings.seo_hint"]</p>
-    <div class="mb-3">
-        <label class="form-label" asp-for="SiteName">@T["settings.site_name"]</label>
-        <input class="form-control" asp-for="SiteName" dir="auto" />
-        <span asp-validation-for="SiteName" class="text-danger small"></span>
-    </div>
-    <div class="mb-3">
-        <label class="form-label" asp-for="SiteDescription">@T["settings.site_description"]</label>
-        <textarea class="form-control" asp-for="SiteDescription" rows="3" dir="auto"></textarea>
-    </div>
-    <div class="row g-3 mb-3">
-        <div class="col-md-6">
-            <label class="form-label" asp-for="AuthorName">@T["settings.author_name"]</label>
-            <input class="form-control" asp-for="AuthorName" dir="auto" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label" asp-for="TwitterHandle">@T["settings.twitter"]</label>
-            <input class="form-control ltr-field" asp-for="TwitterHandle" placeholder="@@handle" />
-        </div>
-    </div>
-    <div class="mb-4">
-        <label class="form-label" asp-for="BaseUrl">@T["settings.base_url"]</label>
-        <input class="form-control ltr-field" asp-for="BaseUrl" placeholder="https://example.com" />
-    </div>
-
-    <h2 class="h6 text-muted-dark mb-3">@T["settings.section_smtp"]</h2>
-    <p class="small text-muted-dark mb-3">@T["settings.smtp_hint"]</p>
-    <div class="form-check mb-3">
-        <input class="form-check-input" asp-for="SmtpEnabled" />
-        <label class="form-check-label" asp-for="SmtpEnabled">@T["settings.smtp_enable"]</label>
-    </div>
-    <div class="row g-3 mb-3">
-        <div class="col-md-8">
-            <label class="form-label" asp-for="SmtpHost">@T["settings.smtp_host"]</label>
-            <input class="form-control ltr-field" asp-for="SmtpHost" placeholder="smtp.example.com" />
-        </div>
-        <div class="col-md-4">
-            <label class="form-label" asp-for="SmtpPort">@T["settings.smtp_port"]</label>
-            <input class="form-control ltr-field" asp-for="SmtpPort" type="number" min="1" max="65535" />
-        </div>
-    </div>
-    <div class="form-check mb-3">
-        <input class="form-check-input" asp-for="SmtpEnableSsl" />
-        <label class="form-check-label" asp-for="SmtpEnableSsl">@T["settings.smtp_ssl"]</label>
-    </div>
-    <div class="row g-3 mb-3">
-        <div class="col-md-6">
-            <label class="form-label" asp-for="SmtpUserName">@T["settings.smtp_user"]</label>
-            <input class="form-control ltr-field" asp-for="SmtpUserName" autocomplete="off" />
-        </div>
-        <div class="col-md-6">
-            <label class="form-label" asp-for="SmtpPassword">@T["settings.smtp_password"]</label>
-            <input class="form-control ltr-field" asp-for="SmtpPassword" type="password" autocomplete="new-password" placeholder="@(Model.SmtpPasswordIsSet ? T["settings.smtp_password_placeholder"] : "")" />
-            @if (Model.SmtpPasswordIsSet)
-            {
-                <div class="form-text small text-muted-dark">@T["settings.smtp_password_hint"]</div>
-            }
-        </div>
-    </div>
-    <div class="row g-3 mb-4">
-        <div class="col-md-6">
-            <label class="form-label" asp-for="SmtpFromAddress">@T["settings.smtp_from"]</label>
-            <input class="form-control ltr-field" asp-for="SmtpFromAddress" placeholder="noreply@example.com" />
-            <span asp-validation-for="SmtpFromAddress" class="text-danger small"></span>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label" asp-for="SmtpFromDisplayName">@T["settings.smtp_from_name"]</label>
-            <input class="form-control" asp-for="SmtpFromDisplayName" dir="auto" placeholder="Blog" />
-        </div>
-    </div>
-
-    <h2 class="h6 text-muted-dark mb-3">@T["settings.section_maintenance"]</h2>
-    <div class="form-check mb-2">
-        <input class="form-check-input" asp-for="MaintenanceMode" />
-        <label class="form-check-label" asp-for="MaintenanceMode">@T["settings.maintenance_enable"]</label>
-    </div>
-    <div class="mb-4">
-        <label class="form-label" asp-for="MaintenanceMessage">@T["settings.maintenance_message"]</label>
-        <textarea class="form-control" asp-for="MaintenanceMessage" rows="2" dir="auto"></textarea>
-    </div>
-
-    <h2 class="h6 text-muted-dark mb-3">@T["settings.section_announcement"]</h2>
-    <div class="form-check mb-2">
-        <input class="form-check-input" asp-for="AnnouncementEnabled" />
-        <label class="form-check-label" asp-for="AnnouncementEnabled">@T["settings.announcement_enable"]</label>
-    </div>
-    <div class="mb-3">
-        <label class="form-label" asp-for="AnnouncementText">@T["settings.announcement_text"]</label>
-        <input class="form-control" asp-for="AnnouncementText" dir="auto" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label" asp-for="AnnouncementStyle">@T["settings.announcement_style"]</label>
-        <select class="form-select" asp-for="AnnouncementStyle" style="max-width:200px;">
-            <option value="info">@T["settings.style_info"]</option>
-            <option value="warn">@T["settings.style_warn"]</option>
-            <option value="success">@T["settings.style_success"]</option>
-        </select>
-    </div>
-    <p class="small text-muted-dark mb-4">@T["settings.announcement_hint"]</p>
-
-    <button type="submit" class="btn btn-accent">@T["btn.save_settings"]</button>
-</form>
+@section Scripts {
+<script src="~/js/admin-settings.js" asp-append-version="true"></script>
+}
