@@ -1,0 +1,64 @@
+@using BlogApp.Models
+@inject BlogApp.Services.IThemeService Themes
+@inject BlogApp.Services.IUiTranslator T
+@{
+    if (!User.IsInRole(AppRoles.SuperAdmin)) { return; }
+    if (!Context.Request.Cookies.TryGetValue("Blog.ThemePreview", out var raw)
+        || !int.TryParse(raw, out var previewId) || previewId <= 0)
+    {
+        return;
+    }
+    var theme = await Themes.GetByIdAsync(previewId);
+    if (theme is null) { return; }
+}
+<div class="theme-preview-bar" role="status">
+    <div class="theme-preview-bar-inner">
+        <div class="theme-preview-swatches" aria-hidden="true">
+            <span style="background:@theme.Bg"></span>
+            <span style="background:@theme.Surface"></span>
+            <span style="background:@theme.Accent"></span>
+            <span style="background:@theme.Text"></span>
+        </div>
+        <div class="theme-preview-copy">
+            <strong>@T["themes.preview_active"]</strong>
+            <span dir="auto">«@theme.Name»</span>
+            <span class="theme-preview-meta ltr-field">text @theme.ContrastTextOnBg:1 · accent @theme.ContrastAccentOnBg:1</span>
+            <span class="theme-preview-hint">@T["themes.preview_banner"]</span>
+        </div>
+        <div class="theme-preview-acts">
+            <a class="theme-preview-link" href="/AdminThemes">@T["themes.title"]</a>
+            <form method="post" action="/AdminThemes/EndPreview" style="display:inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@(Context.Request.Path.Value ?? "/")" />
+                <button type="submit" class="theme-preview-end">@T["themes.end_preview"]</button>
+            </form>
+            @if (theme.Status is ThemeApprovalStatus.Pending or ThemeApprovalStatus.Draft or ThemeApprovalStatus.Rejected)
+            {
+                <form method="post" action="/AdminThemes/Approve/@theme.Id" style="display:inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="theme-preview-ok">@T["themes.approve"]</button>
+                </form>
+                <form method="post" action="/AdminThemes/Reject/@theme.Id" style="display:inline" class="theme-preview-reject">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="reason" value="" />
+                    <button type="submit" class="theme-preview-bad">@T["themes.reject"]</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+<style>
+.theme-preview-bar{position:sticky;top:0;z-index:90;background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-bottom:1px solid color-mix(in srgb,var(--accent) 30%,var(--border));backdrop-filter:blur(8px)}
+.theme-preview-bar-inner{max-width:1100px;margin:0 auto;padding:.65rem 1rem;display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1rem}
+.theme-preview-swatches{display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--border-soft)}
+.theme-preview-swatches span{width:1.1rem;height:1.1rem}
+.theme-preview-copy{display:flex;flex-wrap:wrap;align-items:baseline;gap:.35rem .65rem;font-size:.82rem;flex:1;min-width:12rem}
+.theme-preview-copy strong{color:var(--accent)}
+.theme-preview-meta{opacity:.75;font-size:.75rem}
+.theme-preview-hint{width:100%;font-size:.75rem;color:var(--text-muted)}
+.theme-preview-acts{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
+.theme-preview-link,.theme-preview-end,.theme-preview-ok,.theme-preview-bad{font-size:.75rem;font-weight:600;padding:.3rem .65rem;border-radius:8px;border:1px solid var(--border-soft);background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit;text-decoration:none!important}
+.theme-preview-ok{background:color-mix(in srgb,var(--success) 16%,var(--surface));border-color:color-mix(in srgb,var(--success) 35%,var(--border));color:var(--success)}
+.theme-preview-bad{background:color-mix(in srgb,var(--danger) 12%,var(--surface));border-color:color-mix(in srgb,var(--danger) 30%,var(--border));color:var(--danger)}
+.theme-preview-end{border-color:color-mix(in srgb,var(--accent) 35%,var(--border));color:var(--accent)}
+</style>
