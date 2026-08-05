@@ -4,25 +4,8 @@
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = T["admin.nav.seo"];
     var tab = Model.ActiveTab ?? "overview";
-    var isSuper = BlogApp.Services.AuthorAccess.IsSuperAdmin(User);
     string TabClass(string id) => tab == id ? "is-active" : "";
-
-    var avgHealth = Model.PostHealth.Count > 0
-        ? (int)Math.Round(Model.PostHealth.Average(h => (double)h.Score))
-        : 0;
-    var healthyCount = Model.PostHealth.Count(h => h.Score >= 80);
-    var weakCount = Model.PostHealth.Count(h => h.Score < 50);
 }
-
-@if (TempData["SeoOk"] is string ok)
-{
-    <div class="st-alert st-alert-ok" role="status">@ok</div>
-}
-@if (TempData["SeoErr"] is string err)
-{
-    <div class="st-alert st-alert-err" role="alert">@err</div>
-}
-
 <header class="st-hero">
     <div class="st-hero-text">
         <p class="st-eyebrow">SEO</p>
@@ -34,21 +17,15 @@
         <a class="st-chip-link" href="@Model.RobotsUrl" target="_blank" rel="noopener">robots.txt</a>
     </div>
 </header>
-
 <nav class="st-tabs" role="tablist" aria-label="@T["seo.tabs_aria"]">
     <a class="st-tab @TabClass("overview")" asp-action="SeoTools" asp-route-tab="overview">@T["seo.tab_overview"]</a>
     <a class="st-tab @TabClass("meta")" asp-action="SeoTools" asp-route-tab="meta">@T["seo.tab_meta"]</a>
-    <a class="st-tab @TabClass("redirects")" asp-action="SeoTools" asp-route-tab="redirects">
-        @T["seo.tab_redirects"]
-        @if (Model.Redirects.Count > 0) { <span class="st-badge">@Model.Redirects.Count</span> }
-    </a>
-    <a class="st-tab @TabClass("broken")" asp-action="SeoTools" asp-route-tab="broken">
-        @T["seo.tab_broken"]
-        @if (Model.BrokenLinks.Count > 0) { <span class="st-badge st-badge-warn">@Model.BrokenLinks.Count</span> }
-    </a>
+    <a class="st-tab @TabClass("redirects")" asp-action="SeoTools" asp-route-tab="redirects">@T["seo.tab_redirects"]</a>
+    <a class="st-tab @TabClass("broken")" asp-action="SeoTools" asp-route-tab="broken">@T["seo.tab_broken"]</a>
     <a class="st-tab @TabClass("health")" asp-action="SeoTools" asp-route-tab="health">@T["seo.tab_health"]</a>
     <a class="st-tab @TabClass("import")" asp-action="SeoTools" asp-route-tab="import">@T["seo.tab_import"]</a>
     <a class="st-tab @TabClass("indexnow")" asp-action="SeoTools" asp-route-tab="indexnow">@T["seo.tab_indexnow"]</a>
 </nav>
-
-SEE_FULL_FILE_IN_ARTIFACTS
+<div class="st-alert st-alert-info" role="status">
+    Full SEO Tools UI is being restored. Translation keys (seo.*) are live.
+</div>
