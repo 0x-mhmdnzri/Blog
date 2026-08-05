@@ -6,7 +6,7 @@
     var isSuper = ViewBag.IsSuper as bool? ?? User.IsInRole(AppRoles.SuperAdmin);
     var pending = (int)(ViewBag.PendingCount ?? 0);
 }
-<div style="max-width:960px">
+<div class="admin-form-center" style="max-width:960px;margin-inline:auto;width:100%">
     <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
         <p class="small text-muted-dark mb-0">
             @if (isSuper)
@@ -32,25 +32,47 @@
 
     <div class="card-surface p-3 mb-3">
         <div class="d-flex flex-wrap gap-2 align-items-end justify-content-between">
-            <form asp-action="ImportFile" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
+            <form asp-action="ImportFile" method="post" enctype="multipart/form-data" class="theme-upload-form flex-grow-1">
                 @Html.AntiForgeryToken()
-                <div>
-                    <label class="form-label small mb-1">@T["themes.upload"]</label>
-                    <input type="file" name="file" accept=".blogtheme,application/json,.json" class="form-control form-control-sm" required />
+                <label class="form-label small mb-1">@T["themes.upload"]</label>
+                <div class="fu-zone fu-zone-sm" data-fu data-fu-kind="theme" tabindex="0" role="button" aria-label="@T["fu.drop_title"]">
+                    <input type="file" name="file" accept=".blogtheme,application/json,.json" required />
+                    <button type="button" class="fu-zone-btn">@T["fu.select"]</button>
+                    <div class="fu-zone-copy">
+                        <p class="fu-zone-title">@T["fu.drop_title"]</p>
+                        <p class="fu-zone-hint">@T["fu.hint_theme"]</p>
+                    </div>
+                    <span class="fu-zone-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                    </span>
+                    <div class="fu-zone-picked" hidden></div>
                 </div>
-                <button type="submit" name="action" value="submit" class="btn btn-accent btn-sm">@T["themes.upload_submit"]</button>
-                <button type="submit" name="action" value="draft" class="btn btn-ghost btn-sm">@T["themes.upload_draft"]</button>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <button type="submit" name="action" value="submit" class="btn btn-accent btn-sm">@T["themes.upload_submit"]</button>
+                    <button type="submit" name="action" value="draft" class="btn btn-ghost btn-sm">@T["themes.upload_draft"]</button>
+                </div>
             </form>
             @if (isSuper)
             {
                 <div class="d-flex flex-wrap gap-2 align-items-end">
-                    <form asp-action="ImportSystemPack" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
+                    <form asp-action="ImportSystemPack" method="post" enctype="multipart/form-data" class="theme-upload-form">
                         @Html.AntiForgeryToken()
-                        <div>
-                            <label class="form-label small mb-1">@T["themes.import_system"]</label>
-                            <input type="file" name="file" accept=".blogtheme" class="form-control form-control-sm" required />
+                        <label class="form-label small mb-1">@T["themes.import_system"]</label>
+                        <div class="fu-zone fu-zone-sm" data-fu data-fu-kind="theme" tabindex="0" role="button" aria-label="@T["fu.drop_title"]">
+                            <input type="file" name="file" accept=".blogtheme,application/json,.json" required />
+                            <button type="button" class="fu-zone-btn">@T["fu.select"]</button>
+                            <div class="fu-zone-copy">
+                                <p class="fu-zone-title">@T["fu.drop_title"]</p>
+                                <p class="fu-zone-hint">@T["fu.hint_theme"]</p>
+                            </div>
+                            <span class="fu-zone-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                            </span>
+                            <div class="fu-zone-picked" hidden></div>
                         </div>
-                        <button type="submit" class="btn btn-ghost btn-sm">@T["themes.import_btn"]</button>
+                        <div class="mt-2">
+                            <button type="submit" class="btn btn-ghost btn-sm">@T["themes.import_btn"]</button>
+                        </div>
                     </form>
                     <form asp-action="Reimport" method="post">
                         @Html.AntiForgeryToken()
@@ -144,3 +166,11 @@
         </article>
     }
 </div>
+
+
+@section Styles {
+<style>
+.theme-upload-form { min-width: min(100%, 22rem); flex: 1 1 18rem; }
+.theme-upload-form .fu-zone { margin-top: 0.15rem; }
+</style>
+}
