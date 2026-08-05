@@ -33,8 +33,25 @@ public class AnalyticsDashboardViewModel
     public string? HeatmapPostTitle { get; set; }
     public List<(int Id, string Title)> HeatmapPostOptions { get; set; } = new();
 
+    /// <summary>Device population clusters (desktop / mobile / tablet / bot) with share %.</summary>
+    public List<DevicePopulationItem> DevicePopulation { get; set; } = new();
+
     /// <summary>SuperAdmin only — API usage panel embedded on main dashboard.</summary>
     public ApiAnalyticsPanel? Api { get; set; }
+}
+
+/// <summary>One device category in the analytics population table.</summary>
+public class DevicePopulationItem
+{
+    /// <summary>Canonical key: desktop | mobile | tablet | bot | other</summary>
+    public string Category { get; set; } = "other";
+    public string Label { get; set; } = "";
+    public int Count { get; set; }
+    public double Percent { get; set; }
+    /// <summary>Top OS within this category, if known.</summary>
+    public string? TopOs { get; set; }
+    /// <summary>Top browser within this category, if known.</summary>
+    public string? TopBrowser { get; set; }
 }
 
 public class HeatmapPoint
