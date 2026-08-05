@@ -14,9 +14,9 @@ public static partial class UiTranslationCatalog
         ("themes.draft", "themes", "پیش‌نویس", "Draft", "مسودة"),
         ("themes.pending_review", "themes", "در انتظار تأیید", "Pending review", "بانتظار الموافقة"),
 
-        ("themes.super_hint", "themes", "سوپرادمین: تأیید / رد / فعال‌سازی سایت. نویسندگان فقط تم خود را می‌سازند و آپلود می‌کنند.", "SuperAdmin: approve / reject / activate site theme. Authors only create and upload their own.", "المشرف: موافقة / رفض / تفعيل. المؤلفون ينشئون ويرفعون فقط."),
+        ("themes.super_hint", "themes", "سوپرادمین: پیش‌نمایش روی سایت → تأیید / رد / فعال‌سازی. نویسندگان فقط تم خود را می‌سازند.", "SuperAdmin: preview on site → approve / reject / activate. Authors only create and upload their own.", "المشرف: معاينة على الموقع → موافقة / رفض / تفعيل."),
         ("themes.author_hint", "themes", "شما می‌توانید تم بسازید یا فایل .blogtheme آپلود کنید. پس از تأیید سوپرادمین در گالری عمومی ظاهر می‌شود.", "You can create a theme or upload a .blogtheme file. After SuperAdmin approval it appears in the public gallery.", "يمكنك إنشاء سمة أو رفع ملف .blogtheme. بعد موافقة المشرف تظهر في المعرض."),
-        ("themes.contrast_hint", "themes", "حداقل کنتراست متن روی پس‌زمینه ۴٫۵:۱ و اکسنت ۳:۱. پس از ساخت، سوپرادمین باید تأیید کند تا در گالری عمومی دیده شود.", "Min text contrast 4.5:1 on background, accent 3:1. After creation, SuperAdmin must approve for the public gallery.", "تباين النص 4.5:1 واللون المميز 3:1. بعد الإنشاء يحتاج موافقة المشرف."),
+        ("themes.contrast_hint", "themes", "حداقل کنتراست متن روی پس‌زمینه ۴٫۵:۱ و اکسنت ۳:۱.", "Min text contrast 4.5:1 on background, accent 3:1.", "تباين النص 4.5:1 واللون المميز 3:1."),
 
         ("themes.upload", "themes", "آپلود تم شخصی (.blogtheme)", "Upload personal theme (.blogtheme)", "رفع سمة شخصية (.blogtheme)"),
         ("themes.upload_submit", "themes", "آپلود و ارسال برای تأیید", "Upload & submit for review", "رفع وإرسال للمراجعة"),
@@ -26,7 +26,7 @@ public static partial class UiTranslationCatalog
         ("themes.scan_folder", "themes", "اسکن پوشه themes", "Scan themes folder", "مسح مجلد السمات"),
         ("themes.scan_title", "themes", "اسکن مجدد themes/*.blogtheme", "Rescan themes/*.blogtheme", "إعادة مسح themes/*.blogtheme"),
 
-        ("themes.empty", "themes", "تمی نیست. «تم جدید» یا آپلود فایل را امتحان کنید.", "No themes. Try «New theme» or upload a file.", "لا سمات. جرّب «سمة جديدة» أو ارفع ملفًا."),
+        ("themes.empty", "themes", "تمی نیست. «تم جدید» یا آپلود فایل را امتحان کنید.", "No themes. Try «New theme» or upload a file.", "لا سمات."),
         ("themes.active_site", "themes", "فعال سایت", "Site active", "نشط للموقع"),
         ("themes.system", "themes", "سیستم", "System", "نظام"),
 
@@ -40,6 +40,12 @@ public static partial class UiTranslationCatalog
         ("themes.save_draft", "themes", "ذخیره پیش‌نویس", "Save draft", "حفظ مسودة"),
         ("themes.create_approve", "themes", "ساخت و تأیید", "Create & approve", "إنشاء وموافقة"),
         ("themes.back", "themes", "بازگشت", "Back", "رجوع"),
+
+        ("themes.preview", "themes", "پیش‌نمایش روی سایت", "Preview on site", "معاينة على الموقع"),
+        ("themes.preview_hint", "themes", "اعمال موقت این تم فقط برای مرورگر شما — بدون فعال‌سازی عمومی", "Temporarily apply this theme in your browser only — no public activation", "تطبيق مؤقت في متصفحك فقط دون تفعيل عام"),
+        ("themes.end_preview", "themes", "پایان پیش‌نمایش", "End preview", "إنهاء المعاينة"),
+        ("themes.preview_active", "themes", "حالت پیش‌نمایش", "Preview mode", "وضع المعاينة"),
+        ("themes.preview_banner", "themes", "تم در حال بررسی روی این مرورگر اعمال شده. پس از ارزیابی کنتراست و ظاهر، تأیید یا رد کنید.", "This theme is applied on your browser for review. Check contrast and UI, then approve or reject.", "هذه السمة مطبّقة على متصفحك للمراجعة. افحص التباين ثم وافق أو ارفض."),
 
         ("themes.name", "themes", "نام", "Name", "الاسم"),
         ("themes.desc", "themes", "توضیح", "Description", "الوصف"),
