@@ -3,6 +3,20 @@
     ViewData["Title"] = T["page.posts"];
     var showAuthor = ViewBag.ShowAuthorColumn as bool? ?? false;
     var j = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    var pendingCreated = TempData["PostCreatedPending"] as string == "1";
+    var createdTitle = TempData["PostCreatedTitle"] as string;
+}
+
+@if (pendingCreated)
+{
+    <div class="card-surface p-3 mb-3" role="status" style="border-color:color-mix(in srgb,var(--accent) 40%,var(--border-soft));">
+        <strong>@T["post.status_pending_review"]</strong>
+        @if (!string.IsNullOrEmpty(createdTitle))
+        {
+            <span class="text-muted-dark"> — @createdTitle</span>
+        }
+        <div class="small text-muted-dark mt-1">@T["post.created_pending_hint"]</div>
+    </div>
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -95,6 +109,7 @@
         placeholder: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["col.status"].ToString(), j)),
         options: [
             { value: 'published', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.published_full"].ToString(), j)) },
+            { value: 'pending', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["post.status_pending_review"].ToString(), j)) },
             { value: 'draft', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.draft"].ToString(), j)) },
             { value: 'scheduled', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.scheduled"].ToString(), j)) },
             { value: 'deleted', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.deleted"].ToString(), j)) }
