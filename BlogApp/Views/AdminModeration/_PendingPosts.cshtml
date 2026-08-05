@@ -1,0 +1,82 @@
+@model ModerationQueueViewModel
+@inject BlogApp.Services.IUiTranslator T
+@{
+    var posts = Model.PendingPosts ?? new List<PendingPostReviewItem>();
+}
+@if (posts.Count > 0)
+{
+    <section class="mq-posts" style="margin-bottom:1.25rem;">
+        <h2 style="font-size:1rem;font-weight:700;margin:0 0 .75rem;">@T["mod.pending_posts"] <span class="ltr-field">(@posts.Count)</span></h2>
+        <div class="mq-feed">
+        @foreach (var p in posts)
+        {
+            <article class="mq-card" data-kind="post">
+                <div class="mq-card-head">
+                    <span class="mq-badge" style="background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);">@T["mod.badge_post"]</span>
+                    <span class="mq-time ltr-field">@PersianDate.DateTime(p.UpdatedAtUtc)</span>
+                </div>
+                <div class="mq-card-who" dir="auto"><strong>@p.Title</strong></div>
+                @if (!string.IsNullOrWhiteSpace(p.Summary))
+                {
+                    <p class="mq-card-body" dir="auto">@p.Summary</p>
+                }
+                <div class="mq-card-meta">
+                    @T["mod.author"]: <strong dir="auto">@p.AuthorName</strong>
+                    <span class="ltr-field"> · @p.LanguageCode</span>
+                </div>
+                <div class="mq-card-acts">
+                    <a class="mq-btn mq-btn-ghost" asp-controller="Posts" asp-action="Edit" asp-route-id="@p.Id">@T["mod.edit_post"]</a>
+                    <form asp-action="ApprovePost" method="post" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@p.Id" />
+                        <button type="submit" class="mq-btn mq-btn-ok">@T["mod.approve"]</button>
+                    </form>
+                    <button type="button" class="mq-btn mq-btn-bad" data-reject-id="@p.Id" data-reject-title="@p.Title">@T["mod.reject"]</button>
+                </div>
+            </article>
+        }
+        </div>
+    </section>
+
+    <div id="mqRejectModal" hidden style="position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div data-reject-close style="position:absolute;inset:0;background:rgba(0,0,0,.55);"></div>
+        <div role="dialog" aria-modal="true" style="position:relative;background:var(--surface);border:1px solid var(--border-soft);border-radius:16px;padding:1.25rem;max-width:26rem;width:100%;">
+            <h2 style="margin:0 0 .35rem;font-size:1.05rem;font-weight:700;">@T["mod.reject_title"]</h2>
+            <p id="mqRejectSub" dir="auto" style="margin:0 0 .9rem;font-size:.86rem;color:var(--text-muted);"></p>
+            <form asp-action="RejectPost" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="mqRejectId" value="" />
+                <label for="mqRejectNote" style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:.35rem;">@T["mod.reject_reason"]</label>
+                <textarea name="note" id="mqRejectNote" class="form-control" rows="3" maxlength="500" placeholder="@T["mod.reject_reason_ph"]"></textarea>
+                <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;">
+                    <button type="button" class="mq-btn mq-btn-ghost" data-reject-close>@T["mod.cancel"]</button>
+                    <button type="submit" class="mq-btn mq-btn-bad">@T["mod.reject_submit"]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+    (function () {
+      var modal = document.getElementById('mqRejectModal');
+      if (!modal) return;
+      var idInput = document.getElementById('mqRejectId');
+      var sub = document.getElementById('mqRejectSub');
+      var note = document.getElementById('mqRejectNote');
+      document.querySelectorAll('[data-reject-id]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          idInput.value = btn.getAttribute('data-reject-id') || '';
+          if (sub) sub.textContent = btn.getAttribute('data-reject-title') || '';
+          if (note) note.value = '';
+          modal.hidden = false;
+          modal.style.display = 'flex';
+        });
+      });
+      modal.querySelectorAll('[data-reject-close]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          modal.hidden = true;
+          modal.style.display = 'none';
+        });
+      });
+    })();
+    </script>
+}
