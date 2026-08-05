@@ -1,0 +1,129 @@
+@model AnalyticsDashboardViewModel
+@inject BlogApp.Services.IUiTranslator T
+@{
+    var deviceTotal = Model.DevicePopulation.Sum(d => d.Count);
+    string DevLabel(string cat) => cat switch
+    {
+        "desktop" => T["ana.device_desktop"].ToString(),
+        "mobile" => T["ana.device_mobile"].ToString(),
+        "tablet" => T["ana.device_tablet"].ToString(),
+        "bot" => T["ana.device_bot"].ToString(),
+        _ => T["ana.device_other"].ToString()
+    };
+}
+<section class="ana-devices" aria-label="@T["ana.device_population"]">
+    <div class="ana-devices-head">
+        <div>
+            <h2 class="ana-devices-title">@T["ana.device_population"]</h2>
+            <p class="ana-devices-sub">@T["ana.device_population_sub"]</p>
+        </div>
+        <div class="ana-devices-total ltr-field">
+            <span class="k">@T["ana.kpi_views"]</span>
+            <strong>@deviceTotal</strong>
+        </div>
+    </div>
+
+    @if (Model.DevicePopulation.Count == 0)
+    {
+        <p class="text-muted-dark small mb-0">@T["ana.empty_devices"]</p>
+    }
+    else
+    {
+        <div class="ana-device-pills" role="list">
+            @foreach (var d in Model.DevicePopulation)
+            {
+                <div class="ana-device-pill" role="listitem" data-cat="@d.Category">
+                    <span class="ana-device-icon" aria-hidden="true">
+                        @if (d.Category == "desktop")
+                        {
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg>
+                        }
+                        else if (d.Category == "mobile")
+                        {
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                        }
+                        else if (d.Category == "tablet")
+                        {
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M21 4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 1.99-.9 1.99-2L23 6c0-1.1-.9-2-2-2zm-2 14H5V6h14v12z"/></svg>
+                        }
+                        else if (d.Category == "bot")
+                        {
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 1 1 0 2h-1.07A7.001 7.001 0 0 1 13 20.93V22a1 1 0 1 1-2 0v-1.07A7.001 7.001 0 0 1 4.07 16H3a1 1 0 1 1 0-2h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2zM9 14a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>
+                        }
+                        else
+                        {
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                        }
+                    </span>
+                    <div class="ana-device-pill-body">
+                        <span class="ana-device-pill-label">@DevLabel(d.Category)</span>
+                        <span class="ana-device-pill-pct ltr-field">@d.Percent%</span>
+                    </div>
+                    <div class="ana-device-pill-bar" aria-hidden="true">
+                        <i style="width:@d.Percent.ToString(System.Globalization.CultureInfo.InvariantCulture)%"></i>
+                    </div>
+                    <span class="ana-device-pill-count ltr-field">@d.Count</span>
+                </div>
+            }
+        </div>
+
+        <div class="ana-device-table-wrap">
+            <table class="ana-device-table">
+                <thead>
+                    <tr>
+                        <th scope="col">@T["ana.col_category"]</th>
+                        <th scope="col">@T["ana.col_count"]</th>
+                        <th scope="col">@T["ana.col_share"]</th>
+                        <th scope="col">@T["ana.chart_os"]</th>
+                        <th scope="col">@T["ana.chart_browser"]</th>
+                        <th scope="col" class="ana-device-bar-col">@T["ana.col_share"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var d in Model.DevicePopulation)
+                {
+                    <tr data-cat="@d.Category">
+                        <td>
+                            <span class="ana-device-row-label">
+                                <span class="ana-device-icon sm" aria-hidden="true">
+                                    @if (d.Category == "desktop")
+                                    {
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg>
+                                    }
+                                    else if (d.Category == "mobile")
+                                    {
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                                    }
+                                    else if (d.Category == "tablet")
+                                    {
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21 4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 1.99-.9 1.99-2L23 6c0-1.1-.9-2-2-2zm-2 14H5V6h14v12z"/></svg>
+                                    }
+                                    else if (d.Category == "bot")
+                                    {
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 1 1 0 2h-1.07A7.001 7.001 0 0 1 13 20.93V22a1 1 0 1 1-2 0v-1.07A7.001 7.001 0 0 1 4.07 16H3a1 1 0 1 1 0-2h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2zM9 14a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm6 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>
+                                    }
+                                    else
+                                    {
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                                    }
+                                </span>
+                                <span>@DevLabel(d.Category)</span>
+                                <span class="ana-device-cat-tag">@d.Category</span>
+                            </span>
+                        </td>
+                        <td class="ltr-field">@d.Count</td>
+                        <td class="ltr-field">@d.Percent%</td>
+                        <td class="ltr-field">@(d.TopOs ?? "—")</td>
+                        <td class="ltr-field">@(d.TopBrowser ?? "—")</td>
+                        <td class="ana-device-bar-col">
+                            <div class="ana-device-inline-bar" aria-hidden="true">
+                                <i style="width:@d.Percent.ToString(System.Globalization.CultureInfo.InvariantCulture)%"></i>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
