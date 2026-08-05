@@ -5,10 +5,11 @@
     ViewData["Title"] = T["page.moderation"];
     var commentCount = Model.PendingComments.Count;
     var reportCount = Model.OpenReports.Count;
+    var postCount = Model.PendingPosts?.Count ?? 0;
     var spamCount = Model.OpenReports.Count(r =>
         (r.Reason ?? "").Contains("spam", StringComparison.OrdinalIgnoreCase)
         || (r.Reason ?? "").Contains("اسپم", StringComparison.OrdinalIgnoreCase));
-    var total = commentCount + reportCount;
+    var total = commentCount + reportCount + postCount;
 }
 
 <header class="mq-hero">
@@ -27,6 +28,10 @@
     <button type="button" class="mq-kpi is-active" data-mq-filter="all">
         <span class="mq-kpi-label">@T["mod.filter_all"]</span>
         <span class="mq-kpi-val">@total</span>
+    </button>
+    <button type="button" class="mq-kpi" data-mq-filter="post">
+        <span class="mq-kpi-label">@T["mod.pending_posts"]</span>
+        <span class="mq-kpi-val">@postCount</span>
     </button>
     <button type="button" class="mq-kpi" data-mq-filter="comment">
         <span class="mq-kpi-label">@T["mod.pending_comments"]</span>
@@ -47,14 +52,16 @@
     <span class="mq-hint" id="mqHint" data-suffix="@T["mod.items_suffix"]">@total @T["mod.items_suffix"]</span>
 </div>
 
-@if (total == 0)
+@await Html.PartialAsync("_PendingPosts", Model)
+
+@if (commentCount + reportCount == 0 && postCount == 0)
 {
     <div class="mq-empty">
         <p class="mq-empty-title">@T["mod.queue_empty_title"]</p>
-        <p class="mq-empty-hint">@T["mod.no_pending_comments"] · @T["mod.no_open_reports"]</p>
+        <p class="mq-empty-hint">@T["mod.no_pending_posts"] · @T["mod.no_pending_comments"] · @T["mod.no_open_reports"]</p>
     </div>
 }
-else
+else if (commentCount + reportCount > 0)
 {
     <div class="mq-feed" id="mqFeed">
         @{
@@ -148,8 +155,8 @@ else
 .mq-hero-links{display:flex;flex-wrap:wrap;gap:.5rem}
 .mq-link{display:inline-flex;align-items:center;padding:.4rem .75rem;border-radius:10px;border:1px solid var(--border-soft);background:var(--surface);color:var(--text);text-decoration:none!important;font-size:.82rem}
 .mq-link:hover{border-color:var(--accent-dim,var(--accent));color:var(--accent)}
-.mq-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.55rem;margin-bottom:1rem}
-@@media (max-width:720px){.mq-kpis{grid-template-columns:1fr 1fr}}
+.mq-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.55rem;margin-bottom:1rem}
+@@media (max-width:900px){.mq-kpis{grid-template-columns:1fr 1fr}}
 .mq-kpi{background:var(--surface);border:1px solid var(--border-soft);border-radius:14px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.25rem;text-align:start;cursor:pointer;color:inherit;transition:border-color .15s,background .15s}
 .mq-kpi:hover{border-color:var(--border)}
 .mq-kpi.is-active{border-color:color-mix(in srgb,var(--accent) 45%,var(--border));background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
@@ -197,13 +204,13 @@ else
   var hint = document.getElementById('mqHint');
   var none = document.getElementById('mqNone');
   var suffix = (hint && hint.getAttribute('data-suffix')) || '';
-  if (!feed) return;
   function apply() {
     var q = (search && search.value || '').trim().toLowerCase();
     var n = 0;
-    feed.querySelectorAll('.mq-card').forEach(function (card) {
+    document.querySelectorAll('.mq-card').forEach(function (card) {
       var kind = card.getAttribute('data-kind') || '';
       var kindOk = filter === 'all'
+        || (filter === 'post' && kind === 'post')
         || (filter === 'comment' && kind === 'comment')
         || (filter === 'report' && (kind === 'report' || kind === 'spam'))
         || (filter === 'spam' && kind === 'spam');
