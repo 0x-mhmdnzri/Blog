@@ -9,20 +9,36 @@
     var postPath = $"/{Model.LanguageCode}/post/{Model.Slug}";
     var returnUrl = postPath + "?report=1#report";
     var loginUrl = Url.Action("Login", "Account", new { returnUrl })!;
-    var reasons = new (string Value, string LabelKey, string Fallback)[]
+    var reportOk = TempData["ReportOk"] as string == "1";
+    var reportMsg = TempData["ReportMsg"] as string;
+
+    var reasons = new (string Code, string LabelKey)[]
     {
-        ("spam", "report.reason.spam", "هرزنامه / تبلیغات"),
-        ("harassment", "report.reason.harassment", "توهین یا آزار"),
-        ("misinfo", "report.reason.misinfo", "اطلاعات نادرست"),
-        ("copyright", "report.reason.copyright", "نقض حق نشر"),
-        ("other", "report.reason.other", "سایر"),
+        ("spam", "report.reason.spam"),
+        ("harassment", "report.reason.harassment"),
+        ("misinfo", "report.reason.misinfo"),
+        ("copyright", "report.reason.copyright"),
+        ("other", "report.reason.other"),
     };
 }
 
-<section class="report-section" id="report" data-report-section>
+<section class="report-section" id="report" data-report-section
+         data-report-ok="@(reportOk ? "1" : "0")">
+    @if (!string.IsNullOrEmpty(reportMsg))
+    {
+        <div class="report-toast @(reportOk ? "is-ok" : "is-info")" role="status" data-report-toast>
+            <span class="report-toast-icon" aria-hidden="true">@(reportOk ? "✓" : "ℹ")</span>
+            <div class="report-toast-body">
+                <strong class="report-toast-title">@(reportOk ? T["report.success_title"] : T["report.info_title"])</strong>
+                <p class="report-toast-text">@reportMsg</p>
+            </div>
+        </div>
+    }
+
     <div class="report-section-inner" id="reportBox" hidden>
         <header class="report-head">
             <div class="report-head-text">
+                <p class="report-eyebrow">@T["report.eyebrow"]</p>
                 <h2 class="report-title">@T["report.title"]</h2>
                 <p class="report-sub">@T["report.subtitle"]</p>
             </div>
@@ -30,6 +46,11 @@
                 <span aria-hidden="true">×</span>
             </button>
         </header>
+
+        <div class="report-note" role="note">
+            <span class="report-note-dot" aria-hidden="true"></span>
+            <p>@T["report.pending_note"]</p>
+        </div>
 
         @if (!isAuth)
         {
@@ -44,28 +65,30 @@
                   asp-controller="Reports"
                   asp-action="Submit"
                   method="post"
-                  data-report-form>
+                  data-report-form
+                  novalidate>
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="TargetType" value="post" />
                 <input type="hidden" name="TargetId" value="@Model.Id" />
                 <input type="hidden" name="returnUrl" value="@postPath" />
 
                 <fieldset class="report-reasons">
-                    <legend class="report-label">@T["report.reason_label"]</legend>
-                    <div class="report-reason-grid" role="radiogroup" aria-label="@T["report.reason_label"]">
+                    <legend class="report-label">@T["report.reason_label"] <span class="report-req" aria-hidden="true">*</span></legend>
+                    <div class="report-reason-grid" role="radiogroup" aria-label="@T["report.reason_label"]" data-report-reasons>
                         @foreach (var r in reasons)
                         {
-                            var id = $"report-reason-{r.Value}";
+                            var id = $"report-reason-{r.Code}";
                             <label class="report-reason-chip" for="@id">
                                 <input type="radio"
                                        name="Reason"
                                        id="@id"
-                                       value="@r.Fallback"
+                                       value="@r.Code"
                                        required />
                                 <span>@T[r.LabelKey]</span>
                             </label>
                         }
                     </div>
+                    <p class="report-field-error" data-report-reason-error hidden>@T["report.reason_required"]</p>
                 </fieldset>
 
                 <div class="report-field">
@@ -87,7 +110,7 @@
                     <button type="button" class="report-btn report-btn-ghost" data-report-close>
                         @T["report.cancel"]
                     </button>
-                    <button type="submit" class="report-btn report-btn-primary">
+                    <button type="submit" class="report-btn report-btn-primary" data-report-submit>
                         @T["report.submit"]
                     </button>
                 </div>

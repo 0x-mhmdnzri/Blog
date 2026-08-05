@@ -1,5 +1,7 @@
 /**
- * Post report panel — open/close, login-return auto-open, char counter
+ * Post report panel — open/close, login-return auto-open,
+ * reason validation, char counter. Report never deletes the post;
+ * it queues as pending for owner / SuperAdmin.
  */
 (function () {
   'use strict';
@@ -53,6 +55,13 @@
     var section = qs('[data-report-section]');
     if (!section) return;
 
+    if (section.getAttribute('data-report-ok') === '1') {
+      var toast = qs('[data-report-toast]', section);
+      if (toast) {
+        try { toast.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) {}
+      }
+    }
+
     section.addEventListener('click', function (e) {
       var t = e.target;
       if (t.closest && t.closest('[data-report-open]')) {
@@ -85,16 +94,36 @@
 
     var form = qs('[data-report-form]', section);
     if (form) {
-      form.addEventListener('submit', function () {
-        var btn = form.querySelector('button[type="submit"]');
+      form.addEventListener('submit', function (e) {
+        var reasonErr = qs('[data-report-reason-error]', section);
+        var checked = form.querySelector('input[name="Reason"]:checked');
+        if (!checked) {
+          e.preventDefault();
+          if (reasonErr) reasonErr.hidden = false;
+          var firstRadio = form.querySelector('input[name="Reason"]');
+          if (firstRadio) {
+            try { firstRadio.focus({ preventScroll: true }); } catch (_) {}
+          }
+          return;
+        }
+        if (reasonErr) reasonErr.hidden = true;
+
+        var btn = form.querySelector('[data-report-submit], button[type="submit"]');
         if (btn) {
           btn.disabled = true;
           btn.setAttribute('aria-busy', 'true');
         }
       });
+
+      form.querySelectorAll('input[name="Reason"]').forEach(function (r) {
+        r.addEventListener('change', function () {
+          var reasonErr = qs('[data-report-reason-error]', section);
+          if (reasonErr) reasonErr.hidden = true;
+        });
+      });
     }
 
-    if (shouldAutoOpen()) {
+    if (shouldAutoOpen() && section.getAttribute('data-report-ok') !== '1') {
       openPanel(section);
       stripReportQuery();
     }
