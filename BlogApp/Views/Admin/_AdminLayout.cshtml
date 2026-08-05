@@ -2,6 +2,7 @@
 @inject BlogApp.Services.ICultureService Culture
 @inject BlogApp.Services.IUiTranslator T
 @inject BlogApp.Services.IThemeService Themes
+@inject BlogApp.Services.IAdminNavBadgeService NavBadges
 @using BlogApp.Models
 @using BlogApp.Services
 @{
@@ -40,6 +41,9 @@
     };
 
     var searchPlaceholder = T["search.admin.placeholder"];
+    var navBadges = await NavBadges.GetCountsAsync(User);
+    if (navBadges.TryGetValue("comments", out var commentsBadge))
+        pendingCount = commentsBadge;
 }
 <!DOCTYPE html>
 <html lang="@lang" dir="@dir" data-bs-theme="@themeMode" data-theme="@themeMode" data-culture="@lang">
@@ -124,7 +128,7 @@
                 </button>
             </div>
 
-            <partial name="~/Views/Shared/_AdminNav.cshtml" model="(navItems, pendingCount)" />
+            <partial name="~/Views/Shared/_AdminNav.cshtml" model="(navItems, navBadges)" />
 
             <div class="admin-sidebar-footer">
                 <a asp-controller="Home" asp-action="Index" class="footer-link" title="@T["admin.back_to_site"]">
