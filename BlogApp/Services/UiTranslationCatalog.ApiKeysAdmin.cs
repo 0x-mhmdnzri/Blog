@@ -1,0 +1,46 @@
+namespace BlogApp.Services;
+
+public static partial class UiTranslationCatalog
+{
+    public static readonly (string Key, string Group, string Fa, string En, string Ar)[] ApiKeysAdmin =
+    {
+        ("apikey.admin.title", "apikey", "مدیریت کلیدهای API", "Manage API keys", "إدارة مفاتيح API"),
+        ("apikey.admin.lead", "apikey", "کاربران (خواننده/نویسنده) درخواست می‌دهند؛ فقط سوپرادمین تأیید می‌کند. پس از تأیید، اعلان به کاربر ارسال می‌شود و کلید برای API قابل استفاده است.", "Readers/authors request keys; only SuperAdmin approves. After approval the user is notified and the key works for the API.", "يطلب المستخدمون المفاتيح؛ فقط SuperAdmin يعتمدها. بعد الاعتماد يُبلَّغ المستخدم ويعمل المفتاح."),
+        ("apikey.admin.pending_n", "apikey", "در انتظار ({0})", "Pending ({0})", "قيد الانتظار ({0})"),
+        ("apikey.admin.monitor", "apikey", "مانیتور API", "API monitor", "مراقب API"),
+        ("apikey.admin.docs", "apikey", "مستندات", "Docs", "التوثيق"),
+        ("apikey.admin.kpi_pending", "apikey", "در انتظار تأیید", "Pending approval", "بانتظار الاعتماد"),
+        ("apikey.admin.kpi_usable", "apikey", "قابل استفاده", "Usable", "قابل للاستخدام"),
+        ("apikey.admin.kpi_banned", "apikey", "بن‌شده", "Banned", "محظور"),
+        ("apikey.admin.kpi_total_req", "apikey", "مجموع درخواست‌ها", "Total requests", "إجمالي الطلبات"),
+        ("apikey.admin.ph_search", "apikey", "جست‌وجو: کاربر، نام، prefix…", "Search: user, name, prefix…", "بحث: مستخدم، اسم، بادئة…"),
+        ("apikey.admin.all_status", "apikey", "همه وضعیت‌ها", "All statuses", "كل الحالات"),
+        ("apikey.admin.st_pending", "apikey", "در انتظار تأیید", "Pending approval", "بانتظار الاعتماد"),
+        ("apikey.admin.st_approved", "apikey", "تأییدشده", "Approved", "معتمد"),
+        ("apikey.admin.st_active", "apikey", "فعال و تأییدشده", "Active & approved", "نشط ومعتمد"),
+        ("apikey.admin.st_rejected", "apikey", "رد شده", "Rejected", "مرفوض"),
+        ("apikey.admin.st_disabled", "apikey", "غیرفعال", "Disabled", "معطّل"),
+        ("apikey.admin.st_banned", "apikey", "بن", "Banned", "محظور"),
+        ("apikey.admin.apply_filter", "apikey", "اعمال فیلتر", "Apply filter", "تطبيق الفلتر"),
+        ("apikey.admin.clear", "apikey", "پاک کردن", "Clear", "مسح"),
+        ("apikey.admin.results_n", "apikey", "{0} نتیجه", "{0} results", "{0} نتيجة"),
+        ("apikey.admin.empty", "apikey", "موردی نیست. کاربران از منوی حساب → کلیدهای API درخواست می‌دهند.", "Nothing here. Users request keys from Account → API keys.", "لا عناصر. يطلب المستخدمون المفاتيح من الحساب ← مفاتيح API."),
+        ("apikey.admin.prefix_title", "apikey", "پیشوند کلید", "Key prefix", "بادئة المفتاح"),
+        ("apikey.admin.meta_req", "apikey", "درخواست:", "Requests:", "طلبات:"),
+        ("apikey.admin.meta_strikes", "apikey", "ضربات:", "Strikes:", "ضربات:"),
+        ("apikey.admin.meta_last", "apikey", "آخرین:", "Last:", "آخر:"),
+        ("apikey.admin.meta_exp", "apikey", "انقضا:", "Expires:", "انتهاء:"),
+        ("apikey.admin.reject_reason", "apikey", "دلیل رد:", "Rejection reason:", "سبب الرفض:"),
+        ("apikey.admin.ban_reason", "apikey", "دلیل بن:", "Ban reason:", "سبب الحظر:"),
+        ("apikey.admin.approve", "apikey", "تأیید", "Approve", "اعتماد"),
+        ("apikey.admin.reject", "apikey", "رد", "Reject", "رفض"),
+        ("apikey.admin.reject_prompt", "apikey", "دلیل رد (اختیاری):", "Rejection reason (optional):", "سبب الرفض (اختياري):"),
+        ("apikey.admin.unban", "apikey", "رفع بن", "Unban", "رفع الحظر"),
+        ("apikey.admin.ban", "apikey", "بن", "Ban", "حظر"),
+        ("apikey.admin.ban_confirm", "apikey", "بن کردن این کلید؟", "Ban this key?", "حظر هذا المفتاح؟"),
+        ("apikey.admin.disable", "apikey", "خاموش", "Disable", "تعطيل"),
+        ("apikey.admin.enable", "apikey", "روشن", "Enable", "تفعيل"),
+        ("apikey.admin.delete", "apikey", "حذف", "Delete", "حذف"),
+        ("apikey.admin.delete_confirm", "apikey", "حذف دائمی کلید؟", "Permanently delete this key?", "حذف المفتاح نهائيًا؟"),
+    };
+}
