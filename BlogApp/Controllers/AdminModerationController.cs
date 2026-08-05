@@ -16,16 +16,19 @@ public class AdminModerationController : Controller
     private readonly ApplicationDbContext _db;
     private readonly INotificationService _notify;
     private readonly IBackgroundJobQueue? _jobs;
+    private readonly IUiTranslator _t;
     private readonly ILogger<AdminModerationController> _logger;
 
     public AdminModerationController(
         ApplicationDbContext db,
         INotificationService notify,
+        IUiTranslator t,
         ILogger<AdminModerationController> logger,
         IBackgroundJobQueue? jobs = null)
     {
         _db = db;
         _notify = notify;
+        _t = t;
         _logger = logger;
         _jobs = jobs;
     }
@@ -33,7 +36,7 @@ public class AdminModerationController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        ViewData["Title"] = "صف بررسی";
+        ViewData["Title"] = _t["page.moderation"];
         var userId = AuthorAccess.UserId(User)!;
         var seeAll = AuthorAccess.CanModerateAllComments(User);
         var isSuper = AuthorAccess.IsSuperAdmin(User);
@@ -112,7 +115,7 @@ public class AdminModerationController : Controller
         if (post is null) return NotFound();
         if (post.ReviewStatus != PostReviewStatus.PendingReview)
         {
-            TempData["FlashOk"] = "این نوشته در صف بررسی نیست.";
+            TempData["FlashOk"] = _t["mod.flash_not_pending"];
             return RedirectToAction(nameof(Index));
         }
 
@@ -132,13 +135,13 @@ public class AdminModerationController : Controller
             await _notify.NotifyAsync(
                 post.AuthorId,
                 NotificationKind.NewPost,
-                "نوشته شما منتشر شد",
-                "«" + post.Title + "» تأیید و منتشر شد.",
+                _t["mod.notif_approved_title"],
+                _t["mod.notif_approved_body"].Replace("{0}", post.Title),
                 "/" + post.LanguageCode + "/post/" + post.Slug);
         }
         catch (Exception ex) { _logger.LogWarning(ex, "Notify after ApprovePost {Id}", id); }
 
-        TempData["FlashOk"] = "نوشته تأیید و منتشر شد.";
+        TempData["FlashOk"] = _t["mod.flash_approved"];
         return RedirectToAction(nameof(Index));
     }
 
@@ -150,7 +153,7 @@ public class AdminModerationController : Controller
         if (post is null) return NotFound();
         if (post.ReviewStatus != PostReviewStatus.PendingReview)
         {
-            TempData["FlashOk"] = "این نوشته در صف بررسی نیست.";
+            TempData["FlashOk"] = _t["mod.flash_not_pending"];
             return RedirectToAction(nameof(Index));
         }
 
@@ -168,13 +171,13 @@ public class AdminModerationController : Controller
         try
         {
             var body = string.IsNullOrEmpty(post.ReviewNote)
-                ? "«" + post.Title + "» برای انتشار تأیید نشد."
-                : "«" + post.Title + "» رد شد: " + post.ReviewNote;
-            await _notify.NotifyAsync(post.AuthorId, NotificationKind.AdminMessage, "نوشته رد شد", body, "/Posts/Edit/" + post.Id);
+                ? _t["mod.notif_rejected_body"].Replace("{0}", post.Title)
+                : _t["mod.notif_rejected_body_reason"].Replace("{0}", post.Title).Replace("{1}", post.ReviewNote);
+            await _notify.NotifyAsync(post.AuthorId, NotificationKind.AdminMessage, _t["mod.notif_rejected_title"], body, "/Posts/Edit/" + post.Id);
         }
         catch (Exception ex) { _logger.LogWarning(ex, "Notify after RejectPost {Id}", id); }
 
-        TempData["FlashOk"] = "نوشته رد شد.";
+        TempData["FlashOk"] = _t["mod.flash_rejected"];
         return RedirectToAction(nameof(Index));
     }
 }
