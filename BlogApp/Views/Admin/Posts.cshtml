@@ -7,18 +7,6 @@
     var createdTitle = TempData["PostCreatedTitle"] as string;
 }
 
-@if (pendingCreated)
-{
-    <div class="card-surface p-3 mb-3" role="status" style="border-color:color-mix(in srgb,var(--accent) 40%,var(--border-soft));">
-        <strong>@T["post.status_pending_review"]</strong>
-        @if (!string.IsNullOrEmpty(createdTitle))
-        {
-            <span class="text-muted-dark"> — @createdTitle</span>
-        }
-        <div class="small text-muted-dark mt-1">@T["post.created_pending_hint"]</div>
-    </div>
-}
-
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div class="admin-tabs mb-0">
         <span class="admin-tab active">@T["tab.all"]</span>
@@ -27,6 +15,22 @@
 </div>
 
 @Html.AntiForgeryToken()
+
+@* Pending admin approval modal after author creates a post *@
+<div id="postPendingModal" class="pdm" @(pendingCreated ? null : "hidden") aria-hidden="@(pendingCreated ? "false" : "true")">
+  <div class="pdm-backdrop" data-ppm-close></div>
+  <div class="pdm-dialog" role="dialog" aria-modal="true" aria-labelledby="ppmTitle">
+    <h2 id="ppmTitle" class="pdm-title">@T["post.status_pending_review"]</h2>
+    <p class="pdm-sub text-muted-dark">@T["post.created_pending_hint"]</p>
+    @if (!string.IsNullOrEmpty(createdTitle))
+    {
+      <p class="pdm-post" dir="auto">@createdTitle</p>
+    }
+    <div class="pdm-actions">
+      <button type="button" class="btn btn-accent" data-ppm-close>باشه</button>
+    </div>
+  </div>
+</div>
 
 <div id="postDeleteModal" class="pdm" hidden aria-hidden="true">
   <div class="pdm-backdrop" data-pdm-close></div>
@@ -53,7 +57,7 @@
 .pdm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
 .pdm-dialog{position:relative;z-index:1;width:min(420px,100%);background:var(--surface,var(--bg,#1a1d24));border:1px solid var(--border-soft,rgba(255,255,255,.1));border-radius:12px;padding:1.25rem 1.35rem;box-shadow:0 20px 50px rgba(0,0,0,.4)}
 .pdm-title{font-size:1.1rem;margin:0 0 .35rem;font-weight:600}
-.pdm-sub{font-size:.9rem;margin:0 0 .75rem}
+.pdm-sub{font-size:.9rem;margin:0 0 .75rem;line-height:1.5}
 .pdm-post{font-weight:600;margin:0 0 1rem;padding:.5rem .65rem;border-radius:8px;background:var(--surface-2,rgba(255,255,255,.04))}
 .pdm-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap}
 </style>
@@ -117,6 +121,26 @@
     });
     columnFilters.push(false, false, false, false, false);
 
+    // Pending-approval modal (after author create)
+    (function () {
+      var modal = document.getElementById('postPendingModal');
+      if (!modal) return;
+      function close() {
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      document.addEventListener('click', function (e) {
+        if (e.target.closest('[data-ppm-close]')) {
+          e.preventDefault();
+          close();
+        }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) close();
+      });
+    })();
+
+    // Soft-delete modal
     (function () {
       var modal = document.getElementById('postDeleteModal');
       if (!modal) return;

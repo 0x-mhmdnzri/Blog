@@ -159,7 +159,7 @@ public partial class PostsController
         }
 
         if (post.ReviewStatus == PostReviewStatus.PendingReview)
-            await NotifySuperAdminsPendingPostAsync(post);
+            await NotifySuperAdminsPostPendingAsync(post);
 
         try
         {
@@ -172,6 +172,7 @@ public partial class PostsController
             _logger.LogWarning(ex, "Domain event publish failed after Create PostId={Id}", post.Id);
         }
 
+        // Never send authors to the public post URL — stay in admin and surface pending modal.
         TempData["PostCreatedPending"] = post.ReviewStatus == PostReviewStatus.PendingReview
             ? "1"
             : "0";
