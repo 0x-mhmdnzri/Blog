@@ -5,7 +5,7 @@
 
 <section class="hero py-4">
     <div class="container" style="max-width:780px;">
-        <div class="eyebrow mb-2">مجموعه موضوعی</div>
+        <div class="eyebrow mb-2">@T["tax.topic_eyebrow"]</div>
         <h1 class="mb-2" dir="auto">@topic.Name</h1>
         @if (!string.IsNullOrEmpty(topic.Description))
         {
@@ -43,6 +43,6 @@
     </div>
     @if (!Model.Any())
     {
-        <div class="admin-empty">نوشته‌ای برای این موضوع یافت نشد.</div>
+        <div class="admin-empty">@T["tax.topic_empty"]</div>
     }
 </div>

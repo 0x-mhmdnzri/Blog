@@ -5,7 +5,7 @@
 
 <section class="hero py-4">
     <div class="container" style="max-width:780px;">
-        <div class="eyebrow mb-2">سری نوشته‌ها</div>
+        <div class="eyebrow mb-2">@T["tax.series_eyebrow"]</div>
         <h1 class="mb-2" dir="auto">@series.Name</h1>
         @if (!string.IsNullOrEmpty(series.Description))
         {
@@ -17,7 +17,7 @@
 <div class="container py-4" style="max-width:780px;">
     @if (!Model.Any())
     {
-        <div class="card-surface p-4 text-muted-dark">هنوز نوشته‌ای در این سری منتشر نشده.</div>
+        <div class="card-surface p-4 text-muted-dark">@T["tax.series_empty"]</div>
     }
     else
     {
