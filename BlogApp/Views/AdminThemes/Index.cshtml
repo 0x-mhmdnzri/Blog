@@ -5,172 +5,241 @@
     ViewData["Title"] = T["themes.title"];
     var isSuper = ViewBag.IsSuper as bool? ?? User.IsInRole(AppRoles.SuperAdmin);
     var pending = (int)(ViewBag.PendingCount ?? 0);
+    var status = ViewBag.Status as string;
+    string StatusLabel(ThemeApprovalStatus s) => s switch
+    {
+        ThemeApprovalStatus.Pending => T["themes.pending_review"],
+        ThemeApprovalStatus.Approved => T["themes.approved"],
+        ThemeApprovalStatus.Rejected => T["themes.rejected"],
+        _ => T["themes.draft"]
+    };
+    string StatusClass(ThemeApprovalStatus s) => s switch
+    {
+        ThemeApprovalStatus.Pending => "th-pill-pending",
+        ThemeApprovalStatus.Approved => "th-pill-ok",
+        ThemeApprovalStatus.Rejected => "th-pill-bad",
+        _ => "th-pill-draft"
+    };
 }
-<div class="admin-form-center" style="max-width:960px;margin-inline:auto;width:100%">
-    <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
-        <p class="small text-muted-dark mb-0">
-            @if (isSuper)
-            {
-                <text>@T["themes.super_hint"]</text>
-            }
-            else
-            {
-                <text>@T["themes.author_hint"]</text>
-            }
-        </p>
-        <div class="d-flex gap-1 flex-wrap">
-            @if (isSuper)
-            {
-                <a class="btn btn-ghost btn-sm" asp-route-status="">@T["themes.all"]</a>
-                <a class="btn btn-accent btn-sm" asp-route-status="pending">@T["themes.pending"] (@pending)</a>
-                <a class="btn btn-ghost btn-sm" asp-route-status="approved">@T["themes.approved"]</a>
-                <a class="btn btn-ghost btn-sm" asp-route-status="rejected">@T["themes.rejected"]</a>
-            }
-            <a class="btn btn-accent btn-sm" asp-action="Create">@T["themes.create"]</a>
-        </div>
-    </div>
 
-    <div class="card-surface p-3 mb-3">
-        <div class="d-flex flex-wrap gap-2 align-items-end justify-content-between">
-            <form asp-action="ImportFile" method="post" enctype="multipart/form-data" class="theme-upload-form flex-grow-1">
+<header class="th-hero">
+    <div>
+        <p class="th-eyebrow">@T["themes.title"]</p>
+        <h1 class="th-title">@T["themes.title"]</h1>
+        <p class="th-sub">@(isSuper ? T["themes.super_hint"] : T["themes.author_hint"])</p>
+    </div>
+    <a class="th-btn th-btn-primary" asp-action="Create">@T["themes.create"]</a>
+</header>
+
+@if (TempData["Msg"] is string flashMsg)
+{
+    <div class="th-flash" role="status">@flashMsg</div>
+}
+
+@if (isSuper)
+{
+    <nav class="th-filters" aria-label="status">
+        <a class="th-chip @(string.IsNullOrEmpty(status) ? "is-on" : "")" asp-route-status="">@T["themes.all"]</a>
+        <a class="th-chip @(status == "pending" ? "is-on" : "")" asp-route-status="pending">
+            @T["themes.pending"]
+            @if (pending > 0) { <span class="th-chip-count">@pending</span> }
+        </a>
+        <a class="th-chip @(status == "approved" ? "is-on" : "")" asp-route-status="approved">@T["themes.approved"]</a>
+        <a class="th-chip @(status == "rejected" ? "is-on" : "")" asp-route-status="rejected">@T["themes.rejected"]</a>
+    </nav>
+}
+
+<div class="th-tools">
+    <section class="th-panel">
+        <h2 class="th-panel-title">@T["themes.upload"]</h2>
+        <form asp-action="ImportFile" method="post" enctype="multipart/form-data" class="th-upload">
+            @Html.AntiForgeryToken()
+            <label class="th-file">
+                <input type="file" name="file" accept=".blogtheme,application/json,.json" required />
+                <span>@T["fu.select"]</span>
+            </label>
+            <div class="th-upload-acts">
+                <button type="submit" name="action" value="submit" class="th-btn th-btn-primary th-btn-sm">@T["themes.upload_submit"]</button>
+                <button type="submit" name="action" value="draft" class="th-btn th-btn-ghost th-btn-sm">@T["themes.upload_draft"]</button>
+            </div>
+        </form>
+    </section>
+
+    @if (isSuper)
+    {
+        <section class="th-panel">
+            <h2 class="th-panel-title">@T["themes.import_system"]</h2>
+            <form asp-action="ImportSystemPack" method="post" enctype="multipart/form-data" class="th-upload">
                 @Html.AntiForgeryToken()
-                <label class="form-label small mb-1">@T["themes.upload"]</label>
-                <div class="fu-zone fu-zone-sm" data-fu data-fu-kind="theme" tabindex="0" role="button" aria-label="@T["fu.drop_title"]">
-                    <input type="file" name="file" accept=".blogtheme,application/json,.json" required />
-                    <button type="button" class="fu-zone-btn">@T["fu.select"]</button>
-                    <div class="fu-zone-copy">
-                        <p class="fu-zone-title">@T["fu.drop_title"]</p>
-                        <p class="fu-zone-hint">@T["fu.hint_theme"]</p>
-                    </div>
-                    <span class="fu-zone-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                    </span>
-                    <div class="fu-zone-picked" hidden></div>
-                </div>
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                    <button type="submit" name="action" value="submit" class="btn btn-accent btn-sm">@T["themes.upload_submit"]</button>
-                    <button type="submit" name="action" value="draft" class="btn btn-ghost btn-sm">@T["themes.upload_draft"]</button>
-                </div>
+                <label class="th-file">
+                    <input type="file" name="file" accept=".blogtheme" required />
+                    <span>@T["fu.select"]</span>
+                </label>
+                <button type="submit" class="th-btn th-btn-ghost th-btn-sm">@T["themes.import_btn"]</button>
             </form>
-            @if (isSuper)
-            {
-                <div class="d-flex flex-wrap gap-2 align-items-end">
-                    <form asp-action="ImportSystemPack" method="post" enctype="multipart/form-data" class="theme-upload-form">
-                        @Html.AntiForgeryToken()
-                        <label class="form-label small mb-1">@T["themes.import_system"]</label>
-                        <div class="fu-zone fu-zone-sm" data-fu data-fu-kind="theme" tabindex="0" role="button" aria-label="@T["fu.drop_title"]">
-                            <input type="file" name="file" accept=".blogtheme,application/json,.json" required />
-                            <button type="button" class="fu-zone-btn">@T["fu.select"]</button>
-                            <div class="fu-zone-copy">
-                                <p class="fu-zone-title">@T["fu.drop_title"]</p>
-                                <p class="fu-zone-hint">@T["fu.hint_theme"]</p>
-                            </div>
-                            <span class="fu-zone-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                            </span>
-                            <div class="fu-zone-picked" hidden></div>
-                        </div>
-                        <div class="mt-2">
-                            <button type="submit" class="btn btn-ghost btn-sm">@T["themes.import_btn"]</button>
-                        </div>
-                    </form>
-                    <form asp-action="Reimport" method="post">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-ghost btn-sm" title="@T["themes.scan_title"]">@T["themes.scan_folder"]</button>
-                    </form>
-                </div>
-            }
-        </div>
-    </div>
-
-    @if (TempData["Msg"] != null) { <div class="card-surface p-2 px-3 mb-3 small">@TempData["Msg"]</div> }
-
-    @if (Model.Count == 0)
-    {
-        <p class="text-muted-dark small">@T["themes.empty"]</p>
+            <form asp-action="Reimport" method="post" class="th-reimport">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="th-btn th-btn-ghost th-btn-sm" title="@T["themes.scan_title"]">@T["themes.scan_folder"]</button>
+            </form>
+        </section>
     }
+</div>
 
-    @foreach (var t in Model)
-    {
-        var canReview = isSuper && t.Status is ThemeApprovalStatus.Pending or ThemeApprovalStatus.Draft or ThemeApprovalStatus.Rejected;
-        <article class="card-surface p-3 mb-2">
-            <div class="d-flex flex-wrap justify-content-between gap-2">
-                <div style="flex:1;min-width:200px">
-                    <strong>@t.Name</strong>
-                    @if (t.IsActive) { <span class="badge-category">@T["themes.active_site"]</span> }
-                    @if (t.IsSystem) { <span class="small text-muted-dark">@T["themes.system"]</span> }
-                    <div class="small text-muted-dark">
-                        @(t.Owner?.UserName ?? t.OwnerUserId ?? "—") ·
-                        @(t.Status switch {
-                            ThemeApprovalStatus.Pending => T["themes.pending_review"],
-                            ThemeApprovalStatus.Approved => T["themes.approved"],
-                            ThemeApprovalStatus.Rejected => T["themes.rejected"],
-                            _ => T["themes.draft"]
-                        })
-                        · contrast @t.ContrastTextOnBg:1
+@if (Model.Count == 0)
+{
+    <div class="th-empty">
+        <p class="th-empty-title">@T["themes.empty"]</p>
+    </div>
+}
+else
+{
+    <div class="th-grid">
+        @foreach (var t in Model)
+        {
+            var canReview = isSuper && t.Status is ThemeApprovalStatus.Pending or ThemeApprovalStatus.Draft or ThemeApprovalStatus.Rejected;
+            <article class="th-card @(t.IsActive ? "is-active" : "")">
+                <div class="th-swatch" aria-hidden="true">
+                    <span style="background:@t.Bg"></span>
+                    <span style="background:@t.Surface"></span>
+                    <span style="background:@t.Accent"></span>
+                    <span style="background:@t.Text"></span>
+                    <span style="background:@t.Success"></span>
+                </div>
+
+                <div class="th-card-body">
+                    <div class="th-card-top">
+                        <h3 class="th-name" dir="auto">@t.Name</h3>
+                        <div class="th-badges">
+                            <span class="th-pill @StatusClass(t.Status)">@StatusLabel(t.Status)</span>
+                            @if (t.IsActive)
+                            {
+                                <span class="th-pill th-pill-live">@T["themes.active_site"]</span>
+                            }
+                            @if (t.IsSystem)
+                            {
+                                <span class="th-pill th-pill-sys">@T["themes.system"]</span>
+                            }
+                        </div>
                     </div>
+
+                    <p class="th-meta">
+                        <span dir="auto">@(t.Owner?.UserName ?? t.OwnerUserId ?? "\u2014")</span>
+                        <span class="th-dot">\u00b7</span>
+                        <span class="ltr-field">@t.ContrastTextOnBg:1</span>
+                        @if (!string.IsNullOrWhiteSpace(t.Mode))
+                        {
+                            <span class="th-dot">\u00b7</span>
+                            <span class="ltr-field">@t.Mode</span>
+                        }
+                    </p>
+
                     @if (t.Status == ThemeApprovalStatus.Rejected && !string.IsNullOrEmpty(t.RejectionReason))
                     {
-                        <div class="small" style="color:var(--danger)">@t.RejectionReason</div>
+                        <p class="th-reject" dir="auto">@t.RejectionReason</p>
                     }
-                    <div class="d-flex gap-1 mt-1">
-                        @foreach (var c in new[]{ t.Bg, t.Text, t.Accent, t.Surface })
-                        {
-                            <span style="width:1.1rem;height:1.1rem;border-radius:3px;background:@c;border:1px solid var(--border)"></span>
-                        }
-                    </div>
-                </div>
-                <div class="d-flex flex-column gap-2" style="min-width:160px">
-                    <div class="d-flex flex-wrap gap-1 justify-content-end">
+
+                    <div class="th-acts">
                         @if (canReview)
                         {
                             <form asp-controller="AdminThemes" asp-action="Approve" asp-route-id="@t.Id" method="post">
                                 @Html.AntiForgeryToken()
-                                <button class="btn btn-accent btn-sm" type="submit">@T["themes.approve"]</button>
+                                <button class="th-btn th-btn-primary th-btn-sm" type="submit">@T["themes.approve"]</button>
                             </form>
                         }
                         @if (isSuper && t.Status == ThemeApprovalStatus.Approved && !t.IsActive)
                         {
                             <form asp-controller="AdminThemes" asp-action="Activate" asp-route-id="@t.Id" method="post">
                                 @Html.AntiForgeryToken()
-                                <button class="btn btn-accent btn-sm" type="submit">@T["themes.activate"]</button>
+                                <button class="th-btn th-btn-primary th-btn-sm" type="submit">@T["themes.activate"]</button>
                             </form>
                         }
-
                         @if (!isSuper && t.Status is ThemeApprovalStatus.Draft or ThemeApprovalStatus.Rejected)
                         {
                             <form asp-controller="AdminThemes" asp-action="Submit" asp-route-id="@t.Id" method="post">
                                 @Html.AntiForgeryToken()
-                                <button class="btn btn-accent btn-sm" type="submit">@T["themes.submit_review"]</button>
+                                <button class="th-btn th-btn-primary th-btn-sm" type="submit">@T["themes.submit_review"]</button>
                             </form>
                         }
-
                         @if (!t.IsSystem && !t.IsActive)
                         {
-                            <form asp-controller="AdminThemes" asp-action="Delete" asp-route-id="@t.Id" method="post" onsubmit="return confirm('@T["themes.delete_confirm"]');">
+                            <form asp-controller="AdminThemes" asp-action="Delete" asp-route-id="@t.Id" method="post"
+                                  onsubmit="return confirm('@T["themes.delete_confirm"]');">
                                 @Html.AntiForgeryToken()
-                                <button class="btn btn-ghost btn-sm" type="submit">@T["themes.delete"]</button>
+                                <button class="th-btn th-btn-ghost th-btn-sm" type="submit">@T["themes.delete"]</button>
                             </form>
                         }
                     </div>
+
                     @if (canReview)
                     {
-                        <form asp-controller="AdminThemes" asp-action="Reject" asp-route-id="@t.Id" method="post" class="d-flex flex-wrap gap-1 align-items-center">
+                        <form asp-controller="AdminThemes" asp-action="Reject" asp-route-id="@t.Id" method="post" class="th-reject-form">
                             @Html.AntiForgeryToken()
-                            <input type="text" name="reason" class="form-control form-control-sm" placeholder="@T["themes.reject_reason"]" maxlength="400" style="min-width:140px;flex:1" />
-                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">@T["themes.reject"]</button>
+                            <input type="text" name="reason" class="th-input" placeholder="@T["themes.reject_reason"]" maxlength="400" />
+                            <button class="th-btn th-btn-danger th-btn-sm" type="submit">@T["themes.reject"]</button>
                         </form>
                     }
                 </div>
-            </div>
-        </article>
-    }
-</div>
-
+            </article>
+        }
+    </div>
+}
 
 @section Styles {
 <style>
-.theme-upload-form { min-width: min(100%, 22rem); flex: 1 1 18rem; }
-.theme-upload-form .fu-zone { margin-top: 0.15rem; }
+.th-hero{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1.25rem}
+.th-eyebrow{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:0 0 .3rem}
+.th-title{font-size:1.45rem;font-weight:750;margin:0;letter-spacing:-.02em}
+.th-sub{margin:.4rem 0 0;max-width:36rem;font-size:.88rem;line-height:1.55;color:var(--text-muted)}
+.th-flash{margin:0 0 1rem;padding:.7rem 1rem;border-radius:10px;font-size:.88rem;background:color-mix(in srgb,var(--success) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--success) 28%,var(--border));color:var(--success)}
+.th-filters{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1.1rem}
+.th-chip{display:inline-flex;align-items:center;gap:.35rem;padding:.4rem .85rem;border-radius:999px;border:1px solid var(--border-soft);background:var(--surface);color:var(--text-muted);text-decoration:none!important;font-size:.8rem;font-weight:550}
+.th-chip:hover{border-color:var(--border);color:var(--text)}
+.th-chip.is-on{border-color:color-mix(in srgb,var(--accent) 40%,var(--border));background:color-mix(in srgb,var(--accent) 10%,var(--surface));color:var(--text)}
+.th-chip-count{font-size:.72rem;font-weight:700;padding:.1rem .4rem;border-radius:999px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+.th-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:.75rem;margin-bottom:1.25rem}
+.th-panel{background:var(--surface);border:1px solid var(--border-soft);border-radius:14px;padding:1rem 1.1rem}
+.th-panel-title{font-size:.78rem;font-weight:650;color:var(--text-muted);margin:0 0 .75rem;letter-spacing:.02em}
+.th-upload{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}
+.th-upload-acts{display:flex;flex-wrap:wrap;gap:.35rem}
+.th-reimport{margin-top:.65rem}
+.th-file{position:relative;display:inline-flex;align-items:center;padding:.4rem .75rem;border-radius:9px;border:1px dashed var(--border);background:var(--bg);color:var(--text-muted);font-size:.8rem;cursor:pointer}
+.th-file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.th-file:hover{border-color:var(--accent-dim,var(--accent));color:var(--text)}
+.th-btn{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;border-radius:9px;padding:.45rem .9rem;font-size:.84rem;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;text-decoration:none!important;line-height:1.2}
+.th-btn-sm{padding:.35rem .7rem;font-size:.78rem}
+.th-btn-primary{background:var(--accent);color:#111;border-color:transparent}
+.th-btn-primary:hover{filter:brightness(1.05)}
+.th-btn-ghost{background:transparent;border-color:var(--border-soft);color:var(--text)}
+.th-btn-ghost:hover{border-color:var(--border);background:var(--surface-2)}
+.th-btn-danger{background:color-mix(in srgb,var(--danger) 12%,var(--surface));border-color:color-mix(in srgb,var(--danger) 30%,var(--border));color:var(--danger)}
+.th-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:.85rem}
+.th-card{background:var(--surface);border:1px solid var(--border-soft);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s,box-shadow .15s}
+.th-card:hover{border-color:var(--border)}
+.th-card.is-active{border-color:color-mix(in srgb,var(--accent) 40%,var(--border));box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent)}
+.th-swatch{display:grid;grid-template-columns:repeat(5,1fr);height:3rem}
+.th-swatch span{min-width:0}
+.th-card-body{padding:1rem 1.05rem 1.05rem;display:flex;flex-direction:column;gap:.55rem;flex:1}
+.th-card-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem;align-items:flex-start}
+.th-name{margin:0;font-size:1rem;font-weight:700;line-height:1.3}
+.th-badges{display:flex;flex-wrap:wrap;gap:.3rem}
+.th-pill{font-size:.68rem;font-weight:650;padding:.18rem .5rem;border-radius:999px;background:var(--surface-2);color:var(--text-muted)}
+.th-pill-pending{background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--accent)}
+.th-pill-ok{background:color-mix(in srgb,var(--success) 16%,var(--surface));color:var(--success)}
+.th-pill-bad{background:color-mix(in srgb,var(--danger) 14%,var(--surface));color:var(--danger)}
+.th-pill-draft{background:var(--surface-2);color:var(--text-faint)}
+.th-pill-live{background:color-mix(in srgb,var(--accent) 22%,var(--surface));color:var(--accent)}
+.th-pill-sys{opacity:.85}
+.th-meta{margin:0;font-size:.78rem;color:var(--text-faint);display:flex;flex-wrap:wrap;align-items:center;gap:.25rem}
+.th-dot{opacity:.5}
+.th-reject{margin:0;font-size:.8rem;color:var(--danger);line-height:1.4}
+.th-acts{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:auto;padding-top:.25rem}
+.th-reject-form{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;padding-top:.35rem;border-top:1px solid var(--border-soft)}
+.th-input{flex:1;min-width:8rem;background:var(--bg);border:1px solid var(--border-soft);border-radius:8px;padding:.35rem .65rem;color:var(--text);font-size:.8rem;font-family:inherit}
+.th-input:focus{outline:none;border-color:var(--accent-dim,var(--accent))}
+.th-empty{text-align:center;padding:3rem 1rem;color:var(--text-muted)}
+.th-empty-title{margin:0;font-size:.95rem}
+@@media (max-width:560px){
+  .th-grid{grid-template-columns:1fr}
+}
 </style>
 }
