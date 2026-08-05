@@ -6,7 +6,7 @@
 
 @if (TempData["Saved"] != null)
 {
-    <div class="card-surface p-3 mb-3 small text-muted-dark admin-form-center">@TempData["Saved"]</div>
+    <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
 }
 
 <form method="post" class="card-surface p-4 admin-form-center">
@@ -51,46 +51,67 @@
         </div>
         <div class="col-md-4">
             <label class="form-label" asp-for="SmtpPort">@T["settings.smtp_port"]</label>
-            <input class="form-control ltr-field" asp-for="SmtpPort" />
+            <input class="form-control ltr-field" asp-for="SmtpPort" type="number" min="1" max="65535" />
         </div>
+    </div>
+    <div class="form-check mb-3">
+        <input class="form-check-input" asp-for="SmtpEnableSsl" />
+        <label class="form-check-label" asp-for="SmtpEnableSsl">@T["settings.smtp_ssl"]</label>
     </div>
     <div class="row g-3 mb-3">
         <div class="col-md-6">
-            <label class="form-label" asp-for="SmtpUser">@T["settings.smtp_user"]</label>
-            <input class="form-control ltr-field" asp-for="SmtpUser" autocomplete="off" />
+            <label class="form-label" asp-for="SmtpUserName">@T["settings.smtp_user"]</label>
+            <input class="form-control ltr-field" asp-for="SmtpUserName" autocomplete="off" />
         </div>
         <div class="col-md-6">
             <label class="form-label" asp-for="SmtpPassword">@T["settings.smtp_password"]</label>
-            <input class="form-control ltr-field" asp-for="SmtpPassword" type="password" autocomplete="new-password" />
+            <input class="form-control ltr-field" asp-for="SmtpPassword" type="password" autocomplete="new-password" placeholder="@(Model.SmtpPasswordIsSet ? T["settings.smtp_password_placeholder"] : "")" />
+            @if (Model.SmtpPasswordIsSet)
+            {
+                <div class="form-text small text-muted-dark">@T["settings.smtp_password_hint"]</div>
+            }
         </div>
     </div>
-    <div class="mb-3">
-        <label class="form-label" asp-for="SmtpFrom">@T["settings.smtp_from"]</label>
-        <input class="form-control ltr-field" asp-for="SmtpFrom" placeholder="noreply@example.com" />
-    </div>
-    <div class="form-check mb-4">
-        <input class="form-check-input" asp-for="SmtpUseSsl" />
-        <label class="form-check-label" asp-for="SmtpUseSsl">@T["settings.smtp_ssl"]</label>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <label class="form-label" asp-for="SmtpFromAddress">@T["settings.smtp_from"]</label>
+            <input class="form-control ltr-field" asp-for="SmtpFromAddress" placeholder="noreply@example.com" />
+            <span asp-validation-for="SmtpFromAddress" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" asp-for="SmtpFromDisplayName">@T["settings.smtp_from_name"]</label>
+            <input class="form-control" asp-for="SmtpFromDisplayName" dir="auto" placeholder="Blog" />
+        </div>
     </div>
 
-    <h2 class="h6 text-muted-dark mb-3">@T["settings.section_announce"]</h2>
-    <div class="form-check mb-3">
+    <h2 class="h6 text-muted-dark mb-3">@T["settings.section_maintenance"]</h2>
+    <div class="form-check mb-2">
+        <input class="form-check-input" asp-for="MaintenanceMode" />
+        <label class="form-check-label" asp-for="MaintenanceMode">@T["settings.maintenance_enable"]</label>
+    </div>
+    <div class="mb-4">
+        <label class="form-label" asp-for="MaintenanceMessage">@T["settings.maintenance_message"]</label>
+        <textarea class="form-control" asp-for="MaintenanceMessage" rows="2" dir="auto"></textarea>
+    </div>
+
+    <h2 class="h6 text-muted-dark mb-3">@T["settings.section_announcement"]</h2>
+    <div class="form-check mb-2">
         <input class="form-check-input" asp-for="AnnouncementEnabled" />
-        <label class="form-check-label" asp-for="AnnouncementEnabled">@T["settings.announce_enable"]</label>
+        <label class="form-check-label" asp-for="AnnouncementEnabled">@T["settings.announcement_enable"]</label>
     </div>
     <div class="mb-3">
-        <label class="form-label" asp-for="AnnouncementText">@T["settings.announce_text"]</label>
-        <textarea class="form-control" asp-for="AnnouncementText" rows="2" dir="auto"></textarea>
+        <label class="form-label" asp-for="AnnouncementText">@T["settings.announcement_text"]</label>
+        <input class="form-control" asp-for="AnnouncementText" dir="auto" />
     </div>
     <div class="mb-3">
-        <label class="form-label" asp-for="AnnouncementStyle">@T["settings.announce_style"]</label>
+        <label class="form-label" asp-for="AnnouncementStyle">@T["settings.announcement_style"]</label>
         <select class="form-select" asp-for="AnnouncementStyle" style="max-width:200px;">
-            <option value="info">info</option>
-            <option value="success">success</option>
-            <option value="warning">warning</option>
-            <option value="danger">danger</option>
+            <option value="info">@T["settings.style_info"]</option>
+            <option value="warn">@T["settings.style_warn"]</option>
+            <option value="success">@T["settings.style_success"]</option>
         </select>
     </div>
+    <p class="small text-muted-dark mb-4">@T["settings.announcement_hint"]</p>
 
-    <button type="submit" class="btn btn-accent">@T["btn.save"]</button>
+    <button type="submit" class="btn btn-accent">@T["btn.save_settings"]</button>
 </form>
