@@ -17,25 +17,20 @@
     <form asp-action="Profile" method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
 
-        <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="d-flex align-items-start gap-3 mb-4">
+            <div class="fu-avatar-target" id="profileAvatarTarget" aria-hidden="true">
             @if (Model.HasProfileImage && userId != null)
             {
-                <img src="@Url.Action("ProfileImage", "Account", new { userId })"
-                     alt=""
-                     class="rounded-circle"
-                     style="width:72px;height:72px;object-fit:cover;border:2px solid var(--border-soft);" />
+                <img src="@Url.Action("ProfileImage", "Account", new { userId })" alt="" />
             }
             else
             {
-                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                     style="width:72px;height:72px;background:var(--surface-2);border:2px solid var(--border-soft);font-size:1.5rem;"
-                     aria-hidden="true">
-                    @(Model.DisplayName?.FirstOrDefault().ToString().ToUpper() ?? "?")
-                </div>
+                <span>@(Model.DisplayName?.FirstOrDefault().ToString().ToUpper() ?? "?")</span>
             }
+            </div>
             <div class="flex-grow-1">
                 <div class="form-label mb-1">@T["auth.profile.avatar"]</div>
-                <div class="fu-zone fu-zone-sm" data-fu tabindex="0" role="button" aria-label="@T["fu.drop_title"]">
+                <div class="fu-zone fu-zone-sm" data-fu data-fu-preview="#profileAvatarTarget" data-fu-kind="image" tabindex="0" role="button" aria-label="@T["fu.drop_title"]">
                     <input type="file" name="ProfileImageFile" accept="image/jpeg,image/png,image/webp" />
                     <button type="button" class="fu-zone-btn">@T["fu.select"]</button>
                     <div class="fu-zone-copy">
