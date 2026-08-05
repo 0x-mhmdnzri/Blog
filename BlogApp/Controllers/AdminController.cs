@@ -177,69 +177,6 @@ public partial class AdminController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApproveComment([FromForm] int id, [FromForm] string? returnStatus)
-    {
-        if (id <= 0)
-        {
-            return BadRequest();
-        }
-
-        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
-        if (comment is null) return NotFound();
-
-        if (!AuthorAccess.CanModerateComment(User, comment.Post))
-            return Forbid();
-
-        comment.Status = CommentStatus.Approved;
-        await _db.SaveChangesAsync();
-        _broadcaster.Publish(new { type = "comment", status = "approved", id = comment.Id });
-
-        if (!string.IsNullOrEmpty(returnStatus))
-            return RedirectToAction("Comments", new { status = returnStatus });
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> RejectComment([FromForm] int id, [FromForm] string? returnStatus)
-    {
-        if (id <= 0) return BadRequest();
-
-        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
-        if (comment is null) return NotFound();
-
-        if (!AuthorAccess.CanModerateComment(User, comment.Post))
-            return Forbid();
-
-        comment.Status = CommentStatus.Rejected;
-        await _db.SaveChangesAsync();
-        _broadcaster.Publish(new { type = "comment", status = "rejected", id = comment.Id });
-
-        if (!string.IsNullOrEmpty(returnStatus))
-            return RedirectToAction("Comments", new { status = returnStatus });
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteComment([FromForm] int id, [FromForm] string? returnStatus)
-    {
-        if (id <= 0) return BadRequest();
-
-        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
-        if (comment is null) return NotFound();
-
-        if (!AuthorAccess.CanModerateComment(User, comment.Post))
-            return Forbid();
-
-        _db.Comments.Remove(comment);
-        await _db.SaveChangesAsync();
-        _broadcaster.Publish(new { type = "comment", status = "deleted", id = id });
-
-        if (!string.IsNullOrEmpty(returnStatus))
-            return RedirectToAction("Comments", new { status = returnStatus });
-        return RedirectToAction(nameof(Index));
-    }
-
     [HttpGet]
     public async Task Stream(CancellationToken cancellationToken)
     {
