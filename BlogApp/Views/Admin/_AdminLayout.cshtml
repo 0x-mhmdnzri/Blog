@@ -233,6 +233,17 @@
     <script src="~/js/datepicker.js" asp-append-version="true"></script>
     <script src="~/js/a11y.js" asp-append-version="true"></script>
     <script src="~/js/admin-search.js" asp-append-version="true"></script>
+    <script>
+      window.__fuI18n = {
+        select: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["fu.select"].ToString())),
+        dropTitle: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["fu.drop_title"].ToString())),
+        invalidType: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["fu.invalid_type"].ToString())),
+        image: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["fu.preview_image"].ToString())),
+        video: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["fu.preview_video"].ToString())),
+        file: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["fu.preview_file"].ToString())),
+        clear: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["fu.clear"].ToString()))
+      };
+    </script>
     <script src="~/js/file-upload.js" asp-append-version="true"></script>
     <script>
         (function () {
