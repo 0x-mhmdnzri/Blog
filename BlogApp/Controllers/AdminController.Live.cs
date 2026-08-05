@@ -59,28 +59,21 @@ public partial class AdminController
                 .ToListAsync())
                 .Select(x => (x.Day, x.Count))
                 .ToList();
-
+        var dayMap = viewsByDay.ToDictionary(x => x.Day, x => x.Count);
         var series = new List<object>();
         for (var d = rangeStart; d <= today; d = d.AddDays(1))
-        {
-            var count = viewsByDay.FirstOrDefault(x => x.Day == d).Count;
-            series.Add(new { label = d.ToString("MM-dd"), value = count });
-        }
+            series.Add(new { label = d.ToString("yyyy-MM-dd"), value = dayMap.GetValueOrDefault(d, 0) });
 
-        var topRaw = myPostIds.Count == 0
-            ? new List<(int Id, string Title, string Slug, int ViewCount)>()
-            : (await postQuery
-                .OrderByDescending(p => p.ViewCount)
-                .Take(5)
-                .Select(p => new { p.Id, p.Title, p.Slug, p.ViewCount })
-                .ToListAsync())
-                .Select(p => (p.Id, p.Title, p.Slug, p.ViewCount))
-                .ToList();
-
-        var rangeCounts = myPostIds.Count == 0
+        var topRaw = await postQuery
+            .OrderByDescending(p => p.ViewCount)
+            .Take(5)
+            .Select(p => new { p.Id, p.Slug, p.Title, p.ViewCount })
+            .ToListAsync();
+        var topIds = topRaw.Select(p => p.Id).ToList();
+        var rangeCounts = topIds.Count == 0
             ? new List<(int PostId, int Count)>()
             : (await _db.PostViews.AsNoTracking()
-                .Where(v => v.ViewedAtUtc >= rangeStart && myPostIds.Contains(v.PostId))
+                .Where(v => topIds.Contains(v.PostId) && v.ViewedAtUtc >= rangeStart)
                 .GroupBy(v => v.PostId)
                 .Select(g => new { PostId = g.Key, Count = g.Count() })
                 .ToListAsync())
