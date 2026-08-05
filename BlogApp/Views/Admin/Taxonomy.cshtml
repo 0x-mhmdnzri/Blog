@@ -101,8 +101,14 @@
                 <article class="tx-tree-item" data-name="@c.Name.ToLowerInvariant()" style="--depth:@c.Depth">
                     <div class="tx-tree-main">
                         <span class="tx-tree-indent" aria-hidden="true"></span>
-                        @if (c.Depth > 0) { <span class="tx-tree-branch" aria-hidden="true">└</span>; }
-                        else { <span class="tx-tree-root-dot" aria-hidden="true"></span>; }
+                        @if (c.Depth > 0)
+                        {
+                            <span class="tx-tree-branch" aria-hidden="true">└</span>
+                        }
+                        else
+                        {
+                            <span class="tx-tree-root-dot" aria-hidden="true"></span>
+                        }
                         <div class="tx-tree-text">
                             <div class="tx-tree-name" dir="auto">@c.Name</div>
                             <div class="tx-tree-meta">
@@ -323,4 +329,8 @@
     }
 </section>
 
-@* Styles and scripts preserved on client - link external if needed; inline CSS/JS omitted for size — see prior commit *@
+<link rel="stylesheet" href="~/css/taxonomy-admin.css" asp-append-version="true" />
+
+@section Scripts {
+<script src="~/js/taxonomy-admin.js" asp-append-version="true"></script>
+}
