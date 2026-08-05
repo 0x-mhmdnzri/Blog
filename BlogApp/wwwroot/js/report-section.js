@@ -111,7 +111,9 @@
     if (form) {
       form.addEventListener('submit', function (e) {
         var reasonErr = qs('[data-report-reason-error]');
+        var detailsErr = qs('[data-report-details-error]');
         var checked = form.querySelector('input[name="Reason"]:checked');
+        var details = form.querySelector('[data-report-details], #report-details');
         if (!checked) {
           e.preventDefault();
           if (reasonErr) reasonErr.hidden = false;
@@ -122,6 +124,17 @@
           return;
         }
         if (reasonErr) reasonErr.hidden = true;
+
+        var detailsVal = details ? (details.value || '').trim() : '';
+        if (detailsVal.length < 8) {
+          e.preventDefault();
+          if (detailsErr) detailsErr.hidden = false;
+          if (details) {
+            try { details.focus({ preventScroll: true }); } catch (_) {}
+          }
+          return;
+        }
+        if (detailsErr) detailsErr.hidden = true;
 
         var btn = form.querySelector('[data-report-submit], button[type="submit"]');
         if (btn) {
@@ -136,6 +149,13 @@
           if (reasonErr) reasonErr.hidden = true;
         });
       });
+      var detailsEl = form.querySelector('[data-report-details], #report-details');
+      if (detailsEl) {
+        detailsEl.addEventListener('input', function () {
+          var detailsErr = qs('[data-report-details-error]');
+          if (detailsErr && (detailsEl.value || '').trim().length >= 8) detailsErr.hidden = true;
+        });
+      }
     }
 
     if (shouldAutoOpen() && (!section || section.getAttribute('data-report-ok') !== '1')) {
