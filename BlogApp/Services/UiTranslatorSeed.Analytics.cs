@@ -33,7 +33,8 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.Auth)
             .Concat(UiTranslationCatalog.NavExtra)
             .Concat(UiTranslationCatalog.Themes)
-            .Concat(UiTranslationCatalog.UsersRoles);
+            .Concat(UiTranslationCatalog.UsersRoles)
+            .Concat(UiTranslationCatalog.ApiKeysAdmin);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
@@ -112,6 +113,7 @@ public sealed partial class UiTranslatorService
         UpsertCatalog(UiTranslationCatalog.Media);
         UpsertCatalog(UiTranslationCatalog.Taxonomy);
         UpsertCatalog(UiTranslationCatalog.UsersRoles);
+        UpsertCatalog(UiTranslationCatalog.ApiKeysAdmin);
 
         if (added > 0 || changed > 0)
             await _db.SaveChangesAsync(ct);
