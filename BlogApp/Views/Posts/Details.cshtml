@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="~/css/post-page.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/post-social.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/comments.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/report-section.css" asp-append-version="true" />
 }
 
 <div class="pd-progress" id="pdProgress" aria-hidden="true"><i id="pdProgressBar"></i></div>
@@ -80,10 +81,7 @@
         {
             <div class="post-flash is-ok" role="status">@TempData["BookmarkMsg"]</div>
         }
-        @if (TempData["ReportMsg"] != null)
-        {
-            <div class="post-flash" role="status">@TempData["ReportMsg"]</div>
-        }
+        @* Report success toast is rendered inside _ReportSection (pending queue messaging) *@
 
         @if (canEdit)
         {
@@ -245,6 +243,8 @@
             </section>
         }
 
+        @await Html.PartialAsync("_ReportSection", Model)
+
         @await Html.PartialAsync("_CommentsSection", Model)
     </article>
 
@@ -265,6 +265,7 @@
     <script src="~/js/post-toc.js" asp-append-version="true" defer></script>
     <script src="~/js/related-rail.js" asp-append-version="true" defer></script>
     <script src="~/js/comments.js" asp-append-version="true" defer></script>
+    <script src="~/js/report-section.js" asp-append-version="true" defer></script>
     <script>
     (function () {
       var bar = document.getElementById('pdProgressBar');
