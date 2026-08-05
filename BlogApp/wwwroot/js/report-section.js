@@ -1,7 +1,6 @@
 /**
- * Post report panel — open/close, login-return auto-open,
- * reason validation, char counter. Report never deletes the post;
- * it queues as pending for owner / SuperAdmin.
+ * Report modal popup — open/close, focus trap, login-return auto-open.
+ * Report queues as pending for owner / SuperAdmin; never deletes the post.
  */
 (function () {
   'use strict';
@@ -10,25 +9,37 @@
     return (root || document).querySelector(sel);
   }
 
-  function openPanel(section) {
-    var box = qs('#reportBox', section) || qs('#reportBox');
-    var trigger = qs('[data-report-open]', section);
-    if (!box) return;
-    box.hidden = false;
+  var lastFocus = null;
+
+  function openModal() {
+    var modal = qs('[data-report-modal]');
+    var trigger = qs('[data-report-open]');
+    if (!modal) return;
+    lastFocus = document.activeElement;
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('report-modal-open');
     if (trigger) trigger.setAttribute('aria-expanded', 'true');
-    var focusable = box.querySelector('input:checked, input[type="radio"], textarea, a.report-btn, button');
+
+    var focusable = modal.querySelector(
+      'input:checked, input[type="radio"], textarea, a.report-btn, button.report-close, button'
+    );
     if (focusable) {
       try { focusable.focus({ preventScroll: true }); } catch (_) {}
     }
-    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function closePanel(section) {
-    var box = qs('#reportBox', section) || qs('#reportBox');
-    var trigger = qs('[data-report-open]', section);
-    if (!box) return;
-    box.hidden = true;
+  function closeModal() {
+    var modal = qs('[data-report-modal]');
+    var trigger = qs('[data-report-open]');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('report-modal-open');
     if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    if (lastFocus && typeof lastFocus.focus === 'function') {
+      try { lastFocus.focus({ preventScroll: true }); } catch (_) {}
+    }
   }
 
   function shouldAutoOpen() {
@@ -53,39 +64,41 @@
 
   function bind() {
     var section = qs('[data-report-section]');
-    if (!section) return;
+    var modal = qs('[data-report-modal]');
+    if (!section && !modal) return;
 
-    // After successful submit, keep panel closed and highlight toast
-    if (section.getAttribute('data-report-ok') === '1') {
+    if (section && section.getAttribute('data-report-ok') === '1') {
       var toast = qs('[data-report-toast]', section);
       if (toast) {
         try { toast.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (_) {}
       }
     }
 
-    section.addEventListener('click', function (e) {
+    document.addEventListener('click', function (e) {
       var t = e.target;
-      if (t.closest && t.closest('[data-report-open]')) {
+      if (t.closest && t.closest('[data-report-open], [data-report-open-legacy]')) {
         e.preventDefault();
-        openPanel(section);
+        openModal();
         return;
       }
       if (t.closest && t.closest('[data-report-close]')) {
         e.preventDefault();
-        closePanel(section);
+        closeModal();
       }
     });
 
-    // Legacy "گزارش" buttons (comments / toolbar)
-    document.querySelectorAll('[data-report-open-legacy], [onclick*="reportBox"]').forEach(function (el) {
-      el.addEventListener('click', function (e) {
-        e.preventDefault();
-        openPanel(section);
-      });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        var m = qs('[data-report-modal]');
+        if (m && !m.hidden) {
+          e.preventDefault();
+          closeModal();
+        }
+      }
     });
 
-    var ta = qs('#report-details', section);
-    var counter = qs('[data-report-count]', section);
+    var ta = qs('#report-details');
+    var counter = qs('[data-report-count]');
     if (ta && counter) {
       var sync = function () {
         counter.textContent = (ta.value || '').length + ' / 1000';
@@ -94,10 +107,10 @@
       sync();
     }
 
-    var form = qs('[data-report-form]', section);
+    var form = qs('[data-report-form]');
     if (form) {
       form.addEventListener('submit', function (e) {
-        var reasonErr = qs('[data-report-reason-error]', section);
+        var reasonErr = qs('[data-report-reason-error]');
         var checked = form.querySelector('input[name="Reason"]:checked');
         if (!checked) {
           e.preventDefault();
@@ -117,26 +130,23 @@
         }
       });
 
-      // Clear reason error when user picks one
       form.querySelectorAll('input[name="Reason"]').forEach(function (r) {
         r.addEventListener('change', function () {
-          var reasonErr = qs('[data-report-reason-error]', section);
+          var reasonErr = qs('[data-report-reason-error]');
           if (reasonErr) reasonErr.hidden = true;
         });
       });
     }
 
-    if (shouldAutoOpen() && section.getAttribute('data-report-ok') !== '1') {
-      openPanel(section);
+    if (shouldAutoOpen() && (!section || section.getAttribute('data-report-ok') !== '1')) {
+      openModal();
       stripReportQuery();
     }
   }
 
   window.BlogReport = {
-    open: function () {
-      var section = qs('[data-report-section]');
-      if (section) openPanel(section);
-    }
+    open: openModal,
+    close: closeModal
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
