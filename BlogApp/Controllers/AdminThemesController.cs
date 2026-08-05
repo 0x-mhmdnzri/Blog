@@ -13,10 +13,10 @@ namespace BlogApp.Controllers;
 /// <summary>
 /// Themes management in admin panel.
 /// Authors: create / upload own themes (pending SuperAdmin approval).
-/// SuperAdmin: approve / reject / activate site-wide / reimport packs.
+/// SuperAdmin: preview on site / approve / reject / activate / reimport packs.
 /// </summary>
 [Authorize(Roles = AppRoles.Author + "," + AppRoles.SuperAdmin)]
-public class AdminThemesController : Controller
+public partial class AdminThemesController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly IThemeService _themes;
@@ -44,7 +44,6 @@ public class AdminThemesController : Controller
 
     private bool IsSuper => User.IsInRole(AppRoles.SuperAdmin);
 
-    /// <summary>DbContext defaults to NoTracking — mutations must opt in.</summary>
     private void EnableTracking()
     {
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
@@ -66,7 +65,6 @@ public class AdminThemesController : Controller
             else if (status == "rejected")
                 q = q.Where(t => t.Status == ThemeApprovalStatus.Rejected);
 
-            // Pending / Draft first so SuperAdmin sees items needing review
             var list = await q
                 .OrderByDescending(t => t.Status == ThemeApprovalStatus.Pending)
                 .ThenByDescending(t => t.Status == ThemeApprovalStatus.Draft)
@@ -79,7 +77,6 @@ public class AdminThemesController : Controller
             return View(list);
         }
 
-        // Author: only own themes
         var uid = AuthorAccess.UserId(User)!;
         var mine = await _db.CustomThemes.AsNoTracking()
             .Where(t => t.OwnerUserId == uid)
@@ -400,6 +397,7 @@ public class AdminThemesController : Controller
         }
 
         await _audit.LogAsync("theme.approve", "CustomTheme", id.ToString(), t.Name, HttpContext);
+        Response.Cookies.Delete(ThemesController.PreviewCookie, new CookieOptions { Path = "/" });
         TempData["Msg"] = "تأیید شد.";
         return RedirectToAction(nameof(Index));
     }
@@ -427,6 +425,7 @@ public class AdminThemesController : Controller
         }
 
         await _audit.LogAsync("theme.reject", "CustomTheme", id.ToString(), t.RejectionReason, HttpContext);
+        Response.Cookies.Delete(ThemesController.PreviewCookie, new CookieOptions { Path = "/" });
         TempData["Msg"] = "رد شد.";
         return RedirectToAction(nameof(Index));
     }
