@@ -28,7 +28,7 @@ public partial class AdminAnalyticsController
                 .Where(v => v.ViewedAtUtc >= rangeStart && myPostIds.Contains(v.PostId))
                 .Select(v => new { v.ViewedAtUtc, v.VisitorHash, v.PostId })
                 .ToListAsync())
-                .Select(v => (v.ViewedAtUtc, v.VisitorHash ?? "", v.PostId))
+                .Select(v => (ViewedAtUtc: v.ViewedAtUtc, VisitorHash: v.VisitorHash ?? "", PostId: v.PostId))
                 .ToList();
 
         var unique = views.Select(v => v.VisitorHash).Where(h => h.Length > 0).Distinct().Count();
