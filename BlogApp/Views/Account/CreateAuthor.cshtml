@@ -3,6 +3,26 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = T["btn.new_author"];
+    var fieldStep = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["UserName"] = 1, ["Email"] = 1, ["DisplayName"] = 1,
+        ["Bio"] = 2, ["Gender"] = 2, ["ProfileImageFile"] = 2,
+        ["Twitter"] = 2, ["LinkedIn"] = 2, ["Telegram"] = 2, ["Phone"] = 2,
+        ["Website"] = 2, ["GitHub"] = 2, ["Instagram"] = 2,
+        ["Password"] = 3, ["ConfirmPassword"] = 3
+    };
+    var errorStep = 1;
+    var hasServerErrors = !ViewData.ModelState.IsValid;
+    if (hasServerErrors)
+    {
+        foreach (var kv in ViewData.ModelState)
+        {
+            if (kv.Value?.Errors.Count > 0 && fieldStep.TryGetValue(kv.Key, out var s) && s > errorStep)
+                errorStep = s;
+        }
+        if (errorStep == 1 && ViewData.ModelState.Any(m => m.Value?.Errors.Count > 0 && string.IsNullOrEmpty(m.Key)))
+            errorStep = 3;
+    }
 }
 
 <div class="wizard" style="max-width:640px;">
@@ -22,9 +42,9 @@
     </div>
 
     <form asp-action="CreateAuthor" method="post" enctype="multipart/form-data"
-          class="card-surface p-4 wizard-form" id="authorWizardForm" novalidate>
+          class="card-surface p-4 wizard-form" id="authorWizardForm" novalidate data-error-step="@errorStep" data-has-errors="@(hasServerErrors ? "1" : "0")">
         @Html.AntiForgeryToken()
-        <div asp-validation-summary="ModelOnly" class="wizard-alert danger" id="authorValSummary"></div>
+        <div asp-validation-summary="All" class="wizard-alert danger" id="authorValSummary"></div>
 
         <div class="wizard-pane active" data-pane="1">
             <p class="wizard-hint">@T["wizard.author_step1_hint"]</p>
@@ -44,75 +64,63 @@
             </div>
             <div class="mb-1">
                 <label class="form-label" asp-for="DisplayName">@T["col.display_name"] <span class="text-danger">*</span></label>
-                <input class="form-control" asp-for="DisplayName" dir="auto" required minlength="2" maxlength="100" />
+                <input class="form-control" asp-for="DisplayName" autocomplete="name"
+                       required minlength="2" maxlength="100" />
                 <span asp-validation-for="DisplayName" class="field-error"></span>
             </div>
         </div>
 
         <div class="wizard-pane" data-pane="2" hidden>
-            <p class="wizard-hint">Avatar, gender, bio & optional socials</p>
-
-            <div class="mb-3 d-flex align-items-center gap-3">
-                <div class="author-avatar-preview rounded-circle d-flex align-items-center justify-content-center"
-                     id="avatarPreview"
-                     style="width:72px;height:72px;background:var(--surface-2);border:2px solid var(--border-soft);font-size:1.4rem;overflow:hidden;flex-shrink:0;">
-                    <span id="avatarInitial">?</span>
+            <p class="wizard-hint">@T["wizard.author_step2_hint"]</p>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="author-avatar-preview" id="authorAvatarPreview">
+                    <span id="authorInitial">?</span>
                 </div>
                 <div class="flex-grow-1">
-                    <label class="form-label" for="ProfileImageFile">تصویر پروفایل</label>
-                    <input type="file" name="ProfileImageFile" id="ProfileImageFile" accept="image/jpeg,image/png,image/webp"
-                           class="form-control form-control-sm" />
-                    <div class="form-text">JPG / PNG / WebP · max 2 MB</div>
+                    <label class="form-label" asp-for="ProfileImageFile">@T["wizard.avatar"]</label>
+                    <input class="form-control" asp-for="ProfileImageFile" type="file" accept="image/*" id="authorAvatarFile" />
                     <span asp-validation-for="ProfileImageFile" class="field-error"></span>
+                    <div class="form-text">@T["wizard.avatar_help"]</div>
                 </div>
             </div>
-
             <div class="mb-3">
-                <label class="form-label" asp-for="Gender">جنسیت (him / her)</label>
-                <select class="form-select" asp-for="Gender">
-                    <option value="@((int)UserGender.Unspecified)">ترجیح می‌دهم نگویم</option>
-                    <option value="@((int)UserGender.Male)">مرد · him</option>
-                    <option value="@((int)UserGender.Female)">زن · her</option>
-                    <option value="@((int)UserGender.Other)">سایر</option>
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label" asp-for="Bio">@T["wizard.bio_optional"]</label>
-                <textarea class="form-control" asp-for="Bio" rows="3" dir="auto" maxlength="500"
-                          placeholder="…"></textarea>
+                <label class="form-label" asp-for="Bio">@T["wizard.bio"]</label>
+                <textarea class="form-control" asp-for="Bio" rows="3" maxlength="500" id="authorBio"></textarea>
                 <span asp-validation-for="Bio" class="field-error"></span>
-                <div class="form-text"><span id="bioCount">0</span> / 500</div>
+                <div class="form-text"><span id="bioCount">0</span>/500</div>
             </div>
-
+            <div class="mb-3">
+                <label class="form-label" asp-for="Gender">@T["wizard.gender"]</label>
+                <select class="form-select" asp-for="Gender" asp-items="Html.GetEnumSelectList<UserGender>()"></select>
+            </div>
             <div class="row g-2">
-                <div class="col-md-6">
-                    <label class="form-label" asp-for="Twitter">X / Twitter</label>
-                    <input class="form-control ltr-field" asp-for="Twitter" placeholder="@@handle" maxlength="120" />
+                <div class="col-md-6 mb-2">
+                    <label class="form-label" asp-for="Website">@T["wizard.website"]</label>
+                    <input class="form-control ltr-field" asp-for="Website" />
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label" asp-for="LinkedIn">LinkedIn</label>
-                    <input class="form-control ltr-field" asp-for="LinkedIn" placeholder="in/username or URL" maxlength="200" />
+                <div class="col-md-6 mb-2">
+                    <label class="form-label" asp-for="Phone">@T["wizard.phone"]</label>
+                    <input class="form-control ltr-field" asp-for="Phone" />
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label" asp-for="Telegram">Telegram</label>
-                    <input class="form-control ltr-field" asp-for="Telegram" placeholder="@@username" maxlength="120" />
+                <div class="col-md-6 mb-2">
+                    <label class="form-label" asp-for="Twitter">Twitter / X</label>
+                    <input class="form-control ltr-field" asp-for="Twitter" placeholder="@handle" />
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label" asp-for="Phone">Phone</label>
-                    <input class="form-control ltr-field" asp-for="Phone" placeholder="+98…" maxlength="40" />
-                </div>
-                <div class="col-md-6">
+                <div class="col-md-6 mb-2">
                     <label class="form-label" asp-for="GitHub">GitHub</label>
-                    <input class="form-control ltr-field" asp-for="GitHub" placeholder="username" maxlength="120" />
+                    <input class="form-control ltr-field" asp-for="GitHub" />
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 mb-2">
+                    <label class="form-label" asp-for="Telegram">Telegram</label>
+                    <input class="form-control ltr-field" asp-for="Telegram" />
+                </div>
+                <div class="col-md-6 mb-2">
                     <label class="form-label" asp-for="Instagram">Instagram</label>
-                    <input class="form-control ltr-field" asp-for="Instagram" placeholder="@@username" maxlength="120" />
+                    <input class="form-control ltr-field" asp-for="Instagram" />
                 </div>
-                <div class="col-12">
-                    <label class="form-label" asp-for="Website">Website</label>
-                    <input class="form-control ltr-field" asp-for="Website" placeholder="https://…" maxlength="200" />
+                <div class="col-12 mb-2">
+                    <label class="form-label" asp-for="LinkedIn">LinkedIn</label>
+                    <input class="form-control ltr-field" asp-for="LinkedIn" />
                 </div>
             </div>
         </div>
@@ -122,74 +130,90 @@
             <div class="mb-3">
                 <label class="form-label" asp-for="Password">@T["auth.password"] <span class="text-danger">*</span></label>
                 <input class="form-control ltr-field" asp-for="Password" type="password" autocomplete="new-password"
-                       required minlength="10" maxlength="128" />
+                       required minlength="10" maxlength="128"
+                       pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}"
+                       title="حداقل ۱۰ نویسه · حرف بزرگ و کوچک · عدد · نماد (!@#$)" />
                 <span asp-validation-for="Password" class="field-error"></span>
-                <div class="form-text">@T["wizard.password_help"]</div>
+                <div class="form-text">حداقل ۱۰ نویسه · حرف بزرگ و کوچک · عدد · نماد (!@#$…)</div>
             </div>
             <div class="mb-3">
                 <label class="form-label" asp-for="ConfirmPassword">@T["wizard.confirm_password"] <span class="text-danger">*</span></label>
                 <input class="form-control ltr-field" asp-for="ConfirmPassword" type="password" autocomplete="new-password"
-                       required minlength="10" />
+                       required minlength="10" maxlength="128" />
                 <span asp-validation-for="ConfirmPassword" class="field-error"></span>
             </div>
-            <div class="wizard-review card-surface p-3 small" id="authorReview">
-                <div class="text-muted-dark mb-1">@T["wizard.review"]</div>
+            <div class="wizard-review card-surface p-3 mb-2">
+                <div class="small text-muted mb-1">@T["wizard.review"]</div>
                 <div><strong>@T["col.username"]:</strong> <span class="ltr-field" data-review="UserName">—</span></div>
                 <div><strong>@T["col.email"]:</strong> <span class="ltr-field" data-review="Email">—</span></div>
                 <div><strong>@T["col.display_name"]:</strong> <span data-review="DisplayName">—</span></div>
             </div>
         </div>
 
-        <div class="wizard-actions">
-            <a class="btn btn-ghost" asp-action="Authors">@T["btn.cancel"]</a>
+        <div class="wizard-nav d-flex justify-content-between gap-2 mt-4">
+            <button type="button" class="btn btn-outline-secondary" id="authorWizardPrev" hidden>@T["wizard.prev"]</button>
             <div class="ms-auto d-flex gap-2">
-                <button type="button" class="btn btn-ghost" id="authorPrev" hidden>@T["wizard.prev"]</button>
-                <button type="button" class="btn btn-accent" id="authorNext">@T["wizard.next"]</button>
-                <button type="submit" class="btn btn-accent" id="authorSubmit" hidden>@T["btn.new_author"]</button>
+                <button type="button" class="btn btn-accent" id="authorWizardNext">@T["wizard.next"]</button>
+                <button type="submit" class="btn btn-accent" id="authorWizardSubmit" hidden>@T["btn.create"]</button>
             </div>
         </div>
     </form>
 </div>
+
+@section Styles {
+<style>
+.wizard-steps{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
+.wizard-step{flex:1;min-width:7rem;display:flex;align-items:center;gap:.5rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:12px;background:var(--surface);color:var(--text-muted);cursor:pointer;font:inherit;text-align:start}
+.wizard-step.active{border-color:color-mix(in srgb,var(--accent) 45%,var(--border));background:color-mix(in srgb,var(--accent) 10%,var(--surface));color:var(--text)}
+.wizard-step-num{width:1.5rem;height:1.5rem;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;background:var(--surface-2)}
+.wizard-step.active .wizard-step-num{background:var(--accent);color:#111}
+.wizard-hint{color:var(--text-muted);font-size:.88rem;margin:0 0 1rem}
+.wizard-pane[hidden]{display:none!important}
+.wizard-alert.danger{background:color-mix(in srgb,var(--danger) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--danger) 35%,var(--border));color:var(--danger);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.88rem}
+.wizard-alert.danger:empty{display:none}
+.field-error{display:block;color:var(--danger);font-size:.8rem;margin-top:.25rem}
+.field-error:empty{display:none}
+.author-avatar-preview{width:4rem;height:4rem;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;overflow:hidden;flex-shrink:0}
+</style>
+}
 
 @section Scripts {
 <script>
 (function () {
   var form = document.getElementById('authorWizardForm');
   if (!form) return;
-  var step = 1;
-  var panes = form.querySelectorAll('.wizard-pane');
-  var steps = document.querySelectorAll('#authorWizardSteps .wizard-step');
-  var prev = document.getElementById('authorPrev');
-  var next = document.getElementById('authorNext');
-  var submit = document.getElementById('authorSubmit');
-  var bio = form.querySelector('[name="Bio"]');
+  var steps = Array.prototype.slice.call(document.querySelectorAll('#authorWizardSteps .wizard-step'));
+  var next = document.getElementById('authorWizardNext');
+  var prev = document.getElementById('authorWizardPrev');
+  var submit = document.getElementById('authorWizardSubmit');
+  var bio = document.getElementById('authorBio');
   var bioCount = document.getElementById('bioCount');
-  var fileInput = document.getElementById('ProfileImageFile');
-  var preview = document.getElementById('avatarPreview');
-  var initial = document.getElementById('avatarInitial');
   var displayName = form.querySelector('[name="DisplayName"]');
+  var initial = document.getElementById('authorInitial');
+  var fileInput = document.getElementById('authorAvatarFile');
+  var preview = document.getElementById('authorAvatarPreview');
+  var step = 1;
 
   function show(n) {
     step = n;
-    panes.forEach(function (p) {
-      var on = +p.getAttribute('data-pane') === n;
-      p.hidden = !on;
-      p.classList.toggle('active', on);
+    form.querySelectorAll('.wizard-pane').forEach(function (p) {
+      var pn = +p.getAttribute('data-pane');
+      p.hidden = pn !== n;
+      p.classList.toggle('active', pn === n);
     });
     steps.forEach(function (s) {
       var sn = +s.getAttribute('data-step');
       s.classList.toggle('active', sn === n);
-      s.classList.toggle('done', sn < n);
       s.setAttribute('aria-selected', sn === n ? 'true' : 'false');
     });
-    prev.hidden = n === 1;
-    next.hidden = n === 3;
-    submit.hidden = n !== 3;
+    if (prev) prev.hidden = n <= 1;
+    if (next) next.hidden = n >= 3;
+    if (submit) submit.hidden = n < 3;
     if (n === 3) {
       form.querySelectorAll('[data-review]').forEach(function (el) {
         var name = el.getAttribute('data-review');
         var input = form.querySelector('[name="' + name + '"]');
-        el.textContent = (input && input.value) ? input.value : '—';
+        el.textContent = (input && input.value) ? input.value : '\u2014';
       });
     }
   }
@@ -202,13 +226,24 @@
   function validatePane(n) {
     var ok = true;
     fieldsInPane(n).forEach(function (el) {
+      el.setCustomValidity('');
       if (typeof el.reportValidity === 'function' && !el.reportValidity()) ok = false;
     });
     if (n === 3) {
       var p = form.querySelector('[name="Password"]');
       var c = form.querySelector('[name="ConfirmPassword"]');
+      if (p) {
+        var val = p.value || '';
+        var strong = /[a-z]/.test(val) && /[A-Z]/.test(val) && /\d/.test(val) && /[^a-zA-Z0-9]/.test(val) && val.length >= 10;
+        if (!strong) {
+          p.setCustomValidity('\u062d\u062f\u0627\u0642\u0644 \u06f1\u06f0 \u0646\u0648\u06cc\u0633\u0647\u060c \u062d\u0631\u0641 \u0628\u0632\u0631\u06af \u0648 \u06a9\u0648\u0686\u06a9\u060c \u0639\u062f\u062f \u0648 \u0646\u0645\u0627\u062f (!@#)');
+          p.reportValidity();
+          p.setCustomValidity('');
+          ok = false;
+        }
+      }
       if (p && c && p.value !== c.value) {
-        c.setCustomValidity('Passwords do not match');
+        c.setCustomValidity('\u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u0648 \u062a\u06a9\u0631\u0627\u0631 \u0622\u0646 \u06cc\u06a9\u0633\u0627\u0646 \u0646\u06cc\u0633\u062a\u0646\u062f');
         c.reportValidity();
         c.setCustomValidity('');
         ok = false;
@@ -262,7 +297,13 @@
       preview.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;" />';
     });
   }
-  show(1);
+
+  var startStep = parseInt(form.getAttribute('data-error-step') || '1', 10) || 1;
+  if (form.getAttribute('data-has-errors') === '1') {
+    var sum = document.getElementById('authorValSummary');
+    if (sum) sum.style.display = 'block';
+  }
+  show(startStep);
 })();
 </script>
 }
