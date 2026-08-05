@@ -14,10 +14,10 @@
 }
 
 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-    <p class="small text-muted-dark mb-0">مدیریت کاربران، نقش‌ها و دسترسی صفحات</p>
+    <p class="small text-muted-dark mb-0">@T["users.subtitle"]</p>
     <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-accent btn-sm" asp-controller="AdminRoles" asp-action="Index">نقش‌ها و مجوزها</a>
-        <a class="btn btn-ghost btn-sm" asp-controller="AdminRoles" asp-action="Assign">اختصاص نقش</a>
+        <a class="btn btn-accent btn-sm" asp-controller="AdminRoles" asp-action="Index">@T["users.btn_roles"]</a>
+        <a class="btn btn-ghost btn-sm" asp-controller="AdminRoles" asp-action="Assign">@T["users.btn_assign"]</a>
     </div>
 </div>
 
@@ -65,8 +65,8 @@ BlogDT.init('#usersTable', {
             type: 'select',
             placeholder: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["col.status"].ToString(), j)),
             options: [
-                { value: 'active', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.active"]?.ToString() ?? "فعال", j)) },
-                { value: 'locked', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["status.locked"]?.ToString() ?? "قفل", j)) }
+                { value: 'active', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["users.status_active"].ToString(), j)) },
+                { value: 'locked', label: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["users.status_locked"].ToString(), j)) }
             ]
         },
         false

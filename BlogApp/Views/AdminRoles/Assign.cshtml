@@ -1,7 +1,7 @@
-@model BlogApp.Controllers.AssignRoleVm
+@model BlogApp.Controllers.AssignRolesVm
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "اختصاص نقش به کاربر";
+    ViewData["Title"] = T["roles.assign_title"];
 }
 
 @if (TempData["Saved"] != null)
@@ -14,16 +14,16 @@
 }
 
 <div class="mb-4">
-    <a class="small text-muted-dark" asp-action="Index">← نقش‌ها</a>
-    <h1 class="h5 mb-1 mt-1">اختصاص نقش به کاربر</h1>
-    <p class="small text-muted-dark mb-0">چند نقش را همزمان انتخاب کنید؛ claimهای نقش‌ها با هم ترکیب (union) می‌شوند.</p>
+    <a class="small text-muted-dark" asp-action="Index">@T["roles.back_roles"]</a>
+    <h1 class="h5 mb-1 mt-1">@T["roles.assign_title"]</h1>
+    <p class="small text-muted-dark mb-0">@T["roles.assign_sub"]</p>
 </div>
 
 <form method="get" class="card-surface p-3 mb-3 d-flex flex-wrap gap-2 align-items-end">
     <div class="flex-grow-1" style="min-width:14rem;">
-        <label class="form-label small mb-1" for="userId">کاربر</label>
+        <label class="form-label small mb-1" for="userId">@T["roles.label_user"]</label>
         <select id="userId" name="userId" class="form-select form-select-sm" onchange="this.form.submit()">
-            <option value="">— انتخاب —</option>
+            <option value="">@T["roles.ph_select"]</option>
             @foreach (var u in Model.Users)
             {
                 <option value="@u.Id" selected="@(Model.UserId == u.Id)">@u.DisplayName (@u.UserName)</option>
@@ -46,14 +46,14 @@
                 <span class="ltr-field">@role</span>
                 @if (AppRoles.IsBuiltIn(role))
                 {
-                    <span class="soon-tag">سیستمی</span>
+                    <span class="soon-tag">@T["roles.builtin"]</span>
                 }
             </label>
         }
         </div>
         <div class="mt-3 d-flex gap-2">
-            <button type="submit" class="btn btn-accent btn-sm">ذخیره نقش‌ها</button>
-            <a class="btn btn-ghost btn-sm" asp-controller="AdminUsers" asp-action="Index">لیست کاربران</a>
+            <button type="submit" class="btn btn-accent btn-sm">@T["roles.btn_save_roles"]</button>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminUsers" asp-action="Index">@T["roles.btn_user_list"]</a>
         </div>
     </form>
 }
