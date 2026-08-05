@@ -86,7 +86,6 @@
     dropzone.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) uploadFile(f); });
   }
 
-  // —— Continuous autosave (server + localStorage) ——
   let lastSaved = textarea.value;
   let dirty = false;
   let autosaveTimer = null;
@@ -108,7 +107,6 @@
     if (statusEl) statusEl.textContent = msg;
   }
 
-  /** Keep hidden Id + form action in sync after first autosave create. */
   function bindDraftToForm(id) {
     postId = id;
     textarea.dataset.postId = String(id);
@@ -118,7 +116,6 @@
     if (form) {
       form.action = '/Posts/Edit/' + id;
       form.setAttribute('action', '/Posts/Edit/' + id);
-      // After first autosave, subsequent full submits must hit Edit
       form.id = 'postEditForm';
     }
     try {
@@ -190,7 +187,6 @@
     e.returnValue = '';
   });
 
-  // Restore local draft if newer than server content (create page)
   try {
     const raw = localStorage.getItem(draftKey);
     if (raw && postId <= 0) {
@@ -207,7 +203,6 @@
     }
   } catch (e) {}
 
-  // —— Rich text optional pane ——
   const rich = document.getElementById('rich-editor');
   const modeBtn = document.getElementById('btn-editor-mode');
   let richMode = false;
@@ -280,15 +275,16 @@
     return walk(d).replace(/\n{3,}/g, '\n\n').trim();
   }
 
-  // Critical: before any form submit, sync rich→textarea and force ContentMarkdown name
   function onFormSubmit(e) {
     var form = e.target;
-    if (!form || (form.id !== 'postCreateForm' && form.id !== 'postEditForm')) return;
+    if (!form) return;
+    var isPostForm = form.id === 'postCreateForm' || form.id === 'postEditForm'
+      || !!form.querySelector('#markdown-input')
+      || !!form.querySelector('[name="ContentMarkdown"]');
+    if (!isPostForm) return;
     syncRichToTextarea();
-    // Ensure the field is not disabled and has the current value
     textarea.disabled = false;
     textarea.removeAttribute('disabled');
-    // If still empty, try localStorage draft as last resort
     if (!textarea.value.trim()) {
       try {
         var raw = localStorage.getItem(draftKey) || localStorage.getItem('blog.draft.new');
@@ -298,6 +294,12 @@
         }
       } catch (err) {}
     }
+    // Allow navigation after successful submit (no leave-page alert)
+    dirty = false;
+    try {
+      localStorage.removeItem(draftKey);
+      localStorage.removeItem('blog.draft.new');
+    } catch (err2) {}
   }
   document.addEventListener('submit', onFormSubmit, true);
 
