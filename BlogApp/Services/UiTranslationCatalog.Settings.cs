@@ -4,6 +4,13 @@ public static partial class UiTranslationCatalog
 {
     public static readonly (string Key, string Group, string Fa, string En, string Ar)[] Settings =
     {
+        ("settings.page_title", "form", "تنظیمات سایت", "Site settings", "إعدادات الموقع"),
+        ("settings.page_sub", "form", "پیکربندی عمومی، ایمیل، نگهداری و اعلان‌ها — همه در یک جا.", "General, email, maintenance, and announcements — in one place.", "العام والبريد والصيانة والإعلانات — في مكان واحد."),
+        ("settings.save_hint", "form", "تغییرات پس از ذخیره روی همه صفحات اعمال می‌شود.", "Changes apply site-wide after you save.", "تُطبَّق التغييرات على الموقع بعد الحفظ."),
+        ("settings.badge_on", "form", "روشن", "On", "تشغيل"),
+        ("settings.badge_off", "form", "خاموش", "Off", "إيقاف"),
+        ("settings.maintenance_hint", "form", "وقتی فعال باشد، بازدیدکنندگان عادی صفحه نگهداری می‌بینند. SuperAdmin عبور می‌کند.", "When on, regular visitors see the maintenance page. SuperAdmin can still pass.", "عند التفعيل يرى الزوار صفحة الصيانة. المدير الأعلى يتجاوزها."),
+
         ("settings.seo_hint", "form", "این مقادیر در پایگاه داده ذخیره می‌شوند و روی متاتگ‌ها و JSON-LD هر صفحه اثر می‌گذارند (نه در appsettings یا .env).", "These values are stored in the database and affect meta tags and JSON-LD on every page (not appsettings or .env).", "تُحفظ هذه القيم في قاعدة البيانات وتؤثر على الوسوم وJSON-LD (وليس appsettings)."),
         ("settings.section_smtp", "form", "SMTP / ایمیل", "SMTP / Email", "SMTP / البريد"),
         ("settings.smtp_hint", "form", "تنظیمات ارسال ایمیل (خبرنامه، اعلان‌ها). فقط SuperAdmin. پس از ذخیره از دیتابیس خوانده می‌شود.", "Email sending settings (newsletter, notifications). SuperAdmin only. Loaded from the database after save.", "إعدادات إرسال البريد. للمشرف الأعلى فقط. تُقرأ من قاعدة البيانات بعد الحفظ."),
