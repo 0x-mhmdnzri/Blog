@@ -1,7 +1,7 @@
 @model List<BlogApp.Controllers.RoleListItem>
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "نقش‌ها و مجوزها";
+    ViewData["Title"] = T["roles.page_title"];
 }
 
 @if (TempData["Saved"] != null)
@@ -15,12 +15,12 @@
 
 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
     <div>
-        <h1 class="h5 mb-1">نقش‌ها و مجوزها</h1>
-        <p class="small text-muted-dark mb-0">سلسله‌مراتب پایه: SuperAdmin ← Author ← Reader — نقش سفارشی و claimها دسترسی صفحات را گسترش می‌دهند.</p>
+        <h1 class="h5 mb-1">@T["roles.page_title"]</h1>
+        <p class="small text-muted-dark mb-0">@T["roles.subtitle"]</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-ghost btn-sm" asp-action="Assign">اختصاص به کاربر</a>
-        <a class="btn btn-ghost btn-sm" asp-controller="AdminUsers" asp-action="Index">کاربران</a>
+        <a class="btn btn-ghost btn-sm" asp-action="Assign">@T["roles.btn_assign"]</a>
+        <a class="btn btn-ghost btn-sm" asp-controller="AdminUsers" asp-action="Index">@T["roles.btn_users"]</a>
     </div>
 </div>
 
@@ -28,11 +28,11 @@
     <form asp-action="Create" method="post" class="d-flex flex-wrap gap-2 align-items-end">
         @Html.AntiForgeryToken()
         <div class="flex-grow-1" style="min-width:12rem;">
-            <label class="form-label small mb-1" for="roleName">نقش جدید</label>
+            <label class="form-label small mb-1" for="roleName">@T["roles.label_new"]</label>
             <input id="roleName" name="name" class="form-control form-control-sm" dir="ltr"
                    placeholder="e.g. Editor, Moderator" maxlength="64" required pattern="[A-Za-z][A-Za-z0-9_\-]{1,63}" />
         </div>
-        <button type="submit" class="btn btn-accent btn-sm">ایجاد نقش</button>
+        <button type="submit" class="btn btn-accent btn-sm">@T["roles.btn_create"]</button>
     </form>
 </div>
 
@@ -44,25 +44,25 @@
             <span class="role-card-name ltr-field">@r.Name</span>
             @if (r.IsBuiltIn)
             {
-                <span class="status-pill sticky">سیستمی</span>
+                <span class="status-pill sticky">@T["roles.builtin"]</span>
             }
         </div>
         <div class="role-card-meta small text-muted-dark">
-            <span><strong class="ltr-field">@r.PageClaimCount</strong> صفحه</span>
+            <span><strong class="ltr-field">@r.PageClaimCount</strong> @T["roles.meta_pages"]</span>
             <span class="meta-sep">·</span>
-            <span><strong class="ltr-field">@r.CapabilityCount</strong> قابلیت</span>
+            <span><strong class="ltr-field">@r.CapabilityCount</strong> @T["roles.meta_caps"]</span>
             <span class="meta-sep">·</span>
-            <span><strong class="ltr-field">@r.UserCount</strong> کاربر</span>
+            <span><strong class="ltr-field">@r.UserCount</strong> @T["roles.meta_users"]</span>
         </div>
         <div class="role-card-actions">
-            <a class="btn btn-accent btn-sm" asp-action="Permissions" asp-route-role="@r.Name">مجوزها</a>
+            <a class="btn btn-accent btn-sm" asp-action="Permissions" asp-route-role="@r.Name">@T["roles.btn_perms"]</a>
             @if (!r.IsBuiltIn)
             {
                 <form asp-action="Delete" method="post" class="d-inline"
-                      onsubmit="return confirm('حذف نقش @r.Name؟');">
+                      onsubmit="return confirm('@(string.Format(T["roles.confirm_delete"].ToString(), r.Name))');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="role" value="@r.Name" />
-                    <button type="submit" class="btn btn-outline-danger-dark btn-sm">حذف</button>
+                    <button type="submit" class="btn btn-outline-danger-dark btn-sm">@T["roles.btn_delete"]</button>
                 </form>
             }
         </div>
