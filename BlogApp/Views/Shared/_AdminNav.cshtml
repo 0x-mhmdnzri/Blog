@@ -1,7 +1,8 @@
-@model (List<BlogApp.Services.AdminNavItem> Items, int PendingCount)
+@model (List<BlogApp.Services.AdminNavItem> Items, System.Collections.Generic.IReadOnlyDictionary<string, int> Badges)
 @inject BlogApp.Services.IUiTranslator T
 @{
     var items = Model.Items;
+    var badges = Model.Badges ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     string? lastGroup = null;
@@ -15,6 +16,7 @@
         <div class="admin-nav-group-label">@T[item.GroupKey!]</div>
     }
     var active = item.Matches(controller, action);
+    badges.TryGetValue(item.Key, out var badgeCount);
     <a class="admin-nav-link @(active ? "active" : "")"
        asp-controller="@item.Controller"
        asp-action="@item.Action"
@@ -27,9 +29,10 @@
         </span>
         <span class="nav-label">@T[item.LabelKey]</span>
         <span class="nav-trail">
-            @if (item.ShowPendingBadge)
+            @if (item.ShowPendingBadge && badgeCount > 0)
             {
-                <span class="badge-count" id="pendingBadge" style="@(Model.PendingCount > 0 ? "" : "display:none;")">@Model.PendingCount</span>
+                <span class="badge-count" data-badge-key="@item.Key"
+                      id="@(item.Key == "comments" ? "pendingBadge" : null)">@(badgeCount > 99 ? "99+" : badgeCount.ToString())</span>
             }
             @if (item.DemoTag)
             {
