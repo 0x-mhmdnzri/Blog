@@ -23,15 +23,15 @@ public partial class AdminAnalyticsController
         var myPostIds = await postQuery.Select(p => p.Id).ToListAsync();
 
         var views = myPostIds.Count == 0
-            ? new List<(DateTime ViewedAtUtc, string? VisitorHash, int PostId)>()
+            ? new List<(DateTime ViewedAtUtc, string VisitorHash, int PostId)>()
             : (await _db.PostViews.AsNoTracking()
                 .Where(v => v.ViewedAtUtc >= rangeStart && myPostIds.Contains(v.PostId))
                 .Select(v => new { v.ViewedAtUtc, v.VisitorHash, v.PostId })
                 .ToListAsync())
-                .Select(v => (v.ViewedAtUtc, v.VisitorHash, v.PostId))
+                .Select(v => (v.ViewedAtUtc, v.VisitorHash ?? "", v.PostId))
                 .ToList();
 
-        var unique = views.Select(v => v.VisitorHash).Where(h => h != null).Distinct().Count();
+        var unique = views.Select(v => v.VisitorHash).Where(h => h.Length > 0).Distinct().Count();
         var viewsByDay = new List<object>();
         for (var d = rangeStart; d <= today; d = d.AddDays(1))
             viewsByDay.Add(new { label = d.ToString("MM-dd"), value = views.Count(v => v.ViewedAtUtc.Date == d) });
