@@ -360,12 +360,35 @@ public partial class AccountController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateAuthor(CreateAuthorViewModel vm)
     {
-        if (!ModelState.IsValid) return View(vm);
+        if (!ModelState.IsValid)
+        {
+            LocalizeAuthValidation();
+            _logger.LogWarning(
+                "CreateAuthor validation failed: {Errors}",
+                string.Join("; ", ModelState.Where(x => x.Value?.Errors.Count > 0)
+                    .SelectMany(x => x.Value!.Errors.Select(e => x.Key + ": " + e.ErrorMessage))));
+            return View(vm);
+        }
+
+        var userName = vm.UserName.Trim();
+        var email = vm.Email.Trim();
+
+        if (await _userManager.FindByNameAsync(userName) is not null)
+        {
+            ModelState.AddModelError(nameof(vm.UserName), "این نام کاربری قبلاً ثبت شده است.");
+            return View(vm);
+        }
+
+        if (await _userManager.FindByEmailAsync(email) is not null)
+        {
+            ModelState.AddModelError(nameof(vm.Email), "این ایمیل قبلاً ثبت شده است.");
+            return View(vm);
+        }
 
         var user = new ApplicationUser
         {
-            UserName = vm.UserName.Trim(),
-            Email = vm.Email.Trim(),
+            UserName = userName,
+            Email = email,
             EmailConfirmed = true,
             DisplayName = vm.DisplayName.Trim(),
             Bio = string.IsNullOrWhiteSpace(vm.Bio) ? null : vm.Bio.Trim(),
@@ -383,7 +406,10 @@ public partial class AccountController : Controller
         if (!result.Succeeded)
         {
             foreach (var err in result.Errors)
+            {
                 ModelState.AddModelError(string.Empty, err.Description);
+                _logger.LogWarning("CreateAuthor Identity error Code={Code} {Desc}", err.Code, err.Description);
+            }
             return View(vm);
         }
 
@@ -482,7 +508,6 @@ public partial class AccountController : Controller
         return v.Length > 200 ? v[..200] : v;
     }
 
-    /// <summary>Translate DataAnnotation messages that store catalog keys (auth.val.*).</summary>
     private void LocalizeAuthValidation()
     {
         foreach (var key in ModelState.Keys.ToList())
