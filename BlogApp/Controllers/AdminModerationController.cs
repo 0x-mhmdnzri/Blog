@@ -74,13 +74,29 @@ public class AdminModerationController : Controller
                 || (r.TargetType == ContentReportTarget.Comment && myCommentIds.Contains(r.TargetId)));
         }
 
-        var openReports = await reportQuery.OrderByDescending(r => r.CreatedAtUtc).Take(50).ToListAsync();
+        var openReports = await reportQuery
+            .OrderByDescending(r => r.CreatedAtUtc)
+            .Take(50)
+            .Select(r => new ContentReportListItem
+            {
+                Id = r.Id,
+                TargetType = r.TargetType,
+                TargetId = r.TargetId,
+                Reason = r.Reason,
+                Details = r.Details,
+                Status = r.Status,
+                CreatedAtUtc = r.CreatedAtUtc,
+                ReporterName = r.ReporterUser != null ? r.ReporterUser.UserName : null,
+                TargetTitle = r.TargetType == ContentReportTarget.Post
+                    ? _db.Posts.Where(p => p.Id == r.TargetId).Select(p => p.Title).FirstOrDefault()
+                    : _db.Comments.Where(c => c.Id == r.TargetId).Select(c => c.Body).FirstOrDefault()
+            })
+            .ToListAsync();
 
-        var pendingPosts = new List<PendingPostReviewItem>();
+        List<PendingPostReviewItem> pendingPosts = new();
         if (isSuper)
         {
             pendingPosts = await _db.Posts.AsNoTracking()
-                .Include(p => p.Author)
                 .Where(p => !p.IsDeleted && p.ReviewStatus == PostReviewStatus.PendingReview)
                 .OrderByDescending(p => p.UpdatedAtUtc)
                 .Take(50)
@@ -88,13 +104,10 @@ public class AdminModerationController : Controller
                 {
                     Id = p.Id,
                     Title = p.Title,
-                    Slug = p.Slug,
-                    LanguageCode = p.LanguageCode,
-                    AuthorName = p.Author != null ? (p.Author.DisplayName ?? p.Author.UserName ?? "") : "",
-                    AuthorId = p.AuthorId,
                     Summary = p.Summary,
-                    UpdatedAtUtc = p.UpdatedAtUtc,
-                    CreatedAtUtc = p.CreatedAtUtc
+                    LanguageCode = p.LanguageCode,
+                    AuthorName = p.Author != null ? (p.Author.DisplayName ?? p.Author.UserName) : "",
+                    UpdatedAtUtc = p.UpdatedAtUtc
                 })
                 .ToListAsync();
         }
@@ -111,7 +124,8 @@ public class AdminModerationController : Controller
     [Authorize(Roles = AppRoles.SuperAdmin)]
     public async Task<IActionResult> ApprovePost(int id)
     {
-        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+        // Global EF default is NoTracking — must opt into tracking for mutations.
+        var post = await _db.Posts.AsTracking().FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
         if (post is null) return NotFound();
         if (post.ReviewStatus != PostReviewStatus.PendingReview)
         {
@@ -149,7 +163,7 @@ public class AdminModerationController : Controller
     [Authorize(Roles = AppRoles.SuperAdmin)]
     public async Task<IActionResult> RejectPost(int id, string? note = null)
     {
-        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+        var post = await _db.Posts.AsTracking().FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
         if (post is null) return NotFound();
         if (post.ReviewStatus != PostReviewStatus.PendingReview)
         {
