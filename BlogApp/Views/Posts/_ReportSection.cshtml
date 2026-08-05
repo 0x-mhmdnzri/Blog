@@ -112,14 +112,18 @@
                 </fieldset>
 
                 <div class="report-field">
-                    <label class="report-label" for="report-details">@T["report.details_label"]</label>
+                    <label class="report-label" for="report-details">@T["report.details_label"] <span class="report-req" aria-hidden="true">*</span></label>
                     <textarea id="report-details"
                               name="Details"
                               class="report-textarea"
                               rows="3"
+                              minlength="8"
                               maxlength="1000"
+                              required
                               placeholder="@T["report.details_placeholder"]"
-                              dir="auto"></textarea>
+                              dir="auto"
+                              data-report-details></textarea>
+                    <p class="report-field-error" data-report-details-error hidden>@T["report.details_required"]</p>
                     <div class="report-hint">
                         <span>@T["report.details_hint"]</span>
                         <span class="report-count" data-report-count>0 / 1000</span>
