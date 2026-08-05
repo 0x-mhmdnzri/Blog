@@ -1,1 +1,931 @@
-PLACEHOLDER_SEO
+@model SeoToolsViewModel
+@inject BlogApp.Services.IUiTranslator T
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = T["admin.nav.seo"];
+    var tab = Model.ActiveTab ?? "overview";
+    var isSuper = BlogApp.Services.AuthorAccess.IsSuperAdmin(User);
+    string TabClass(string id) => tab == id ? "is-active" : "";
+
+    var avgHealth = Model.PostHealth.Count > 0
+        ? (int)Math.Round(Model.PostHealth.Average(h => (double)h.Score))
+        : 0;
+    var healthyCount = Model.PostHealth.Count(h => h.Score >= 80);
+    var weakCount = Model.PostHealth.Count(h => h.Score < 50);
+}
+
+@if (TempData["SeoOk"] is string ok)
+{
+    <div class="st-alert st-alert-ok" role="status">@ok</div>
+}
+@if (TempData["SeoErr"] is string err)
+{
+    <div class="st-alert st-alert-err" role="alert">@err</div>
+}
+
+<header class="st-hero">
+    <div class="st-hero-text">
+        <p class="st-eyebrow">SEO</p>
+        <h1 class="st-title">@T["admin.nav.seo"]</h1>
+        <p class="st-sub">متا، ریدایرکت، لینک شکسته، سلامت محتوا، ایمپورت و IndexNow</p>
+    </div>
+    <div class="st-hero-actions">
+        <a class="st-chip-link" href="@Model.SitemapUrl" target="_blank" rel="noopener">sitemap.xml</a>
+        <a class="st-chip-link" href="@Model.RobotsUrl" target="_blank" rel="noopener">robots.txt</a>
+    </div>
+</header>
+
+<nav class="st-tabs" role="tablist" aria-label="ابزارهای سئو">
+    <a class="st-tab @TabClass("overview")" asp-action="SeoTools" asp-route-tab="overview">@T["seo.tab_overview"]</a>
+    <a class="st-tab @TabClass("meta")" asp-action="SeoTools" asp-route-tab="meta">@T["seo.tab_meta"]</a>
+    <a class="st-tab @TabClass("redirects")" asp-action="SeoTools" asp-route-tab="redirects">
+        @T["seo.tab_redirects"]
+        @if (Model.Redirects.Count > 0) { <span class="st-badge">@Model.Redirects.Count</span> }
+    </a>
+    <a class="st-tab @TabClass("broken")" asp-action="SeoTools" asp-route-tab="broken">
+        @T["seo.tab_broken"]
+        @if (Model.BrokenLinks.Count > 0) { <span class="st-badge st-badge-warn">@Model.BrokenLinks.Count</span> }
+    </a>
+    <a class="st-tab @TabClass("health")" asp-action="SeoTools" asp-route-tab="health">@T["seo.tab_health"]</a>
+    <a class="st-tab @TabClass("import")" asp-action="SeoTools" asp-route-tab="import">@T["seo.tab_import"]</a>
+    <a class="st-tab @TabClass("indexnow")" asp-action="SeoTools" asp-route-tab="indexnow">@T["seo.tab_indexnow"]</a>
+</nav>
+
+@* ── Overview ── *@
+@if (tab == "overview")
+{
+    <div class="st-kpis">
+        <a class="st-kpi" asp-action="SeoTools" asp-route-tab="health">
+            <span class="st-kpi-label">@T["seo.kpi_published"]</span>
+            <span class="st-kpi-val">@Model.PublishedCount.ToString("N0")</span>
+        </a>
+        <a class="st-kpi" asp-action="SeoTools" asp-route-tab="redirects">
+            <span class="st-kpi-label">@T["seo.kpi_redirects"]</span>
+            <span class="st-kpi-val">@Model.Redirects.Count.ToString("N0")</span>
+        </a>
+        <a class="st-kpi @(Model.BrokenLinks.Count > 0 ? "st-kpi-warn" : "")" asp-action="SeoTools" asp-route-tab="broken">
+            <span class="st-kpi-label">@T["seo.kpi_broken"]</span>
+            <span class="st-kpi-val">@Model.BrokenLinks.Count.ToString("N0")</span>
+        </a>
+        <a class="st-kpi" asp-action="SeoTools" asp-route-tab="health">
+            <span class="st-kpi-label">@T["seo.kpi_no_summary"]</span>
+            <span class="st-kpi-val">@Model.MissingSummaryCount.ToString("N0")</span>
+        </a>
+    </div>
+
+    <div class="st-split">
+        <section class="st-card">
+            <div class="st-card-head">
+                <h2 class="st-card-title">@T["seo.live_endpoints"]</h2>
+                <p class="st-card-desc">@T["seo.live_hint"]</p>
+            </div>
+            <div class="st-endpoints">
+                <a class="st-ep" href="@Model.SitemapUrl" target="_blank" rel="noopener">
+                    <span class="st-ep-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    </span>
+                    <span class="st-ep-body">
+                        <strong>sitemap.xml</strong>
+                        <span class="st-ep-url ltr-field">@Model.SitemapUrl</span>
+                    </span>
+                    <span class="st-ep-go" aria-hidden="true">↗</span>
+                </a>
+                <a class="st-ep" href="@Model.RobotsUrl" target="_blank" rel="noopener">
+                    <span class="st-ep-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65A.49.49 0 0 0 14 2h-4a.49.49 0 0 0-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46c.14.24.42.32.65.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.05.24.25.42.49.42h4c.24 0 .44-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.1.51.02.65-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg>
+                    </span>
+                    <span class="st-ep-body">
+                        <strong>robots.txt</strong>
+                        <span class="st-ep-url ltr-field">@Model.RobotsUrl</span>
+                    </span>
+                    <span class="st-ep-go" aria-hidden="true">↗</span>
+                </a>
+                @if (!string.IsNullOrEmpty(Model.IndexNowKeyUrl))
+                {
+                    <a class="st-ep" href="@Model.IndexNowKeyUrl" target="_blank" rel="noopener">
+                        <span class="st-ep-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+                        </span>
+                        <span class="st-ep-body">
+                            <strong>IndexNow key</strong>
+                            <span class="st-ep-url ltr-field">@Model.IndexNowKeyUrl</span>
+                        </span>
+                        <span class="st-ep-go" aria-hidden="true">↗</span>
+                    </a>
+                }
+            </div>
+        </section>
+
+        <section class="st-card">
+            <div class="st-card-head">
+                <h2 class="st-card-title">@T["seo.capabilities"]</h2>
+            </div>
+            <ul class="st-caps">
+                <li>@T["seo.cap_meta"]</li>
+                <li>@T["seo.cap_redirect"]</li>
+                <li>@T["seo.cap_broken"]</li>
+                <li>@T["seo.cap_sitemap"]</li>
+                <li>@T["seo.cap_og"]</li>
+                <li>@T["seo.cap_import"]</li>
+                <li>@T["seo.cap_indexnow"]</li>
+                <li>@T["seo.cap_hreflang"]</li>
+            </ul>
+            @if (Model.PostHealth.Count > 0)
+            {
+                <div class="st-health-snap">
+                    <div class="st-snap-row">
+                        <span>میانگین سلامت</span>
+                        <strong class="ltr-field">@avgHealth</strong>
+                    </div>
+                    <div class="st-snap-bar"><i style="width:@avgHealth%"></i></div>
+                    <div class="st-snap-meta">
+                        <span class="st-snap-good">@healthyCount خوب</span>
+                        <span class="st-snap-weak">@weakCount ضعیف</span>
+                    </div>
+                </div>
+            }
+        </section>
+    </div>
+
+    <div class="st-shortcuts">
+        <a asp-action="SeoTools" asp-route-tab="meta">@T["seo.tab_meta"]</a>
+        <a asp-action="SeoTools" asp-route-tab="redirects">@T["seo.tab_redirects"]</a>
+        <a asp-action="SeoTools" asp-route-tab="broken">@T["seo.tab_broken"]</a>
+        <a asp-action="SeoTools" asp-route-tab="health">@T["seo.tab_health"]</a>
+        <a asp-action="SeoTools" asp-route-tab="indexnow">@T["seo.tab_indexnow"]</a>
+    </div>
+}
+
+@* ── Meta ── *@
+@if (tab == "meta")
+{
+    @if (!isSuper)
+    {
+        <div class="st-alert st-alert-info">@T["seo.meta_super_only"]</div>
+    }
+
+    <form asp-action="SeoSaveMeta" method="post" class="st-card st-form">
+        @Html.AntiForgeryToken()
+        <div class="st-card-head">
+            <h2 class="st-card-title">@T["seo.tab_meta"]</h2>
+            <p class="st-card-desc">نام سایت، توضیح پیش‌فرض، Twitter و robots.txt</p>
+        </div>
+
+        <div class="st-fields st-fields-2">
+            <div class="st-field">
+                <label class="st-label">@T["seo.site_name"]</label>
+                <input class="form-control" name="SiteName" value="@Model.Meta.SiteName" maxlength="120" @(isSuper ? null : "disabled") />
+            </div>
+            <div class="st-field">
+                <label class="st-label">@T["seo.author_name"]</label>
+                <input class="form-control" name="AuthorName" value="@Model.Meta.AuthorName" maxlength="120" @(isSuper ? null : "disabled") />
+            </div>
+            <div class="st-field st-field-full">
+                <label class="st-label">@T["seo.site_desc"]</label>
+                <textarea class="form-control" name="SiteDescription" rows="2" maxlength="400" @(isSuper ? null : "disabled")>@Model.Meta.SiteDescription</textarea>
+            </div>
+            <div class="st-field">
+                <label class="st-label">@T["seo.twitter"]</label>
+                <input class="form-control ltr-field" name="TwitterHandle" value="@Model.Meta.TwitterHandle" placeholder="@@site" maxlength="80" @(isSuper ? null : "disabled") />
+            </div>
+            <div class="st-field">
+                <label class="st-label">@T["seo.base_url"]</label>
+                <input class="form-control ltr-field" name="BaseUrl" value="@Model.Meta.BaseUrl" placeholder="https://example.com" maxlength="200" @(isSuper ? null : "disabled") />
+            </div>
+            <div class="st-field st-field-full">
+                <label class="st-label">@T["seo.robots_custom"]</label>
+                <textarea class="form-control ltr-field st-mono" name="RobotsTxt" rows="8" maxlength="4000" placeholder="User-agent: *" @(isSuper ? null : "disabled")>@Model.Meta.RobotsTxt</textarea>
+                <p class="st-hint">@T["seo.robots_hint"]</p>
+            </div>
+        </div>
+
+        @if (isSuper)
+        {
+            <div class="st-form-foot">
+                <button type="submit" class="btn btn-accent">@T["seo.save_meta"]</button>
+            </div>
+        }
+    </form>
+}
+
+@* ── Redirects ── *@
+@if (tab == "redirects")
+{
+    <section class="st-card st-form st-mb">
+        <div class="st-card-head">
+            <h2 class="st-card-title">@T["seo.add_redirect"]</h2>
+            <p class="st-card-desc">مسیر قدیم → مقصد جدید</p>
+        </div>
+        <form asp-action="SeoAddRedirect" method="post">
+            @Html.AntiForgeryToken()
+            <div class="st-fields st-fields-redir">
+                <div class="st-field">
+                    <label class="st-label">@T["seo.from_path"]</label>
+                    <input class="form-control ltr-field" name="FromPath" required placeholder="/post/old-slug" maxlength="500" />
+                </div>
+                <div class="st-field">
+                    <label class="st-label">@T["seo.to_url"]</label>
+                    <input class="form-control ltr-field" name="ToUrl" required placeholder="/post/new-slug" maxlength="1000" />
+                </div>
+                <div class="st-field st-field-sm">
+                    <label class="st-label">@T["seo.status"]</label>
+                    <select class="form-select" name="StatusCode">
+                        <option value="301">301</option>
+                        <option value="302">302</option>
+                        <option value="307">307</option>
+                        <option value="308">308</option>
+                    </select>
+                </div>
+                <div class="st-field st-field-full">
+                    <label class="st-label">@T["seo.notes"]</label>
+                    <input class="form-control form-control-sm" name="Notes" maxlength="300" placeholder="@T["seo.notes"]" />
+                </div>
+                <div class="st-field st-field-btn">
+                    <button type="submit" class="btn btn-accent btn-sm w-100">@T["seo.add"]</button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    @if (Model.Redirects.Count == 0)
+    {
+        <div class="st-empty">
+            <p class="st-empty-title">@T["seo.empty_redirects"]</p>
+            <p class="st-empty-hint">اولین ریدایرکت را از فرم بالا اضافه کنید.</p>
+        </div>
+    }
+    else
+    {
+        <div class="st-filter-bar">
+            <input type="search" class="st-filter" id="redirFilter" placeholder="فیلتر مسیر…" autocomplete="off" />
+            <span class="st-filter-count" id="redirCount">@Model.Redirects.Count</span>
+        </div>
+        <div class="st-rows" id="redirList">
+            @foreach (var r in Model.Redirects)
+            {
+                <article class="st-row @(r.IsActive ? "" : "is-off")" data-q="@((r.FromPath + " " + r.ToUrl).ToLowerInvariant())">
+                    <div class="st-redir">
+                        <code class="st-path ltr-field">@r.FromPath</code>
+                        <span class="st-arrow" aria-hidden="true">→</span>
+                        <code class="st-path ltr-field">@r.ToUrl</code>
+                    </div>
+                    <div class="st-row-meta">
+                        <span class="st-pill st-pill-code">@r.StatusCode</span>
+                        <span class="st-pill">@r.HitCount hit</span>
+                        @if (!r.IsActive) { <span class="st-pill st-pill-off">off</span> }
+                    </div>
+                    <div class="st-row-acts">
+                        <form asp-action="SeoToggleRedirect" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <button type="submit" class="st-btn">@(r.IsActive ? T["seo.disable"] : T["seo.enable"])</button>
+                        </form>
+                        <form asp-action="SeoDeleteRedirect" method="post" onsubmit="return confirm('@T["msg.confirm_delete"]');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@r.Id" />
+                            <button type="submit" class="st-btn st-btn-danger">@T["btn.delete"]</button>
+                        </form>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+}
+
+@* ── Broken ── *@
+@if (tab == "broken")
+{
+    <div class="st-toolbar">
+        <p class="st-toolbar-text">@T["seo.broken_hint"]</p>
+        <form asp-action="SeoScanBrokenLinks" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-accent btn-sm">@T["seo.scan_now"]</button>
+        </form>
+    </div>
+
+    @if (Model.BrokenLinks.Count == 0)
+    {
+        <div class="st-empty st-empty-ok">
+            <p class="st-empty-title">@T["seo.empty_broken"]</p>
+            <p class="st-empty-hint">اسکن دستی یا دوره‌ای لینک‌های داخلی را بررسی می‌کند.</p>
+        </div>
+    }
+    else
+    {
+        <div class="st-filter-bar">
+            <input type="search" class="st-filter" id="brokenFilter" placeholder="فیلتر عنوان یا URL…" autocomplete="off" />
+            <span class="st-filter-count" id="brokenCount">@Model.BrokenLinks.Count</span>
+        </div>
+        <div class="st-rows" id="brokenList">
+            @foreach (var b in Model.BrokenLinks)
+            {
+                <article class="st-row st-row-warn" data-q="@((b.PostTitle + " " + b.Url).ToLowerInvariant())">
+                    <div class="st-row-body">
+                        <a class="st-row-title" dir="auto" asp-controller="Posts" asp-action="Edit" asp-route-id="@b.PostId">@b.PostTitle</a>
+                        <div class="st-row-sub">
+                            <span class="ltr-field st-url">@b.Url</span>
+                            <span class="st-sep">·</span>
+                            <span class="ltr-field">@b.DetectedAtUtc.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                    </div>
+                    <div class="st-row-acts">
+                        <a class="st-btn" asp-controller="Posts" asp-action="Edit" asp-route-id="@b.PostId">ویرایش</a>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+}
+
+@* ── Health ── *@
+@if (tab == "health")
+{
+    <div class="st-toolbar">
+        <p class="st-toolbar-text">@T["seo.health_hint"]</p>
+        @if (Model.PostHealth.Count > 0)
+        {
+            <div class="st-health-legend">
+                <span><i class="st-dot st-dot-good"></i> ≥80</span>
+                <span><i class="st-dot st-dot-mid"></i> 50–79</span>
+                <span><i class="st-dot st-dot-low"></i> &lt;50</span>
+            </div>
+        }
+    </div>
+
+    @if (Model.PostHealth.Count == 0)
+    {
+        <div class="st-empty">
+            <p class="st-empty-title">@T["seo.empty_health"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="st-kpis st-kpis-3 st-mb">
+            <div class="st-kpi">
+                <span class="st-kpi-label">میانگین</span>
+                <span class="st-kpi-val">@avgHealth</span>
+            </div>
+            <div class="st-kpi">
+                <span class="st-kpi-label">سالم</span>
+                <span class="st-kpi-val st-val-good">@healthyCount</span>
+            </div>
+            <div class="st-kpi">
+                <span class="st-kpi-label">ضعیف</span>
+                <span class="st-kpi-val st-val-bad">@weakCount</span>
+            </div>
+        </div>
+
+        <div class="st-filter-bar">
+            <input type="search" class="st-filter" id="healthFilter" placeholder="فیلتر عنوان…" autocomplete="off" />
+        </div>
+
+        <div class="st-health" id="healthList">
+            @foreach (var h in Model.PostHealth.OrderBy(x => x.Score))
+            {
+                var cls = h.Score >= 80 ? "good" : h.Score >= 50 ? "mid" : "low";
+                <article class="st-health-row" data-q="@h.Title.ToLowerInvariant()">
+                    <div class="st-health-main">
+                        <a class="st-health-title" dir="auto" asp-controller="Posts" asp-action="Edit" asp-route-id="@h.Id">@h.Title</a>
+                        <div class="st-flags">
+                            <span class="st-flag @(h.HasSummary ? "on" : "")">@(h.HasSummary ? "✓" : "—") @T["seo.has_summary"]</span>
+                            <span class="st-flag @(h.HasCover ? "on" : "")">@(h.HasCover ? "✓" : "—") @T["seo.has_cover"]</span>
+                        </div>
+                    </div>
+                    <div class="st-score st-score-@cls">
+                        <div class="st-score-track"><i style="width:@h.Score%"></i></div>
+                        <span class="st-score-num ltr-field">@h.Score</span>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+}
+
+@* ── Import ── *@
+@if (tab == "import")
+{
+    @if (!isSuper)
+    {
+        <div class="st-alert st-alert-info">@T["seo.meta_super_only"]</div>
+    }
+    else
+    {
+        <section class="st-card st-form">
+            <div class="st-card-head">
+                <h2 class="st-card-title">@T["seo.import_title"]</h2>
+                <p class="st-card-desc">@T["seo.import_hint"]</p>
+            </div>
+            <form asp-action="SeoImport" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="st-fields st-fields-import">
+                    <div class="st-field st-field-file">
+                        <label class="st-label">@T["seo.import_file"]</label>
+                        <input type="file" class="form-control" name="file" accept=".xml,.json,.wxr,application/xml,application/json" required />
+                    </div>
+                    <div class="st-field">
+                        <label class="st-label">@T["seo.import_format"]</label>
+                        <select class="form-select" name="format">
+                            <option value="wordpress">WordPress WXR</option>
+                            <option value="ghost">Ghost JSON</option>
+                        </select>
+                    </div>
+                    <div class="st-field">
+                        <label class="st-label">@T["seo.import_lang"]</label>
+                        <select class="form-select" name="languageCode">
+                            <option value="fa">fa</option>
+                            <option value="en">en</option>
+                            <option value="ar">ar</option>
+                        </select>
+                    </div>
+                    <div class="st-field st-field-full">
+                        <div class="st-checks">
+                            <label class="st-check">
+                                <input type="checkbox" name="createRedirects" value="true" checked />
+                                <span>@T["seo.import_redirects"]</span>
+                            </label>
+                            <label class="st-check">
+                                <input type="checkbox" name="publishImmediately" value="true" checked />
+                                <span>@T["seo.import_publish"]</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="st-form-foot">
+                    <button type="submit" class="btn btn-accent">@T["seo.import_run"]</button>
+                </div>
+            </form>
+        </section>
+    }
+}
+
+@* ── IndexNow ── *@
+@if (tab == "indexnow")
+{
+    <section class="st-card">
+        <div class="st-card-head">
+            <h2 class="st-card-title">@T["seo.indexnow_title"]</h2>
+            <p class="st-card-desc">@T["seo.indexnow_hint"]</p>
+        </div>
+
+        <div class="st-status">
+            <div class="st-status-cell">
+                <span class="st-status-label">@T["seo.indexnow_status"]</span>
+                <span class="st-status-val @(Model.IndexNowEnabled ? "on" : "off")">
+                    @(Model.IndexNowEnabled ? "enabled" : "disabled")
+                </span>
+            </div>
+            <div class="st-status-cell">
+                <span class="st-status-label">Key</span>
+                <span class="st-status-val ltr-field">@(Model.IndexNowHasKey ? Model.IndexNowKeyHint : "—")</span>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.IndexNowKeyUrl))
+            {
+                <div class="st-status-cell st-status-wide">
+                    <span class="st-status-label">Verify URL</span>
+                    <a class="st-status-link ltr-field" href="@Model.IndexNowKeyUrl" target="_blank" rel="noopener">@Model.IndexNowKeyUrl</a>
+                </div>
+            }
+        </div>
+
+        <p class="st-hint st-mt">@T["seo.indexnow_config"]</p>
+
+        @if (isSuper)
+        {
+            <form asp-action="SeoIndexNowSubmitAll" method="post" class="st-form-foot">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-accent"
+                        @(Model.IndexNowEnabled && Model.IndexNowHasKey ? null : "disabled")>
+                    @T["seo.indexnow_submit_all"]
+                </button>
+            </form>
+        }
+    </section>
+}
+
+<style>
+/* ════════ SEO Tools — full redesign ════════ */
+.st-hero {
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+  gap: 1rem; margin-bottom: 1.15rem;
+}
+.st-eyebrow {
+  margin: 0 0 .2rem; font-size: .68rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent); opacity: .9;
+}
+.st-title {
+  margin: 0 0 .3rem; font-size: 1.4rem; font-weight: 750; letter-spacing: -0.02em;
+}
+.st-sub { margin: 0; font-size: .86rem; color: var(--text-muted); line-height: 1.5; max-width: 28rem; }
+.st-hero-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+.st-chip-link {
+  display: inline-flex; align-items: center;
+  padding: .35rem .7rem; border-radius: 999px;
+  font-size: .75rem; font-weight: 600; font-family: var(--font-mono);
+  background: var(--surface); border: 1px solid var(--border-soft);
+  color: var(--text-muted); text-decoration: none !important;
+  direction: ltr;
+}
+.st-chip-link:hover { color: var(--accent); border-color: var(--accent-dim, var(--accent)); }
+
+/* Alerts */
+.st-alert {
+  padding: .8rem 1rem; border-radius: 12px; font-size: .88rem;
+  border: 1px solid var(--border-soft); margin-bottom: 1rem;
+}
+.st-alert-ok {
+  background: color-mix(in srgb, #9ecb8c 12%, transparent);
+  border-color: color-mix(in srgb, #9ecb8c 32%, var(--border-soft));
+  color: var(--success, #9ecb8c);
+}
+.st-alert-err {
+  background: color-mix(in srgb, #e5637a 12%, transparent);
+  border-color: color-mix(in srgb, #e5637a 35%, var(--border-soft));
+  color: var(--danger);
+}
+.st-alert-info {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-soft));
+  color: var(--text-muted);
+}
+
+/* Tabs */
+.st-tabs {
+  display: flex; flex-wrap: wrap; gap: .25rem;
+  padding: .28rem; margin-bottom: 1.2rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  position: sticky; top: .4rem; z-index: 20;
+}
+.st-tab {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .48rem .9rem; border-radius: 10px;
+  font-size: .82rem; font-weight: 550; color: var(--text-muted);
+  text-decoration: none !important;
+  transition: background .12s, color .12s, box-shadow .12s;
+}
+.st-tab:hover { color: var(--text); }
+.st-tab.is-active {
+  background: var(--surface); color: var(--accent); font-weight: 650;
+  box-shadow: 0 1px 4px rgba(0,0,0,.14);
+}
+.st-badge {
+  font-size: .68rem; font-weight: 700; direction: ltr;
+  background: var(--bg); color: var(--text-muted);
+  border-radius: 999px; padding: .05rem .4rem;
+}
+.st-tab.is-active .st-badge {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+.st-badge-warn {
+  background: color-mix(in srgb, var(--danger) 18%, transparent) !important;
+  color: var(--danger) !important;
+}
+
+/* KPIs */
+.st-kpis {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .6rem; margin-bottom: 1rem;
+}
+.st-kpis-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@@media (max-width: 720px) {
+  .st-kpis, .st-kpis-3 { grid-template-columns: 1fr 1fr; }
+}
+.st-kpi {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 14px; padding: .95rem 1.05rem;
+  display: flex; flex-direction: column; gap: .3rem;
+  text-decoration: none !important; color: inherit;
+  transition: border-color .15s, transform .12s;
+}
+a.st-kpi:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  transform: translateY(-1px);
+}
+.st-kpi-warn {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
+}
+.st-kpi-label { font-size: .72rem; color: var(--text-muted); font-weight: 550; }
+.st-kpi-val {
+  font-size: 1.5rem; font-weight: 750; line-height: 1.1;
+  font-variant-numeric: tabular-nums; direction: ltr; text-align: start;
+}
+.st-kpi-warn .st-kpi-val { color: var(--danger); }
+.st-val-good { color: var(--success, #9ecb8c); }
+.st-val-bad { color: var(--danger); }
+
+/* Cards / layout */
+.st-split {
+  display: grid; grid-template-columns: 1.15fr 1fr; gap: 1rem; margin-bottom: 1rem;
+}
+@@media (max-width: 860px) { .st-split { grid-template-columns: 1fr; } }
+.st-card {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 16px; padding: 1.2rem 1.3rem;
+}
+.st-card-head { margin-bottom: 1rem; }
+.st-card-title { margin: 0 0 .25rem; font-size: 1.02rem; font-weight: 700; }
+.st-card-desc { margin: 0; font-size: .82rem; color: var(--text-muted); line-height: 1.45; }
+.st-mb { margin-bottom: 1rem; }
+.st-mt { margin-top: 1rem; }
+
+.st-endpoints { display: flex; flex-direction: column; gap: .4rem; }
+.st-ep {
+  display: flex; align-items: center; gap: .7rem;
+  padding: .65rem .75rem; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid transparent;
+  text-decoration: none !important; color: inherit;
+  transition: border-color .12s, background .12s;
+}
+.st-ep:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface-2));
+}
+.st-ep-icon {
+  width: 2.2rem; height: 2.2rem; border-radius: 10px;
+  background: var(--surface); color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.st-ep-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .08rem; }
+.st-ep-body strong { font-size: .88rem; }
+.st-ep-url {
+  font-size: .7rem; color: var(--text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.st-ep-go { color: var(--text-faint); font-size: .9rem; }
+
+.st-caps {
+  margin: 0; padding-inline-start: 1.15rem;
+  font-size: .84rem; color: var(--text-muted); line-height: 1.75;
+}
+.st-health-snap {
+  margin-top: 1rem; padding-top: .9rem;
+  border-top: 1px solid var(--border-soft);
+}
+.st-snap-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .82rem; margin-bottom: .4rem;
+}
+.st-snap-bar {
+  height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden;
+}
+.st-snap-bar i {
+  display: block; height: 100%; background: var(--accent); border-radius: inherit;
+}
+.st-snap-meta {
+  display: flex; gap: .85rem; margin-top: .45rem;
+  font-size: .72rem; color: var(--text-faint);
+}
+.st-snap-good { color: var(--success, #9ecb8c); }
+.st-snap-weak { color: var(--danger); }
+
+.st-shortcuts {
+  display: flex; flex-wrap: wrap; gap: .45rem .9rem;
+}
+.st-shortcuts a {
+  font-size: .82rem; font-weight: 600; color: var(--accent);
+  text-decoration: none !important;
+}
+.st-shortcuts a:hover { text-decoration: underline !important; }
+
+/* Forms */
+.st-fields { display: grid; gap: .75rem 1rem; }
+.st-fields-2 { grid-template-columns: 1fr 1fr; }
+.st-fields-redir {
+  grid-template-columns: 1.4fr 1.4fr 5.5rem auto;
+  align-items: end;
+}
+.st-fields-import { grid-template-columns: 1.6fr 1fr 5.5rem; }
+@@media (max-width: 800px) {
+  .st-fields-2, .st-fields-redir, .st-fields-import { grid-template-columns: 1fr; }
+}
+.st-field-full { grid-column: 1 / -1; }
+.st-field-sm { min-width: 0; }
+.st-field-btn { min-width: 6.5rem; }
+.st-label {
+  display: block; font-size: .72rem; font-weight: 600;
+  color: var(--text-muted); margin-bottom: .3rem;
+}
+.st-hint { font-size: .75rem; color: var(--text-faint); margin: .35rem 0 0; }
+.st-mono { font-family: var(--font-mono); font-size: .84rem; }
+.st-form-foot {
+  margin-top: 1.15rem; padding-top: 1rem;
+  border-top: 1px solid var(--border-soft);
+}
+.st-checks { display: flex; flex-wrap: wrap; gap: .7rem 1.25rem; }
+.st-check {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-size: .84rem; cursor: pointer; margin: 0;
+}
+
+/* Toolbar / filter */
+.st-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .75rem; margin-bottom: 1rem;
+}
+.st-toolbar-text { margin: 0; font-size: .84rem; color: var(--text-muted); max-width: 36rem; }
+.st-filter-bar {
+  display: flex; align-items: center; gap: .55rem; margin-bottom: .75rem;
+}
+.st-filter {
+  flex: 1; max-width: 18rem;
+  background: var(--bg); border: 1px solid var(--border-soft);
+  border-radius: 10px; padding: .45rem .8rem;
+  color: var(--text); font-size: .85rem; outline: none;
+}
+.st-filter:focus {
+  border-color: var(--accent-dim, var(--accent));
+  box-shadow: 0 0 0 3px var(--accent-soft, rgba(227,179,65,.15));
+}
+.st-filter-count {
+  font-size: .75rem; font-weight: 650; color: var(--text-faint);
+  direction: ltr; font-variant-numeric: tabular-nums;
+}
+
+/* Rows */
+.st-rows { display: flex; flex-direction: column; gap: .4rem; }
+.st-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .55rem .85rem;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 12px; padding: .75rem 1rem;
+  transition: border-color .12s;
+}
+.st-row:hover { border-color: color-mix(in srgb, var(--accent) 28%, var(--border)); }
+.st-row.is-off { opacity: .55; }
+.st-row-warn { border-color: color-mix(in srgb, var(--danger) 28%, var(--border)); }
+.st-row.is-hidden { display: none !important; }
+.st-row-body { flex: 1; min-width: 0; }
+.st-row-title {
+  font-weight: 650; font-size: .9rem; color: inherit; text-decoration: none;
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.st-row-title:hover { color: var(--accent); }
+.st-row-sub {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .3rem;
+  font-size: .72rem; color: var(--text-faint); margin-top: .2rem;
+}
+.st-url { max-width: 22rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-sep { opacity: .45; }
+.st-row-meta { display: flex; flex-wrap: wrap; gap: .3rem; }
+.st-row-acts { display: flex; flex-wrap: wrap; gap: .3rem; }
+.st-row-acts form { margin: 0; display: inline; }
+
+.st-redir {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem;
+  flex: 1; min-width: 0; font-size: .84rem;
+}
+.st-path {
+  max-width: 15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--surface-2); padding: .15rem .4rem; border-radius: 6px;
+  font-size: .78rem; font-family: var(--font-mono);
+}
+.st-arrow { color: var(--text-faint); flex-shrink: 0; }
+
+.st-pill {
+  display: inline-flex; align-items: center;
+  font-size: .68rem; font-weight: 650;
+  padding: .12rem .45rem; border-radius: 999px;
+  background: var(--surface-2); color: var(--text-muted); direction: ltr;
+}
+.st-pill-code {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+.st-pill-off {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+.st-btn {
+  border: 1px solid var(--border); background: transparent;
+  border-radius: 7px; padding: .28rem .55rem;
+  font-size: .74rem; font-weight: 600; color: var(--text-muted);
+  cursor: pointer; text-decoration: none !important;
+  display: inline-flex; align-items: center;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.st-btn:hover {
+  color: var(--text); border-color: var(--text-faint);
+  background: var(--surface-2);
+}
+.st-btn-danger:hover {
+  color: var(--danger); border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+/* Health */
+.st-health-legend {
+  display: flex; flex-wrap: wrap; gap: .75rem;
+  font-size: .75rem; color: var(--text-muted);
+}
+.st-dot {
+  display: inline-block; width: .55rem; height: .55rem; border-radius: 50%;
+  margin-inline-end: .25rem; vertical-align: middle;
+}
+.st-dot-good { background: var(--success, #9ecb8c); }
+.st-dot-mid { background: var(--accent); }
+.st-dot-low { background: var(--danger); }
+
+.st-health { display: flex; flex-direction: column; gap: .4rem; }
+.st-health-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .65rem 1rem;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 12px; padding: .75rem 1rem;
+}
+.st-health-row.is-hidden { display: none !important; }
+.st-health-main { flex: 1; min-width: 0; }
+.st-health-title {
+  font-weight: 650; font-size: .9rem; color: inherit; text-decoration: none;
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.st-health-title:hover { color: var(--accent); }
+.st-flags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; }
+.st-flag {
+  font-size: .7rem; font-weight: 600; padding: .12rem .45rem;
+  border-radius: 999px; background: var(--surface-2); color: var(--text-faint);
+}
+.st-flag.on {
+  background: color-mix(in srgb, #9ecb8c 15%, transparent);
+  color: var(--success, #9ecb8c);
+}
+.st-score {
+  display: flex; align-items: center; gap: .55rem; min-width: 7.5rem;
+}
+.st-score-track {
+  flex: 1; height: 6px; border-radius: 999px;
+  background: var(--surface-2); overflow: hidden; min-width: 3.5rem;
+}
+.st-score-track i {
+  display: block; height: 100%; border-radius: inherit; background: var(--accent);
+}
+.st-score-good .st-score-track i { background: var(--success, #9ecb8c); }
+.st-score-mid .st-score-track i { background: var(--accent); }
+.st-score-low .st-score-track i { background: var(--danger); }
+.st-score-num {
+  font-size: .85rem; font-weight: 700; min-width: 1.75rem; text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.st-score-good .st-score-num { color: var(--success, #9ecb8c); }
+.st-score-low .st-score-num { color: var(--danger); }
+
+/* IndexNow */
+.st-status {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .6rem;
+}
+@@media (max-width: 576px) { .st-status { grid-template-columns: 1fr; } }
+.st-status-cell {
+  background: var(--surface-2); border-radius: 12px;
+  padding: .8rem .95rem;
+  display: flex; flex-direction: column; gap: .25rem;
+}
+.st-status-wide { grid-column: 1 / -1; }
+.st-status-label { font-size: .72rem; color: var(--text-muted); font-weight: 550; }
+.st-status-val { font-size: .92rem; font-weight: 650; }
+.st-status-val.on { color: var(--success, #9ecb8c); }
+.st-status-val.off { color: var(--text-faint); }
+.st-status-link { font-size: .82rem; color: var(--accent); word-break: break-all; }
+
+/* Empty */
+.st-empty {
+  text-align: center; padding: 2.75rem 1.25rem;
+  background: var(--surface); border: 1px dashed var(--border);
+  border-radius: 16px;
+}
+.st-empty-ok {
+  border-color: color-mix(in srgb, #9ecb8c 35%, var(--border));
+  background: color-mix(in srgb, #9ecb8c 5%, var(--surface));
+}
+.st-empty-title { font-weight: 650; margin: 0 0 .25rem; }
+.st-empty-hint { margin: 0; font-size: .84rem; color: var(--text-muted); }
+</style>
+
+@section Scripts {
+<script>
+(function () {
+  function bindFilter(inputId, listId, countId) {
+    var input = document.getElementById(inputId);
+    var list = document.getElementById(listId);
+    if (!input || !list) return;
+    var countEl = countId ? document.getElementById(countId) : null;
+    input.addEventListener('input', function () {
+      var q = (input.value || '').trim().toLowerCase();
+      var rows = list.querySelectorAll('[data-q]');
+      var n = 0;
+      rows.forEach(function (row) {
+        var ok = !q || (row.getAttribute('data-q') || '').indexOf(q) !== -1;
+        row.classList.toggle('is-hidden', !ok);
+        if (ok) n++;
+      });
+      if (countEl) countEl.textContent = String(n);
+    });
+  }
+  bindFilter('redirFilter', 'redirList', 'redirCount');
+  bindFilter('brokenFilter', 'brokenList', 'brokenCount');
+  bindFilter('healthFilter', 'healthList', null);
+})();
+</script>
+}
