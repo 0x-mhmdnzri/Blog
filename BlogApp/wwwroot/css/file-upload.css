@@ -1,0 +1,132 @@
+/* Shared file-upload dropzone — Apple-clean bar with dashed border */
+.fu-zone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.55rem 0.75rem 0.55rem 0.65rem;
+  border: 1.5px dashed color-mix(in srgb, var(--border-soft, #2a3140) 90%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface, #12161f) 96%, #000);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+.fu-zone:hover,
+.fu-zone:focus-visible {
+  border-color: color-mix(in srgb, var(--accent, #e3b341) 50%, var(--border-soft, #2a3140));
+  background: color-mix(in srgb, var(--accent, #e3b341) 5%, var(--surface, #12161f));
+}
+.fu-zone.is-dragover {
+  border-color: var(--accent, #e3b341);
+  background: color-mix(in srgb, var(--accent, #e3b341) 10%, var(--surface, #12161f));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #e3b341) 18%, transparent);
+}
+.fu-zone.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.fu-zone-btn {
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--border, #3a4254) 90%, transparent);
+  background: transparent;
+  color: var(--text, #e8eaef);
+  border-radius: 10px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.fu-zone-btn:hover {
+  border-color: var(--accent, #e3b341);
+  color: var(--accent, #e3b341);
+  background: color-mix(in srgb, var(--accent, #e3b341) 8%, transparent);
+}
+
+.fu-zone-copy {
+  flex: 1 1 10rem;
+  min-width: 0;
+  text-align: end;
+}
+html[dir="ltr"] .fu-zone-copy,
+[dir="ltr"] .fu-zone-copy { text-align: start; }
+
+.fu-zone-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text, #e8eaef);
+  line-height: 1.35;
+  margin: 0;
+}
+.fu-zone-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-muted, #8b93a7);
+  line-height: 1.4;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.fu-zone-icon {
+  flex-shrink: 0;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent, #e3b341);
+  color: #1a1408;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent, #e3b341) 35%, transparent);
+}
+.fu-zone-icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+}
+
+.fu-zone-picked {
+  flex: 1 1 100%;
+  font-size: 0.78rem;
+  color: var(--text-muted, #8b93a7);
+  direction: ltr;
+  unicode-bidi: isolate;
+  padding-inline: 0.15rem;
+  margin-top: -0.15rem;
+}
+.fu-zone-picked[hidden] { display: none !important; }
+
+.fu-zone input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.fu-zone.fu-zone-sm {
+  min-height: 2.75rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 12px;
+}
+.fu-zone.fu-zone-sm .fu-zone-btn { padding: 0.32rem 0.7rem; font-size: 0.78rem; }
+.fu-zone.fu-zone-sm .fu-zone-icon { width: 2rem; height: 2rem; }
+.fu-zone.fu-zone-sm .fu-zone-title { font-size: 0.82rem; }
+
+@media (max-width: 520px) {
+  .fu-zone { flex-direction: column; align-items: stretch; text-align: center; }
+  .fu-zone-copy { text-align: center !important; }
+  .fu-zone-icon { align-self: center; }
+  .fu-zone-btn { align-self: center; }
+}
