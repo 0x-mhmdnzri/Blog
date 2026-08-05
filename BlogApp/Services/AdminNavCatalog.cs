@@ -70,35 +70,35 @@ public static class AdminNavCatalog
             Icon = "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" },
 
         new() { Key = "moderation", GroupKey = "admin.group.general", LabelKey = "admin.nav.moderation",
-            Controller = "AdminModeration", Action = "Index",
+            Controller = "AdminModeration", Action = "Index", ShowPendingBadge = true,
             Icon = "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" },
 
         new() { Key = "posts", GroupKey = "admin.group.general", LabelKey = "admin.nav.posts",
-            Controller = "Admin", Action = "Posts",
+            Controller = "Admin", Action = "Posts", ShowPendingBadge = true,
             Icon = "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" },
 
         new() { Key = "comments", GroupKey = "admin.group.general", LabelKey = "admin.nav.comments",
             Controller = "Admin", Action = "Comments", ShowPendingBadge = true,
-            Icon = "M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" },
+            Icon = "M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 6V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z" },
 
-        new() { Key = "reports", GroupKey = "admin.group.general", LabelKey = "admin.nav.reports",
+        new() { Key = "reports", GroupKey = "admin.group.general", LabelKey = "admin.nav.reports", ShowPendingBadge = true,
             Controller = "AdminReports", Action = "Index",
             Icon = "M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3zM12 17.3c-.72 0-1.3-.58-1.3-1.3s.58-1.3 1.3-1.3 1.3.58 1.3 1.3-.58 1.3-1.3 1.3zm1-4.3h-2V7h2v6z" },
 
-        new() { Key = "notifications", GroupKey = "admin.group.general", LabelKey = "nav.notifications",
+        new() { Key = "notifications", GroupKey = "admin.group.general", LabelKey = "nav.notifications", ShowPendingBadge = true,
             Controller = "AdminNotifications", Action = "Index",
-            Icon = "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" },
+            Icon = "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" },
 
         new() { Key = "themes", GroupKey = "admin.group.content", LabelKey = "admin.nav.themes",
             Controller = "AdminThemes", Action = "Index", StaffOnly = true, ShowPendingBadge = false,
-            Icon = "M12 3a9 9 0 1 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16a5 5 0 0 0 0-10h-4zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" },
+            Icon = "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" },
 
         new() { Key = "media", GroupKey = "admin.group.content", LabelKey = "admin.nav.media",
             Controller = "Admin", Action = "Media",
             Icon = "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" },
 
         new() { Key = "taxonomy", GroupKey = "admin.group.content", LabelKey = "admin.nav.taxonomy",
-            Controller = "Taxonomy", Action = "Categories",
+            Controller = "Taxonomy", Action = "Index",
             Icon = "M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z" },
 
         new() { Key = "analytics", GroupKey = "admin.group.growth", LabelKey = "admin.nav.analytics",
@@ -107,14 +107,14 @@ public static class AdminNavCatalog
 
         new() { Key = "seo", GroupKey = "admin.group.growth", LabelKey = "admin.nav.seo",
             Controller = "Admin", Action = "SeoTools",
-            Icon = "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" },
+            Icon = "M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" },
 
-        new() { Key = "monetization", GroupKey = "admin.group.growth", LabelKey = "admin.nav.monetization",
+        new() { Key = "monetization", GroupKey = "admin.group.growth", LabelKey = "admin.nav.monetization", ShowPendingBadge = true,
             Controller = "AdminMonetization", Action = "Index", SuperAdminOnly = true,
             Icon = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z" },
 
         new() { Key = "newsletter", GroupKey = "admin.group.growth", LabelKey = "admin.nav.newsletter",
-            Controller = "AdminNewsletter", Action = "Index", SuperAdminOnly = true,
+            Controller = "AdminNewsletter", Action = "Index",
             Icon = "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" },
 
         new() { Key = "profile", GroupKey = "admin.group.account", LabelKey = "admin.nav.profile",
@@ -131,13 +131,13 @@ public static class AdminNavCatalog
 
         new() { Key = "roles", GroupKey = "admin.group.account", LabelKey = "admin.nav.roles",
             Controller = "AdminRoles", Action = "Index", SuperAdminOnly = true,
-            Icon = "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" },
+            Icon = "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" },
 
         new() { Key = "authors", GroupKey = "admin.group.account", LabelKey = "admin.nav.authors",
             Controller = "Account", Action = "Authors", SuperAdminOnly = true,
-            Icon = "M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" },
+            Icon = "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" },
 
-        new() { Key = "apikeys", GroupKey = "admin.group.system", LabelKey = "admin.nav.apikeys",
+        new() { Key = "apikeys", GroupKey = "admin.group.system", LabelKey = "admin.nav.apikeys", ShowPendingBadge = true,
             Controller = "AdminApiKeys", Action = "Index", SuperAdminOnly = true,
             Icon = "M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" },
 
@@ -154,12 +154,12 @@ public static class AdminNavCatalog
             Icon = "M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" },
 
         new() { Key = "enterprise", GroupKey = "admin.group.system", LabelKey = "admin.nav.enterprise",
-            Controller = "AdminEnterprise", Action = "Index", SuperAdminOnly = true, SuperOnlyTag = true,
+            Controller = "AdminEnterprise", Action = "Index", SuperAdminOnly = true,
             Icon = "M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" },
 
         new() { Key = "backup", GroupKey = "admin.group.system", LabelKey = "admin.nav.backup",
-            Controller = "AdminBackup", Action = "Index", SuperAdminOnly = true, SuperOnlyTag = true,
-            Icon = "M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z" },
+            Controller = "AdminBackup", Action = "Index", SuperAdminOnly = true,
+            Icon = "M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" },
 
         new() { Key = "audit", GroupKey = "admin.group.system", LabelKey = "admin.nav.audit",
             Controller = "AdminAudit", Action = "Index", SuperAdminOnly = true,
