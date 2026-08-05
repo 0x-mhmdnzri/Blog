@@ -35,8 +35,7 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.Themes)
             .Concat(UiTranslationCatalog.UsersRoles)
             .Concat(UiTranslationCatalog.ApiKeysAdmin)
-            .Concat(UiTranslationCatalog.Settings)
-            .Concat(UiTranslationCatalog.FileUpload);
+            .Concat(UiTranslationCatalog.Report);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
@@ -58,71 +57,7 @@ public sealed partial class UiTranslatorService
             }
         }
 
-        var tracked = await _db.UiTranslations
-            .Where(t => t.Group == "ana" || t.Key == "admin.nav.analytics"
-                        || t.Group == "bk" || t.Key == "admin.nav.backup"
-                        || t.Group == "ent" || t.Key == "admin.nav.enterprise"
-                        || t.Group == "mkt" || t.Group == "nav" || t.Group == "search"
-                        || t.Group == "auth" || t.Group == "a11y" || t.Group == "apikey"
-                        || t.Group == "themes" || t.Group == "media" || t.Group == "tax" || t.Group == "ana" || t.Group == "users" || t.Group == "roles"
-                        || t.Group == "form" || t.Group == "fu")
-            .ToListAsync(ct);
-
-        var byId = tracked.ToDictionary(t => t.Key + "|" + t.LanguageCode, StringComparer.OrdinalIgnoreCase);
-        var changed = 0;
-
-        void UpsertCatalog((string Key, string Group, string Fa, string En, string Ar)[] rows)
-        {
-            foreach (var (key, group, fa, en, ar) in rows)
-            {
-                foreach (var (code, value) in new[] { ("fa", fa), ("en", en), ("ar", ar) })
-                {
-                    var id = key + "|" + code;
-                    if (byId.TryGetValue(id, out var row))
-                    {
-                        if (row.Value != value)
-                        {
-                            row.Value = value;
-                            row.Group = group;
-                            row.UpdatedAtUtc = DateTime.UtcNow;
-                            changed++;
-                        }
-                    }
-                    else if (!set.Contains(id))
-                    {
-                        _db.UiTranslations.Add(new UiTranslation
-                        {
-                            Key = key,
-                            LanguageCode = code,
-                            Value = value,
-                            Group = group,
-                            UpdatedAtUtc = DateTime.UtcNow
-                        });
-                        changed++;
-                    }
-                }
-            }
-        }
-
-        UpsertCatalog(UiTranslationCatalog.Analytics);
-        UpsertCatalog(UiTranslationCatalog.Backup);
-        UpsertCatalog(UiTranslationCatalog.Enterprise);
-        UpsertCatalog(UiTranslationCatalog.Marketing);
-        UpsertCatalog(UiTranslationCatalog.Search);
-        UpsertCatalog(UiTranslationCatalog.Auth);
-        UpsertCatalog(UiTranslationCatalog.NavExtra);
-        UpsertCatalog(UiTranslationCatalog.Accessibility);
-        UpsertCatalog(UiTranslationCatalog.Themes);
-        UpsertCatalog(UiTranslationCatalog.Media);
-        UpsertCatalog(UiTranslationCatalog.Taxonomy);
-        UpsertCatalog(UiTranslationCatalog.UsersRoles);
-        UpsertCatalog(UiTranslationCatalog.ApiKeysAdmin);
-        UpsertCatalog(UiTranslationCatalog.FileUpload);
-        UpsertCatalog(UiTranslationCatalog.Settings);
-
-        if (added > 0 || changed > 0)
+        if (added > 0)
             await _db.SaveChangesAsync(ct);
-
-        await InvalidateCacheAsync();
     }
 }
