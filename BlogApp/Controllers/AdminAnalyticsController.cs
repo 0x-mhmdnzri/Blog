@@ -96,7 +96,6 @@ public partial class AdminAnalyticsController : Controller
             .Select(p => new TopPostItem { Title = p.Title, Slug = p.Slug, Views = p.ViewCount, RangeViews = 0 })
             .ToListAsync();
 
-        var rangeByPost = views.GroupBy(v => v.PostId).ToDictionary(g => g.Key, g => g.Count());
         var trendingPosts = new List<TopPostItem>();
         foreach (var g in views.GroupBy(v => v.PostId).OrderByDescending(g => g.Count()).Take(8))
         {
@@ -138,6 +137,8 @@ public partial class AdminAnalyticsController : Controller
             catch { }
         }
 
+        var devicePopulation = BuildDevicePopulation(views);
+
         ViewData["Title"] = "Analytics";
         return View(new AnalyticsDashboardViewModel
         {
@@ -165,8 +166,75 @@ public partial class AdminAnalyticsController : Controller
             ZeroResultRatePercent = zeroRate,
             PopularPosts = popular,
             TrendingPosts = trendingPosts,
+            DevicePopulation = devicePopulation,
             Api = apiPanel
         });
+    }
+
+    private static List<DevicePopulationItem> BuildDevicePopulation(List<PostView> views)
+    {
+        var total = views.Count;
+        if (total == 0)
+            return new List<DevicePopulationItem>();
+
+        static string Norm(string? d)
+        {
+            var s = (d ?? "").Trim().ToLowerInvariant();
+            return s switch
+            {
+                "mobile" or "phone" or "smartphone" => "mobile",
+                "tablet" or "ipad" => "tablet",
+                "desktop" or "pc" or "computer" => "desktop",
+                "bot" or "crawler" or "spider" => "bot",
+                "" => "other",
+                _ => s is "mobile" or "tablet" or "desktop" or "bot" ? s : "other"
+            };
+        }
+
+        var order = new[] { "desktop", "mobile", "tablet", "bot", "other" };
+        var groups = views
+            .GroupBy(v => Norm(v.DeviceType))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var list = new List<DevicePopulationItem>();
+        foreach (var cat in order)
+        {
+            if (!groups.TryGetValue(cat, out var items) || items.Count == 0)
+                continue;
+
+            string? topOs = items
+                .Where(v => !string.IsNullOrWhiteSpace(v.Os))
+                .GroupBy(v => v.Os!)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .FirstOrDefault();
+
+            string? topBrowser = items
+                .Where(v => !string.IsNullOrWhiteSpace(v.Browser))
+                .GroupBy(v => v.Browser!)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .FirstOrDefault();
+
+            list.Add(new DevicePopulationItem
+            {
+                Category = cat,
+                Label = cat switch
+                {
+                    "desktop" => "Desktop",
+                    "mobile" => "Mobile",
+                    "tablet" => "Tablet",
+                    "bot" => "Bot",
+                    _ => "Other"
+                },
+                Count = items.Count,
+                Percent = Math.Round(100.0 * items.Count / total, 1),
+                TopOs = topOs,
+                TopBrowser = topBrowser
+            });
+        }
+
+        return list.OrderByDescending(x => x.Count).ToList();
     }
 
     private static TopPostItem MakeTop(string title, string slug, int views, int rangeViews) => new()
