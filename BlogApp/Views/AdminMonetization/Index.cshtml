@@ -1,1 +1,74 @@
-PLACEHOLDER_MON
+@inject BlogApp.Services.IUiTranslator T
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = T["admin.nav.monetization"];
+    var tab = (string)(ViewBag.ActiveTab ?? "overview");
+    var plans = (List<SubscriptionPlan>)ViewBag.Plans;
+    var subs = (List<UserSubscription>)ViewBag.Subscriptions;
+    var donations = (List<Donation>)ViewBag.Donations;
+    var ads = (List<Advertisement>)ViewBag.Ads;
+    var affiliates = (List<AffiliateLink>)ViewBag.Affiliates;
+
+    string TabClass(string id) => tab == id ? "is-active" : "";
+
+    string StatusPill(string status) => status?.ToLowerInvariant() switch
+    {
+        "active" or "confirmed" => "mon-pill-ok",
+        "pending" => "mon-pill-warn",
+        "cancelled" or "rejected" or "expired" => "mon-pill-off",
+        _ => ""
+    };
+}
+
+@if (TempData["MonOk"] is string ok)
+{
+    <div class="mon-alert mon-alert-ok mb-3" role="status">@ok</div>
+}
+@if (TempData["MonErr"] is string err)
+{
+    <div class="mon-alert mon-alert-err mb-3" role="alert">@err</div>
+}
+
+<header class="mon-header">
+    <div>
+        <h1 class="mon-title">@T["admin.nav.monetization"]</h1>
+        <p class="mon-sub">@T["mon.hero_sub"]</p>
+    </div>
+    <div class="mon-header-links">
+        <a class="mon-ext" asp-controller="Monetization" asp-action="Membership" target="_blank" rel="noopener">@T["mon.public_membership"] ↗</a>
+        <a class="mon-ext" asp-controller="Monetization" asp-action="Donate" target="_blank" rel="noopener">@T["mon.public_donate"] ↗</a>
+    </div>
+</header>
+
+<nav class="mon-nav" role="tablist" aria-label="@T["mon.tabs_aria"]">
+    <a class="mon-nav-item @TabClass("overview")" asp-action="Index" asp-route-tab="overview">@T["mon.tab_overview"]</a>
+    <a class="mon-nav-item @TabClass("plans")" asp-action="Index" asp-route-tab="plans">
+        @T["mon.tab_plans"]
+        <span class="mon-nav-badge">@ViewBag.PlanCount</span>
+    </a>
+    <a class="mon-nav-item @TabClass("members")" asp-action="Index" asp-route-tab="members">
+        @T["mon.tab_members"]
+        <span class="mon-nav-badge">@ViewBag.ActiveMembers</span>
+    </a>
+    <a class="mon-nav-item @TabClass("donations")" asp-action="Index" asp-route-tab="donations">
+        @T["mon.tab_donations"]
+        @if ((int)ViewBag.PendingDonations > 0)
+        {
+            <span class="mon-nav-badge mon-nav-badge-warn">@ViewBag.PendingDonations</span>
+        }
+    </a>
+    <a class="mon-nav-item @TabClass("ads")" asp-action="Index" asp-route-tab="ads">
+        @T["mon.tab_ads"]
+        <span class="mon-nav-badge">@ViewBag.AdCount</span>
+    </a>
+    <a class="mon-nav-item @TabClass("affiliates")" asp-action="Index" asp-route-tab="affiliates">@T["mon.tab_affiliates"]</a>
+</nav>
+
+@await Html.PartialAsync("_MonTab_overview")
+@await Html.PartialAsync("_MonTab_plans")
+@await Html.PartialAsync("_MonTab_members")
+@await Html.PartialAsync("_MonTab_donations")
+@await Html.PartialAsync("_MonTab_ads")
+@await Html.PartialAsync("_MonTab_affiliates")
+
+@await Html.PartialAsync("_MonetizationStyles")
