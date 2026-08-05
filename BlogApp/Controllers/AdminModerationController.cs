@@ -41,7 +41,7 @@ public class AdminModerationController : Controller
         var seeAll = AuthorAccess.CanModerateAllComments(User);
         var isSuper = AuthorAccess.IsSuperAdmin(User);
 
-        var commentQuery = _db.Comments.Include(c => c.Post)
+        var commentQuery = _db.Comments.AsNoTracking().Include(c => c.Post)
             .Where(c => c.Status == CommentStatus.Pending);
         if (!seeAll)
             commentQuery = commentQuery.Where(c => c.Post.AuthorId == userId);
@@ -67,8 +67,8 @@ public class AdminModerationController : Controller
 
         if (!isSuper)
         {
-            var myPostIds = await _db.Posts.Where(p => p.AuthorId == userId).Select(p => p.Id).ToListAsync();
-            var myCommentIds = await _db.Comments.Where(c => myPostIds.Contains(c.PostId)).Select(c => c.Id).ToListAsync();
+            var myPostIds = await _db.Posts.AsNoTracking().Where(p => p.AuthorId == userId).Select(p => p.Id).ToListAsync();
+            var myCommentIds = await _db.Comments.AsNoTracking().Where(c => myPostIds.Contains(c.PostId)).Select(c => c.Id).ToListAsync();
             reportQuery = reportQuery.Where(r =>
                 (r.TargetType == ContentReportTarget.Post && myPostIds.Contains(r.TargetId))
                 || (r.TargetType == ContentReportTarget.Comment && myCommentIds.Contains(r.TargetId)));
@@ -77,20 +77,6 @@ public class AdminModerationController : Controller
         var openReports = await reportQuery
             .OrderByDescending(r => r.CreatedAtUtc)
             .Take(50)
-            .Select(r => new ContentReportListItem
-            {
-                Id = r.Id,
-                TargetType = r.TargetType,
-                TargetId = r.TargetId,
-                Reason = r.Reason,
-                Details = r.Details,
-                Status = r.Status,
-                CreatedAtUtc = r.CreatedAtUtc,
-                ReporterName = r.ReporterUser != null ? r.ReporterUser.UserName : null,
-                TargetTitle = r.TargetType == ContentReportTarget.Post
-                    ? _db.Posts.Where(p => p.Id == r.TargetId).Select(p => p.Title).FirstOrDefault()
-                    : _db.Comments.Where(c => c.Id == r.TargetId).Select(c => c.Body).FirstOrDefault()
-            })
             .ToListAsync();
 
         List<PendingPostReviewItem> pendingPosts = new();
@@ -104,10 +90,13 @@ public class AdminModerationController : Controller
                 {
                     Id = p.Id,
                     Title = p.Title,
+                    Slug = p.Slug,
                     Summary = p.Summary,
                     LanguageCode = p.LanguageCode,
-                    AuthorName = p.Author != null ? (p.Author.DisplayName ?? p.Author.UserName) : "",
-                    UpdatedAtUtc = p.UpdatedAtUtc
+                    AuthorId = p.AuthorId,
+                    AuthorName = p.Author != null ? (p.Author.DisplayName ?? p.Author.UserName ?? "") : "",
+                    UpdatedAtUtc = p.UpdatedAtUtc,
+                    CreatedAtUtc = p.CreatedAtUtc
                 })
                 .ToListAsync();
         }
