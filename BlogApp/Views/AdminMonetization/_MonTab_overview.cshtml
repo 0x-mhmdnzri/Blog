@@ -1,0 +1,77 @@
+@if (tab == "overview")
+{
+    <div class="mon-kpis">
+        <div class="mon-kpi">
+            <span class="mon-kpi-label">@T["mon.kpi_plans"]</span>
+            <span class="mon-kpi-value">@ViewBag.PlanCount</span>
+        </div>
+        <div class="mon-kpi">
+            <span class="mon-kpi-label">@T["mon.kpi_members"]</span>
+            <span class="mon-kpi-value">@ViewBag.ActiveMembers</span>
+        </div>
+        <div class="mon-kpi @((int)ViewBag.PendingDonations > 0 ? "mon-kpi-warn" : "")">
+            <span class="mon-kpi-label">@T["mon.kpi_pending_don"]</span>
+            <span class="mon-kpi-value">@ViewBag.PendingDonations</span>
+        </div>
+        <div class="mon-kpi">
+            <span class="mon-kpi-label">@T["mon.kpi_don_sum"]</span>
+            <span class="mon-kpi-value mon-kpi-sm">@(((decimal)ViewBag.ConfirmedDonationSum).ToString("N0"))</span>
+        </div>
+        <div class="mon-kpi">
+            <span class="mon-kpi-label">@T["mon.kpi_ads"]</span>
+            <span class="mon-kpi-value">@ViewBag.AdCount</span>
+        </div>
+        <div class="mon-kpi">
+            <span class="mon-kpi-label">@T["mon.kpi_aff_clicks"]</span>
+            <span class="mon-kpi-value">@ViewBag.AffiliateClicks</span>
+        </div>
+    </div>
+
+    <div class="mon-grid-2">
+        <section class="mon-card">
+            <h2 class="mon-card-title">@T["mon.overview_hint"]</h2>
+            <ul class="mon-cap-list">
+                <li>@T["mon.cap_plans"]</li>
+                <li>@T["mon.cap_premium"]</li>
+                <li>@T["mon.cap_donate"]</li>
+                <li>@T["mon.cap_ads"]</li>
+                <li>@T["mon.cap_aff"]</li>
+                <li>@T["mon.cap_sponsored"]</li>
+            </ul>
+        </section>
+        <section class="mon-card">
+            <h2 class="mon-card-title">@T["mon.public_links"]</h2>
+            <div class="mon-endpoint-list">
+                <a class="mon-endpoint" asp-controller="Monetization" asp-action="Membership" target="_blank" rel="noopener">
+                    <span class="mon-endpoint-body">
+                        <strong>@T["mon.public_membership"]</strong>
+                        <span class="ltr-field mon-endpoint-url">/Monetization/Membership</span>
+                    </span>
+                    <span aria-hidden="true">↗</span>
+                </a>
+                <a class="mon-endpoint" asp-controller="Monetization" asp-action="Donate" target="_blank" rel="noopener">
+                    <span class="mon-endpoint-body">
+                        <strong>@T["mon.public_donate"]</strong>
+                        <span class="ltr-field mon-endpoint-url">/Monetization/Donate</span>
+                    </span>
+                    <span aria-hidden="true">↗</span>
+                </a>
+                <div class="mon-endpoint mon-endpoint-static">
+                    <span class="mon-endpoint-body">
+                        <strong>Affiliate redirect</strong>
+                        <span class="ltr-field mon-endpoint-url">/go/{code}</span>
+                    </span>
+                </div>
+            </div>
+            <p class="mon-hint mt-3 mb-0">@T["mon.premium_posts"]: <strong class="ltr-field">@ViewBag.PremiumPosts</strong></p>
+        </section>
+    </div>
+
+    <div class="mon-quick">
+        <a class="mon-quick-link" asp-action="Index" asp-route-tab="plans">@T["mon.tab_plans"] ←</a>
+        <a class="mon-quick-link" asp-action="Index" asp-route-tab="members">@T["mon.tab_members"] ←</a>
+        <a class="mon-quick-link" asp-action="Index" asp-route-tab="donations">@T["mon.tab_donations"] ←</a>
+        <a class="mon-quick-link" asp-action="Index" asp-route-tab="ads">@T["mon.tab_ads"] ←</a>
+        <a class="mon-quick-link" asp-action="Index" asp-route-tab="affiliates">@T["mon.tab_affiliates"] ←</a>
+    </div>
+}
