@@ -55,6 +55,7 @@
     var section = qs('[data-report-section]');
     if (!section) return;
 
+    // After successful submit, keep panel closed and highlight toast
     if (section.getAttribute('data-report-ok') === '1') {
       var toast = qs('[data-report-toast]', section);
       if (toast) {
@@ -75,6 +76,7 @@
       }
     });
 
+    // Legacy "گزارش" buttons (comments / toolbar)
     document.querySelectorAll('[data-report-open-legacy], [onclick*="reportBox"]').forEach(function (el) {
       el.addEventListener('click', function (e) {
         e.preventDefault();
@@ -115,6 +117,7 @@
         }
       });
 
+      // Clear reason error when user picks one
       form.querySelectorAll('input[name="Reason"]').forEach(function (r) {
         r.addEventListener('change', function () {
           var reasonErr = qs('[data-report-reason-error]', section);
