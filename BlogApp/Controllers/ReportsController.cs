@@ -77,6 +77,12 @@ public class ReportsController : Controller
             return LocalRedirect(SafeReturn(returnUrl));
         }
 
+        if (dto.Details.Length < 8)
+        {
+            TempData["ReportMsg"] = "توضیح گزارش الزامی است (حداقل ۸ نویسه).";
+            return LocalRedirect(SafeReturn(returnUrl));
+        }
+
         if (dto.Details.Length > 1000) dto.Details = dto.Details[..1000];
 
         var reasonCode = dto.Reason.ToLowerInvariant();
