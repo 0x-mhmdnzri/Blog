@@ -89,8 +89,8 @@ public partial class AdminController : Controller
 
         var postsByCategory = await postQuery
             .GroupBy(p => p.Category != null ? p.Category.Name : _t["msg.uncategorized"])
-            .Select(g => new ChartPoint { Label = g.Key, Value = g.Count() })
-            .OrderByDescending(x => x.Value)
+            .Select(g => new NamedCount { Name = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
             .Take(8)
             .ToListAsync();
 
@@ -106,10 +106,10 @@ public partial class AdminController : Controller
             .GroupBy(v => v.PostId)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        var topPosts = topPostsRaw.Select(p => new AdminTopPostItem
+        var topPosts = topPostsRaw.Select(p => new TopPostItem
         {
             Title = p.Title,
-           Slug = p.Slug,
+            Slug = p.Slug,
             Views = p.ViewCount,
             RangeViews = topRangeViews.GetValueOrDefault(p.Id, 0)
         }).ToList();
@@ -188,7 +188,7 @@ public partial class AdminController : Controller
         var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
         if (comment is null) return NotFound();
 
-        if (!AuthorAccess.CanModeratePost(User, comment.Post))
+        if (!AuthorAccess.CanModerateComment(User, comment.Post))
             return Forbid();
 
         comment.Status = CommentStatus.Approved;
@@ -208,7 +208,7 @@ public partial class AdminController : Controller
         var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
         if (comment is null) return NotFound();
 
-        if (!AuthorAccess.CanModeratePost(User, comment.Post))
+        if (!AuthorAccess.CanModerateComment(User, comment.Post))
             return Forbid();
 
         comment.Status = CommentStatus.Rejected;
@@ -228,7 +228,7 @@ public partial class AdminController : Controller
         var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
         if (comment is null) return NotFound();
 
-        if (!AuthorAccess.CanModeratePost(User, comment.Post))
+        if (!AuthorAccess.CanModerateComment(User, comment.Post))
             return Forbid();
 
         _db.Comments.Remove(comment);
