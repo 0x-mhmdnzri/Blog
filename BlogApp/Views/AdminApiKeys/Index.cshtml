@@ -2,7 +2,7 @@
 @using BlogApp.Models
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "کلیدهای API";
+    ViewData["Title"] = T["apikey.admin.title"];
     var list = Model.ToList();
     var pending = (int)(ViewBag.PendingCount ?? list.Count(k => k.ApprovalStatus == ApiKeyApprovalStatus.Pending && !k.IsBanned));
     var active = list.Count(k => k.IsUsable);
@@ -101,13 +101,13 @@
 <div class="ak-page">
     <div class="ak-hero">
         <div>
-            <h1>کلیدهای API</h1>
-            <p>کاربران (خواننده/نویسنده) درخواست می‌دهند؛ فقط سوپرادمین تأیید می‌کند. پس از تأیید، اعلان به کاربر ارسال می‌شود و کلید برای API قابل استفاده می‌شود.</p>
+            <h1>@T["apikey.admin.title"]</h1>
+            <p>@T["apikey.admin.lead"]</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a class="btn btn-accent btn-sm" asp-action="Index" asp-route-status="pending">در انتظار (@pending)</a>
-            <a class="btn btn-ghost btn-sm" asp-controller="AdminAnalytics" asp-action="Api">مانیتور API</a>
-            <a class="btn btn-ghost btn-sm" href="/api/docs" target="_blank" rel="noopener">مستندات</a>
+            <a class="btn btn-accent btn-sm" asp-action="Index" asp-route-status="pending">@string.Format(T["apikey.admin.pending_n"].ToString(), pending)</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminAnalytics" asp-action="Api">@T["apikey.admin.monitor"]</a>
+            <a class="btn btn-ghost btn-sm" href="/api/docs" target="_blank" rel="noopener">@T["apikey.admin.docs"]</a>
         </div>
     </div>
 
@@ -117,35 +117,35 @@
     }
 
     <div class="ak-kpis">
-        <div class="ak-kpi wait"><div class="lbl">در انتظار تأیید</div><div class="val ltr-field">@pending</div></div>
-        <div class="ak-kpi ok"><div class="lbl">قابل استفاده</div><div class="val ltr-field">@active</div></div>
-        <div class="ak-kpi warn"><div class="lbl">بن‌شده</div><div class="val ltr-field">@banned</div></div>
-        <div class="ak-kpi"><div class="lbl">مجموع درخواست‌ها</div><div class="val ltr-field">@totalReq</div></div>
+        <div class="ak-kpi wait"><div class="lbl">@T["apikey.admin.kpi_pending"]</div><div class="val ltr-field">@pending</div></div>
+        <div class="ak-kpi ok"><div class="lbl">@T["apikey.admin.kpi_usable"]</div><div class="val ltr-field">@active</div></div>
+        <div class="ak-kpi warn"><div class="lbl">@T["apikey.admin.kpi_banned"]</div><div class="val ltr-field">@banned</div></div>
+        <div class="ak-kpi"><div class="lbl">@T["apikey.admin.kpi_total_req"]</div><div class="val ltr-field">@totalReq</div></div>
     </div>
 
     <form method="get" class="ak-toolbar">
-        <input class="form-control form-control-sm" name="q" value="@ViewBag.Q" placeholder="جست‌وجو: کاربر، نام، prefix…" />
+        <input class="form-control form-control-sm" name="q" value="@ViewBag.Q" placeholder="@T["apikey.admin.ph_search"]" />
         <select class="form-select form-select-sm" name="status" style="max-width:11rem;">
-            <option value="">همه وضعیت‌ها</option>
-            <option value="pending" selected="@(ViewBag.Status == "pending")">در انتظار تأیید</option>
-            <option value="approved" selected="@(ViewBag.Status == "approved")">تأییدشده</option>
-            <option value="active" selected="@(ViewBag.Status == "active")">فعال و تأییدشده</option>
-            <option value="rejected" selected="@(ViewBag.Status == "rejected")">رد شده</option>
-            <option value="disabled" selected="@(ViewBag.Status == "disabled")">غیرفعال</option>
-            <option value="banned" selected="@(ViewBag.Status == "banned")">بن</option>
+            <option value="">@T["apikey.admin.all_status"]</option>
+            <option value="pending" selected="@(ViewBag.Status == "pending")">@T["apikey.admin.st_pending"]</option>
+            <option value="approved" selected="@(ViewBag.Status == "approved")">@T["apikey.admin.st_approved"]</option>
+            <option value="active" selected="@(ViewBag.Status == "active")">@T["apikey.admin.st_active"]</option>
+            <option value="rejected" selected="@(ViewBag.Status == "rejected")">@T["apikey.admin.st_rejected"]</option>
+            <option value="disabled" selected="@(ViewBag.Status == "disabled")">@T["apikey.admin.st_disabled"]</option>
+            <option value="banned" selected="@(ViewBag.Status == "banned")">@T["apikey.admin.st_banned"]</option>
         </select>
-        <button class="btn btn-ghost btn-sm" type="submit">اعمال فیلتر</button>
+        <button class="btn btn-ghost btn-sm" type="submit">@T["apikey.admin.apply_filter"]</button>
         @if (!string.IsNullOrEmpty(ViewBag.Q as string) || !string.IsNullOrEmpty(ViewBag.Status as string))
         {
-            <a class="btn btn-ghost btn-sm" asp-action="Index">پاک کردن</a>
+            <a class="btn btn-ghost btn-sm" asp-action="Index">@T["apikey.admin.clear"]</a>
         }
-        <span class="ms-auto small text-muted-dark">@list.Count نتیجه</span>
+        <span class="ms-auto small text-muted-dark">@string.Format(T["apikey.admin.results_n"].ToString(), list.Count)</span>
     </form>
 
     @if (list.Count == 0)
     {
         <div class="ak-empty">
-            موردی نیست. کاربران از منوی حساب → <strong>کلیدهای API</strong> درخواست می‌دهند.
+            @T["apikey.admin.empty"]
         </div>
     }
     else
@@ -163,25 +163,25 @@
                         <span class="ak-name">@k.Name</span>
                         @if (k.IsBanned)
                         {
-                            <span class="ak-pill ban" title="@k.BanReason">بن</span>
+                            <span class="ak-pill ban" title="@k.BanReason">@T["apikey.admin.st_banned"]</span>
                         }
                         else if (k.ApprovalStatus == ApiKeyApprovalStatus.Pending)
                         {
-                            <span class="ak-pill wait">در انتظار تأیید</span>
+                            <span class="ak-pill wait">@T["apikey.admin.st_pending"]</span>
                         }
                         else if (k.ApprovalStatus == ApiKeyApprovalStatus.Rejected)
                         {
-                            <span class="ak-pill ban">رد شده</span>
+                            <span class="ak-pill ban">@T["apikey.admin.st_rejected"]</span>
                         }
                         else if (!k.IsActive)
                         {
-                            <span class="ak-pill off">غیرفعال</span>
+                            <span class="ak-pill off">@T["apikey.admin.st_disabled"]</span>
                         }
                         else
                         {
-                            <span class="ak-pill on">تأیید و فعال</span>
+                            <span class="ak-pill on">@T["apikey.status_active"]</span>
                         }
-                        <span class="ak-prefix" title="پیشوند کلید">@k.KeyPrefix…</span>
+                        <span class="ak-prefix" title="@T["apikey.admin.prefix_title"]">@k.KeyPrefix…</span>
                     </div>
                     <div class="ak-user">@((k.User?.UserName ?? k.UserId))</div>
                     <div class="ak-scopes">
@@ -191,24 +191,24 @@
                         }
                     </div>
                     <div class="ak-stats">
-                        <span>درخواست: <strong class="ltr-field">@k.RequestCount</strong></span>
-                        <span>ضربات: <strong class="ltr-field">@k.AbuseStrikeCount</strong></span>
+                        <span>@T["apikey.admin.meta_req"] <strong class="ltr-field">@k.RequestCount</strong></span>
+                        <span>@T["apikey.admin.meta_strikes"] <strong class="ltr-field">@k.AbuseStrikeCount</strong></span>
                         @if (k.LastUsedAtUtc is { } last)
                         {
-                            <span>آخرین: <strong class="ltr-field">@last.ToString("yyyy-MM-dd HH:mm") UTC</strong></span>
+                            <span>@T["apikey.admin.meta_last"] <strong class="ltr-field">@last.ToString("yyyy-MM-dd HH:mm") UTC</strong></span>
                         }
                         @if (k.ExpiresAtUtc is { } exp)
                         {
-                            <span>انقضا: <strong class="ltr-field">@exp.ToString("yyyy-MM-dd")</strong></span>
+                            <span>@T["apikey.admin.meta_exp"] <strong class="ltr-field">@exp.ToString("yyyy-MM-dd")</strong></span>
                         }
                     </div>
                     @if (k.ApprovalStatus == ApiKeyApprovalStatus.Rejected && !string.IsNullOrWhiteSpace(k.RejectionReason))
                     {
-                        <div class="small mt-1" style="color:#e5637a;">دلیل رد: @k.RejectionReason</div>
+                        <div class="small mt-1" style="color:#e5637a;">@T["apikey.admin.reject_reason"] @k.RejectionReason</div>
                     }
                     @if (k.IsBanned && !string.IsNullOrWhiteSpace(k.BanReason))
                     {
-                        <div class="small mt-1" style="color:#e5637a;">دلیل بن: @k.BanReason</div>
+                        <div class="small mt-1" style="color:#e5637a;">@T["apikey.admin.ban_reason"] @k.BanReason</div>
                     }
                 </div>
                 <div class="ak-actions">
@@ -217,13 +217,13 @@
                         <form asp-action="Approve" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@k.Id" />
-                            <button class="btn btn-accent btn-sm" type="submit">تأیید</button>
+                            <button class="btn btn-accent btn-sm" type="submit">@T["apikey.admin.approve"]</button>
                         </form>
-                        <form asp-action="Reject" method="post" onsubmit="var r=prompt('دلیل رد (اختیاری):'); if(r===null) return false; this.querySelector('[name=reason]').value=r; return true;">
+                        <form asp-action="Reject" method="post" onsubmit="var r=prompt(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["apikey.admin.reject_prompt"].ToString()))); if(r===null) return false; this.querySelector('[name=reason]').value=r; return true;">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@k.Id" />
                             <input type="hidden" name="reason" value="" />
-                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">رد</button>
+                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">@T["apikey.admin.reject"]</button>
                         </form>
                     }
                     else if (k.IsBanned)
@@ -231,23 +231,23 @@
                         <form asp-action="Unban" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@k.Id" />
-                            <button class="btn btn-accent btn-sm" type="submit">رفع بن</button>
+                            <button class="btn btn-accent btn-sm" type="submit">@T["apikey.admin.unban"]</button>
                         </form>
                     }
                     else
                     {
-                        <form asp-action="Ban" method="post" onsubmit="return confirm('بن کردن این کلید؟');">
+                        <form asp-action="Ban" method="post" onsubmit="return confirm(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["apikey.admin.ban_confirm"].ToString())));">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@k.Id" />
                             <input type="hidden" name="reason" value="Manual ban by admin" />
-                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">بن</button>
+                            <button class="btn btn-outline-danger-dark btn-sm" type="submit">@T["apikey.admin.ban"]</button>
                         </form>
                         @if (k.IsActive)
                         {
                             <form asp-action="Disable" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@k.Id" />
-                                <button class="btn btn-ghost btn-sm" type="submit">خاموش</button>
+                                <button class="btn btn-ghost btn-sm" type="submit">@T["apikey.admin.disable"]</button>
                             </form>
                         }
                         else if (k.ApprovalStatus == ApiKeyApprovalStatus.Approved)
@@ -255,14 +255,14 @@
                             <form asp-action="Enable" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@k.Id" />
-                                <button class="btn btn-ghost btn-sm" type="submit">روشن</button>
+                                <button class="btn btn-ghost btn-sm" type="submit">@T["apikey.admin.enable"]</button>
                             </form>
                         }
                     }
-                    <form asp-action="Delete" method="post" onsubmit="return confirm('حذف دائمی کلید؟');">
+                    <form asp-action="Delete" method="post" onsubmit="return confirm(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["apikey.admin.delete_confirm"].ToString())));">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@k.Id" />
-                        <button class="btn btn-ghost btn-sm" type="submit">حذف</button>
+                        <button class="btn btn-ghost btn-sm" type="submit">@T["apikey.admin.delete"]</button>
                     </form>
                 </div>
             </article>
