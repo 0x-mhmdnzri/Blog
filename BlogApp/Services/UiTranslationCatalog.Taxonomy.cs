@@ -4,6 +4,39 @@ public static partial class UiTranslationCatalog
 {
     public static readonly (string Key, string Group, string Fa, string En, string Ar)[] Taxonomy =
     {
+        ("tax.subtitle", "tax", "دسته‌ها، برچسب‌ها، سری‌ها و موضوعات — ساختار محتوا را اینجا مدیریت کنید.", "Categories, tags, series and topics — manage content structure here.", "التصنيفات والوسوم والسلاسل والمواضيع — أدِر هيكل المحتوى هنا."),
+        ("tax.stats_aria", "tax", "آمار ساختار", "Structure stats", "إحصاءات الهيكل"),
+        ("tax.tabs_aria", "tax", "بخش‌های ساختار", "Structure sections", "أقسام الهيكل"),
+
+        ("tax.cats_desc", "tax", "درخت دسته‌بندی با والد/فرزند. عمق با تورفتگی نشان داده می‌شود.", "Category tree with parent/child. Depth is shown by indentation.", "شجرة تصنيفات أب/ابن. العمق يظهر بالتحريك."),
+        ("tax.tags_desc", "tax", "برچسب‌های تخت — ادغام برچسب‌های تکراری از همین‌جا.", "Flat tags — merge duplicates from here.", "وسوم مسطحة — ادمج المكررات من هنا."),
+        ("tax.series_desc", "tax", "مجموعه‌های چندقسمتی — ترتیب و ویرایش از صفحه سری.", "Multi-part collections — order and edit from the series page.", "مجموعات متعددة الأجزاء — رتّب وعدّل من صفحة السلسلة."),
+        ("tax.topics_desc", "tax", "موضوعات فراتر از دسته — برای خوشه‌بندی موضوعی محتوا.", "Topics beyond categories — for thematic content clusters.", "مواضيع أبعد من التصنيف — لتجميع المحتوى موضوعيًا."),
+
+        ("tax.ph_cat_name", "tax", "نام دسته", "Category name", "اسم التصنيف"),
+        ("tax.ph_tag_name", "tax", "نام برچسب", "Tag name", "اسم الوسم"),
+        ("tax.ph_series_name", "tax", "نام سری", "Series name", "اسم السلسلة"),
+        ("tax.ph_topic_name", "tax", "نام موضوع", "Topic name", "اسم الموضوع"),
+        ("tax.ph_desc_short", "tax", "توضیح کوتاه (اختیاری)", "Short description (optional)", "وصف قصير (اختياري)"),
+        ("tax.ph_desc", "tax", "توضیح (اختیاری)", "Description (optional)", "وصف (اختياري)"),
+        ("tax.ph_search_cats", "tax", "جست‌وجو در دسته‌ها…", "Search categories…", "بحث في التصنيفات…"),
+        ("tax.ph_search_tags", "tax", "جست‌وجو در برچسب‌ها…", "Search tags…", "بحث في الوسوم…"),
+
+        ("tax.empty_cats_hint", "tax", "اولین دسته را از فرم بالا اضافه کنید.", "Add the first category from the form above.", "أضف أول تصنيف من النموذج أعلاه."),
+        ("tax.empty_tags", "tax", "برچسبی نیست", "No tags yet", "لا وسوم بعد"),
+        ("tax.empty_tags_hint", "tax", "اولین برچسب را اضافه کنید.", "Add the first tag.", "أضف أول وسم."),
+        ("tax.empty_series", "tax", "سری‌ای نیست", "No series yet", "لا سلاسل بعد"),
+        ("tax.empty_topics", "tax", "موضوعی نیست", "No topics yet", "لا مواضيع بعد"),
+
+        ("tax.merge_title", "tax", "ادغام برچسب‌ها", "Merge tags", "دمج الوسوم"),
+        ("tax.posts_n", "tax", "{0} پست", "{0} posts", "{0} مقالات"),
+        ("tax.items_n", "tax", "{0} مورد", "{0} items", "{0} عناصر"),
+
+        ("tax.series_eyebrow", "tax", "سری نوشته‌ها", "Post series", "سلسلة مقالات"),
+        ("tax.series_empty", "tax", "هنوز نوشته‌ای در این سری منتشر نشده.", "No posts published in this series yet.", "لا مقالات منشورة في هذه السلسلة بعد."),
+        ("tax.topic_eyebrow", "tax", "مجموعه موضوعی", "Topic collection", "مجموعة موضوعية"),
+        ("tax.topic_empty", "tax", "نوشته‌ای برای این موضوع یافت نشد.", "No posts found for this topic.", "لا مقالات لهذا الموضوع."),
+
         ("tax.title", "tax", "دسته‌بندی‌ها و برچسب‌ها", "Categories & tags", "التصنيفات والوسوم"),
 
         ("tax.tab_cats", "tax", "دسته‌بندی‌ها", "Categories", "التصنيفات"),
