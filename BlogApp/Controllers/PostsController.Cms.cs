@@ -189,6 +189,10 @@ public partial class PostsController
         }
     }
 
+    /// <summary>Compat alias — older call sites used this name (CS0103 hotfix).</summary>
+    private Task NotifySuperAdminsPostPendingAsync(Post post) =>
+        NotifySuperAdminsPendingPostAsync(post);
+
     private int? ReadClientTimezoneOffset()
     {
         if (Request.Form.TryGetValue("__timezoneOffset", out var formVal)
