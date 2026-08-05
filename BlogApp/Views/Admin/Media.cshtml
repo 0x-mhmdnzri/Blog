@@ -54,25 +54,22 @@
     </div>
 </div>
 
-<div class="ml-drop" id="mediaDropzone" tabindex="0" role="button" aria-label="@T["media.drop_title"]">
-    <form asp-action="MediaUpload" method="post" enctype="multipart/form-data" id="mediaUploadForm">
-        @Html.AntiForgeryToken()
-        <input type="file" name="file" id="mediaFileInput" class="d-none"
+<form asp-action="MediaUpload" method="post" enctype="multipart/form-data" id="mediaUploadForm" class="mb-3">
+    @Html.AntiForgeryToken()
+    <div class="fu-zone" id="mediaDropzone" data-fu data-fu-auto-submit="1" tabindex="0" role="button" aria-label="@T["fu.drop_title"]">
+        <input type="file" name="file" id="mediaFileInput"
                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg" required />
-        <div class="ml-drop-inner">
-            <div class="ml-drop-icon" aria-hidden="true">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-            </div>
-            <div class="ml-drop-copy">
-                <div class="ml-drop-title">@T["media.drop_title"]</div>
-                <p class="ml-drop-hint">@T["media.upload_hint"]</p>
-            </div>
-            <button type="button" class="btn btn-ghost btn-sm" id="mediaPickBtn">@T["media.pick_file"]</button>
-            <div class="ml-picked" id="mediaPickedName" hidden></div>
-            <button type="submit" class="btn btn-accent btn-sm" id="mediaUploadSubmit" hidden>@T["media.upload_btn"]</button>
+        <button type="button" class="fu-zone-btn">@T["fu.select"]</button>
+        <div class="fu-zone-copy">
+            <p class="fu-zone-title">@T["fu.drop_title"]</p>
+            <p class="fu-zone-hint">@T["fu.hint_media"]</p>
         </div>
-    </form>
-</div>
+        <span class="fu-zone-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+        </span>
+        <div class="fu-zone-picked" id="mediaPickedName" hidden></div>
+    </div>
+</form>
 
 <div class="ml-toolbar">
     <div class="ml-seg" role="tablist">
