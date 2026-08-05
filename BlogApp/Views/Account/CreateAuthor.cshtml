@@ -72,13 +72,24 @@
 
         <div class="wizard-pane" data-pane="2" hidden>
             <p class="wizard-hint">@T["wizard.author_step2_hint"]</p>
-            <div class="d-flex align-items-center gap-3 mb-3">
-                <div class="author-avatar-preview" id="authorAvatarPreview">
+            <div class="d-flex align-items-start gap-3 mb-3">
+                <div class="fu-avatar-target author-avatar-preview" id="authorAvatarPreview" aria-hidden="true">
                     <span id="authorInitial">?</span>
                 </div>
                 <div class="flex-grow-1">
                     <label class="form-label" asp-for="ProfileImageFile">@T["wizard.avatar"]</label>
-                    <input class="form-control" asp-for="ProfileImageFile" type="file" accept="image/*" id="authorAvatarFile" />
+                    <div class="fu-zone fu-zone-sm" data-fu data-fu-preview="#authorAvatarPreview" data-fu-kind="image" tabindex="0" role="button" aria-label="@T["fu.drop_title"]">
+                        <input type="file" name="ProfileImageFile" id="authorAvatarFile" accept="image/jpeg,image/png,image/webp" />
+                        <button type="button" class="fu-zone-btn">@T["fu.select"]</button>
+                        <div class="fu-zone-copy">
+                            <p class="fu-zone-title">@T["fu.drop_title"]</p>
+                            <p class="fu-zone-hint">@T["fu.hint_image"]</p>
+                        </div>
+                        <span class="fu-zone-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                        </span>
+                        <div class="fu-zone-picked" hidden></div>
+                    </div>
                     <span asp-validation-for="ProfileImageFile" class="field-error"></span>
                     <div class="form-text">@T["wizard.avatar_help"]</div>
                 </div>
@@ -190,8 +201,6 @@
   var bioCount = document.getElementById('bioCount');
   var displayName = form.querySelector('[name="DisplayName"]');
   var initial = document.getElementById('authorInitial');
-  var fileInput = document.getElementById('authorAvatarFile');
-  var preview = document.getElementById('authorAvatarPreview');
   var step = 1;
 
   function show(n) {
@@ -286,15 +295,10 @@
   if (displayName && initial) {
     displayName.addEventListener('input', function () {
       var v = (displayName.value || '').trim();
-      initial.textContent = v ? v.charAt(0).toUpperCase() : '?';
-    });
-  }
-  if (fileInput && preview) {
-    fileInput.addEventListener('change', function () {
-      var f = fileInput.files && fileInput.files[0];
-      if (!f) return;
-      var url = URL.createObjectURL(f);
-      preview.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;" />';
+      // only update letter if no image preview yet
+      if (initial && initial.parentElement && !initial.parentElement.querySelector('img')) {
+        initial.textContent = v ? v.charAt(0).toUpperCase() : '?';
+      }
     });
   }
 
