@@ -1,6 +1,6 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "دسترسی‌پذیری";
+    ViewData["Title"] = T["a11y.admin.title"];
 }
 
 <style>
@@ -40,77 +40,74 @@
 </style>
 
 <div class="a11y-admin">
-    <p class="lead">
-        این بخش مطابق FEATURES.md پیاده‌سازی شده است:
-        <strong>WCAG</strong>، <strong>ناوبری صفحه‌کلید</strong>، <strong>بهینه‌سازی صفحه‌خوان</strong>،
-        <strong>حالت کنتراست بالا</strong> و <strong>Accessibility Checker</strong>.
-        کاربران نهایی از دکمه ثابت <span class="kbd">A♿</span> در گوشه صفحه تنظیمات را تغییر می‌دهند.
-    </p>
+    <p class="lead">@T["a11y.admin.lead"]</p>
 
-    <h2>بررسی زندهٔ این صفحه</h2>
-    <div class="a11y-summary" id="a11y-checker-summary">در حال بررسی…</div>
+    <h2>@T["a11y.admin.live_title"]</h2>
+    <div class="a11y-summary" id="a11y-checker-summary">@T["a11y.admin.checking"]</div>
     <div class="a11y-check-grid" id="a11y-checker-results"></div>
 
-    <h2>WCAG — پایه‌های پیاده‌سازی‌شده</h2>
+    <h2>@T["a11y.admin.wcag_title"]</h2>
     <ul class="checklist">
         <li>
-            <strong><span class="tag">1.1</span> متن جایگزین</strong>
-            تصاویر بدون <code class="ltr-field">alt</code> در چک‌کننده گزارش می‌شوند؛ تصاویر تزئینی باید <code class="ltr-field">alt=""</code> داشته باشند.
+            <strong><span class="tag">1.1</span> @T["a11y.admin.wcag_11_title"]</strong>
+            @T["a11y.admin.wcag_11_body"]
         </li>
         <li>
-            <strong><span class="tag">1.3</span> ساختار معنایی</strong>
-            نقاط عطف <code class="ltr-field">header / nav / main / footer</code>، عناوین، و <code class="ltr-field">lang</code> روی <code class="ltr-field">html</code>.
+            <strong><span class="tag">1.3</span> @T["a11y.admin.wcag_13_title"]</strong>
+            @T["a11y.admin.wcag_13_body"]
         </li>
         <li>
-            <strong><span class="tag">1.4</span> قابل‌دیدن</strong>
-            حالت کنتراست بالا، زیرخط لینک‌ها، مقیاس متن، و احترام به <code class="ltr-field">prefers-reduced-motion</code>.
+            <strong><span class="tag">1.4</span> @T["a11y.admin.wcag_14_title"]</strong>
+            @T["a11y.admin.wcag_14_body"]
         </li>
         <li>
-            <strong><span class="tag">2.1</span> صفحه‌کلید</strong>
-            Skip link، <code class="ltr-field">:focus-visible</code>، فلش‌چپ/راست در منوی اصلی، تلهٔ فوکوس در جست‌وجو، Esc برای بستن.
+            <strong><span class="tag">2.1</span> @T["a11y.admin.wcag_21_title"]</strong>
+            @T["a11y.admin.wcag_21_body"]
         </li>
         <li>
-            <strong><span class="tag">2.4</span> قابل‌پیمایش</strong>
-            عنوان سند، لینک پرش، ترتیب فوکوس منطقی، برچسب‌های <code class="ltr-field">aria-*</code> روی کنترل‌های آیکونی.
+            <strong><span class="tag">2.4</span> @T["a11y.admin.wcag_24_title"]</strong>
+            @T["a11y.admin.wcag_24_body"]
         </li>
         <li>
-            <strong><span class="tag">4.1</span> سازگاری</strong>
-            نقش‌های ARIA روی دیالوگ جست‌وجو، نوار پیشرفت مطالعه، toast با <code class="ltr-field">aria-live</code>، و اعلان زنده تنظیمات.
+            <strong><span class="tag">4.1</span> @T["a11y.admin.wcag_41_title"]</strong>
+            @T["a11y.admin.wcag_41_body"]
         </li>
     </ul>
 
-    <h2>ناوبری صفحه‌کلید</h2>
+    <h2>@T["a11y.admin.kb_title"]</h2>
     <ul class="checklist">
-        <li><strong>Tab / Shift+Tab</strong> — حرکت بین عناصر تعاملی با حلقهٔ واضح فوکوس.</li>
-        <li><strong>پرش به محتوا</strong> — اولین Tab از ابتدای صفحه روی Skip link.</li>
-        <li><strong>Ctrl+K / ⌘K</strong> — باز کردن جست‌وجو؛ Esc بستن؛ فوکوس به دامنهٔ دیالوگ محدود می‌شود.</li>
-        <li><strong>Alt+0</strong> — باز/بسته کردن پنل دسترسی‌پذیری.</li>
-        <li><strong>← → در منوی اصلی</strong> — جابه‌جایی بین آیتم‌های ناوبری (با پشتیبانی RTL).</li>
+        <li>@T["a11y.admin.kb_tab"]</li>
+        <li>@T["a11y.admin.kb_skip"]</li>
+        <li>@T["a11y.admin.kb_search"]</li>
+        <li>@T["a11y.admin.kb_panel"]</li>
+        <li>@T["a11y.admin.kb_arrows"]</li>
     </ul>
 
-    <h2>صفحه‌خوان</h2>
+    <h2>@T["a11y.admin.sr_title"]</h2>
     <ul class="checklist">
-        <li>نقاط عطف معنایی و برچسب‌های فارسی روی دکمه‌های آیکونی.</li>
-        <li>منطقهٔ زندهٔ مخفی برای اعلان تغییر تنظیمات (<code class="ltr-field">aria-live="polite"</code>).</li>
-        <li>نوار پیشرفت مطالعه با <code class="ltr-field">role="progressbar"</code> و به‌روزرسانی <code class="ltr-field">aria-valuenow</code>.</li>
-        <li>دیالوگ جست‌وجو با <code class="ltr-field">role="dialog"</code> و <code class="ltr-field">aria-modal</code>.</li>
+        <li>@T["a11y.admin.sr_1"]</li>
+        <li>@T["a11y.admin.sr_2"]</li>
+        <li>@T["a11y.admin.sr_3"]</li>
+        <li>@T["a11y.admin.sr_4"]</li>
     </ul>
 
-    <h2>حالت کنتراست بالا</h2>
+    <h2>@T["a11y.admin.hc_title"]</h2>
     <ul class="checklist">
-        <li>فعال از پنل کاربر یا <code class="ltr-field">localStorage</code> کلید <code class="ltr-field">blog-a11y-prefs</code>.</li>
-        <li>پس‌زمینه سیاه، متن سفید، تأکید زرد، حاشیهٔ ضخیم روی کنترل‌ها — مناسب کم‌بینایی.</li>
+        <li>@T["a11y.admin.hc_1"]</li>
+        <li>@T["a11y.admin.hc_2"]</li>
     </ul>
 
-    <p class="small text-muted-dark mt-4 mb-0">
-        چک‌کنندهٔ سمت‌کلاینت جایگزین ممیزی کامل WCAG (مثل axe/Lighthouse) نیست؛ برای CI از ابزارهای خودکار استفاده کنید.
-        این صفحه همان چک‌ها را روی DOM فعلی اجرا می‌کند.
-    </p>
+    <p class="small text-muted-dark mt-4 mb-0">@T["a11y.admin.footer"]</p>
 </div>
 
 @section Scripts {
 <script>
-  // Results rendered by a11y.js when #a11y-checker-results is present
+  window.__a11yAdminI18n = {
+    pass: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["a11y.admin.pass"].ToString())),
+    warn: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["a11y.admin.warn"].ToString())),
+    fail: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["a11y.admin.fail"].ToString())),
+    summary: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(T["a11y.admin.summary"].ToString()))
+  };
   document.addEventListener('DOMContentLoaded', function () {
     if (window.blogA11y && !document.getElementById('a11y-checker-results').children.length) {
       var results = window.blogA11y.runChecker();
@@ -119,16 +116,20 @@
       var pass = results.filter(function (r) { return r.level === 'pass'; }).length;
       var fail = results.filter(function (r) { return r.level === 'fail'; }).length;
       var warn = results.filter(function (r) { return r.level === 'warn'; }).length;
+      var i18n = window.__a11yAdminI18n || {};
       if (summary) {
-        summary.innerHTML = '<strong class="ltr-field">' + pass + '</strong> قبول · ' +
-          '<strong class="ltr-field">' + warn + '</strong> هشدار · ' +
-          '<strong class="ltr-field">' + fail + '</strong> رد';
+        var tpl = i18n.summary || '{0} · {1} · {2}';
+        summary.innerHTML = tpl
+          .replace('{0}', '<strong class="ltr-field">' + pass + '</strong>')
+          .replace('{1}', '<strong class="ltr-field">' + warn + '</strong>')
+          .replace('{2}', '<strong class="ltr-field">' + fail + '</strong>');
       }
       host.innerHTML = results.map(function (r) {
+        var label = r.level === 'pass' ? (i18n.pass || 'pass')
+          : r.level === 'fail' ? (i18n.fail || 'fail')
+          : (i18n.warn || 'warn');
         return '<article class="a11y-check-item">' +
-          '<span class="status ' + r.level + '">' +
-          (r.level === 'pass' ? 'قبول' : r.level === 'fail' ? 'رد' : 'هشدار') +
-          '</span>' +
+          '<span class="status ' + r.level + '">' + label + '</span>' +
           '<div><h3>' + r.title + '</h3><p>' + r.detail + '</p></div></article>';
       }).join('');
     }
