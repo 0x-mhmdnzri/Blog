@@ -81,7 +81,6 @@
         {
             <div class="post-flash is-ok" role="status">@TempData["BookmarkMsg"]</div>
         }
-        @* Report success toast is rendered inside _ReportSection (pending queue messaging) *@
 
         @if (canEdit)
         {
@@ -92,13 +91,11 @@
                     <input type="hidden" name="id" value="@Model.Id" />
                     <button class="post-edit-link" type="submit">کپی</button>
                 </form>
-                <form asp-action="Delete" method="post" class="post-edit-delete"
-                      onsubmit="return confirm('انتقال به سطل زباله؟');">
+                <form asp-action="Delete" method="post" class="d-inline"
+                      onsubmit="return confirm('انتقال به سطل زباله؟ (قابل بازگردانی)');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@Model.Id" />
-                    <input type="text" name="reason" class="post-edit-reason"
-                           placeholder="دلیل حذف (اختیاری)" maxlength="500" />
-                    <button class="post-edit-link is-danger" type="submit">حذف</button>
+                    <button class="post-edit-link is-danger" type="submit">حذف نرم</button>
                 </form>
             </div>
         }
