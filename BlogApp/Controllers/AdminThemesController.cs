@@ -44,6 +44,12 @@ public class AdminThemesController : Controller
 
     private bool IsSuper => User.IsInRole(AppRoles.SuperAdmin);
 
+    /// <summary>DbContext defaults to NoTracking — mutations must opt in.</summary>
+    private void EnableTracking()
+    {
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
+    }
+
     [HttpGet]
     public async Task<IActionResult> Index(string? status)
     {
@@ -108,6 +114,7 @@ public class AdminThemesController : Controller
     public async Task<IActionResult> Create(CustomTheme model, string? action)
     {
         ViewData["Title"] = "تم جدید";
+        EnableTracking();
         var uid = AuthorAccess.UserId(User)!;
         model.OwnerUserId = uid;
         model.Id = 0;
@@ -157,6 +164,7 @@ public class AdminThemesController : Controller
     [RequestSizeLimit(64 * 1024)]
     public async Task<IActionResult> ImportFile(IFormFile? file, string? action)
     {
+        EnableTracking();
         if (file is null || file.Length == 0)
         {
             TempData["Msg"] = "فایلی انتخاب نشده.";
@@ -258,6 +266,7 @@ public class AdminThemesController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Submit(int id)
     {
+        EnableTracking();
         var uid = AuthorAccess.UserId(User)!;
         var t = await _db.CustomThemes.FirstOrDefaultAsync(x => x.Id == id && x.OwnerUserId == uid);
         if (t is null) return NotFound();
@@ -280,6 +289,7 @@ public class AdminThemesController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
+        EnableTracking();
         var uid = AuthorAccess.UserId(User)!;
         CustomTheme? t;
         if (IsSuper)
@@ -366,6 +376,7 @@ public class AdminThemesController : Controller
     [Authorize(Roles = AppRoles.SuperAdmin)]
     public async Task<IActionResult> Approve(int id)
     {
+        EnableTracking();
         var t = await _db.CustomThemes.FirstOrDefaultAsync(x => x.Id == id);
         if (t is null) return NotFound();
         var v = ThemeContrastService.Validate(t);
@@ -397,6 +408,7 @@ public class AdminThemesController : Controller
     [Authorize(Roles = AppRoles.SuperAdmin)]
     public async Task<IActionResult> Reject(int id, string? reason)
     {
+        EnableTracking();
         var t = await _db.CustomThemes.FirstOrDefaultAsync(x => x.Id == id);
         if (t is null) return NotFound();
         t.Status = ThemeApprovalStatus.Rejected;
@@ -423,6 +435,7 @@ public class AdminThemesController : Controller
     [Authorize(Roles = AppRoles.SuperAdmin)]
     public async Task<IActionResult> Activate(int id)
     {
+        EnableTracking();
         var t = await _db.CustomThemes.FirstOrDefaultAsync(x => x.Id == id && x.Status == ThemeApprovalStatus.Approved);
         if (t is null)
         {

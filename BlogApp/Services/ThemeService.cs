@@ -54,11 +54,17 @@ public sealed class ThemeService : IThemeService
         _log = log;
     }
 
+    private void EnableTracking()
+    {
+        _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
+    }
+
     public async Task EnsureSystemThemesAsync(CancellationToken ct = default)
     {
         if (await _db.CustomThemes.AnyAsync(t => t.IsSystem, ct))
             return;
 
+        EnableTracking();
         var dark = new CustomTheme
         {
             Name = "Dark Pro",
@@ -193,6 +199,8 @@ public sealed class ThemeService : IThemeService
         if (string.IsNullOrWhiteSpace(pack.Name))
             return new ThemeImportItemResult(false, "name is required");
 
+        EnableTracking();
+
         var entity = new CustomTheme
         {
             Name = pack.Name.Trim(),
@@ -281,6 +289,7 @@ public sealed class ThemeService : IThemeService
 
     private async Task ActivateInternalAsync(int id, CancellationToken ct)
     {
+        EnableTracking();
         var all = await _db.CustomThemes.Where(x => x.IsActive).ToListAsync(ct);
         foreach (var a in all) a.IsActive = false;
         var t = await _db.CustomThemes.FirstOrDefaultAsync(x => x.Id == id, ct);
