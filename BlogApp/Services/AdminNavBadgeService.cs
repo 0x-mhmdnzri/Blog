@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Services;
 
-/// <summary>Pending / new counts for admin sidebar badges.</summary>
+/// <summary>Pending / new counts for admin sidebar badges (not personal inbox unread).</summary>
 public interface IAdminNavBadgeService
 {
     Task<IReadOnlyDictionary<string, int>> GetCountsAsync(ClaimsPrincipal user, CancellationToken ct = default);
@@ -76,13 +76,8 @@ public sealed class AdminNavBadgeService : IAdminNavBadgeService
                 result["monetization"] = donations;
         }
 
-        if (userId is not null)
-        {
-            var unread = await _db.AppNotifications.AsNoTracking()
-                .CountAsync(n => n.UserId == userId && !n.IsRead && !n.IsArchived, ct);
-            if (unread > 0)
-                result["notifications"] = unread;
-        }
+        // Unread personal notifications: navbar bell only.
+        // AdminNotifications sidebar is for broadcast / admin campaigns — no badge.
 
         return result;
     }
