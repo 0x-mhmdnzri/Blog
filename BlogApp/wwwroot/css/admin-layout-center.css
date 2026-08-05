@@ -1,0 +1,19 @@
+/* Center admin main content + narrow forms (LTR/RTL safe) */
+.admin-content {
+  margin-inline: auto !important;
+  max-width: 1400px;
+  width: 100%;
+}
+
+.admin-content .admin-form-center,
+.admin-content form.admin-form-center,
+.admin-content .card-surface.admin-form-center {
+  max-width: 720px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* Wizards / constrained blocks also center when marked */
+.admin-content .wizard {
+  margin-inline: auto;
+}
