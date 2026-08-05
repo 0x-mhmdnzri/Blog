@@ -1,0 +1,182 @@
+/* Device population — solid minimal */
+.ana-devices {
+  margin-bottom: 1rem;
+  padding: 1.1rem 1.2rem 1.25rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+}
+.ana-devices-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.ana-devices-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--text);
+}
+.ana-devices-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.ana-devices-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+.ana-devices-total .k {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.ana-devices-total strong {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ana-device-pills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+.ana-device-pill {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 0.25rem 0.55rem;
+  align-items: center;
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--bg, #0b0e14) 35%, var(--surface));
+}
+.ana-device-icon {
+  grid-row: 1 / 2;
+  color: var(--accent);
+  opacity: 0.9;
+  display: inline-flex;
+}
+.ana-device-icon.sm { opacity: 0.85; }
+.ana-device-pill-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+.ana-device-pill-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.ana-device-pill-pct {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.ana-device-pill-count {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.ana-device-pill-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border-soft);
+  overflow: hidden;
+}
+.ana-device-pill-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  max-width: 100%;
+}
+
+.ana-device-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+}
+.ana-device-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  min-width: 520px;
+}
+.ana-device-table th,
+.ana-device-table td {
+  padding: 0.55rem 0.75rem;
+  text-align: start;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: middle;
+}
+.ana-device-table th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg, #0b0e14) 40%, var(--surface));
+}
+.ana-device-table tbody tr:last-child td { border-bottom: 0; }
+.ana-device-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.ana-device-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 550;
+  color: var(--text);
+}
+.ana-device-cat-tag {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  text-transform: lowercase;
+}
+.ana-device-bar-col { min-width: 7rem; }
+.ana-device-inline-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-soft);
+  overflow: hidden;
+}
+.ana-device-inline-bar > i {
+  display: block;
+  height: 100%;
+  background: color-mix(in srgb, var(--accent) 85%, #fff);
+  border-radius: 999px;
+  max-width: 100%;
+}
+
+.ana-device-pill[data-cat="mobile"] .ana-device-icon,
+.ana-device-table tr[data-cat="mobile"] .ana-device-icon { color: #6fb3d2; }
+.ana-device-pill[data-cat="tablet"] .ana-device-icon,
+.ana-device-table tr[data-cat="tablet"] .ana-device-icon { color: #c9a0f2; }
+.ana-device-pill[data-cat="bot"] .ana-device-icon,
+.ana-device-table tr[data-cat="bot"] .ana-device-icon { color: #e5637a; }
+.ana-device-pill[data-cat="desktop"] .ana-device-icon,
+.ana-device-table tr[data-cat="desktop"] .ana-device-icon { color: var(--accent); }
+
+html[data-theme="light"] .ana-devices {
+  background: var(--surface, #fff);
+}
+html[data-theme="light"] .ana-device-pill {
+  background: var(--bg, #f6f7f9);
+}
+
+@media (max-width: 576px) {
+  .ana-device-pills { grid-template-columns: 1fr 1fr; }
+}
