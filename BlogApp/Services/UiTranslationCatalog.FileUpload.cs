@@ -11,5 +11,11 @@ public static partial class UiTranslationCatalog
         ("fu.hint_theme", "fu", ".blogtheme / .json", ".blogtheme / .json", ".blogtheme / .json"),
         ("fu.hint_csv", "fu", "CSV · UTF-8", "CSV · UTF-8", "CSV · UTF-8"),
         ("fu.hint_editor", "fu", "image/* · video/*", "image/* · video/*", "image/* · video/*"),
+        ("fu.invalid_type", "fu", "نوع فایل مجاز نیست", "File type not allowed", "نوع الملف غير مسموح"),
+        ("fu.invalid_some", "fu", "برخی فایل‌ها به‌خاطر نوع نادیده گرفته شدند", "Some files were skipped (type not allowed)", "تم تجاهل بعض الملفات بسبب النوع"),
+        ("fu.preview_image", "fu", "تصویر", "Image", "صورة"),
+        ("fu.preview_video", "fu", "ویدیو", "Video", "فيديو"),
+        ("fu.preview_file", "fu", "فایل", "File", "ملف"),
+        ("fu.clear", "fu", "پاک کردن", "Clear", "مسح"),
     };
 }
