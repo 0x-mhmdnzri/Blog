@@ -2,7 +2,7 @@
 @inject BlogApp.Services.IUiTranslator T
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = $"مجوزهای {@Model.RoleName}";
+    ViewData["Title"] = string.Format(T["roles.perm_title"].ToString(), Model.RoleName);
 }
 <link rel="stylesheet" href="~/css/admin-permissions.css" asp-append-version="true" />
 
@@ -10,22 +10,22 @@
 {
     <div class="card-surface p-3 mb-3 small text-muted-dark">@TempData["Saved"]</div>
 }
- 
+
 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
     <div>
-        <a class="small text-muted-dark" asp-action="Index">← نقش‌ها</a>
-        <h1 class="h5 mb-1 mt-1">مجوزهای نقش <span class="ltr-field">@Model.RoleName</span></h1>
+        <a class="small text-muted-dark" asp-action="Index">@T["roles.back_roles"]</a>
+        <h1 class="h5 mb-1 mt-1">@string.Format(T["roles.perm_title"].ToString(), Model.RoleName)</h1>
         <p class="small text-muted-dark mb-0">
-            درخت منوی ادمین از سرور ساخته شده — صفحات را تیک بزنید و قابلیت‌ها را ترکیب کنید.
+            @T["roles.perm_sub"]
             @if (Model.IsSuperAdmin)
             {
-                <span class="status-pill featured">SuperAdmin همیشه همه دسترسی‌ها را دارد</span>
+                <span class="status-pill featured">@T["roles.perm_super_note"]</span>
             }
         </p>
     </div>
     <div class="d-flex gap-2">
-        <button type="button" class="btn btn-ghost btn-sm" id="permSelectAll">انتخاب همه</button>
-        <button type="button" class="btn btn-ghost btn-sm" id="permClearAll">پاک کردن</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="permSelectAll">@T["roles.perm_select_all"]</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="permClearAll">@T["roles.perm_clear"]</button>
     </div>
 </div>
 
@@ -36,8 +36,8 @@
     <div class="perm-layout">
         <section class="perm-panel card-surface">
             <header class="perm-panel-head">
-                <h2 class="h6 mb-0">صفحات پنل ادمین</h2>
-                <span class="small text-muted-dark">منو و زیرمنو · تولید خودکار</span>
+                <h2 class="h6 mb-0">@T["roles.perm_pages"]</h2>
+                <span class="small text-muted-dark">@T["roles.perm_pages_hint"]</span>
             </header>
             <div class="perm-tree">
             @foreach (var group in Model.PageTree)
@@ -76,8 +76,8 @@
 
         <section class="perm-panel card-surface">
             <header class="perm-panel-head">
-                <h2 class="h6 mb-0">قابلیت‌ها (Claims)</h2>
-                <span class="small text-muted-dark">ترکیب با صفحات برای دسترسی ریزدانه‌تر</span>
+                <h2 class="h6 mb-0">@T["roles.perm_caps"]</h2>
+                <span class="small text-muted-dark">@T["roles.perm_caps_hint"]</span>
             </header>
             <div class="perm-caps">
             @foreach (var cap in Model.Capabilities)
@@ -98,9 +98,9 @@
     </div>
 
     <div class="perm-footer card-surface">
-        <button type="submit" class="btn btn-accent">ذخیره مجوزها</button>
-        <a class="btn btn-ghost" asp-action="Index">انصراف</a>
-        <span class="small text-muted-dark ms-auto">کاربران پس از ذخیره باید یک‌بار خارج و دوباره وارد شوند.</span>
+        <button type="submit" class="btn btn-accent">@T["roles.perm_save"]</button>
+        <a class="btn btn-ghost" asp-action="Index">@T["roles.perm_cancel"]</a>
+        <span class="small text-muted-dark ms-auto">@T["roles.perm_relogin"]</span>
     </div>
 </form>
 
