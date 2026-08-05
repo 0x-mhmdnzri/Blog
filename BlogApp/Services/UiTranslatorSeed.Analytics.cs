@@ -60,7 +60,7 @@ public sealed partial class UiTranslatorService
                         || t.Group == "ent" || t.Key == "admin.nav.enterprise"
                         || t.Group == "mkt" || t.Group == "nav" || t.Group == "search"
                         || t.Group == "auth" || t.Group == "a11y" || t.Group == "apikey"
-                        || t.Group == "themes" || t.Group == "media")
+                        || t.Group == "themes" || t.Group == "media" || t.Group == "tax" || t.Group == "ana")
             .ToListAsync(ct);
 
         var byId = tracked.ToDictionary(t => t.Key + "|" + t.LanguageCode, StringComparer.OrdinalIgnoreCase);
@@ -109,6 +109,7 @@ public sealed partial class UiTranslatorService
         UpsertCatalog(UiTranslationCatalog.Accessibility);
         UpsertCatalog(UiTranslationCatalog.Themes);
         UpsertCatalog(UiTranslationCatalog.Media);
+        UpsertCatalog(UiTranslationCatalog.Taxonomy);
 
         if (added > 0 || changed > 0)
             await _db.SaveChangesAsync(ct);
