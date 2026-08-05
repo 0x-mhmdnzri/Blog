@@ -340,3 +340,21 @@ html[dir="rtl"] .admin-main {
     box-shadow: none;
   }
 }
+
+
+/* ---- Center admin content + narrow forms (LTR/RTL) ---- */
+.admin-content {
+  margin-inline: auto !important;
+  max-width: 1400px;
+  width: 100%;
+}
+.admin-content .admin-form-center,
+.admin-content form.admin-form-center,
+.admin-content .card-surface.admin-form-center {
+  max-width: 720px;
+  width: 100%;
+  margin-inline: auto;
+}
+.admin-content .wizard {
+  margin-inline: auto;
+}
