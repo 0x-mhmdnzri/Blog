@@ -8,7 +8,6 @@
   border-radius: 14px;
   padding: 1rem 1.1rem;
   margin-bottom: 1rem;
-  /* fixed visual rhythm — matches chart cards */
   min-height: 0;
 }
 .api-embed-head {
@@ -43,7 +42,6 @@
 .api-embed-kpi .v { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .api-embed-kpi.danger .v { color: #e5637a; }
 .api-embed-table-wrap {
-  /* consistent height so the section doesn’t jump */
   height: 200px;
   overflow: auto;
   border-radius: 10px;
@@ -63,24 +61,24 @@
 
 <section class="api-embed" aria-label="API analytics summary">
     <div class="api-embed-head">
-        <h2 class="api-embed-title"><span class="dot" aria-hidden="true"></span> API در یک نگاه</h2>
+        <h2 class="api-embed-title"><span class="dot" aria-hidden="true"></span> @T["ana.api_embed_title"]</h2>
         <div class="d-flex gap-2 flex-wrap">
-            <a class="btn btn-accent btn-sm" asp-controller="AdminAnalytics" asp-action="Api" asp-route-range="@ViewBag.RangeDays">مانیتور کامل</a>
-            <a class="btn btn-ghost btn-sm" asp-controller="AdminApiKeys" asp-action="Index">کلیدها</a>
+            <a class="btn btn-accent btn-sm" asp-controller="AdminAnalytics" asp-action="Api" asp-route-range="@ViewBag.RangeDays">@T["ana.api_full_monitor"]</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminApiKeys" asp-action="Index">@T["ana.api_keys_short"]</a>
         </div>
     </div>
 
     <div class="api-embed-kpis">
-        <div class="api-embed-kpi"><div class="l">درخواست</div><div class="v ltr-field">@Model.TotalRequests</div></div>
-        <div class="api-embed-kpi"><div class="l">کاربر</div><div class="v ltr-field">@Model.UniqueUsers</div></div>
-        <div class="api-embed-kpi"><div class="l">کلید فعال</div><div class="v ltr-field">@Model.ActiveKeys</div></div>
-        <div class="api-embed-kpi @(Model.ErrorCount > 0 ? "danger" : "")"><div class="l">خطا</div><div class="v ltr-field">@Model.ErrorCount</div></div>
-        <div class="api-embed-kpi @(Model.RateLimitedCount > 0 ? "danger" : "")"><div class="l">۴۲۹</div><div class="v ltr-field">@Model.RateLimitedCount</div></div>
+        <div class="api-embed-kpi"><div class="l">@T["ana.api_kpi_req"]</div><div class="v ltr-field">@Model.TotalRequests</div></div>
+        <div class="api-embed-kpi"><div class="l">@T["ana.api_kpi_users"]</div><div class="v ltr-field">@Model.UniqueUsers</div></div>
+        <div class="api-embed-kpi"><div class="l">@T["ana.api_kpi_keys"]</div><div class="v ltr-field">@Model.ActiveKeys</div></div>
+        <div class="api-embed-kpi @(Model.ErrorCount > 0 ? "danger" : "")"><div class="l">@T["ana.api_kpi_errors"]</div><div class="v ltr-field">@Model.ErrorCount</div></div>
+        <div class="api-embed-kpi @(Model.RateLimitedCount > 0 ? "danger" : "")"><div class="l">@T["ana.api_kpi_429"]</div><div class="v ltr-field">@Model.RateLimitedCount</div></div>
     </div>
 
     @if (Model.Users.Count == 0)
     {
-        <div class="api-embed-empty">هنوز ترافیک API ثبت نشده — پس از اولین فراخوانی با کلید، اینجا پر می‌شود.</div>
+        <div class="api-embed-empty">@T["ana.api_empty"]</div>
     }
     else
     {
@@ -88,12 +86,12 @@
             <table class="admin-table">
                 <thead>
                 <tr>
-                    <th>کاربر</th>
-                    <th class="ltr-field">Keys</th>
-                    <th class="ltr-field">Req</th>
-                    <th class="ltr-field">Err</th>
-                    <th class="ltr-field">۴۲۹</th>
-                    <th class="ltr-field">Lifetime</th>
+                    <th>@T["ana.api_col_user"]</th>
+                    <th class="ltr-field">@T["ana.api_col_keys"]</th>
+                    <th class="ltr-field">@T["ana.api_col_req"]</th>
+                    <th class="ltr-field">@T["ana.api_col_err"]</th>
+                    <th class="ltr-field">@T["ana.api_kpi_429"]</th>
+                    <th class="ltr-field">@T["ana.api_col_lifetime"]</th>
                 </tr>
                 </thead>
                 <tbody>
