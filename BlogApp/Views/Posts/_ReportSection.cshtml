@@ -35,11 +35,31 @@
         </div>
     }
 
-    <div class="report-section-inner" id="reportBox" hidden>
-        <header class="report-head">
-            <div class="report-head-text">
+    <button type="button"
+            class="report-trigger"
+            data-report-open
+            aria-expanded="false"
+            aria-haspopup="dialog"
+            aria-controls="reportModal">
+        <svg class="report-trigger-icon" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+        <span>@T["report.trigger"]</span>
+    </button>
+</section>
+
+@* Modal popup — report queues as Open/pending; never deletes the post *@
+<div class="report-modal" id="reportModal" data-report-modal hidden aria-hidden="true">
+    <div class="report-modal-backdrop" data-report-close tabindex="-1"></div>
+    <div class="report-modal-dialog"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="reportModalTitle"
+         id="reportBox">
+        <header class="report-modal-head">
+            <div class="report-modal-head-text">
                 <p class="report-eyebrow">@T["report.eyebrow"]</p>
-                <h2 class="report-title">@T["report.title"]</h2>
+                <h2 class="report-title" id="reportModalTitle">@T["report.title"]</h2>
                 <p class="report-sub">@T["report.subtitle"]</p>
             </div>
             <button type="button" class="report-close" data-report-close aria-label="@T["report.close"]">
@@ -117,15 +137,4 @@
             </form>
         }
     </div>
-
-    <button type="button"
-            class="report-trigger"
-            data-report-open
-            aria-expanded="false"
-            aria-controls="reportBox">
-        <svg class="report-trigger-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-        </svg>
-        <span>@T["report.trigger"]</span>
-    </button>
-</section>
+</div>
