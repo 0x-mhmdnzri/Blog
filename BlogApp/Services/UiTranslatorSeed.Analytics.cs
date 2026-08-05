@@ -35,7 +35,8 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.Themes)
             .Concat(UiTranslationCatalog.UsersRoles)
             .Concat(UiTranslationCatalog.ApiKeysAdmin)
-            .Concat(UiTranslationCatalog.Settings);
+            .Concat(UiTranslationCatalog.Settings)
+            .Concat(UiTranslationCatalog.FileUpload);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
@@ -64,7 +65,7 @@ public sealed partial class UiTranslatorService
                         || t.Group == "mkt" || t.Group == "nav" || t.Group == "search"
                         || t.Group == "auth" || t.Group == "a11y" || t.Group == "apikey"
                         || t.Group == "themes" || t.Group == "media" || t.Group == "tax" || t.Group == "ana" || t.Group == "users" || t.Group == "roles"
-                        || t.Group == "form")
+                        || t.Group == "form" || t.Group == "fu")
             .ToListAsync(ct);
 
         var byId = tracked.ToDictionary(t => t.Key + "|" + t.LanguageCode, StringComparer.OrdinalIgnoreCase);
@@ -116,6 +117,7 @@ public sealed partial class UiTranslatorService
         UpsertCatalog(UiTranslationCatalog.Taxonomy);
         UpsertCatalog(UiTranslationCatalog.UsersRoles);
         UpsertCatalog(UiTranslationCatalog.ApiKeysAdmin);
+        UpsertCatalog(UiTranslationCatalog.FileUpload);
         UpsertCatalog(UiTranslationCatalog.Settings);
 
         if (added > 0 || changed > 0)
