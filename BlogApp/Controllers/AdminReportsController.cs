@@ -2,6 +2,7 @@ using BlogApp.Data;
 using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
+using BlogApp.Services.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,19 @@ public class AdminReportsController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly IAuditService _audit;
+    private readonly INotificationService _notify;
+    private readonly ILogger<AdminReportsController> _logger;
 
-    public AdminReportsController(ApplicationDbContext db, IAuditService audit)
+    public AdminReportsController(
+        ApplicationDbContext db,
+        IAuditService audit,
+        INotificationService notify,
+        ILogger<AdminReportsController> logger)
     {
         _db = db;
         _audit = audit;
+        _notify = notify;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -191,11 +200,18 @@ public class AdminReportsController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Resolve(int id, string? returnStatus)
+    public async Task<IActionResult> Resolve(int id, string? returnStatus = null, string? returnTo = null)
     {
-        var report = await _db.ContentReports.FindAsync(id);
+        // Global EF default is NoTracking — must AsTracking for mutations.
+        var report = await _db.ContentReports.AsTracking()
+            .FirstOrDefaultAsync(r => r.Id == id);
         if (report is null) return NotFound();
         if (!await CanManageReport(report)) return Forbid();
+        if (report.Status != ContentReportStatus.Open)
+        {
+            TempData["FlashOk"] = "این گزارش قبلاً بسته شده است.";
+            return RedirectAfterReportAction(returnStatus, returnTo);
+        }
 
         report.Status = ContentReportStatus.Resolved;
         report.ResolvedAtUtc = DateTime.UtcNow;
@@ -203,15 +219,27 @@ public class AdminReportsController : Controller
         await _db.SaveChangesAsync();
         await _audit.LogAsync("report.resolve", "ContentReport", id.ToString(), report.Reason, HttpContext);
 
-        return RedirectToAction(nameof(Index), new { status = returnStatus ?? "open" });
+        await NotifyReporterAsync(
+            report,
+            title: "گزارش شما رسیدگی شد",
+            body: $"گزارش مربوط به «{report.TargetTitle ?? ("#" + report.TargetId)}» بررسی و بسته شد (حل‌شده).");
+
+        TempData["FlashOk"] = "گزارش به‌عنوان رسیدگی‌شده بسته شد.";
+        return RedirectAfterReportAction(returnStatus, returnTo);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Dismiss(int id, string? returnStatus)
+    public async Task<IActionResult> Dismiss(int id, string? returnStatus = null, string? returnTo = null)
     {
-        var report = await _db.ContentReports.FindAsync(id);
+        var report = await _db.ContentReports.AsTracking()
+            .FirstOrDefaultAsync(r => r.Id == id);
         if (report is null) return NotFound();
         if (!await CanManageReport(report)) return Forbid();
+        if (report.Status != ContentReportStatus.Open)
+        {
+            TempData["FlashOk"] = "این گزارش قبلاً بسته شده است.";
+            return RedirectAfterReportAction(returnStatus, returnTo);
+        }
 
         report.Status = ContentReportStatus.Dismissed;
         report.ResolvedAtUtc = DateTime.UtcNow;
@@ -219,7 +247,38 @@ public class AdminReportsController : Controller
         await _db.SaveChangesAsync();
         await _audit.LogAsync("report.dismiss", "ContentReport", id.ToString(), report.Reason, HttpContext);
 
+        await NotifyReporterAsync(
+            report,
+            title: "گزارش شما بررسی شد",
+            body: $"گزارش مربوط به «{report.TargetTitle ?? ("#" + report.TargetId)}» بررسی و رد شد (نیازی به اقدام بیشتر نبود).");
+
+        TempData["FlashOk"] = "گزارش رد شد.";
+        return RedirectAfterReportAction(returnStatus, returnTo);
+    }
+
+    private IActionResult RedirectAfterReportAction(string? returnStatus, string? returnTo)
+    {
+        if (string.Equals(returnTo, "moderation", StringComparison.OrdinalIgnoreCase))
+            return RedirectToAction("Index", "AdminModeration");
         return RedirectToAction(nameof(Index), new { status = returnStatus ?? "open" });
+    }
+
+    private async Task NotifyReporterAsync(ContentReport report, string title, string body)
+    {
+        if (string.IsNullOrEmpty(report.ReporterUserId)) return;
+        try
+        {
+            await _notify.NotifyAsync(
+                report.ReporterUserId,
+                NotificationKind.AdminMessage,
+                title,
+                body,
+                "/AdminModeration");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Notify reporter after report {Id} failed", report.Id);
+        }
     }
 
     private async Task<bool> CanManageReport(ContentReport report)
@@ -230,11 +289,14 @@ public class AdminReportsController : Controller
 
         if (report.TargetType == ContentReportTarget.Post)
         {
-            var post = await _db.Posts.FindAsync(report.TargetId);
+            var post = await _db.Posts.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == report.TargetId);
             return post is not null && post.AuthorId == uid;
         }
 
-        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == report.TargetId);
+        var comment = await _db.Comments.AsNoTracking()
+            .Include(c => c.Post)
+            .FirstOrDefaultAsync(c => c.Id == report.TargetId);
         return comment is not null && comment.Post.AuthorId == uid;
     }
 }
