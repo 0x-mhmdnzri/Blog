@@ -1,0 +1,10 @@
+@{
+    var tab = (string)(ViewBag.ActiveTab ?? "overview");
+}
+@if (tab == "plans")
+{
+    <div class="mon-empty">
+        <p class="mon-empty-title">@T["mon.tab_plans"]</p>
+        <p class="mon-empty-hint">UI restore in progress — run: git checkout 0c55e633 -- BlogApp/Views/AdminMonetization/Index.cshtml</p>
+    </div>
+}
