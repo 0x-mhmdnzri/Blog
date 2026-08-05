@@ -70,5 +70,16 @@ public static partial class UiTranslationCatalog
         ("ana.empty_search", "ana", "هنوز جست‌وجویی ثبت نشده.", "No searches recorded yet.", "لا عمليات بحث بعد."),
         ("ana.empty_heatmap", "ana", "هنوز کلیکی ثبت نشده — روی بدنه نوشته‌ها کلیک کنید.", "No clicks yet — interact with post bodies.", "لا نقرات بعد — تفاعل مع نصوص المقالات."),
         ("ana.no_posts", "ana", "نوشته‌ای نیست", "No posts", "لا مقالات"),
+
+        ("ana.device_population", "ana", "جمعیت دستگاه‌ها", "Device population", "توزيع الأجهزة"),
+        ("ana.device_population_sub", "ana", "خوشه‌بندی بازدیدها بر اساس نوع دستگاه در بازه انتخاب‌شده", "Views clustered by device category in the selected range", "المشاهدات مجمّعة حسب فئة الجهاز في الفترة المحددة"),
+        ("ana.device_desktop", "ana", "دسکتاپ", "Desktop", "سطح المكتب"),
+        ("ana.device_mobile", "ana", "موبایل", "Mobile", "جوال"),
+        ("ana.device_tablet", "ana", "تبلت", "Tablet", "جهاز لوحي"),
+        ("ana.device_bot", "ana", "ربات / خزنده", "Bot / crawler", "روبوت / زاحف"),
+        ("ana.device_other", "ana", "سایر", "Other", "أخرى"),
+        ("ana.col_category", "ana", "دسته", "Category", "الفئة"),
+        ("ana.col_share", "ana", "سهم", "Share", "الحصة"),
+        ("ana.empty_devices", "ana", "هنوز داده‌ای از دستگاه‌ها ثبت نشده.", "No device data recorded yet.", "لا بيانات أجهزة بعد."),
     };
 }
