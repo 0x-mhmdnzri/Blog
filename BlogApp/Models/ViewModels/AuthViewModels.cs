@@ -54,8 +54,8 @@ public class CreateAuthorViewModel
     [Display(Name = "نام کاربری")]
     public string UserName { get; set; } = string.Empty;
 
-
-    [ValidEmail]
+    [Required(ErrorMessage = "ایمیل الزامی است")]
+    [EmailAddress(ErrorMessage = "ایمیل نامعتبر است")]
     [MaxLength(256, ErrorMessage = "حداکثر ۲۵۶ نویسه")]
     [Display(Name = "ایمیل")]
     public string Email { get; set; } = string.Empty;
@@ -92,8 +92,8 @@ public class CreateAuthorViewModel
     [MinLength(10, ErrorMessage = "حداقل ۱۰ نویسه")]
     [MaxLength(128, ErrorMessage = "حداکثر ۱۲۸ نویسه")]
     [DataType(DataType.Password)]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$",
-        ErrorMessage = "باید شامل حروف بزرگ، کوچک و عدد باشد (حداقل ۱۰ نویسه)")]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}$",
+        ErrorMessage = "حداقل ۱۰ نویسه، شامل حرف بزرگ، کوچک، عدد و نماد (مثل !@#)")]
     [Display(Name = "رمز عبور")]
     public string Password { get; set; } = string.Empty;
 
