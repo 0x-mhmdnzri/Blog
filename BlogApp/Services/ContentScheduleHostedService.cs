@@ -54,12 +54,13 @@ public sealed class ContentScheduleHostedService : BackgroundService
         var events = scope.ServiceProvider.GetService<IDomainEventPublisher>();
         var now = DateTime.UtcNow;
 
-        // Tracking required for updates
         var toPublish = await db.Posts
             .AsTracking()
             .Where(p => !p.IsDeleted && !p.IsPublished
                         && p.ScheduledPublishAtUtc != null
-                        && p.ScheduledPublishAtUtc <= now)
+                        && p.ScheduledPublishAtUtc <= now
+                        && p.ReviewStatus != PostReviewStatus.PendingReview
+                        && p.ReviewStatus != PostReviewStatus.Rejected)
             .ToListAsync(ct);
 
         foreach (var p in toPublish)
