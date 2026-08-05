@@ -159,7 +159,7 @@ public partial class PostsController
         }
 
         if (post.ReviewStatus == PostReviewStatus.PendingReview)
-            await NotifySuperAdminsPostPendingAsync(post);
+            await NotifySuperAdminsPendingPostAsync(post);
 
         try
         {
