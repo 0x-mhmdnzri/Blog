@@ -26,7 +26,7 @@
                 </div>
                 <div class="mq-card-acts">
                     <a class="mq-btn mq-btn-ghost" asp-controller="Posts" asp-action="Edit" asp-route-id="@p.Id">@T["mod.edit_post"]</a>
-                    <form asp-action="ApprovePost" method="post" style="display:inline;">
+                    <form asp-controller="AdminModeration" asp-action="ApprovePost" method="post" style="display:inline;">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@p.Id" />
                         <button type="submit" class="mq-btn mq-btn-ok">@T["mod.approve"]</button>
@@ -43,7 +43,7 @@
         <div role="dialog" aria-modal="true" style="position:relative;background:var(--surface);border:1px solid var(--border-soft);border-radius:16px;padding:1.25rem;max-width:26rem;width:100%;">
             <h2 style="margin:0 0 .35rem;font-size:1.05rem;font-weight:700;">@T["mod.reject_title"]</h2>
             <p id="mqRejectSub" dir="auto" style="margin:0 0 .9rem;font-size:.86rem;color:var(--text-muted);"></p>
-            <form asp-action="RejectPost" method="post">
+            <form asp-controller="AdminModeration" asp-action="RejectPost" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" id="mqRejectId" value="" />
                 <label for="mqRejectNote" style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:.35rem;">@T["mod.reject_reason"]</label>
