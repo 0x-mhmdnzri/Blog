@@ -24,6 +24,11 @@
     </div>
 </header>
 
+@if (TempData["FlashOk"] is string flashOk)
+{
+    <div class="mq-flash" role="status">@flashOk</div>
+}
+
 <div class="mq-kpis">
     <button type="button" class="mq-kpi is-active" data-mq-filter="all">
         <span class="mq-kpi-label">@T["mod.filter_all"]</span>
@@ -93,11 +98,13 @@ else if (commentCount + reportCount > 0)
                             <form asp-controller="Admin" asp-action="ApproveComment" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@c.Id" />
+                                <input type="hidden" name="returnTo" value="moderation" />
                                 <button type="submit" class="mq-btn mq-btn-ok">@T["btn.approve"]</button>
                             </form>
                             <form asp-controller="Admin" asp-action="RejectComment" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@c.Id" />
+                                <input type="hidden" name="returnTo" value="moderation" />
                                 <button type="submit" class="mq-btn mq-btn-bad">@T["btn.reject"]</button>
                             </form>
                         </div>
@@ -130,11 +137,13 @@ else if (commentCount + reportCount > 0)
                             <form asp-controller="AdminReports" asp-action="Resolve" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@r.Id" />
+                                <input type="hidden" name="returnTo" value="moderation" />
                                 <button type="submit" class="mq-btn mq-btn-ok">@T["btn.resolve"]</button>
                             </form>
                             <form asp-controller="AdminReports" asp-action="Dismiss" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@r.Id" />
+                                <input type="hidden" name="returnTo" value="moderation" />
                                 <button type="submit" class="mq-btn mq-btn-ghost">@T["btn.dismiss"]</button>
                             </form>
                         </div>
@@ -148,6 +157,7 @@ else if (commentCount + reportCount > 0)
 
 @section Styles {
 <style>
+.mq-flash{margin:0 0 1rem;padding:.7rem 1rem;border-radius:10px;font-size:.88rem;background:color-mix(in srgb,var(--success) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--success) 28%,var(--border));color:var(--success)}
 .mq-hero{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;align-items:flex-end;margin-bottom:1.25rem}
 .mq-eyebrow{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--text-faint);margin:0 0 .25rem}
 .mq-title{font-size:1.45rem;font-weight:750;margin:0}
