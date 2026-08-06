@@ -1,41 +1,9 @@
 @model PostEditViewModel
 @inject BlogApp.Services.IUiTranslator T
 
-@{ /* featured label must bind IsFeatured */ }
-
-<style>
-.pw { max-width: 960px; }
-.pw-steps { display: flex; gap: .35rem; margin-bottom: 1.25rem; padding: .35rem; border-radius: 14px; background: var(--surface); border: 1px solid var(--border-soft); overflow-x: auto; }
-.pw-step { flex: 1 1 0; min-width: 7.5rem; border: 0; background: transparent; color: var(--text-muted); border-radius: 10px; padding: .65rem .7rem; text-align: start; cursor: pointer; }
-.pw-step:hover { color: var(--text); background: color-mix(in srgb, var(--accent) 6%, transparent); }
-.pw-step.is-active { color: var(--text); background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
-.pw-step.is-done { color: var(--text); }
-.pw-step .pw-n { display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; font-size: .72rem; font-weight: 700; margin-inline-end: .4rem; background: color-mix(in srgb, var(--text-muted) 18%, transparent); }
-.pw-step.is-active .pw-n, .pw-step.is-done .pw-n { background: var(--accent); color: #1a1a1a; }
-.pw-step .pw-label { font-size: .8rem; font-weight: 650; display: block; line-height: 1.25; }
-.pw-step .pw-hint { font-size: .68rem; opacity: .75; display: block; margin-top: .15rem; }
-.pw-panel { display: none; animation: pwIn .2s ease; }
-.pw-panel.is-active { display: block; }
-@@keyframes pwIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.pw-card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 14px; padding: 1.15rem 1.25rem; margin-bottom: 1rem; }
-.pw-card h2 { font-size: .95rem; font-weight: 700; margin: 0 0 .85rem; display: flex; align-items: center; gap: .45rem; }
-.pw-card h2 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
-.pw-nav { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: space-between; align-items: center; padding-top: .25rem; }
-.pw-nav-right { display: flex; flex-wrap: wrap; gap: .5rem; }
-.pw-progress { height: 3px; border-radius: 999px; background: var(--border-soft); margin-bottom: 1rem; overflow: hidden; }
-.pw-progress > span { display: block; height: 100%; width: 25%; background: var(--accent); transition: width .25s ease; }
-.pw-switch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem 1rem; }
-@@media (max-width: 576px) { .pw-switch-grid { grid-template-columns: 1fr; } }
-.pw-switch { display: flex; align-items: center; gap: .55rem; padding: .7rem .85rem; border-radius: 10px; border: 1px solid var(--border-soft); background: color-mix(in srgb, var(--bg, #000) 2%, var(--surface)); }
-.pw-switch label { margin: 0; font-size: .88rem; cursor: pointer; }
-.pw-review { display: grid; gap: .55rem; font-size: .86rem; }
-.pw-review-row { display: grid; grid-template-columns: 8rem 1fr; gap: .5rem; padding: .45rem 0; border-bottom: 1px solid var(--border-soft); }
-.pw-review-row .k { color: var(--text-muted); }
-.pw-review-row .v { font-weight: 600; word-break: break-word; }
-.pw-error { border-color: rgba(229,99,122,.55) !important; box-shadow: 0 0 0 2px rgba(229,99,122,.12); }
-#rich-editor { min-height: 280px; padding: .75rem; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--surface); outline: none; }
-#autosave-status { font-size: .75rem; color: var(--text-muted); margin-inline-start: .5rem; }
-</style>
+@{
+    var selectedFolders = new HashSet<int>(Model.FolderIds ?? new List<int>());
+}
 
 @if (!ViewData.ModelState.IsValid)
 {
@@ -47,7 +15,7 @@
 <div class="pw" id="postWizard" data-start-step="1">
     <div class="pw-progress" aria-hidden="true"><span id="pwProgressBar"></span></div>
     <div class="pw-steps" role="tablist" aria-label="مراحل نوشتن">
-        <button type="button" class="pw-step is-active" data-step="1" role="tab" aria-selected="true"><span class="pw-n">۱</span><span class="pw-label">اطلاعات پایه</span><span class="pw-hint">عنوان و دسته‌بندی</span></button>
+        <button type="button" class="pw-step is-active" data-step="1" role="tab" aria-selected="true"><span class="pw-n">۱</span><span class="pw-label">اطلاعات پایه</span><span class="pw-hint">عنوان و طبقه‌بندی</span></button>
         <button type="button" class="pw-step" data-step="2" role="tab" aria-selected="false"><span class="pw-n">۲</span><span class="pw-label">محتوا</span><span class="pw-hint">متن و رسانه</span></button>
         <button type="button" class="pw-step" data-step="3" role="tab" aria-selected="false"><span class="pw-n">۳</span><span class="pw-label">انتشار</span><span class="pw-hint">زمان و وضعیت</span></button>
         <button type="button" class="pw-step" data-step="4" role="tab" aria-selected="false"><span class="pw-n">۴</span><span class="pw-label">بازبینی</span><span class="pw-hint">تأیید و ذخیره</span></button>
@@ -63,13 +31,11 @@
                     <span asp-validation-for="Title" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label" asp-for="CategoryId">دسته‌بندی</label>
-                    <select asp-for="CategoryId" class="form-select" id="pwCategory">
-                        <option value="">— بدون دسته —</option>
-                        @foreach (var c in Model.AvailableCategories)
-                        {
-                            <option value="@c.Id">@c.Name</option>
-                        }
+                    <label class="form-label" asp-for="LanguageCode">زبان</label>
+                    <select asp-for="LanguageCode" class="form-select">
+                        <option value="fa">فارسی</option>
+                        <option value="en">English</option>
+                        <option value="ar">العربية</option>
                     </select>
                 </div>
                 <div class="col-12">
@@ -79,24 +45,116 @@
                         <button type="button" class="btn btn-ghost" id="btn-ai-summarize" title="پیشنهاد خلاصه">AI</button>
                     </div>
                 </div>
-                <div class="col-md-8">
-                    <label class="form-label" asp-for="TagsCsv">برچسب‌ها</label>
-                    <div class="input-group">
-                        <input asp-for="TagsCsv" class="form-control ltr-field" id="tags-input" placeholder="tag1, tag2" />
+            </div>
+        </div>
+
+        <div class="pw-card">
+            <h2><span class="dot"></span> طبقه‌بندی از Taxonomy</h2>
+            <p class="text-muted-dark small mb-3">پوشه، دسته، برچسب و سری را از همان موجودی‌های <a asp-controller="Taxonomy" asp-action="Index" asp-fragment="folders">Taxonomy</a> انتخاب کنید.</p>
+
+            <div class="pw-tax">
+                <div class="pw-tax-block">
+                    <div class="pw-tax-block-head">
+                        <h3 class="pw-tax-title">@T["tax.tab_folders"]</h3>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="folders">مدیریت</a>
+                    </div>
+                    @if (Model.AvailableFolders.Count == 0)
+                    {
+                        <p class="pw-tax-empty">هنوز پوشه‌ای نیست. از Taxonomy بسازید.</p>
+                    }
+                    else
+                    {
+                        <div class="pw-tax-picks">
+                            @foreach (var f in Model.AvailableFolders)
+                            {
+                                var on = selectedFolders.Contains(f.Id);
+                                <label class="pw-tax-pick @(on ? "is-on" : null)">
+                                    <input type="checkbox" name="FolderIds" value="@f.Id" @(on ? "checked" : null) />
+                                    <span dir="auto">@f.Name</span>
+                                </label>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="pw-tax-block">
+                    <div class="pw-tax-block-head">
+                        <h3 class="pw-tax-title">@T["tax.tab_cats"]</h3>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="cats">مدیریت</a>
+                    </div>
+                    <select asp-for="CategoryId" class="form-select form-select-sm pw-tax-select" id="pwCategory">
+                        <option value="">— بدون دسته —</option>
+                        @foreach (var c in Model.AvailableCategories)
+                        {
+                            <option value="@c.Id">@c.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="pw-tax-block">
+                    <div class="pw-tax-block-head">
+                        <h3 class="pw-tax-title">@T["tax.tab_tags"]</h3>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="tags">مدیریت</a>
+                    </div>
+                    <label class="form-label small" asp-for="TagsCsv">برچسب‌ها (کاما)</label>
+                    <div class="input-group input-group-sm">
+                        <input asp-for="TagsCsv" class="form-control ltr-field" id="tags-input" placeholder="tag1, tag2" list="existing-tags" />
                         <button type="button" class="btn btn-ghost" id="btn-ai-assist" title="پیشنهاد برچسب">AI</button>
                     </div>
-                    <div class="form-text text-muted-dark">با کاما جدا کنید</div>
+                    @if (Model.AvailableTags.Count > 0)
+                    {
+                        <datalist id="existing-tags">
+                            @foreach (var t in Model.AvailableTags)
+                            {
+                                <option value="@t.Name"></option>
+                            }
+                        </datalist>
+                        <div class="pw-tax-picks mt-2" id="tagQuickPicks">
+                            @foreach (var t in Model.AvailableTags.Take(24))
+                            {
+                                <button type="button" class="pw-tax-pick" data-tag="@t.Name">@t.Name</button>
+                            }
+                        </div>
+                    }
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label" asp-for="LanguageCode">زبان</label>
-                    <select asp-for="LanguageCode" class="form-select">
-                        <option value="fa">فارسی</option>
-                        <option value="en">English</option>
-                        <option value="ar">العربية</option>
+
+                <div class="pw-tax-block">
+                    <div class="pw-tax-block-head">
+                        <h3 class="pw-tax-title">@T["tax.tab_series"]</h3>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="series">مدیریت</a>
+                    </div>
+                    <select asp-for="SeriesId" class="form-select form-select-sm pw-tax-select" id="pwSeries">
+                        <option value="">— بدون سری —</option>
+                        @foreach (var s in Model.AvailableSeries)
+                        {
+                            <option value="@s.Id">@s.Name</option>
+                        }
                     </select>
+                </div>
+
+                <div class="pw-tax-block">
+                    <div class="pw-tax-block-head">
+                        <h3 class="pw-tax-title">@T["tax.tab_topics"]</h3>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="topics">مدیریت</a>
+                    </div>
+                    <p class="pw-tax-hint mb-1">موضوع‌ها مجموعه‌های دسته/برچسب هستند و مستقیم به نوشته وصل نمی‌شوند. با انتخاب دسته و برچسب، نوشته در topicهای مرتبط دیده می‌شود.</p>
+                    @if (Model.AvailableTopics.Count == 0)
+                    {
+                        <p class="pw-tax-empty">موضوعی تعریف نشده.</p>
+                    }
+                    else
+                    {
+                        <div class="pw-tax-picks">
+                            @foreach (var t in Model.AvailableTopics)
+                            {
+                                <span class="pw-tax-pick" style="cursor:default;opacity:.85;" dir="auto">@t.Name</span>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
         </div>
+
         <div class="pw-nav">
             <a asp-controller="Admin" asp-action="Posts" class="btn btn-ghost">انصراف</a>
             <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>ادامه ←</button></div>
@@ -241,6 +299,8 @@
             <div class="pw-review" id="pwReview">
                 <div class="pw-review-row"><span class="k">عنوان</span><span class="v" dir="auto" data-rv="title">—</span></div>
                 <div class="pw-review-row"><span class="k">دسته</span><span class="v" data-rv="category">—</span></div>
+                <div class="pw-review-row"><span class="k">پوشه‌ها</span><span class="v" data-rv="folders">—</span></div>
+                <div class="pw-review-row"><span class="k">سری</span><span class="v" data-rv="series">—</span></div>
                 <div class="pw-review-row"><span class="k">خلاصه</span><span class="v" dir="auto" data-rv="summary">—</span></div>
                 <div class="pw-review-row"><span class="k">برچسب‌ها</span><span class="v ltr-field" data-rv="tags">—</span></div>
                 <div class="pw-review-row"><span class="k">حجم محتوا</span><span class="v ltr-field" data-rv="chars">—</span></div>
@@ -268,6 +328,28 @@
   var bar = document.getElementById('pwProgressBar');
   var panels = root.querySelectorAll('[data-panel]');
   var tabs = root.querySelectorAll('.pw-step');
+
+  root.querySelectorAll('.pw-tax-pick input[type="checkbox"]').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      cb.closest('.pw-tax-pick').classList.toggle('is-on', cb.checked);
+    });
+  });
+
+  var tagInput = document.getElementById('tags-input');
+  var quick = document.getElementById('tagQuickPicks');
+  if (tagInput && quick) {
+    quick.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-tag]');
+      if (!btn) return;
+      var name = btn.getAttribute('data-tag');
+      var parts = (tagInput.value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      if (parts.some(function (p) { return p.toLowerCase() === name.toLowerCase(); })) return;
+      parts.push(name);
+      tagInput.value = parts.join(', ');
+      btn.classList.add('is-on');
+    });
+  }
+
   function show(n) {
     step = Math.max(1, Math.min(total, n));
     panels.forEach(function (p) { p.classList.toggle('is-active', Number(p.getAttribute('data-panel')) === step); });
@@ -297,12 +379,18 @@
     var title = (document.getElementById('pwTitle') || {}).value || '—';
     var cat = document.getElementById('pwCategory');
     var catText = cat && cat.selectedIndex > 0 ? cat.options[cat.selectedIndex].text : '—';
+    var series = document.getElementById('pwSeries');
+    var seriesText = series && series.selectedIndex > 0 ? series.options[series.selectedIndex].text : '—';
+    var folders = Array.prototype.map.call(root.querySelectorAll('.pw-tax-pick input[name="FolderIds"]:checked'), function (el) {
+      return el.closest('.pw-tax-pick').querySelector('span').textContent.trim();
+    }).join('، ') || '—';
     var summary = (document.getElementById('summary-input') || {}).value || '—';
     var tags = (document.getElementById('tags-input') || {}).value || '—';
     var md = (document.getElementById('markdown-input') || {}).value || '';
     var pub = document.getElementById('pwPub');
     var status = pub && pub.checked ? 'منتشر' : 'پیش‌نویس';
-    setRv('title', title); setRv('category', catText); setRv('summary', summary.trim() || '—');
+    setRv('title', title); setRv('category', catText); setRv('folders', folders); setRv('series', seriesText);
+    setRv('summary', summary.trim() || '—');
     setRv('tags', tags.trim() || '—'); setRv('chars', md.trim().length + ' نویسه'); setRv('status', status);
   }
   function setRv(key, val) { var el = root.querySelector('[data-rv="' + key + '"]'); if (el) el.textContent = val; }
