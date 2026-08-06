@@ -1,304 +1,158 @@
-@model BlogApp.Models.ViewModels.PostsFinderViewModel
 @{
-    Layout = null;
+    Layout = "_AdminLayout";
     ViewData["Title"] = T["page.posts"];
+    var showAuthor = ViewBag.ShowAuthorColumn as bool? == true;
+    var scope = (ViewBag.Scope as string) ?? "all";
     var pendingCreated = TempData["PostCreatedPending"] as string == "1";
     var createdTitle = TempData["PostCreatedTitle"] as string;
-    var scope = Model.Scope ?? "all";
-    var canManage = Model.CanManage;
-    var isPublic = Model.IsPublicSurface;
-    var sort = Model.Sort ?? "recent";
-    string Act() => isPublic ? "Index" : "Posts";
-    string Ctrl() => isPublic ? "Blog" : "Admin";
-    string ScopeUrl(string s) => Url.Action(Act(), Ctrl(), new { scope = s, sort, q = Model.Search })!;
-    string FolderUrl(int id) => Url.Action(Act(), Ctrl(), new { scope = "all", folderId = id, sort, q = Model.Search })!;
-    string CatUrl(int id) => Url.Action(Act(), Ctrl(), new { scope = "all", categoryId = id, sort, q = Model.Search })!;
-    string TagUrl(int id) => Url.Action(Act(), Ctrl(), new { scope = "all", tagId = id, sort, q = Model.Search })!;
-    string SortUrl(string s) => Url.Action(Act(), Ctrl(), new { scope, folderId = Model.FolderId, categoryId = Model.CategoryId, tagId = Model.TagId, q = Model.Search, sort = s })!;
-    string StatusLabel(FinderPostItem p) =>
-        p.IsDeleted ? T["status.deleted"].ToString()
-        : (p.ReviewStatus == PostReviewStatus.PendingReview && !p.IsPublished) ? T["post.status_pending_review"].ToString()
-        : (p.ScheduledPublishAtUtc.HasValue && !p.IsPublished) ? T["status.scheduled"].ToString()
-        : p.IsPublished ? T["status.published_full"].ToString()
-        : T["status.draft"].ToString();
-    string StatusKey(FinderPostItem p) =>
-        p.IsDeleted ? "trash"
-        : (p.ReviewStatus == PostReviewStatus.PendingReview && !p.IsPublished) ? "pending"
-        : (p.ScheduledPublishAtUtc.HasValue && !p.IsPublished) ? "scheduled"
-        : p.IsPublished ? "published" : "draft";
-    var heading = scope switch
-    {
-        "published" => T["status.published_full"].ToString(),
-        "draft" => T["status.draft"].ToString(),
-        "pending" => T["post.status_pending_review"].ToString(),
-        "trash" => T["status.deleted"].ToString(),
-        _ => T["page.posts"].ToString()
-    };
-    if (Model.FolderId is int fid) { var f = Model.Folders.FirstOrDefault(x => x.Id == fid); if (f != null) heading = f.Name; }
-    else if (Model.CategoryId is int cid) { var c = Model.Categories.FirstOrDefault(x => x.Id == cid); if (c != null) heading = c.Name; }
-    else if (Model.TagId is int tid) { var t = Model.Tags.FirstOrDefault(x => x.Id == tid); if (t != null) heading = t.Name; }
+    var j = new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 }
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>@ViewData["Title"]</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="~/css/dark-theme.css" asp-append-version="true" />
-<link rel="stylesheet" href="/Themes/ActiveCss" />
-<style>
-*,*::before,*::after{box-sizing:border-box}
-html,body{margin:0;height:100%;-webkit-font-smoothing:antialiased}
-html[dir=rtl] body{font-family:var(--font-body-rtl,"Vazirmatn",Tahoma,sans-serif)}
-html[dir=ltr] body{font-family:var(--font-body-ltr,"Space Grotesk",system-ui,sans-serif)}
-body{background:var(--bg,#0b0e14);color:var(--text,#e6e9f0);overflow:hidden;font-size:15px;font-weight:400}
-a{color:inherit;text-decoration:none}
-button,input,select{font:inherit}
-.fn{display:grid;grid-template-rows:auto 1fr;height:100vh;height:100dvh}
-.fn-tb{display:flex;align-items:center;gap:.55rem;padding:.45rem .7rem;background:color-mix(in srgb,var(--surface,#12161f) 94%,transparent);backdrop-filter:saturate(160%) blur(18px);border-bottom:1px solid var(--border-soft,var(--border,#232838));user-select:none}
-.fn-ico{width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:var(--text-muted,#8b93a7);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.fn-ico:hover{background:color-mix(in srgb,var(--text) 10%,transparent)}
-.fn-ico svg{width:15px;height:15px;fill:currentColor}
-.fn-title{font-size:.95rem;font-weight:600;margin:0 .4rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:28vw}
-.fn-spacer{flex:1}
-.fn-search{position:relative;width:min(240px,28vw)}
-.fn-search input{width:100%;height:28px;border-radius:7px;border:0;background:color-mix(in srgb,var(--text) 10%,transparent);color:var(--text);padding:0 28px 0 10px;outline:none}
-.fn-search input::placeholder{color:var(--text-muted)}
-.fn-search svg{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:13px;height:13px;opacity:.55;fill:var(--text)}
-.fn-views{display:flex;background:color-mix(in srgb,var(--text) 8%,transparent);border-radius:7px;padding:2px}
-.fn-views button{width:28px;height:24px;border:0;border-radius:5px;background:transparent;color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.fn-views button.is-on{background:color-mix(in srgb,var(--text) 16%,transparent);color:var(--text)}
-.fn-views svg{width:14px;height:14px;fill:currentColor}
-.fn-btn{height:28px;padding:0 12px;border:0;border-radius:7px;background:var(--accent,#e3b341);color:var(--bg,#0b0e14);font-size:.8rem;font-weight:600;cursor:pointer}
-.fn-btn:hover{filter:brightness(1.08)}
-.fn-btn-ghost{background:color-mix(in srgb,var(--text) 10%,transparent);color:var(--text)}
-.fn-sort{height:28px;border:0;border-radius:7px;background:color-mix(in srgb,var(--text) 10%,transparent);color:var(--text);padding:0 8px;font-size:.78rem}
-.fn-body{display:grid;grid-template-columns:220px 1fr;min-height:0}
-.fn-side{background:var(--surface,#12161f);border-inline-start:1px solid var(--border-soft,var(--border));overflow:auto;padding:.55rem 0 .9rem}
-.fn-sec{margin:.55rem 0 .2rem;padding:0 12px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted)}
-.fn-item{display:flex;align-items:center;gap:.55rem;margin:1px 8px;padding:5px 8px;border-radius:7px;font-size:.84rem;color:var(--text);cursor:pointer;border:0;background:transparent;width:calc(100% - 16px);text-align:start}
-.fn-item:hover{background:color-mix(in srgb,var(--text) 7%,transparent)}
-.fn-item.is-active{background:var(--accent);color:var(--bg)}
-.fn-item .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.fn-item .cnt{margin-inline-start:auto;font-size:.72rem;opacity:.65}
-.fn-item svg{width:15px;height:15px;flex-shrink:0;fill:currentColor}
-.fn-ff{width:16px;height:13px;flex-shrink:0}
-.fn-ff .b{fill:#7eb6f7}.fn-ff .f{fill:#4a9aef}
-.fn-ff.yellow .b{fill:#f5d76e}.fn-ff.yellow .f{fill:#e8b923}
-.fn-ff.red .b{fill:#f0a0a0}.fn-ff.red .f{fill:#e05555}
-.fn-ff.green .b{fill:#9ad4a8}.fn-ff.green .f{fill:#4caf6a}
-.fn-ff.purple .b{fill:#c4a8e8}.fn-ff.purple .f{fill:#8b5cf6}
-.fn-ff.orange .b{fill:#f5c07a}.fn-ff.orange .f{fill:#e08a2a}
-.fn-ff.gray .b{fill:#c7c7cc}.fn-ff.gray .f{fill:#8e8e93}
-.fn-main{overflow:auto;background:var(--bg);min-height:0}
-.fn-path{padding:.55rem 1rem .15rem;font-size:.75rem;color:var(--text-muted)}
-.fn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:6px 4px;padding:.4rem .75rem 2rem}
-.fn-card{display:flex;flex-direction:column;align-items:center;gap:.35rem;padding:.65rem .4rem .5rem;border-radius:10px;cursor:default;position:relative;border:1px solid transparent;user-select:none}
-.fn-card:hover{background:color-mix(in srgb,var(--text) 5%,transparent)}
-.fn-card.is-sel{background:var(--accent-soft,rgba(227,179,65,.12));border-color:var(--accent)}
-.fn-thumb{width:72px;height:72px;border-radius:12px;background:var(--surface-2,#171c27);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:var(--shadow-soft,0 4px 12px rgba(0,0,0,.25));position:relative}
-.fn-thumb img{width:100%;height:100%;object-fit:cover}
-.fn-thumb .doc{width:36px;height:44px;border-radius:4px;background:var(--text);position:relative;opacity:.9}
-.fn-thumb .badge{position:absolute;bottom:4px;inset-inline-end:4px;font-size:.58rem;font-weight:700;padding:1px 5px;border-radius:4px;background:rgba(0,0,0,.55);color:#fff}
-.fn-thumb .badge.published{background:color-mix(in srgb,var(--success,#9ecb8c) 90%,#000)}
-.fn-thumb .badge.draft{background:var(--text-muted)}
-.fn-thumb .badge.pending{background:#ff9f0a}
-.fn-thumb .badge.trash{background:var(--danger,#e5637a)}
-.fn-name{font-size:.72rem;line-height:1.25;text-align:center;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;font-weight:500}
-.fn-meta{font-size:.62rem;color:var(--text-muted);text-align:center}
-.fn-list{display:none;padding:.25rem 0 2rem}
-.fn.is-list .fn-grid{display:none}
-.fn.is-list .fn-list{display:block}
-.fn-row{display:grid;grid-template-columns:minmax(0,1.6fr) .7fr .55fr .45fr 140px;gap:.5rem;align-items:center;padding:.45rem 1rem;border-bottom:1px solid var(--border-soft,var(--border));font-size:.82rem}
-.fn-row:hover{background:color-mix(in srgb,var(--text) 4%,transparent)}
-.fn-row.is-sel{background:var(--accent-soft,rgba(227,179,65,.12))}
-.fn-row-title{display:flex;align-items:center;gap:.55rem;min-width:0}
-.fn-row-title .sm{width:28px;height:28px;border-radius:6px;background:var(--surface-2);overflow:hidden;flex-shrink:0}
-.fn-row-title .sm img{width:100%;height:100%;object-fit:cover}
-.fn-row-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-.fn-row .muted{color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fn-acts{display:flex;gap:.3rem;justify-content:flex-end;flex-wrap:wrap}
-.fn-acts a,.fn-acts button{font-size:.72rem;padding:3px 8px;border-radius:6px;border:0;background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--text);cursor:pointer;font-weight:500}
-.fn-acts .danger{color:var(--danger)}
-.fn-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 1rem;color:var(--text-muted);gap:.4rem}
-.fn-empty strong{color:var(--text);font-size:1rem;font-weight:600}
-.fn-selbar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:.5rem;padding:.45rem .65rem;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-soft);z-index:30}
-.fn-selbar.is-on{display:flex}
-.fn-selbar span{font-size:.8rem;color:var(--text-muted);padding:0 .35rem}
-.pdm{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem}
-.pdm[hidden]{display:none!important}
-.pdm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
-.pdm-dialog{position:relative;z-index:1;width:min(400px,100%);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.15rem 1.25rem;box-shadow:var(--shadow-soft)}
-.pdm-title{font-size:1.05rem;margin:0 0 .35rem;font-weight:650}
-.pdm-sub{font-size:.88rem;margin:0 0 .75rem;color:var(--text-muted);line-height:1.5}
-.pdm-post{font-weight:600;margin:0 0 1rem;padding:.5rem .65rem;border-radius:8px;background:var(--surface-2)}
-.pdm-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem}
-.pdm-actions button{height:32px;padding:0 14px;border:0;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem}
-.pdm-actions .ok{background:var(--accent);color:var(--bg)}
-.pdm-actions .ghost{background:color-mix(in srgb,var(--text) 10%,transparent);color:var(--text)}
-.pdm-actions .danger{background:var(--danger);color:#fff}
-.pdm textarea{width:100%;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);padding:.55rem .65rem;resize:vertical;min-height:72px}
-.pdm label{font-size:.8rem;color:var(--text-muted);display:block;margin-bottom:.3rem}
-@@media (max-width:720px){.fn-body{grid-template-columns:1fr}.fn-side{display:none}.fn-row{grid-template-columns:1fr auto}.fn-row .hide-sm{display:none}}
-</style>
-</head>
-<body>
-<div class="fn" id="finder">
-  <header class="fn-tb">
-    <div class="fn-tb-nav">
-      <a class="fn-ico" href="@(isPublic ? Url.Action("Index","Home") : Url.Action("Index","Admin"))" aria-label="Back">
-        <svg viewBox="0 0 16 16"><path d="M10.5 3.5 5 8l5.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </a>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div class="admin-tabs mb-0">
+        <a class="admin-tab @(scope == "all" ? "active" : "")" asp-action="Posts" asp-route-scope="all">
+            @T["tab.all"] <span class="text-muted-dark">(@(ViewBag.AllCount ?? 0))</span>
+        </a>
+        <a class="admin-tab @(scope == "published" ? "active" : "")" asp-action="Posts" asp-route-scope="published">
+            @T["status.published_full"] <span class="text-muted-dark">(@(ViewBag.PublishedCount ?? 0))</span>
+        </a>
+        <a class="admin-tab @(scope == "draft" ? "active" : "")" asp-action="Posts" asp-route-scope="draft">
+            @T["status.draft"] <span class="text-muted-dark">(@(ViewBag.DraftCount ?? 0))</span>
+        </a>
+        <a class="admin-tab @(scope == "pending" ? "active" : "")" asp-action="Posts" asp-route-scope="pending">
+            @T["post.status_pending_review"] <span class="text-muted-dark">(@(ViewBag.PendingCount ?? 0))</span>
+        </a>
+        <a class="admin-tab @(scope == "trash" ? "active" : "")" asp-action="Posts" asp-route-scope="trash">
+            @T["status.deleted"] <span class="text-muted-dark">(@(ViewBag.TrashCount ?? 0))</span>
+        </a>
     </div>
-    <div class="fn-title" dir="auto">@heading</div>
-    <div class="fn-spacer"></div>
-    <form method="get" action="@Url.Action(Act(), Ctrl())" class="fn-search">
-      <input type="hidden" name="scope" value="@scope" />
-      @if (Model.FolderId is int hf) { <input type="hidden" name="folderId" value="@hf" /> }
-      @if (Model.CategoryId is int hc) { <input type="hidden" name="categoryId" value="@hc" /> }
-      @if (Model.TagId is int ht) { <input type="hidden" name="tagId" value="@ht" /> }
-      <input type="hidden" name="sort" value="@sort" />
-      <input type="search" name="q" value="@Model.Search" placeholder="@T["dt.search_placeholder"]" autocomplete="off" />
-      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 11.5 14 14M7 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-    </form>
-    <select class="fn-sort" onchange="location.href=this.value" aria-label="Sort">
-      <option value="@SortUrl("recent")" selected="@(sort=="recent")">Recent</option>
-      <option value="@SortUrl("title")" selected="@(sort=="title")">Title</option>
-      <option value="@SortUrl("views")" selected="@(sort=="views")">Views</option>
-      <option value="@SortUrl("oldest")" selected="@(sort=="oldest")">Oldest</option>
-    </select>
-    <div class="fn-views" role="group">
-      <button type="button" class="is-on" id="viewIcons" title="Icons" aria-pressed="true"><svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg></button>
-      <button type="button" id="viewList" title="List" aria-pressed="false"><svg viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="2" rx=".5"/><rect x="1" y="7" width="14" height="2" rx=".5"/><rect x="1" y="12" width="14" height="2" rx=".5"/></svg></button>
-    </div>
-    @if (canManage) { <a class="fn-btn" asp-controller="Posts" asp-action="Create">@T["btn.new_post"]</a> }
-  </header>
-  <div class="fn-body">
-    <aside class="fn-side">
-      <div class="fn-sec">Favorites</div>
-      <a class="fn-item @(scope=="all" && Model.FolderId==null && Model.CategoryId==null && Model.TagId==null ? "is-active" : null)" href="@ScopeUrl("all")">
-        <svg viewBox="0 0 16 16"><path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h3l1.5 1.5H12.5A1.5 1.5 0 0 1 14 5v7.5A1.5 1.5 0 0 1 12.5 14h-9A1.5 1.5 0 0 1 2 12.5v-9z"/></svg>
-        <span>@T["tab.all"]</span><span class="cnt">@Model.AllCount</span>
-      </a>
-      <a class="fn-item @(scope=="published" ? "is-active" : null)" href="@ScopeUrl("published")">
-        <span class="dot" style="background:var(--success,#9ecb8c)"></span>
-        <span>@T["status.published_full"]</span><span class="cnt">@Model.PublishedCount</span>
-      </a>
-      @if (canManage) {
-      <a class="fn-item @(scope=="draft" ? "is-active" : null)" href="@ScopeUrl("draft")"><span class="dot" style="background:var(--text-muted)"></span><span>@T["status.draft"]</span><span class="cnt">@Model.DraftCount</span></a>
-      <a class="fn-item @(scope=="pending" ? "is-active" : null)" href="@ScopeUrl("pending")"><span class="dot" style="background:#ff9f0a"></span><span>@T["post.status_pending_review"]</span><span class="cnt">@Model.PendingCount</span></a>
-      <a class="fn-item @(scope=="trash" ? "is-active" : null)" href="@ScopeUrl("trash")"><span class="dot" style="background:var(--danger)"></span><span>@T["status.deleted"]</span><span class="cnt">@Model.TrashCount</span></a>
-      }
-      @if (canManage && Model.Folders.Count > 0) {
-        <div class="fn-sec">Folders</div>
-        @foreach (var f in Model.Folders) {
-          <a class="fn-item @(Model.FolderId==f.Id ? "is-active" : null)" href="@FolderUrl(f.Id)">
-            <svg class="fn-ff @f.Color" viewBox="0 0 64 52"><path class="b" d="M2 10c0-3.3 2.7-6 6-6h14l4 5h30c3.3 0 6 2.7 6 6v31c0 3.3-2.7 6-6 6H8c-3.3 0-6-2.7-6-6V10z"/><path class="f" d="M2 18c0-2.2 1.8-4 4-4h52c2.2 0 4 1.8 4 4v24c0 2.2-1.8 4-4 4H6c-2.2 0-4-1.8-4-4V18z"/></svg>
-            <span dir="auto">@f.Name</span><span class="cnt">@f.PostCount</span>
-          </a>
-        }
-      }
-      @if (Model.Categories.Count > 0) {
-        <div class="fn-sec">@T["tax.tab_cats"]</div>
-        @foreach (var c in Model.Categories.Take(20)) {
-          <a class="fn-item @(Model.CategoryId==c.Id ? "is-active" : null)" href="@CatUrl(c.Id)"><span class="dot" style="background:#64d2ff"></span><span dir="auto">@c.Name</span><span class="cnt">@c.Count</span></a>
-        }
-      }
-      @if (Model.Tags.Count > 0) {
-        <div class="fn-sec">@T["tax.tab_tags"]</div>
-        @foreach (var t in Model.Tags.Take(16)) {
-          <a class="fn-item @(Model.TagId==t.Id ? "is-active" : null)" href="@TagUrl(t.Id)"><span class="dot" style="background:#bf5af2"></span><span dir="auto">@t.Name</span><span class="cnt">@t.Count</span></a>
-        }
-      }
-    </aside>
-    <main class="fn-main">
-      <div class="fn-path">@Model.Posts.Count items</div>
-      @if (Model.Posts.Count == 0) {
-        <div class="fn-empty"><strong>@T["dt.empty_table"]</strong></div>
-      } else {
-        <div class="fn-grid" id="iconGrid">
-          @foreach (var p in Model.Posts) {
-            var sk = StatusKey(p);
-            <div class="fn-card" data-id="@p.Id" data-title="@p.Title" data-slug="@p.Slug" data-deleted="@(p.IsDeleted?"1":"0")" data-can-act="@(Model.CanActOn(p)?"1":"0")" tabindex="0" role="button">
-              <div class="fn-thumb">
-                @if (!string.IsNullOrEmpty(p.CoverUrl)) { <img src="@p.CoverUrl" alt="" loading="lazy" /> } else { <div class="doc" aria-hidden="true"></div> }
-                <span class="badge @sk">@StatusLabel(p)</span>
-              </div>
-              <div class="fn-name" dir="auto">@p.Title</div>
-              <div class="fn-meta">@(p.CategoryName ?? "—") · @p.ViewCount</div>
-            </div>
-          }
-        </div>
-        <div class="fn-list" id="listView">
-          @foreach (var p in Model.Posts) {
-            <div class="fn-row" data-id="@p.Id" data-title="@p.Title" data-slug="@p.Slug" data-deleted="@(p.IsDeleted?"1":"0")" data-can-act="@(Model.CanActOn(p)?"1":"0")">
-              <div class="fn-row-title">
-                <div class="sm">@if (!string.IsNullOrEmpty(p.CoverUrl)) { <img src="@p.CoverUrl" alt="" loading="lazy" /> }</div>
-                <span dir="auto">@p.Title</span>
-              </div>
-              <div class="muted hide-sm" dir="auto">@(p.CategoryName ?? "—")</div>
-              <div class="muted hide-sm">@StatusLabel(p)</div>
-              <div class="muted hide-sm">@p.ViewCount</div>
-              <div class="fn-acts">
-                <a href="/post/@p.Slug" target="_blank" rel="noopener">View</a>
-                @if (p.IsDeleted && (Model.CanManageAll || (Model.CanManage && p.AuthorId == Model.CurrentUserId))) {
-                  <form method="post" action="/Posts/Restore">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@p.Id" /><button type="submit">@T["btn.restore"]</button></form>
-                } else if (Model.CanActOn(p)) {
-                  <a href="/Posts/Edit/@p.Id">@T["btn.edit"]</a>
-                  <button type="button" class="danger" data-post-delete data-id="@p.Id" data-title="@p.Title">@T["btn.delete"]</button>
-                }
-              </div>
-            </div>
-          }
-        </div>
-      }
-    </main>
-  </div>
+    <a class="btn btn-accent btn-sm" asp-controller="Posts" asp-action="Create">@T["btn.new_post"]</a>
 </div>
-<div class="fn-selbar" id="selBar">
-  <span id="selCount">1 selected</span>
-  <a class="fn-btn" id="selEdit" href="#" @(canManage?null:"hidden")>@T["btn.edit"]</a>
-  <a class="fn-btn fn-btn-ghost" id="selView" href="#" target="_blank" rel="noopener">View</a>
-  <button type="button" class="fn-btn fn-btn-ghost" id="selDelete" style="color:var(--danger)" @(canManage?null:"hidden")>@T["btn.delete"]</button>
-</div>
+
 @Html.AntiForgeryToken()
-<div id="postPendingModal" class="pdm" @(pendingCreated?null:"hidden")>
-  <div class="pdm-backdrop" data-ppm-close></div>
-  <div class="pdm-dialog"><h2 class="pdm-title">@T["post.status_pending_review"]</h2><p class="pdm-sub">@T["post.created_pending_hint"]</p>
-  @if (!string.IsNullOrEmpty(createdTitle)) { <p class="pdm-post" dir="auto">@createdTitle</p> }
-  <div class="pdm-actions"><button type="button" class="ok" data-ppm-close>باشه</button></div></div>
+
+<div class="admin-table-wrap">
+    <table id="postsTable" class="admin-table display nowrap" style="width:100%">
+        <thead>
+            <tr>
+                <th>@T["col.index"]</th>
+                <th>@T["col.title"]</th>
+                @if (showAuthor)
+                {
+                    <th>@T["col.author"]</th>
+                }
+                <th>@T["col.category"]</th>
+                <th>@T["col.status"]</th>
+                <th>@T["col.features"]</th>
+                <th>@T["col.views"]</th>
+                <th>@T["col.comments"]</th>
+                <th>@T["col.date"]</th>
+                <th>@T["col.actions"]</th>
+            </tr>
+        </thead>
+    </table>
 </div>
-<div id="postDeleteModal" class="pdm" hidden>
-  <div class="pdm-backdrop" data-pdm-close></div>
-  <div class="pdm-dialog"><h2 class="pdm-title">حذف نوشته</h2><p class="pdm-sub">آیا از انتقال این نوشته به سطل زباله مطمئن هستید؟</p>
-  <p class="pdm-post" id="pdmPostTitle" dir="auto"></p>
-  <form id="pdmForm" method="post" action="/Posts/Delete">
-    <input type="hidden" name="__RequestVerificationToken" id="pdmToken" value="" />
-    <input type="hidden" name="id" id="pdmId" value="" />
-    <label for="pdmReason">دلیل حذف (اختیاری)</label>
-    <textarea id="pdmReason" name="reason" maxlength="500"></textarea>
-    <div class="pdm-actions"><button type="button" class="ghost" data-pdm-close>انصراف</button><button type="submit" class="danger">تأیید حذف</button></div>
-  </form></div>
+
+@* Soft-delete confirm *@
+<div id="postDeleteModal" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-surface">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">@T["btn.delete"]</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="pdmForm" method="post" action="/Posts/Delete">
+                <div class="modal-body">
+                    <input type="hidden" name="__RequestVerificationToken" id="pdmToken" value="" />
+                    <input type="hidden" name="id" id="pdmId" value="" />
+                    <p class="mb-2" id="pdmPostTitle" dir="auto"></p>
+                    <label class="form-label" for="pdmReason">@T["report.reason"] (@T["msg.optional"])</label>
+                    <textarea class="form-control" id="pdmReason" name="reason" maxlength="500" rows="3"></textarea>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">@T["btn.cancel"]</button>
+                    <button type="submit" class="btn btn-danger">@T["btn.delete"]</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+@if (pendingCreated)
+{
+    <div class="modal fade" id="postPendingModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content card-surface">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">@T["post.status_pending_review"]</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p dir="auto">@T["post.created_pending_hint"]</p>
+                    @if (!string.IsNullOrEmpty(createdTitle))
+                    {
+                        <p class="fw-semibold" dir="auto">@createdTitle</p>
+                    }
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-accent" data-bs-dismiss="modal">@T["btn.ok"]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
 <script>
-(function(){
-  var root=document.getElementById('finder'),iconBtn=document.getElementById('viewIcons'),listBtn=document.getElementById('viewList');
-  try{if(localStorage.getItem('blog-finder-view')==='list'){root.classList.add('is-list');iconBtn.classList.remove('is-on');listBtn.classList.add('is-on');}}catch(e){}
-  iconBtn.addEventListener('click',function(){root.classList.remove('is-list');iconBtn.classList.add('is-on');listBtn.classList.remove('is-on');try{localStorage.setItem('blog-finder-view','icons');}catch(e){}});
-  listBtn.addEventListener('click',function(){root.classList.add('is-list');listBtn.classList.add('is-on');iconBtn.classList.remove('is-on');try{localStorage.setItem('blog-finder-view','list');}catch(e){}});
-  var selBar=document.getElementById('selBar'),selEdit=document.getElementById('selEdit'),selView=document.getElementById('selView'),selDelete=document.getElementById('selDelete'),selected=null;
-  function clearSel(){document.querySelectorAll('.fn-card.is-sel,.fn-row.is-sel').forEach(function(el){el.classList.remove('is-sel');});selected=null;selBar.classList.remove('is-on');}
-  function select(el){clearSel();el.classList.add('is-sel');selected=el;var id=el.getAttribute('data-id'),slug=el.getAttribute('data-slug')||'',deleted=el.getAttribute('data-deleted')==='1',canAct=el.getAttribute('data-can-act')==='1';selEdit.href='/Posts/Edit/'+id;selView.href=slug?('/post/'+slug):'#';selBar.classList.add('is-on');selDelete.style.display=(canAct&&!deleted)?'':'none';selEdit.style.display=(canAct&&!deleted)?'':'none';}
-  document.addEventListener('click',function(e){var card=e.target.closest('.fn-card, .fn-row');if(card&&!e.target.closest('.fn-acts')){select(card);return;}if(!e.target.closest('.fn-selbar')&&!e.target.closest('.fn-card')&&!e.target.closest('.fn-row'))clearSel();});
-  document.addEventListener('dblclick',function(e){var card=e.target.closest('.fn-card, .fn-row');if(!card)return;var id=card.getAttribute('data-id'),slug=card.getAttribute('data-slug')||'',deleted=card.getAttribute('data-deleted')==='1',canAct=card.getAttribute('data-can-act')==='1';if(canAct&&!deleted)location.href='/Posts/Edit/'+id;else if(slug)location.href='/post/'+slug;});
-  selDelete.addEventListener('click',function(){if(!selected)return;openDelete(selected.getAttribute('data-id'),selected.getAttribute('data-title'));});
-  (function(){var modal=document.getElementById('postPendingModal');if(!modal)return;function close(){modal.hidden=true;}document.addEventListener('click',function(e){if(e.target.closest('[data-ppm-close]')){e.preventDefault();close();}});})();
-  var modal=document.getElementById('postDeleteModal'),idEl=document.getElementById('pdmId'),titleEl=document.getElementById('pdmPostTitle'),reasonEl=document.getElementById('pdmReason'),tokenEl=document.getElementById('pdmToken'),pageToken=document.querySelector('input[name="__RequestVerificationToken"]');
-  function openDelete(id,title){idEl.value=id;titleEl.textContent=title||('#'+id);reasonEl.value='';if(pageToken)tokenEl.value=pageToken.value;modal.hidden=false;}
-  document.addEventListener('click',function(e){var btn=e.target.closest('[data-post-delete]');if(btn){e.preventDefault();openDelete(btn.getAttribute('data-id'),btn.getAttribute('data-title'));return;}if(e.target.closest('[data-pdm-close]')){e.preventDefault();modal.hidden=true;}});
+(function () {
+    var showAuthor = @(showAuthor ? "true" : "false");
+    var scope = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(scope, j));
+
+    var cols = [
+        { data: 0, orderable: false, searchable: false, className: 'ltr-field col-idx' },
+        { data: 1, className: 'dt-wrap' }
+    ];
+    if (showAuthor) cols.push({ data: 2 });
+    var off = showAuthor ? 1 : 0;
+    cols.push(
+        { data: 2 + off },
+        { data: 3 + off, className: 'col-status' },
+        { data: 4 + off, orderable: false },
+        { data: 5 + off, className: 'ltr-field' },
+        { data: 6 + off, className: 'ltr-field' },
+        { data: 7 + off, className: 'ltr-field col-date' },
+        { data: 8 + off, orderable: false, searchable: false }
+    );
+
+    BlogDT.init('#postsTable', {
+        ajax: {
+            url: '@Url.Action("PostsData", "Admin")',
+            type: 'GET',
+            data: function (d) { d.scope = scope; }
+        },
+        columns: cols,
+        order: [[7 + off, 'desc']]
+    });
+
+    var pageToken = document.querySelector('input[name="__RequestVerificationToken"]');
+    var modalEl = document.getElementById('postDeleteModal');
+    var bsModal = modalEl && window.bootstrap ? new bootstrap.Modal(modalEl) : null;
+
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-post-delete]');
+        if (!btn) return;
+        e.preventDefault();
+        document.getElementById('pdmId').value = btn.getAttribute('data-id') || '';
+        document.getElementById('pdmPostTitle').textContent = btn.getAttribute('data-title') || '';
+        document.getElementById('pdmReason').value = '';
+        if (pageToken) document.getElementById('pdmToken').value = pageToken.value;
+        if (bsModal) bsModal.show();
+    });
+
+    var pendingEl = document.getElementById('postPendingModal');
+    if (pendingEl && window.bootstrap) {
+        new bootstrap.Modal(pendingEl).show();
+    }
 })();
 </script>
-</body>
-</html>
+}
