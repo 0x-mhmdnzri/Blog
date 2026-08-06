@@ -4,14 +4,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Services;
 
-public sealed partial class UiTranslatorService
+public sealed class UiTranslatorSeed
 {
+    private readonly ApplicationDbContext _db;
+
+    public UiTranslatorSeed(ApplicationDbContext db) => _db = db;
+
     public async Task EnsureSeedAsync(CancellationToken ct = default)
     {
         var existing = await _db.UiTranslations.AsNoTracking()
             .Select(t => t.Key + "|" + t.LanguageCode)
             .ToListAsync(ct);
-        var set = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
+        var set = existing.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var insertRows = UiTranslationCatalog.All
             .Concat(UiTranslationCatalog.Wizard)
@@ -36,7 +40,8 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.Themes)
             .Concat(UiTranslationCatalog.UsersRoles)
             .Concat(UiTranslationCatalog.ApiKeysAdmin)
-            .Concat(UiTranslationCatalog.Report);
+            .Concat(UiTranslationCatalog.Report)
+            .Concat(UiTranslationCatalog.PostEditor);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
@@ -59,7 +64,5 @@ public sealed partial class UiTranslatorService
 
         if (added > 0)
             await _db.SaveChangesAsync(ct);
-
-        await InvalidateCacheAsync();
     }
 }
