@@ -63,6 +63,7 @@ public partial class AdminController
                 Id = p.Id,
                 Title = p.Title,
                 Slug = p.Slug,
+                AuthorId = p.AuthorId,
                 CategoryName = p.Category != null ? p.Category.Name : null,
                 CategoryId = p.CategoryId,
                 AuthorName = p.Author.DisplayName,
@@ -111,6 +112,10 @@ public partial class AdminController
             Search = q,
             Sort = sort ?? "recent",
             ShowAuthor = seeAll,
+            CanManage = true,
+            CanManageAll = seeAll,
+            CurrentUserId = userId,
+            IsPublicSurface = false,
             AllCount = allCount,
             PublishedCount = publishedCount,
             DraftCount = draftCount,
@@ -123,12 +128,6 @@ public partial class AdminController
         };
         return View("Posts", vm);
     }
-
-    /// <summary>Attribute-only aliases — must not share attributes with conventional Posts.</summary>
-    [HttpGet("/Blogs")]
-    [HttpGet("/Blog")]
-    public Task<IActionResult> Blogs(string? scope = null, int? folderId = null, int? categoryId = null, int? tagId = null, string? q = null, string? sort = null)
-        => Posts(scope, folderId, categoryId, tagId, q, sort);
 
     [HttpGet]
     public async Task<IActionResult> PostsData()
