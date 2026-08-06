@@ -24,6 +24,12 @@ public class PostEditViewModel
     [Display(Name = "برچسب‌ها (جدا شده با کاما)")]
     public string? TagsCsv { get; set; }
 
+    /// <summary>Selected folder ids (PostFolderItem membership).</summary>
+    public List<int> FolderIds { get; set; } = new();
+
+    /// <summary>Optional series membership (one series).</summary>
+    public int? SeriesId { get; set; }
+
     public bool IsPublished { get; set; }
 
     [Display(Name = "انتشار زمان‌بندی‌شده")]
@@ -59,8 +65,19 @@ public class PostEditViewModel
     public List<PostTranslationLink> SiblingTranslations { get; set; } = new();
 
     public List<CategoryOption> AvailableCategories { get; set; } = new();
+    public List<TaxonomyPickItem> AvailableFolders { get; set; } = new();
+    public List<TaxonomyPickItem> AvailableTags { get; set; } = new();
+    public List<TaxonomyPickItem> AvailableSeries { get; set; } = new();
+    public List<TaxonomyPickItem> AvailableTopics { get; set; } = new();
 
     public List<PostRevisionItem> Revisions { get; set; } = new();
+}
+
+public class TaxonomyPickItem
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Extra { get; set; }
 }
 
 public class CategoryOption
