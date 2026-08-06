@@ -202,9 +202,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<AuthorFollow>(e =>
         {
-            e.HasKey(f => new { f.FollowerUserId, f.AuthorUserId });
             e.HasOne(f => f.Follower).WithMany().HasForeignKey(f => f.FollowerUserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(f => f.Author).WithMany().HasForeignKey(f => f.AuthorUserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasKey(f => new { f.FollowerUserId, f.AuthorUserId });
         });
 
         modelBuilder.Entity<OutboundMessage>(e =>
@@ -296,5 +296,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         ConfigureApi(modelBuilder);
         ConfigureNewsletter(modelBuilder);
         ConfigureEnterprise(modelBuilder);
+        ConfigureFolders(modelBuilder);
     }
 }
