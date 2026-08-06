@@ -2,14 +2,12 @@
 @inject BlogApp.Services.IUiTranslator T
 
 <div class="container author-body py-4 py-md-5">
-    <div class="author-posts-head-row">
-        <div class="author-posts-head">
-            <h2 class="h5 mb-1">
-                <svg class="author-section-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
-                @T["author.posts_title"]
-            </h2>
-            <p class="small text-muted-dark mb-0">@T["author.posts_sub"]</p>
-        </div>
+    <div class="author-posts-head">
+        <h2>
+            <svg class="author-section-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+            @T["author.posts_title"]
+        </h2>
+        <p class="small text-muted-dark mb-0">@T["author.posts_sub"]</p>
     </div>
 
     @if (Model.PostCount > 0)
@@ -24,13 +22,13 @@
             <p class="mb-0">@(Model.HasActiveFilter ? T["author.no_filter_results"] : T["author.no_posts"])</p>
             @if (Model.HasActiveFilter)
             {
-                <a class="btn btn-ghost btn-sm mt-2" href="/author/@Model.UserName">@T["author.filter_clear"]</a>
+                <a class="btn btn-ghost btn-sm mt-1" href="/author/@Model.UserName">@T["author.filter_clear"]</a>
             }
         </div>
     }
     else
     {
-        <div class="row g-3 author-post-grid">
+        <div class="row g-3 g-md-4 author-post-grid">
             @foreach (var p in Model.Posts)
             {
                 var lang = string.IsNullOrEmpty(p.LanguageCode) ? "fa" : p.LanguageCode;
@@ -65,9 +63,9 @@
                                     <time>@(p.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "—")</time>
                                     @if (p.ReadingTimeMinutes > 0)
                                     {
-                                        <span>· @p.ReadingTimeMinutes min</span>
+                                        <span> · @p.ReadingTimeMinutes min</span>
                                     }
-                                    <span class="views">· @p.ViewCount.ToString("N0") views</span>
+                                    <span> · @p.ViewCount.ToString("N0")</span>
                                 </div>
                             </div>
                         </a>
