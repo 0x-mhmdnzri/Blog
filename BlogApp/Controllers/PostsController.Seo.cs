@@ -16,19 +16,19 @@ public partial class PostsController
         ViewData["Keywords"] = keywords;
         ViewData["Canonical"] = canonical;
         ViewData["OgType"] = "article";
-        ViewData["NoIndex"] = !post.IsPublished;
+        ViewData["NoIndex"] = !post.IsPublished || post.IsDeleted;
 
         var authorName = post.Author?.DisplayName ?? _seo.AuthorName;
         ViewData["Author"] = authorName;
-        ViewData["ArticlePublished"] = (post.PublishedAtUtc ?? post.CreatedAtUtc).ToString("o");
-        ViewData["ArticleModified"] = post.UpdatedAtUtc.ToString("o");
+        ViewData["ArticlePublished"] = (post.PublishedAtUtc ?? post.CreatedAtUtc).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        ViewData["ArticleModified"] = post.UpdatedAtUtc.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
         ViewData["ArticleSection"] = post.Category?.Name;
         ViewData["ArticleTags"] = post.PostTags?
             .Where(pt => pt.Tag != null)
             .Select(pt => pt.Tag!.Name)
             .ToArray() ?? Array.Empty<string>();
 
-        // Always prefer generated OG card (title, views, likes, read time) for richer shares.
+        // Prefer generated OG card (title, views, likes, read time) for richer shares.
         string? ogImage = null;
         var cards = HttpContext.RequestServices.GetService(typeof(IPostOgCardService)) as IPostOgCardService;
         if (cards is not null)
@@ -38,10 +38,16 @@ public partial class PostsController
         ViewData["OgImage"] = ogImage;
         ViewData["OgImageAlt"] = post.Title;
 
+        // hreflang alternates for translation group
+        if (post.TranslationGroupId is int gid && gid > 0)
+        {
+            // filled by Details action when siblings are loaded; safe empty default
+        }
+
         ViewBag.PostJsonLd = _seo.BuildPostJsonLd(post, canonical, ogImage);
         ViewBag.BreadcrumbJsonLd = _seo.BuildBreadcrumbJsonLd(
-            ("خانه", $"{Request.Scheme}://{Request.Host}/"),
-            (post.Category?.Name ?? "بلاگ", post.Category != null
+            ("Home", $"{Request.Scheme}://{Request.Host}/"),
+            (post.Category?.Name ?? "Blog", post.Category != null
                 ? $"{Request.Scheme}://{Request.Host}/{post.LanguageCode}/category/{post.Category.Slug}"
                 : $"{Request.Scheme}://{Request.Host}/{post.LanguageCode}"),
             (post.Title, canonical));
