@@ -11,6 +11,7 @@
     var currentCategory = ViewBag.CurrentCategory as string;
     var folders = ViewBag.Folders as List<BlogApp.Controllers.BlogFeedFolderItem> ?? new();
     var currentFolderId = ViewBag.CurrentFolderId as int?;
+    var currentFolder = ViewBag.CurrentFolder as BlogApp.Controllers.BlogFeedFolderItem;
     var isFeedOnly = !string.IsNullOrEmpty(q) || !string.IsNullOrEmpty(currentCategory)
         || !string.IsNullOrEmpty(ViewBag.CurrentTag as string) || currentPage > 1
         || !string.IsNullOrEmpty(sort) || featured == true || minRead is > 0
@@ -118,15 +119,39 @@
 <div class="container py-5" id="blog-feed">
     <div class="feed-head">
         <div>
-            <h2 class="section-title" dir="auto">@(isFeedOnly ? T["home.title"] : T["mkt.home.feed_title"])</h2>
-            @if (!isFeedOnly)
+            @if (currentFolder is not null)
             {
-                <p class="section-sub" dir="auto">@T["mkt.home.feed_sub"]</p>
+                <nav class="bf-crumb" aria-label="breadcrumb">
+                    <a asp-action="Index" asp-route-q="@q" asp-route-sort="@sort" class="bf-crumb-link">@T["mkt.home.feed_title"]</a>
+                    <span class="bf-crumb-sep" aria-hidden="true">/</span>
+                    <span class="bf-crumb-current" dir="auto">@currentFolder.Name</span>
+                </nav>
+                <h2 class="section-title" dir="auto">@currentFolder.Name</h2>
+                <p class="section-sub" dir="auto">@currentFolder.Count @T["tab.all"]</p>
+            }
+            else
+            {
+                <h2 class="section-title" dir="auto">@(isFeedOnly ? T["home.title"] : T["mkt.home.feed_title"])</h2>
+                @if (!isFeedOnly)
+                {
+                    <p class="section-sub" dir="auto">@T["mkt.home.feed_sub"]</p>
+                }
             }
         </div>
+        @if (currentFolder is not null)
+        {
+            <a class="bf-back" asp-action="Index" asp-route-q="@q" asp-route-sort="@sort" asp-route-category="@currentCategory">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10.5 3.5 5 8l5.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>@T["home.all"]</span>
+            </a>
+        }
     </div>
 
     <form method="get" class="ux-filters" action="">
+        @if (currentFolderId is int cf)
+        {
+            <input type="hidden" name="folderId" value="@cf" />
+        }
         <input type="search" name="q" value="@q" placeholder="@T["mkt.home.search_ph"]" dir="auto" aria-label="@T["mkt.home.search_ph"]" />
         <select name="sort" aria-label="@T["btn.filter"]">
             <option value="">@T["mkt.home.sort_newest"]</option>
@@ -147,52 +172,64 @@
         <button type="submit" class="btn btn-ghost btn-sm">@T["mkt.home.apply"]</button>
     </form>
 
-    @if (folders.Count > 0)
+    @if (currentFolder is null && folders.Count > 0 && string.IsNullOrEmpty(q) && string.IsNullOrEmpty(currentCategory))
     {
-        <div class="cat-pills mb-2" role="navigation" aria-label="Folders">
-            <a class="tag-pill @(currentFolderId is null or currentFolderId == 0 ? "is-active" : null)"
-               asp-action="Index"
-               asp-route-category="@currentCategory"
-               asp-route-tag="@ViewBag.CurrentTag"
-               asp-route-q="@q"
-               asp-route-sort="@sort">@T["home.all"]</a>
-            @foreach (var f in folders)
-            {
-                <a class="tag-pill @(currentFolderId == f.Id ? "is-active" : null)"
-                   asp-action="Index"
-                   asp-route-folderId="@f.Id"
-                   asp-route-category="@currentCategory"
-                   asp-route-tag="@ViewBag.CurrentTag"
-                   asp-route-q="@q"
-                   asp-route-sort="@sort"
-                   dir="auto">@f.Name <span class="text-muted-dark">(@f.Count)</span></a>
-            }
-        </div>
+        <section class="bf-folders" aria-label="Folders">
+            <div class="bf-section-label">Folders</div>
+            <div class="bf-folder-grid">
+                @foreach (var f in folders)
+                {
+                    <a class="bf-folder bf-folder--@f.Color"
+                       asp-action="Index"
+                       asp-route-folderId="@f.Id"
+                       asp-route-sort="@sort"
+                       asp-fragment="blog-feed">
+                        <span class="bf-folder-icon" aria-hidden="true">
+                            <svg viewBox="0 0 96 78" class="bf-folder-svg">
+                                <path class="bf-folder-back" d="M6 16c0-5 4-9 9-9h18l8 8h40c5 0 9 4 9 9v44c0 5-4 9-9 9H15c-5 0-9-4-9-9V16z"/>
+                                <path class="bf-folder-front" d="M6 28c0-3.5 2.8-6.5 6.5-6.5h71c3.7 0 6.5 3 6.5 6.5v35c0 3.5-2.8 6.5-6.5 6.5h-71C8.8 69.5 6 66.5 6 63V28z"/>
+                            </svg>
+                        </span>
+                        <span class="bf-folder-name" dir="auto">@f.Name</span>
+                        <span class="bf-folder-meta">@f.Count</span>
+                    </a>
+                }
+            </div>
+        </section>
     }
 
-    @if (categories.Count > 0)
+    @if (categories.Count > 0 && currentFolder is null)
     {
         <div class="cat-pills" role="navigation" aria-label="@T["mkt.home.cats_label"]">
             <a class="tag-pill @(string.IsNullOrEmpty(currentCategory) ? "is-active" : null)"
-               asp-action="Index" asp-route-folderId="@currentFolderId">@T["home.all"]</a>
+               asp-action="Index" asp-fragment="blog-feed">@T["home.all"]</a>
             @foreach (var c in categories)
             {
                 <a class="tag-pill @(string.Equals(currentCategory, c.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
-                   asp-action="Index" asp-route-category="@c.Slug" asp-route-folderId="@currentFolderId">@c.Name</a>
+                   asp-action="Index" asp-route-category="@c.Slug" asp-fragment="blog-feed">@c.Name</a>
             }
         </div>
     }
 
-    @if (!Model.Any())
-    {
-        <div class="card-surface p-5 text-center text-muted-dark">
-            <p class="mb-0" dir="auto">@T["home.empty"]</p>
-        </div>
-    }
+    <section class="bf-posts" aria-label="Posts">
+        @if (currentFolder is null && folders.Count > 0 && string.IsNullOrEmpty(q) && string.IsNullOrEmpty(currentCategory) && Model.Any())
+        {
+            <div class="bf-section-label">@T["mkt.home.feed_title"]</div>
+        }
 
-    <div class="row g-3 g-md-4" id="posts-grid" data-page="@currentPage" data-total-pages="@totalPages">
-        <partial name="_PostCards" model="Model" />
-    </div>
+        @if (!Model.Any())
+        {
+            <div class="bf-empty card-surface">
+                <p class="mb-0" dir="auto">@T["home.empty"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3 g-md-4" id="posts-grid" data-page="@currentPage" data-total-pages="@totalPages">
+                <partial name="_PostCards" model="Model" />
+            </div>
+        }
+    </section>
 
     <div id="infinite-sentinel"></div>
     <div id="infinite-status" class="infinite-status"></div>
