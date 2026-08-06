@@ -1,0 +1,151 @@
+/* Atom One Dark Pro — fenced + inline code in posts / markdown */
+
+.post-body pre.md-code-block,
+.markdown-body pre.md-code-block,
+.readme-content pre.md-code-block,
+.post-body pre,
+.markdown-body pre {
+  position: relative;
+  margin: 1.35em 0;
+  padding: 1rem 1.1rem 1.05rem;
+  border-radius: 12px;
+  border: 1px solid #21252b;
+  background: #282c34 !important;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  direction: ltr;
+  text-align: left;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.post-body pre.md-code-block code,
+.markdown-body pre.md-code-block code,
+.readme-content pre.md-code-block code,
+.post-body pre code,
+.markdown-body pre code {
+  display: block;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: #abb2bf;
+  tab-size: 2;
+  white-space: pre;
+  direction: ltr;
+}
+
+/* Inline code */
+.post-body :not(pre) > code,
+.markdown-body :not(pre) > code,
+.readme-content :not(pre) > code {
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  padding: 0.12em 0.4em;
+  border-radius: 6px;
+  background: #2c313a !important;
+  border: 1px solid #3e4451;
+  color: #e5c07b;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Language label (data-lang set by small script) */
+pre.md-code-block[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.45rem;
+  inset-inline-end: 0.65rem;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5c6370;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* —— Atom One Dark Pro token colors (hljs) —— */
+.hljs {
+  color: #abb2bf;
+  background: #282c34;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #5c6370;
+  font-style: italic;
+}
+
+.hljs-doctag,
+.hljs-keyword,
+.hljs-formula {
+  color: #c678dd;
+}
+
+.hljs-section,
+.hljs-name,
+.hljs-selector-tag,
+.hljs-deletion,
+.hljs-subst {
+  color: #e06c75;
+}
+
+.hljs-literal {
+  color: #56b6c2;
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta .hljs-string {
+  color: #98c379;
+}
+
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-type,
+.hljs-selector-class,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-number {
+  color: #d19a66;
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-title {
+  color: #61afef;
+}
+
+.hljs-built_in,
+.hljs-title.class_,
+.hljs-class .hljs-title {
+  color: #e5c07b;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
+.hljs-link {
+  text-decoration: underline;
+}
+
+/* Light theme site: keep code blocks One Dark (readable contrast) */
+html[data-theme="light"] .post-body pre.md-code-block,
+html[data-theme="light"] .markdown-body pre.md-code-block,
+html[data-theme="light"] .readme-content pre.md-code-block {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
