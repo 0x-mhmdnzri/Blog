@@ -1,7 +1,8 @@
 @model PostEditViewModel
+@inject BlogApp.Services.IUiTranslator T
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "ویرایش نوشته";
+    ViewData["Title"] = T["pe.edit_title"];
     ViewData["NoIndex"] = true;
 }
 
@@ -9,8 +10,8 @@
 
 <div class="pe-page">
     <header class="pe-page-head">
-        <h1 class="pe-page-title">ویرایش نوشته</h1>
-        <p class="pe-page-sub">همان ویزارد ایجاد — تغییرات را مرحله‌به‌مرحله مرور کنید</p>
+        <h1 class="pe-page-title">@T["pe.edit_title"]</h1>
+        <p class="pe-page-sub">@T["pe.edit_sub"]</p>
     </header>
 
     @if (TempData["Success"] is string ok) { <div class="wizard-alert success mb-3">@ok</div> }
@@ -26,10 +27,10 @@
     @if (Model.IsPublished && Model.Id > 0)
     {
         <form asp-action="SendToNewsletter" method="post" class="pe-newsletter" data-native-submit="true"
-              onsubmit="return confirm('Send this post to newsletter subscribers now?');">
+              onsubmit="return confirm('@T["pe.newsletter_confirm"]');">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" value="@Model.Id" />
-            <button type="submit" class="btn btn-ghost btn-sm">Send to newsletter</button>
+            <button type="submit" class="btn btn-ghost btn-sm">@T["pe.newsletter_send"]</button>
         </form>
     }
 </div>

@@ -1,7 +1,8 @@
 @model PostEditViewModel
+@inject BlogApp.Services.IUiTranslator T
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
-    ViewData["Title"] = "نوشته جدید";
+    ViewData["Title"] = T["pe.create_title"];
     ViewData["NoIndex"] = true;
 }
 
@@ -9,8 +10,8 @@
 
 <div class="pe-page">
     <header class="pe-page-head">
-        <h1 class="pe-page-title">نوشته جدید</h1>
-        <p class="pe-page-sub">در چهار مرحله: پایه و طبقه‌بندی → محتوا → انتشار → بازبینی</p>
+        <h1 class="pe-page-title">@T["pe.create_title"]</h1>
+        <p class="pe-page-sub">@T["pe.create_sub"]</p>
     </header>
 
     <form asp-action="Create" method="post" id="postCreateForm" data-native-submit="true" class="pe-form">
