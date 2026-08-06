@@ -24,7 +24,7 @@ public interface IPostOgCardService
 /// GitHub-style 1200×630 Open Graph cards for social shares (Twitter/X, LinkedIn, Telegram).
 /// Shows title, summary, views, likes, reading time, published date, category, author, site brand.
 /// </summary>
-public sealed class PostOgCardService : IPostOgCardService
+public sealed partial class PostOgCardService : IPostOgCardService
 {
     public const int Width = 1200;
     public const int Height = 630;

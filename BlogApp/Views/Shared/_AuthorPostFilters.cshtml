@@ -42,11 +42,11 @@
 <input type="search" name="q" value="@Model.Q" class="af-search" placeholder="@T["author.filter_search"]" dir="auto" autocomplete="off" />
 </div>
 <select name="sort" class="af-select" onchange="this.form.submit()" aria-label="@T["author.filter_sort"]">
-<option value="newest" @(Model.Sort == "newest" ? "selected" : null)>@T["author.sort_newest"]</option>
-<option value="oldest" @(Model.Sort == "oldest" ? "selected" : null)>@T["author.sort_oldest"]</option>
-<option value="popular" @(Model.Sort == "popular" ? "selected" : null)>@T["author.sort_popular"]</option>
-<option value="title" @(Model.Sort == "title" ? "selected" : null)>@T["author.sort_title"]</option>
-<option value="read" @(Model.Sort == "read" ? "selected" : null)>@T["author.sort_read"]</option>
+<option value="newest" selected="@(Model.Sort == "newest")">@T["author.sort_newest"]</option>
+<option value="oldest" selected="@(Model.Sort == "oldest")">@T["author.sort_oldest"]</option>
+<option value="popular" selected="@(Model.Sort == "popular")">@T["author.sort_popular"]</option>
+<option value="title" selected="@(Model.Sort == "title")">@T["author.sort_title"]</option>
+<option value="read" selected="@(Model.Sort == "read")">@T["author.sort_read"]</option>
 </select>
 <button type="submit" class="btn btn-accent btn-sm af-apply">@T["author.filter_apply"]</button>
 @if (Model.HasActiveFilter) { <a class="btn btn-ghost btn-sm" href="/author/@Model.UserName">@T["author.filter_clear"]</a> }
