@@ -25,7 +25,7 @@
 
   var initial = (location.hash || '').replace('#', '');
   if (!initial || !document.querySelector('.tx-panel[data-panel="' + initial + '"]')) {
-    try { initial = localStorage.getItem('blog-tax-tab') || 'cats'; } catch (e) { initial = 'cats'; }
+    try { initial = localStorage.getItem('blog-tax-tab') || 'folders'; } catch (e) { initial = 'folders'; }
   }
   activate(initial);
 
