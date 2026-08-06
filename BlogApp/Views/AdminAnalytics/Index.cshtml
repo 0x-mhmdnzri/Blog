@@ -11,9 +11,6 @@
         if (s < 60) return $"{s:0}s";
         return $"{(int)(s / 60)}m {(int)(s % 60)}s";
     }
-
-    var geoTotal = Model.Countries.Sum(c => c.Count);
-    var geoTop = Model.Countries.OrderByDescending(c => c.Count).FirstOrDefault();
 }
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/jsvectormap.min.css" />
@@ -83,44 +80,7 @@
     <span class="ana-chip"><strong class="ltr-field">@Model.Countries.Count</strong> @T["ana.kpi_countries"]</span>
 </div>
 
-@* ── Geography: full-width Power BI-style world map ── *@
-<section class="ana-geo" aria-label="@T["ana.chart_geo"]">
-    <div class="ana-geo-head">
-        <h2 class="ana-geo-title">
-            <span class="pulse-dot" aria-hidden="true"></span>
-            @T["ana.chart_geo"]
-        </h2>
-        <div class="ana-geo-kpis">
-            <div class="ana-geo-kpi is-accent">
-                <span class="k">@T["ana.kpi_countries"]</span>
-                <span class="v ltr-field">@Model.Countries.Count</span>
-            </div>
-            <div class="ana-geo-kpi">
-                <span class="k">@T["ana.kpi_views"]</span>
-                <span class="v ltr-field">@geoTotal</span>
-            </div>
-            @if (geoTop is not null)
-            {
-                <div class="ana-geo-kpi">
-                    <span class="k">Top</span>
-                    <span class="v ltr-field">@geoTop.Name · @geoTop.Count</span>
-                </div>
-            }
-        </div>
-    </div>
-    <div class="ana-geo-body">
-        <div class="ana-geo-map-wrap">
-            <div id="anaGeoMap" role="img" aria-label="@T["ana.chart_geo"]"></div>
-            <canvas id="anaGeoFlow" class="ana-geo-flow" aria-hidden="true"></canvas>
-            <div id="anaGeoTip" class="ana-geo-tip" role="tooltip"></div>
-            <div id="anaGeoEmpty" class="ana-geo-empty" hidden>@T["ana.empty_geo"]</div>
-        </div>
-        <aside class="ana-geo-rank">
-            <div class="ana-geo-rank-head">@T["ana.chart_geo"]</div>
-            <ul class="ana-geo-rank-list" id="anaGeoRank"></ul>
-        </aside>
-    </div>
-</section>
+@await Html.PartialAsync("_GeoSection", Model)
 
 <div class="row g-2 mb-3">
     <div class="col-lg-8">
@@ -148,6 +108,8 @@
 
 @await Html.PartialAsync("_DevicePopulation", Model)
 
+@* remaining charts/tables kept below — scripts in section *@
+
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-4">
         <div class="chart-card chart-card-tight">
@@ -169,111 +131,6 @@
     </div>
 </div>
 
-<div class="row g-2 mb-3">
-    <div class="col-lg-6">
-        <div class="chart-card chart-card-tight">
-            <div class="chart-title mb-2">@T["ana.popular"]</div>
-            @if (Model.PopularPosts.Count == 0)
-            {
-                <p class="text-muted-dark small mb-0">@T["ana.empty_posts"]</p>
-            }
-            else
-            {
-                <div class="admin-table-wrap" style="border:none;border-radius:0;">
-                    <table class="admin-table" style="min-width:0;">
-                        <thead><tr><th>@T["col.title"]</th><th>@T["ana.col_all_time"]</th><th>@T["ana.col_range"]</th></tr></thead>
-                        <tbody>
-                        @foreach (var p in Model.PopularPosts)
-                        {
-                            <tr>
-                                <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
-                                <td class="ltr-field">@p.Views</td>
-                                <td class="ltr-field">@p.RangeViews</td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="chart-card chart-card-tight">
-            <div class="chart-title mb-2">@T["ana.trending"]</div>
-            @if (Model.TrendingPosts.Count == 0)
-            {
-                <p class="text-muted-dark small mb-0">@T["ana.empty_trending"]</p>
-            }
-            else
-            {
-                <div class="admin-table-wrap" style="border:none;border-radius:0;">
-                    <table class="admin-table" style="min-width:0;">
-                        <thead><tr><th>@T["col.title"]</th><th>@T["ana.col_recent"]</th></tr></thead>
-                        <tbody>
-                        @foreach (var p in Model.TrendingPosts)
-                        {
-                            <tr>
-                                <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
-                                <td class="ltr-field">@p.RangeViews</td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
-</div>
-
-<div class="row g-2 mb-2">
-    <div class="col-lg-6">
-        <div class="chart-card chart-card-tight">
-            <div class="chart-title mb-2">@T["ana.referrers"]</div>
-            @if (Model.Referrers.Count == 0)
-            {
-                <p class="text-muted-dark small mb-0">@T["ana.empty_referrers"]</p>
-            }
-            else
-            {
-                <div class="admin-table-wrap" style="border:none;border-radius:0;">
-                    <table class="admin-table" style="min-width:0;">
-                        <thead><tr><th>@T["ana.col_host"]</th><th>@T["ana.col_count"]</th></tr></thead>
-                        <tbody>
-                        @foreach (var r in Model.Referrers.Take(8))
-                        {
-                            <tr><td class="ltr-field">@r.Name</td><td class="ltr-field">@r.Count</td></tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="chart-card chart-card-tight">
-            <div class="chart-title mb-2">@T["ana.search_kw"]</div>
-            @if (Model.SearchKeywords.Count == 0)
-            {
-                <p class="text-muted-dark small mb-0">@T["ana.empty_search"]</p>
-            }
-            else
-            {
-                <div class="admin-table-wrap" style="border:none;border-radius:0;">
-                    <table class="admin-table" style="min-width:0;">
-                        <thead><tr><th>@T["ana.col_query"]</th><th>@T["ana.col_count"]</th></tr></thead>
-                        <tbody>
-                        @foreach (var s in Model.SearchKeywords.Take(8))
-                        {
-                            <tr><td dir="auto">@s.Name</td><td class="ltr-field">@s.Count</td></tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
-</div>
-
 @section Scripts {
 <style>
 .kpi-compact { padding: 0.85rem 1rem; }
@@ -281,23 +138,12 @@
 .kpi-compact .kpi-sub { margin-top: 0.2rem; font-size: 0.72rem; }
 .chart-card-tight { padding: 0.9rem 1rem; }
 .chart-card-tight .chart-title { margin-bottom: 0.5rem; font-size: 0.88rem; }
-.ana-meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
+.ana-meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .ana-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-decoration: none !important;
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.35rem 0.75rem; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  font-size: 0.8rem; color: var(--text-muted); text-decoration: none !important;
 }
 .ana-chip strong { color: var(--text); font-weight: 700; }
 .ana-chip-link:hover { border-color: var(--accent-dim); color: var(--accent); }
@@ -310,7 +156,9 @@ window.__anaGeo = {
   totalViews: @Model.TotalViews,
   hub: "IR",
   countries: @Html.Raw(JsonSerializer.Serialize(
-    Model.Countries.Select(c => new { code = c.Name, name = c.Name, count = c.Count }), json))
+    Model.Countries.OrderByDescending(c => c.Count).Select((c, i) => new {
+      code = c.Name, name = c.Name, count = c.Count, rank = i + 1
+    }), json))
 };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/jsvectormap.min.js"></script>
@@ -329,7 +177,6 @@ window.__anaGeo = {
     Chart.defaults.font.family = 'Vazirmatn, sans-serif';
     Chart.defaults.font.size = 11;
     const palette = [accent, '#6fb3d2', '#c9a0f2', '#9ecb8c', '#e5637a', '#f2789f', '#e3b341', '#8b93a7'];
-
     function doughnut(id, labels, data) {
         const el = document.getElementById(id);
         if (!el) return;
@@ -339,32 +186,13 @@ window.__anaGeo = {
         }
         new Chart(el, {
             type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: palette,
-                    borderWidth: 0
-                }]
-            },
+            data: { labels: labels, datasets: [{ data: data, backgroundColor: palette, borderWidth: 0 }] },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '58%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            boxWidth: 8,
-                            padding: 8,
-                            font: { size: 10 }
-                        }
-                    }
-                }
+                responsive: true, maintainAspectRatio: false, cutout: '58%',
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, padding: 8, font: { size: 10 } } } }
             }
         });
     }
-
     const viewsEl = document.getElementById('viewsChart');
     if (viewsEl) {
         new Chart(viewsEl, {
@@ -373,20 +201,13 @@ window.__anaGeo = {
                 labels: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Label), json)),
                 datasets: [{
                     data: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Value), json)),
-                    borderColor: accent,
-                    backgroundColor: 'rgba(227,179,65,.12)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    borderWidth: 2
+                    borderColor: accent, backgroundColor: 'rgba(227,179,65,.12)',
+                    fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
                 scales: {
                     x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
                     y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 5 } }
@@ -394,7 +215,6 @@ window.__anaGeo = {
             }
         });
     }
-
     const hourEl = document.getElementById('hourChart');
     if (hourEl) {
         new Chart(hourEl, {
@@ -403,17 +223,12 @@ window.__anaGeo = {
                 labels: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByHour.Select(p => p.Label), json)),
                 datasets: [{
                     data: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByHour.Select(p => p.Value), json)),
-                    backgroundColor: 'rgba(111,179,210,0.55)',
-                    borderRadius: 2,
-                    maxBarThickness: 14
+                    backgroundColor: 'rgba(111,179,210,0.55)', borderRadius: 2, maxBarThickness: 14
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
                 scales: {
                     x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
                     y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 4 } }
@@ -421,19 +236,10 @@ window.__anaGeo = {
             }
         });
     }
-
-    doughnut('sourceChart',
-        @Html.Raw(JsonSerializer.Serialize(Model.TrafficSources.Select(x => x.Name), json)),
-        @Html.Raw(JsonSerializer.Serialize(Model.TrafficSources.Select(x => x.Count), json)));
-    doughnut('deviceChart',
-        @Html.Raw(JsonSerializer.Serialize(Model.Devices.Select(x => x.Name), json)),
-        @Html.Raw(JsonSerializer.Serialize(Model.Devices.Select(x => x.Count), json)));
-    doughnut('browserChart',
-        @Html.Raw(JsonSerializer.Serialize(Model.Browsers.Select(x => x.Name), json)),
-        @Html.Raw(JsonSerializer.Serialize(Model.Browsers.Select(x => x.Count), json)));
-    doughnut('osChart',
-        @Html.Raw(JsonSerializer.Serialize(Model.OperatingSystems.Select(x => x.Name), json)),
-        @Html.Raw(JsonSerializer.Serialize(Model.OperatingSystems.Select(x => x.Count), json)));
+    doughnut('sourceChart', @Html.Raw(JsonSerializer.Serialize(Model.TrafficSources.Select(x => x.Name), json)), @Html.Raw(JsonSerializer.Serialize(Model.TrafficSources.Select(x => x.Count), json)));
+    doughnut('deviceChart', @Html.Raw(JsonSerializer.Serialize(Model.Devices.Select(x => x.Name), json)), @Html.Raw(JsonSerializer.Serialize(Model.Devices.Select(x => x.Count), json)));
+    doughnut('browserChart', @Html.Raw(JsonSerializer.Serialize(Model.Browsers.Select(x => x.Name), json)), @Html.Raw(JsonSerializer.Serialize(Model.Browsers.Select(x => x.Count), json)));
+    doughnut('osChart', @Html.Raw(JsonSerializer.Serialize(Model.OperatingSystems.Select(x => x.Name), json)), @Html.Raw(JsonSerializer.Serialize(Model.OperatingSystems.Select(x => x.Count), json)));
 })();
 </script>
 }
