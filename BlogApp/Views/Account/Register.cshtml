@@ -16,7 +16,7 @@
                 <div asp-validation-summary="All"></div>
             </div>
         }
-
+ 
         <form asp-action="Register" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="ReturnUrl" />
