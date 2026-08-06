@@ -6,6 +6,15 @@
     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
+<style>
+.profile-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 .5rem 2rem;
+}
+.profile-card { width: 100%; }
+</style>
+
 @if (TempData["ProfileSaved"] != null)
 {
     <div class="alert alert-success mb-4" style="background:rgba(34,197,94,.12); color:#4ade80; border:1px solid rgba(34,197,94,.3);">
@@ -13,7 +22,8 @@
     </div>
 }
 
-<div class="card-surface p-4" style="max-width:640px;">
+<div class="profile-page">
+<div class="card-surface p-4 profile-card">
     <form asp-action="Profile" method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
 
@@ -117,4 +127,5 @@
             <a class="btn btn-ghost ms-2" href="/author/@User.Identity.Name">@T["auth.profile.public_page"]</a>
         }
     </form>
+</div>
 </div>
