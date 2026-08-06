@@ -13,6 +13,234 @@
     }
 }
 
-<link rel="stylesheet" href="~/lib/jsvectormap/jsvectormap.min.css" asp-append-version="true" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/jsvectormap.min.css" />
 <link rel="stylesheet" href="~/css/ana-geo-map.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/ana-devices.css" asp-append-version="true" />
+
+<div class="ana-toolbar d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div class="range-tabs mb-0">
+        <a class="admin-tab @(Model.RangeDays == 7 ? "active" : "")" asp-action="Index" asp-route-range="7">@T["dash.range_7"]</a>
+        <a class="admin-tab @(Model.RangeDays == 30 ? "active" : "")" asp-action="Index" asp-route-range="30">@T["dash.range_30"]</a>
+        <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Index" asp-route-range="90">@T["dash.range_90"]</a>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        @if (Model.Api is not null)
+        {
+            <a class="btn btn-accent btn-sm" asp-action="Api" asp-route-range="@Model.RangeDays">API Analytics</a>
+            <a class="btn btn-ghost btn-sm" asp-controller="AdminApiKeys" asp-action="Index">کلیدهای API</a>
+        }
+        <a class="btn btn-accent btn-sm" asp-action="Heatmaps">@T["ana.heatmap_open_list"]</a>
+        <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="Index">@T["ana.back_ops"]</a>
+    </div>
+</div>
+
+@if (Model.Api is not null)
+{
+    ViewBag.RangeDays = Model.RangeDays;
+    <partial name="_ApiPanel" model="Model.Api" />
+}
+
+<div class="row g-2 mb-3">
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-compact">
+            <div class="kpi-label">@T["ana.kpi_views"]</div>
+            <div class="kpi-value ltr-field">@Model.TotalViews</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-compact">
+            <div class="kpi-label">@T["ana.kpi_unique"]</div>
+            <div class="kpi-value ltr-field">@Model.UniqueVisitors</div>
+            <div class="kpi-sub">@T["ana.kpi_vpv"] <span class="ltr-field">@Model.ViewsPerVisitor</span></div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-compact @(Model.BounceRatePercent > 60 ? "kpi-danger" : "")">
+            <div class="kpi-label">@T["ana.kpi_bounce"]</div>
+            <div class="kpi-value ltr-field">@Model.BounceRatePercent%</div>
+            <div class="kpi-sub">@Model.SessionCount @T["ana.sessions"]</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-compact kpi-good">
+            <div class="kpi-label">@T["ana.kpi_read"]</div>
+            <div class="kpi-value ltr-field">@FmtSeconds(Model.AvgReadingSeconds)</div>
+            <div class="kpi-sub">@T["ana.kpi_returning"] <span class="ltr-field">@Model.ReturningVisitorPercent%</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="ana-meta-row mb-3">
+    <span class="ana-chip"><strong class="ltr-field">@Model.SearchQueryCount</strong> @T["ana.kpi_searches"]</span>
+    <a class="ana-chip ana-chip-link" asp-action="Heatmaps">
+        <strong class="ltr-field">@Model.HeatmapClickCount</strong> @T["ana.kpi_heatmap_clicks"]
+        <span class="ana-chip-action">@T["ana.heatmap_open"] →</span>
+    </a>
+    <span class="ana-chip"><strong class="ltr-field">@Model.TrafficSources.Count</strong> @T["ana.kpi_sources"]</span>
+    <span class="ana-chip"><strong class="ltr-field">@Model.Countries.Count</strong> @T["ana.kpi_countries"]</span>
+</div>
+
+@await Html.PartialAsync("_GeoSection", Model)
+
+<div class="row g-2 mb-3">
+    <div class="col-lg-8">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title">@T["ana.chart_views"]</div>
+            <div class="chart-canvas-wrap" style="height:200px;"><canvas id="viewsChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title">@T["ana.chart_sources"]</div>
+            <div class="chart-canvas-wrap" style="height:200px;"><canvas id="sourceChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-12">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title">@T["ana.chart_hours"]</div>
+            <div class="chart-canvas-wrap" style="height:140px;"><canvas id="hourChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_DevicePopulation", Model)
+
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-4">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title">@T["ana.chart_device"]</div>
+            <div class="chart-canvas-wrap" style="height:150px;"><canvas id="deviceChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title">@T["ana.chart_browser"]</div>
+            <div class="chart-canvas-wrap" style="height:150px;"><canvas id="browserChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title">@T["ana.chart_os"]</div>
+            <div class="chart-canvas-wrap" style="height:150px;"><canvas id="osChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_AnalyticsTables", Model)
+
+@section Scripts {
+<style>
+.kpi-compact { padding: 0.85rem 1rem; }
+.kpi-compact .kpi-value { font-size: 1.35rem; }
+.kpi-compact .kpi-sub { margin-top: 0.2rem; font-size: 0.72rem; }
+.chart-card-tight { padding: 0.9rem 1rem; }
+.chart-card-tight .chart-title { margin-bottom: 0.5rem; font-size: 0.88rem; }
+.ana-meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.ana-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.35rem 0.75rem; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  font-size: 0.8rem; color: var(--text-muted); text-decoration: none !important;
+}
+.ana-chip strong { color: var(--text); font-weight: 700; }
+.ana-chip-link:hover { border-color: var(--accent-dim); color: var(--accent); }
+.ana-chip-link:hover strong { color: var(--accent); }
+.ana-chip-action { color: var(--accent); font-weight: 600; margin-inline-start: 0.15rem; }
+.ana-toolbar .admin-tab { margin-bottom: 0; }
+</style>
+<script>
+window.__anaGeo = {
+  totalViews: @Model.TotalViews,
+  hub: "IR",
+  countries: @Html.Raw(JsonSerializer.Serialize(
+    Model.Countries.OrderByDescending(c => c.Count).Select((c, i) => new {
+      code = c.Name, name = c.Name, count = c.Count, rank = i + 1
+    }), json))
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/jsvectormap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.6.0/dist/maps/world.js"></script>
+<script src="~/js/ana-geo-map.js" asp-append-version="true"></script>
+<script src="~/js/ana-geo-map-filter.js" asp-append-version="true"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    if (typeof Chart === 'undefined') return;
+    const styles = getComputedStyle(document.documentElement);
+    const muted = styles.getPropertyValue('--text-muted').trim();
+    const accent = styles.getPropertyValue('--accent').trim();
+    const border = styles.getPropertyValue('--border-soft').trim();
+    Chart.defaults.color = muted;
+    Chart.defaults.borderColor = border;
+    Chart.defaults.font.family = 'Vazirmatn, sans-serif';
+    Chart.defaults.font.size = 11;
+    const palette = [accent, '#6fb3d2', '#c9a0f2', '#9ecb8c', '#e5637a', '#f2789f', '#e3b341', '#8b93a7'];
+    function doughnut(id, labels, data) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!labels || !labels.length) {
+            el.parentElement.innerHTML = '<p class="text-muted-dark small mb-0 text-center py-3">—</p>';
+            return;
+        }
+        new Chart(el, {
+            type: 'doughnut',
+            data: { labels: labels, datasets: [{ data: data, backgroundColor: palette, borderWidth: 0 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '58%',
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, padding: 8, font: { size: 10 } } } }
+            }
+        });
+    }
+    const viewsEl = document.getElementById('viewsChart');
+    if (viewsEl) {
+        new Chart(viewsEl, {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Label), json)),
+                datasets: [{
+                    data: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByDay.Select(p => p.Value), json)),
+                    borderColor: accent, backgroundColor: 'rgba(227,179,65,.12)',
+                    fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+                    y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 5 } }
+                }
+            }
+        });
+    }
+    const hourEl = document.getElementById('hourChart');
+    if (hourEl) {
+        new Chart(hourEl, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByHour.Select(p => p.Label), json)),
+                datasets: [{
+                    data: @Html.Raw(JsonSerializer.Serialize(Model.ViewsByHour.Select(p => p.Value), json)),
+                    backgroundColor: 'rgba(111,179,210,0.55)', borderRadius: 2, maxBarThickness: 14
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+                    y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 4 } }
+                }
+            }
+        });
+    }
+    doughnut('sourceChart', @Html.Raw(JsonSerializer.Serialize(Model.TrafficSources.Select(x => x.Name), json)), @Html.Raw(JsonSerializer.Serialize(Model.TrafficSources.Select(x => x.Count), json)));
+    doughnut('deviceChart', @Html.Raw(JsonSerializer.Serialize(Model.Devices.Select(x => x.Name), json)), @Html.Raw(JsonSerializer.Serialize(Model.Devices.Select(x => x.Count), json)));
+    doughnut('browserChart', @Html.Raw(JsonSerializer.Serialize(Model.Browsers.Select(x => x.Name), json)), @Html.Raw(JsonSerializer.Serialize(Model.Browsers.Select(x => x.Count), json)));
+    doughnut('osChart', @Html.Raw(JsonSerializer.Serialize(Model.OperatingSystems.Select(x => x.Name), json)), @Html.Raw(JsonSerializer.Serialize(Model.OperatingSystems.Select(x => x.Count), json)));
+})();
+</script>
+}
