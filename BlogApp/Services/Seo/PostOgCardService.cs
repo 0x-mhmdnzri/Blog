@@ -18,6 +18,16 @@ public interface IPostOgCardService
     Task<byte[]?> GetOrCreatePngAsync(Post post, CancellationToken ct = default);
     Task<byte[]?> GetOrCreateSitePngAsync(CancellationToken ct = default);
     string GetSiteCardUrl(HttpRequest request);
+    Task InvalidatePostAsync(int postId, CancellationToken ct = default);
+    Task<byte[]?> GetOrCreateAuthorPngAsync(
+        string userId,
+        string displayName,
+        string userName,
+        string? bio,
+        int postCount,
+        int followerCount,
+        long totalViews,
+        CancellationToken ct = default);
 }
 
 /// <summary>
