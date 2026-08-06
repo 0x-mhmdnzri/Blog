@@ -1,0 +1,77 @@
+@{
+    var folderCount = Model.Folders?.Count ?? 0;
+}
+<section class="tx-panel is-active" id="tx-folders" role="tabpanel" data-panel="folders">
+    <div class="tx-panel-head">
+        <h2 class="tx-panel-title">@T["tax.folders_heading"]</h2>
+        <p class="tx-panel-desc">@T["tax.folders_desc"]</p>
+    </div>
+    <form asp-controller="Taxonomy" asp-action="CreateFolder" method="post" class="tx-form-card">
+        @Html.AntiForgeryToken()
+        <div class="tx-form-grid">
+            <div class="tx-field">
+                <label class="tx-label">@T["tax.label_folder_name"]</label>
+                <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="@T["tax.ph_folder_name"]" />
+            </div>
+            <div class="tx-field">
+                <label class="tx-label">@T["tax.label_folder_color"]</label>
+                <select class="form-select form-select-sm" name="color">
+                    <option value="blue">@T["tax.color_blue"]</option>
+                    <option value="yellow">@T["tax.color_yellow"]</option>
+                    <option value="red">@T["tax.color_red"]</option>
+                    <option value="green">@T["tax.color_green"]</option>
+                    <option value="purple">@T["tax.color_purple"]</option>
+                    <option value="orange">@T["tax.color_orange"]</option>
+                    <option value="gray">@T["tax.color_gray"]</option>
+                </select>
+            </div>
+            <div class="tx-field tx-field-wide">
+                <label class="tx-label">@T["tax.label_description"]</label>
+                <input class="form-control form-control-sm" name="description" dir="auto" placeholder="@T["tax.ph_desc_short"]" />
+            </div>
+            <div class="tx-field tx-field-action">
+                <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_create_folder"]</button>
+            </div>
+        </div>
+    </form>
+    @if (folderCount == 0)
+    {
+        <div class="tx-empty">
+            <div class="finder-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 64 52" width="56" height="46"><path fill="#7eb6f7" d="M2 10c0-3.3 2.7-6 6-6h14l4 5h30c3.3 0 6 2.7 6 6v31c0 3.3-2.7 6-6 6H8c-3.3 0-6-2.7-6-6V10z"/><path fill="#4a9aef" d="M2 18c0-2.2 1.8-4 4-4h52c2.2 0 4 1.8 4 4v24c0 2.2-1.8 4-4 4H6c-2.2 0-4-1.8-4-4V18z"/></svg>
+            </div>
+            <p class="tx-empty-title">@T["tax.empty_folders"]</p>
+            <p class="tx-empty-hint">@T["tax.empty_folders_hint"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="finder-grid">
+            @foreach (var f in Model.Folders!)
+            {
+                <a class="finder-item" asp-controller="Taxonomy" asp-action="Folder" asp-route-id="@f.Id">
+                    <span class="finder-folder finder-folder-@f.Color" aria-hidden="true">
+                        <svg viewBox="0 0 64 52" width="64" height="52">
+                            <path class="ff-back" d="M2 10c0-3.3 2.7-6 6-6h14l4 5h30c3.3 0 6 2.7 6 6v31c0 3.3-2.7 6-6 6H8c-3.3 0-6-2.7-6-6V10z"/>
+                            <path class="ff-front" d="M2 18c0-2.2 1.8-4 4-4h52c2.2 0 4 1.8 4 4v24c0 2.2-1.8 4-4 4H6c-2.2 0-4-1.8-4-4V18z"/>
+                        </svg>
+                    </span>
+                    <span class="finder-name" dir="auto">@f.Name</span>
+                    <span class="finder-meta ltr-field">@string.Format(T["tax.posts_n"].ToString(), f.PostCount)</span>
+                </a>
+            }
+        </div>
+        <div class="finder-actions-list">
+            @foreach (var f in Model.Folders!)
+            {
+                <form asp-controller="Taxonomy" asp-action="DeleteFolder" method="post" class="finder-del-row"
+                      onsubmit="return confirm('@T["tax.confirm_delete_folder"]');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@f.Id" />
+                    <span dir="auto">@f.Name</span>
+                    <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
+                </form>
+            }
+        </div>
+    }
+</section>
