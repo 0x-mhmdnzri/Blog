@@ -41,7 +41,7 @@ public partial class AccountController
         var folders = await _db.PostFolderItems.AsNoTracking()
             .Where(i => i.Post.AuthorId == user.Id && i.Post.IsPublished && !i.Post.IsDeleted)
             .GroupBy(i => new { i.Folder.Slug, i.Folder.Name })
-            .Select(g => new AuthorFilterOption { Slug = g.Key.Slug, Name = g.Key.Name, Count = g.Count() })
+            .Select(g => new AuthorFilterOption {Slug = g.Key.Slug, Name = g.Key.Name, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(40)
             .ToListAsync();
@@ -65,7 +65,7 @@ public partial class AccountController
         var seriesList = await _db.SeriesPosts.AsNoTracking()
             .Where(sp => sp.Post.AuthorId == user.Id && sp.Post.IsPublished && !sp.Post.IsDeleted)
             .GroupBy(sp => new { sp.Series.Slug, sp.Series.Name })
-            .Select(g => new AuthorFilterOption { Slug = g.Key.Slug, Name = g.Key.Name, Count = g.Count() })
+            .Select(g => new AuthorFilterOption {Slug = g.Key.Slug, Name = g.Key.Name, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(40)
             .ToListAsync();
@@ -174,6 +174,8 @@ public partial class AccountController
             ? $"{user.DisplayName} · @{user.UserName}"
             : user.Bio;
         ViewData["OgType"] = "profile";
+        ViewData["OgImage"] = $"{Request.Scheme}://{Request.Host}/og/author/{user.Id}.png?v={postCount}-{followerCount}-{totalViews}";
+        ViewData["OgImageAlt"] = user.DisplayName;
 
         var vm = new PublicAuthorProfileViewModel
         {
