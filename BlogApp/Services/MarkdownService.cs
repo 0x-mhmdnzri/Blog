@@ -283,7 +283,6 @@ public class MarkdownService
     {
         if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
         var html = RenderToHtml(markdown);
-        // inject ids into headings
         html = HeadingHtmlRegex.Replace(html, m =>
         {
             var level = m.Groups[1].Value;
@@ -341,7 +340,7 @@ public class MarkdownService
     private static bool IsVideoPlaceholder(string plain) =>
         plain.StartsWith("[[VIDEO_EMBED_", StringComparison.Ordinal) && plain.EndsWith("]]", StringComparison.Ordinal);
 
-    private static stringSlugify(string text)
+    private static string Slugify(string text)
     {
         var s = text.Trim().ToLowerInvariant();
         s = Regex.Replace(s, @"\s+", "-");
