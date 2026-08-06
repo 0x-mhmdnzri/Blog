@@ -37,7 +37,6 @@ public partial class AccountController
         var totalViews = await baseQuery.SumAsync(p => (long)p.ViewCount);
         var followerCount = await _db.AuthorFollows.CountAsync(f => f.AuthorUserId == user.Id);
 
-        // Filter option lists (from this author's published posts)
         var folders = await _db.PostFolderItems.AsNoTracking()
             .Where(i => i.Post.AuthorId == user.Id && i.Post.IsPublished && !i.Post.IsDeleted)
             .GroupBy(i => new { i.Folder.Slug, i.Folder.Name })
@@ -49,7 +48,7 @@ public partial class AccountController
         var categories = await baseQuery
             .Where(p => p.Category != null)
             .GroupBy(p => new { p.Category!.Slug, p.Category.Name })
-            .Select(g => new AuthorFilterOption { Slug = g.Key.Slug, Name = g.Key.Name, Count = g.Count() })
+            .Select(g => new AuthorFilterOption {Slug = g.Key.Slug, Name = g.Key.Name, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(40)
             .ToListAsync();
@@ -57,7 +56,7 @@ public partial class AccountController
         var tags = await _db.PostTags.AsNoTracking()
             .Where(pt => pt.Post.AuthorId == user.Id && pt.Post.IsPublished && !pt.Post.IsDeleted)
             .GroupBy(pt => new { pt.Tag.Slug, pt.Tag.Name })
-            .Select(g => new AuthorFilterOption { Slug = g.Key.Slug, Name = g.Key.Name, Count = g.Count() })
+            .Select(g => new AuthorFilterOption {Slug = g.Key.Slug, Name = g.Key.Name, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(40)
             .ToListAsync();
@@ -73,7 +72,7 @@ public partial class AccountController
         var topics = await _db.TopicCollections.AsNoTracking()
             .Where(t => t.IsPublished)
             .OrderBy(t => t.Name)
-            .Select(t => new AuthorFilterOption { Slug = t.Slug, Name = t.Name, Count = t.Items.Count })
+            .Select(t => new AuthorFilterOption {Slug = t.Slug, Name = t.Name, Count = t.Items.Count })
             .Take(40)
             .ToListAsync();
 
@@ -152,7 +151,7 @@ public partial class AccountController
             .Select(p => new AuthorPostItem
             {
                 Title = p.Title,
-                Slug = p.Slug,
+               Slug = p.Slug,
                 LanguageCode = p.LanguageCode,
                 Summary = p.Summary,
                 PublishedAtUtc = p.PublishedAtUtc,
@@ -170,12 +169,38 @@ public partial class AccountController
         var isFollowing = canFollow
             && await _db.AuthorFollows.AnyAsync(f => f.FollowerUserId == viewerId && f.AuthorUserId == user.Id);
 
-        ViewData["Description"] = string.IsNullOrWhiteSpace(user.Bio)
-            ? $"{user.DisplayName} · @{user.UserName}"
-            : user.Bio;
+        var display = string.IsNullOrWhiteSpace(user.DisplayName) ? user.UserName! : user.DisplayName;
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var profileUrl = $"{baseUrl}/author/{Uri.EscapeDataString(user.UserName!)}";
+        var ogImage = $"{baseUrl}/og/author/{user.Id}.png?v={postCount}-{followerCount}-{totalViews}";
+
+        var desc = !string.IsNullOrWhiteSpace(user.Bio)
+            ? user.Bio.Trim()
+            : $"{display} (@{user.UserName}) — {postCount} posts, {followerCount} followers";
+        if (desc.Length > 160) desc = desc[..157].TrimEnd() + "…";
+
+        var keywordBits = new List<string> { display, user.UserName! };
+        if (isAuthor) keywordBits.Add("author");
+        keywordBits.AddRange(categories.Take(5).Select(c => c.Name));
+        keywordBits.AddRange(tags.Take(8).Select(t => t.Name));
+
+        ViewData["Title"] = postCount > 0
+            ? $"{display} — {postCount} posts"
+            : display;
+        ViewData["Description"] = desc;
+        ViewData["Keywords"] = string.Join(", ", keywordBits.Distinct(StringComparer.OrdinalIgnoreCase).Take(16));
+        ViewData["Canonical"] = profileUrl;
         ViewData["OgType"] = "profile";
-        ViewData["OgImage"] = $"{Request.Scheme}://{Request.Host}/og/author/{user.Id}.png?v={postCount}-{followerCount}-{totalViews}";
-        ViewData["OgImageAlt"] = user.DisplayName;
+        ViewData["OgImage"] = ogImage;
+        ViewData["OgImageAlt"] = display;
+        ViewData["Author"] = display;
+        ViewData["NoIndex"] = false;
+
+        var seo = HttpContext.RequestServices.GetService(typeof(SeoService)) as SeoService;
+        if (seo is not null)
+        {
+            ViewBag.PersonJsonLd = seo.BuildPersonJsonLd(baseUrl, user, profileUrl, postCount, ogImage);
+        }
 
         var vm = new PublicAuthorProfileViewModel
         {
