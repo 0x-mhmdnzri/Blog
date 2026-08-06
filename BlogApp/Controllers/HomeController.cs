@@ -80,7 +80,6 @@ public class HomeController : Controller
             query = query.Where(p => _db.Set<PostFolderItem>().Any(i => i.FolderId == fid && i.PostId == p.Id));
         else if (string.IsNullOrWhiteSpace(q) && string.IsNullOrWhiteSpace(category) && string.IsNullOrWhiteSpace(tag))
         {
-            // Root feed: only posts that are not inside any folder (folder grid is separate)
             query = query.Where(p => !_db.Set<PostFolderItem>().Any(i => i.PostId == p.Id));
         }
         if (featured == true)
@@ -170,6 +169,9 @@ public class HomeController : Controller
             return PartialView("_PostCards", posts);
 
         ViewData["Description"] = _seo.SiteDescription;
+        ViewData["OgType"] = "website";
+        ViewData["OgImage"] = $"{Request.Scheme}://{Request.Host}/og/site.png";
+        ViewData["OgImageAlt"] = _seo.SiteName;
         return View(posts);
     }
 
