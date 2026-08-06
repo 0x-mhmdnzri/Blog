@@ -172,6 +172,22 @@ public class PublicAuthorProfileViewModel
     public long TotalViews { get; set; }
     public List<AuthorPostItem> Posts { get; set; } = new();
 
+    // Filters
+    public string? Q { get; set; }
+    public string Sort { get; set; } = "newest";
+    public string? Folder { get; set; }
+    public string? Category { get; set; }
+    public string? Tag { get; set; }
+    public string? Series { get; set; }
+    public string? Topic { get; set; }
+    public int FilteredCount { get; set; }
+
+    public List<AuthorFilterOption> Folders { get; set; } = new();
+    public List<AuthorFilterOption> Categories { get; set; } = new();
+    public List<AuthorFilterOption> Tags { get; set; } = new();
+    public List<AuthorFilterOption> SeriesList { get; set; } = new();
+    public List<AuthorFilterOption> Topics { get; set; } = new();
+
     public bool HasAnySocial =>
         !string.IsNullOrWhiteSpace(Twitter)
         || !string.IsNullOrWhiteSpace(LinkedIn)
@@ -180,16 +196,49 @@ public class PublicAuthorProfileViewModel
         || !string.IsNullOrWhiteSpace(Website)
         || !string.IsNullOrWhiteSpace(GitHub)
         || !string.IsNullOrWhiteSpace(Instagram);
+
+    public bool HasActiveFilter =>
+        !string.IsNullOrWhiteSpace(Q)
+        || !string.IsNullOrWhiteSpace(Folder)
+        || !string.IsNullOrWhiteSpace(Category)
+        || !string.IsNullOrWhiteSpace(Tag)
+        || !string.IsNullOrWhiteSpace(Series)
+        || !string.IsNullOrWhiteSpace(Topic)
+        || (!string.IsNullOrWhiteSpace(Sort) && Sort != "newest");
+}
+
+public class AuthorFilterOption
+{
+    public string Slug { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Count { get; set; }
 }
 
 public class AuthorPostItem
 {
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
+    public string LanguageCode { get; set; } = "fa";
     public string? Summary { get; set; }
     public DateTime? PublishedAtUtc { get; set; }
     public int ViewCount { get; set; }
     public int ReadingTimeMinutes { get; set; }
     public string? CategoryName { get; set; }
     public string? CoverUrl { get; set; }
+}
+
+public class TelegramInstantViewModel
+{
+    public string Title { get; set; } = string.Empty;
+    public string? Summary { get; set; }
+    public string HtmlBody { get; set; } = string.Empty;
+    public string AuthorName { get; set; } = string.Empty;
+    public string? AuthorUserName { get; set; }
+    public DateTime PublishedAtUtc { get; set; }
+    public string CanonicalUrl { get; set; } = string.Empty;
+    public string SiteName { get; set; } = "Blog";
+    public string? CoverUrl { get; set; }
+    public string LanguageCode { get; set; } = "fa";
+    public int ReadingTimeMinutes { get; set; }
+    public List<string> Tags { get; set; } = new();
 }
