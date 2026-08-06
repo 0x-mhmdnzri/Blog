@@ -9,9 +9,12 @@
     var minRead = ViewBag.MinRead as int?;
     var q = ViewBag.SearchQuery as string;
     var currentCategory = ViewBag.CurrentCategory as string;
+    var folders = ViewBag.Folders as List<BlogApp.Controllers.BlogFeedFolderItem> ?? new();
+    var currentFolderId = ViewBag.CurrentFolderId as int?;
     var isFeedOnly = !string.IsNullOrEmpty(q) || !string.IsNullOrEmpty(currentCategory)
         || !string.IsNullOrEmpty(ViewBag.CurrentTag as string) || currentPage > 1
-        || !string.IsNullOrEmpty(sort) || featured == true || minRead is > 0;
+        || !string.IsNullOrEmpty(sort) || featured == true || minRead is > 0
+        || currentFolderId is > 0;
 }
 
 @section Head {
@@ -144,15 +147,38 @@
         <button type="submit" class="btn btn-ghost btn-sm">@T["mkt.home.apply"]</button>
     </form>
 
+    @if (folders.Count > 0)
+    {
+        <div class="cat-pills mb-2" role="navigation" aria-label="Folders">
+            <a class="tag-pill @(currentFolderId is null or currentFolderId == 0 ? "is-active" : null)"
+               asp-action="Index"
+               asp-route-category="@currentCategory"
+               asp-route-tag="@ViewBag.CurrentTag"
+               asp-route-q="@q"
+               asp-route-sort="@sort">@T["home.all"]</a>
+            @foreach (var f in folders)
+            {
+                <a class="tag-pill @(currentFolderId == f.Id ? "is-active" : null)"
+                   asp-action="Index"
+                   asp-route-folderId="@f.Id"
+                   asp-route-category="@currentCategory"
+                   asp-route-tag="@ViewBag.CurrentTag"
+                   asp-route-q="@q"
+                   asp-route-sort="@sort"
+                   dir="auto">@f.Name <span class="text-muted-dark">(@f.Count)</span></a>
+            }
+        </div>
+    }
+
     @if (categories.Count > 0)
     {
         <div class="cat-pills" role="navigation" aria-label="@T["mkt.home.cats_label"]">
             <a class="tag-pill @(string.IsNullOrEmpty(currentCategory) ? "is-active" : null)"
-               asp-action="Index">@T["home.all"]</a>
+               asp-action="Index" asp-route-folderId="@currentFolderId">@T["home.all"]</a>
             @foreach (var c in categories)
             {
                 <a class="tag-pill @(string.Equals(currentCategory, c.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
-                   asp-action="Index" asp-route-category="@c.Slug">@c.Name</a>
+                   asp-action="Index" asp-route-category="@c.Slug" asp-route-folderId="@currentFolderId">@c.Name</a>
             }
         </div>
     }
@@ -178,7 +204,7 @@
                 @for (int p = 1; p <= totalPages; p++)
                 {
                     <a class="btn btn-ghost btn-sm ltr-field" asp-action="Index" asp-route-page="@p"
-                       asp-route-category="@ViewBag.CurrentCategory" asp-route-q="@q">@p</a>
+                       asp-route-category="@ViewBag.CurrentCategory" asp-route-q="@q" asp-route-folderId="@currentFolderId">@p</a>
                 }
             </nav>
         </noscript>
