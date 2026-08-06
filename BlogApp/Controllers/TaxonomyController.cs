@@ -25,8 +25,26 @@ public partial class TaxonomyController : Controller
     {
         ViewData["Title"] = _t["tax.title"];
         var tree = await BuildCategoryTreeAsync();
+        var userId = AuthorAccess.UserId(User)!;
+        var isSuper = AuthorAccess.IsSuperAdmin(User);
+        var folderQuery = _db.PostFolders.AsNoTracking().AsQueryable();
+        if (!isSuper)
+            folderQuery = folderQuery.Where(f => f.OwnerUserId == userId);
+        var folders = await folderQuery
+            .OrderBy(f => f.DisplayOrder).ThenBy(f => f.Name)
+            .Select(f => new FolderAdminItem
+            {
+                Id = f.Id,
+                Name = f.Name,
+                Slug = f.Slug,
+                Description = f.Description,
+                Color = f.Color,
+                ParentId = f.ParentId,
+                PostCount = f.Items.Count
+            }).ToListAsync();
         var vm = new TaxonomyAdminViewModel
         {
+            Folders = folders,
             Categories = tree,
             ParentOptions = tree.Select(c => new CategoryOption
             {
@@ -73,14 +91,14 @@ public partial class TaxonomyController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteCategory(int id)
     {
-        var cat = await _db.Categories.Include(c => c.Children).FirstOrDefaultAsync(c => c.Id == id);
+        var cat = await _db.Categories.AsTracking().Include(c => c.Children).FirstOrDefaultAsync(c => c.Id == id);
         if (cat is null) return NotFound();
         if (cat.Children.Any())
         {
             TempData["TaxonomyErr"] = _t["tax.msg_cat_has_children"];
             return RedirectToAction(nameof(Categories));
         }
-        foreach (var p in await _db.Posts.Where(p => p.CategoryId == id).ToListAsync())
+        foreach (var p in await _db.Posts.AsTracking().Where(p => p.CategoryId == id).ToListAsync())
             p.CategoryId = null;
         _db.Categories.Remove(cat);
         await _db.SaveChangesAsync();
@@ -106,9 +124,9 @@ public partial class TaxonomyController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteTag(int id)
     {
-        var tag = await _db.Tags.FindAsync(id);
+        var tag = await _db.Tags.AsTracking().FirstOrDefaultAsync(t => t.Id == id);
         if (tag is null) return NotFound();
-        _db.PostTags.RemoveRange(await _db.PostTags.Where(pt => pt.TagId == id).ToListAsync());
+        _db.PostTags.RemoveRange(await _db.PostTags.AsTracking().Where(pt => pt.TagId == id).ToListAsync());
         _db.Tags.Remove(tag);
         await _db.SaveChangesAsync();
         TempData["TaxonomyMsg"] = _t["tax.msg_tag_deleted"];
@@ -119,14 +137,14 @@ public partial class TaxonomyController : Controller
     public async Task<IActionResult> MergeTags(int sourceId, int targetId)
     {
         if (sourceId == targetId) return RedirectToAction(nameof(Categories));
-        var sourceLinks = await _db.PostTags.Where(pt => pt.TagId == sourceId).ToListAsync();
-        var targetPostIds = await _db.PostTags.Where(pt => pt.TagId == targetId).Select(pt => pt.PostId).ToListAsync();
+        var sourceLinks = await _db.PostTags.AsTracking().Where(pt => pt.TagId == sourceId).ToListAsync();
+        var targetPostIds = await _db.PostTags.AsNoTracking().Where(pt => pt.TagId == targetId).Select(pt => pt.PostId).ToListAsync();
         foreach (var link in sourceLinks)
         {
             if (targetPostIds.Contains(link.PostId)) _db.PostTags.Remove(link);
             else link.TagId = targetId;
         }
-        var source = await _db.Tags.FindAsync(sourceId);
+        var source = await _db.Tags.AsTracking().FirstOrDefaultAsync(t => t.Id == sourceId);
         if (source is not null) _db.Tags.Remove(source);
         await _db.SaveChangesAsync();
         TempData["TaxonomyMsg"] = _t["tax.msg_tags_merged"];
@@ -151,7 +169,7 @@ public partial class TaxonomyController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteSeries(int id)
     {
-        var s = await _db.PostSeries.FindAsync(id);
+        var s = await _db.PostSeries.AsTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (s is null) return NotFound();
         _db.PostSeries.Remove(s);
         await _db.SaveChangesAsync();
@@ -174,7 +192,7 @@ public partial class TaxonomyController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> RemovePostFromSeries(int seriesId, int postId)
     {
-        var row = await _db.SeriesPosts.FirstOrDefaultAsync(sp => sp.SeriesId == seriesId && sp.PostId == postId);
+        var row = await _db.SeriesPosts.AsTracking().FirstOrDefaultAsync(sp => sp.SeriesId == seriesId && sp.PostId == postId);
         if (row is not null) { _db.SeriesPosts.Remove(row); await _db.SaveChangesAsync(); }
         return RedirectToAction(nameof(EditSeries), new { id = seriesId });
     }
@@ -214,7 +232,7 @@ public partial class TaxonomyController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteTopic(int id)
     {
-        var t = await _db.TopicCollections.FindAsync(id);
+        var t = await _db.TopicCollections.AsTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (t is null) return NotFound();
         _db.TopicCollections.Remove(t);
         await _db.SaveChangesAsync();
@@ -253,7 +271,7 @@ public partial class TaxonomyController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveTopicItem(int topicId, int itemId)
     {
-        var item = await _db.TopicCollectionItems.FirstOrDefaultAsync(i => i.Id == itemId && i.TopicCollectionId == topicId);
+        var item = await _db.TopicCollectionItems.AsTracking().FirstOrDefaultAsync(i => i.Id == itemId && i.TopicCollectionId == topicId);
         if (item is not null) { _db.TopicCollectionItems.Remove(item); await _db.SaveChangesAsync(); }
         return RedirectToAction(nameof(EditTopic), new { id = topicId });
     }
