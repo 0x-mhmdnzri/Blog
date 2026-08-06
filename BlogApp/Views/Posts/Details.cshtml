@@ -27,12 +27,17 @@
 }
 
 @section Head {
-    <link rel="stylesheet" href="~/css/code-onedark.css" asp-append-version="true" />
     <script type="application/ld+json">@Html.Raw(ViewBag.PostJsonLd)</script>
-    <meta property="og:type" content="article" />
+    <script type="application/ld+json">@Html.Raw(ViewBag.BreadcrumbJsonLd)</script>
+    <link rel="stylesheet" href="~/css/post-toc.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/post-layout.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/related-rail.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/post-page.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/post-social.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/comments.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/report-section.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/code-onedark.css" asp-append-version="true" />
 }
+
+<div class="pd-progress" id="pdProgress" aria-hidden="true"><i id="pdProgressBar"></i></div>
+
+@* RESTORED PLACEHOLDER - full file needed *@
