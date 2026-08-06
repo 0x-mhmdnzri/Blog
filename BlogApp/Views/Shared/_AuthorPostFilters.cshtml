@@ -29,82 +29,207 @@
         var qs = parts.Count > 0 ? "?" + string.Join("&", parts) : "";
         return "/author/" + Uri.EscapeDataString(Model.UserName) + qs;
     }
-    var hasTaxonomy =
-        Model.Folders.Count > 0 || Model.Categories.Count > 0 || Model.Tags.Count > 0 ||
-        Model.SeriesList.Count > 0 || Model.Topics.Count > 0;
+
+    var hasFolders = Model.Folders.Count > 0;
+    var hasCats = Model.Categories.Count > 0;
+    var hasTags = Model.Tags.Count > 0;
+    var hasTopics = Model.Topics.Count > 0;
+    var hasSeries = Model.SeriesList.Count > 0;
+    var hasTaxonomy = hasFolders || hasCats || hasTags || hasTopics || hasSeries;
+
+    var activeTab =
+        !string.IsNullOrEmpty(Model.Folder) && hasFolders ? "folders" :
+        !string.IsNullOrEmpty(Model.Category) && hasCats ? "cats" :
+        !string.IsNullOrEmpty(Model.Tag) && hasTags ? "tags" :
+        !string.IsNullOrEmpty(Model.Topic) && hasTopics ? "topics" :
+        !string.IsNullOrEmpty(Model.Series) && hasSeries ? "series" :
+        hasFolders ? "folders" :
+        hasCats ? "cats" :
+        hasTags ? "tags" :
+        hasTopics ? "topics" :
+        hasSeries ? "series" : "";
 }
 <link rel="stylesheet" href="~/css/author-filters.css" asp-append-version="true" />
+
 <section class="af" id="posts" aria-label="@T["author.posts_title"]">
-<form method="get" action="/author/@Model.UserName" class="af-bar" id="authorFilters">
-<div class="af-toolbar">
-<div class="af-search-wrap">
-<svg class="af-search-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-<input type="search" name="q" value="@Model.Q" class="af-search" placeholder="@T["author.filter_search"]" dir="auto" autocomplete="off" />
-</div>
-<select name="sort" class="af-select" onchange="this.form.submit()" aria-label="@T["author.filter_sort"]">
-<option value="newest" selected="@(Model.Sort == "newest")">@T["author.sort_newest"]</option>
-<option value="oldest" selected="@(Model.Sort == "oldest")">@T["author.sort_oldest"]</option>
-<option value="popular" selected="@(Model.Sort == "popular")">@T["author.sort_popular"]</option>
-<option value="title" selected="@(Model.Sort == "title")">@T["author.sort_title"]</option>
-<option value="read" selected="@(Model.Sort == "read")">@T["author.sort_read"]</option>
-</select>
-<button type="submit" class="btn btn-accent btn-sm af-apply">@T["author.filter_apply"]</button>
-@if (Model.HasActiveFilter) { <a class="btn btn-ghost btn-sm" href="/author/@Model.UserName">@T["author.filter_clear"]</a> }
-</div>
-@if (hasTaxonomy) {
-<nav class="af-nav" aria-label="taxonomy">
-@if (Model.Folders.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Folder) ? null : "is-on")" href="#folders">@T["author.filter_folders"]</a> }
-@if (Model.Categories.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Category) ? null : "is-on")" href="#cats">@T["author.filter_cats"]</a> }
-@if (Model.Tags.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Tag) ? null : "is-on")" href="#tags">@T["author.filter_tags"]</a> }
-@if (Model.Topics.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Topic) ? null : "is-on")" href="#topics">@T["author.filter_topics"]</a> }
-@if (Model.SeriesList.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Series) ? null : "is-on")" href="#series">@T["author.filter_series"]</a> }
-</nav>
-}
-@if (Model.HasActiveFilter) {
-<div class="af-active" role="status">
-@if (!string.IsNullOrWhiteSpace(Model.Q)) { <a class="af-chip" href="@UrlWith(q: "")">«@Model.Q» ×</a> }
-@if (!string.IsNullOrWhiteSpace(Model.Folder)) { <a class="af-chip" href="@UrlWith(folder: "")">@T["author.filter_folders"]: @Model.Folder ×</a> }
-@if (!string.IsNullOrWhiteSpace(Model.Category)) { <a class="af-chip" href="@UrlWith(category: "")">@T["author.filter_cats"]: @Model.Category ×</a> }
-@if (!string.IsNullOrWhiteSpace(Model.Tag)) { <a class="af-chip" href="@UrlWith(tag: "")">@T["author.filter_tags"]: @Model.Tag ×</a> }
-@if (!string.IsNullOrWhiteSpace(Model.Series)) { <a class="af-chip" href="@UrlWith(series: "")">@T["author.filter_series"]: @Model.Series ×</a> }
-@if (!string.IsNullOrWhiteSpace(Model.Topic)) { <a class="af-chip" href="@UrlWith(topic: "")">@T["author.filter_topics"]: @Model.Topic ×</a> }
-</div>
-}
-@if (Model.Folders.Count > 0) {
-<div class="af-group" id="folders"><span class="af-label">@T["author.filter_folders"]</span><div class="af-pills">
-<a class="af-pill @(string.IsNullOrEmpty(Model.Folder) ? "is-active" : null)" href="@UrlWith(folder: "")">@T["author.filter_all"]</a>
-@foreach (var f in Model.Folders) { <a class="af-pill @(string.Equals(Model.Folder, f.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(folder: f.Slug)">@f.Name <span class="n">@f.Count</span></a> }
-</div></div>
-}
-@if (Model.Categories.Count > 0) {
-<div class="af-group" id="cats"><span class="af-label">@T["author.filter_cats"]</span><div class="af-pills">
-<a class="af-pill @(string.IsNullOrEmpty(Model.Category) ? "is-active" : null)" href="@UrlWith(category: "")">@T["author.filter_all"]</a>
-@foreach (var c in Model.Categories) { <a class="af-pill @(string.Equals(Model.Category, c.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(category: c.Slug)">@c.Name <span class="n">@c.Count</span></a> }
-</div></div>
-}
-@if (Model.Tags.Count > 0) {
-<div class="af-group" id="tags"><span class="af-label">@T["author.filter_tags"]</span><div class="af-pills">
-<a class="af-pill @(string.IsNullOrEmpty(Model.Tag) ? "is-active" : null)" href="@UrlWith(tag: "")">@T["author.filter_all"]</a>
-@foreach (var t in Model.Tags) { <a class="af-pill @(string.Equals(Model.Tag, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(tag: t.Slug)">@t.Name <span class="n">@t.Count</span></a> }
-</div></div>
-}
-@if (Model.Topics.Count > 0) {
-<div class="af-group" id="topics"><span class="af-label">@T["author.filter_topics"]</span><div class="af-pills">
-<a class="af-pill @(string.IsNullOrEmpty(Model.Topic) ? "is-active" : null)" href="@UrlWith(topic: "")">@T["author.filter_all"]</a>
-@foreach (var t in Model.Topics) { <a class="af-pill @(string.Equals(Model.Topic, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(topic: t.Slug)">@t.Name</a> }
-</div></div>
-}
-@if (Model.SeriesList.Count > 0) {
-<div class="af-group" id="series"><span class="af-label">@T["author.filter_series"]</span><div class="af-pills">
-<a class="af-pill @(string.IsNullOrEmpty(Model.Series) ? "is-active" : null)" href="@UrlWith(series: "")">@T["author.filter_all"]</a>
-@foreach (var s in Model.SeriesList) { <a class="af-pill @(string.Equals(Model.Series, s.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(series: s.Slug)">@s.Name <span class="n">@s.Count</span></a> }
-</div></div>
-}
-<div class="af-meta"><span class="ltr-field">@Model.FilteredCount.ToString("N0")</span><span class="af-meta-sep">/</span><span class="ltr-field">@Model.PostCount.ToString("N0")</span><span class="af-meta-lbl">@T["author.filter_results"]</span></div>
-@if (!string.IsNullOrEmpty(Model.Folder)) { <input type="hidden" name="folder" value="@Model.Folder" /> }
-@if (!string.IsNullOrEmpty(Model.Category)) { <input type="hidden" name="category" value="@Model.Category" /> }
-@if (!string.IsNullOrEmpty(Model.Tag)) { <input type="hidden" name="tag" value="@Model.Tag" /> }
-@if (!string.IsNullOrEmpty(Model.Series)) { <input type="hidden" name="series" value="@Model.Series" /> }
-@if (!string.IsNullOrEmpty(Model.Topic)) { <input type="hidden" name="topic" value="@Model.Topic" /> }
-</form>
+    <form method="get" action="/author/@Model.UserName" class="af-panel" id="authorFilters">
+
+        <div class="af-toolbar">
+            <div class="af-search-wrap">
+                <svg class="af-search-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input class="af-search" type="search" name="q" value="@Model.Q"
+                       placeholder="@T["author.filter_search"]" dir="auto"
+                       aria-label="@T["author.filter_search"]" autocomplete="off" />
+            </div>
+            <select class="af-select" name="sort" aria-label="@T["author.filter_sort"]" onchange="this.form.submit()">
+                @if (Model.Sort is null or "newest") { <option value="newest" selected>@T["author.sort_newest"]</option> } else { <option value="newest">@T["author.sort_newest"]</option> }
+                @if (Model.Sort == "oldest") { <option value="oldest" selected>@T["author.sort_oldest"]</option> } else { <option value="oldest">@T["author.sort_oldest"]</option> }
+                @if (Model.Sort == "popular") { <option value="popular" selected>@T["author.sort_popular"]</option> } else { <option value="popular">@T["author.sort_popular"]</option> }
+            </select>
+            <button type="submit" class="af-apply btn btn-accent btn-sm">@T["author.filter_apply"]</button>
+            <div class="af-count ltr-field" title="@T["author.filter_results"]">
+                <strong>@Model.FilteredCount.ToString("N0")</strong>
+                <span class="af-count-sep">/</span>
+                <span>@Model.PostCount.ToString("N0")</span>
+            </div>
+        </div>
+
+        @if (Model.HasActiveFilter)
+        {
+            <div class="af-active" role="status">
+                @if (!string.IsNullOrEmpty(Model.Q))
+                {
+                    <a class="af-active-chip" href="@UrlWith(q: "")" title="@T["author.filter_clear"]">
+                        <span dir="auto">“@Model.Q”</span>
+                        <span class="af-x" aria-hidden="true">×</span>
+                    </a>
+                }
+                @if (!string.IsNullOrEmpty(Model.Folder))
+                {
+                    var fn = Model.Folders.FirstOrDefault(x => string.Equals(x.Slug, Model.Folder, StringComparison.OrdinalIgnoreCase))?.Name ?? Model.Folder;
+                    <a class="af-active-chip" href="@UrlWith(folder: "")"><span dir="auto">@fn</span><span class="af-x" aria-hidden="true">×</span></a>
+                }
+                @if (!string.IsNullOrEmpty(Model.Category))
+                {
+                    var cn = Model.Categories.FirstOrDefault(x => string.Equals(x.Slug, Model.Category, StringComparison.OrdinalIgnoreCase))?.Name ?? Model.Category;
+                    <a class="af-active-chip" href="@UrlWith(category: "")"><span dir="auto">@cn</span><span class="af-x" aria-hidden="true">×</span></a>
+                }
+                @if (!string.IsNullOrEmpty(Model.Tag))
+                {
+                    var tn = Model.Tags.FirstOrDefault(x => string.Equals(x.Slug, Model.Tag, StringComparison.OrdinalIgnoreCase))?.Name ?? Model.Tag;
+                    <a class="af-active-chip" href="@UrlWith(tag: "")"><span dir="auto">#@tn</span><span class="af-x" aria-hidden="true">×</span></a>
+                }
+                @if (!string.IsNullOrEmpty(Model.Topic))
+                {
+                    var ton = Model.Topics.FirstOrDefault(x => string.Equals(x.Slug, Model.Topic, StringComparison.OrdinalIgnoreCase))?.Name ?? Model.Topic;
+                    <a class="af-active-chip" href="@UrlWith(topic: "")"><span dir="auto">@ton</span><span class="af-x" aria-hidden="true">×</span></a>
+                }
+                @if (!string.IsNullOrEmpty(Model.Series))
+                {
+                    var sn = Model.SeriesList.FirstOrDefault(x => string.Equals(x.Slug, Model.Series, StringComparison.OrdinalIgnoreCase))?.Name ?? Model.Series;
+                    <a class="af-active-chip" href="@UrlWith(series: "")"><span dir="auto">@sn</span><span class="af-x" aria-hidden="true">×</span></a>
+                }
+                <a class="af-clear" href="/author/@Model.UserName">@T["author.filter_clear"]</a>
+            </div>
+        }
+
+        @if (hasTaxonomy)
+        {
+            <div class="af-tabs" role="tablist" aria-label="@T["author.posts_title"]">
+                @if (hasFolders)
+                {
+                    <button type="button" class="af-tab @(activeTab == "folders" ? "is-active" : null)" role="tab" data-af-tab="folders" aria-selected="@(activeTab == "folders" ? "true" : "false")">@T["author.filter_folders"]</button>
+                }
+                @if (hasCats)
+                {
+                    <button type="button" class="af-tab @(activeTab == "cats" ? "is-active" : null)" role="tab" data-af-tab="cats" aria-selected="@(activeTab == "cats" ? "true" : "false")">@T["author.filter_cats"]</button>
+                }
+                @if (hasTags)
+                {
+                    <button type="button" class="af-tab @(activeTab == "tags" ? "is-active" : null)" role="tab" data-af-tab="tags" aria-selected="@(activeTab == "tags" ? "true" : "false")">@T["author.filter_tags"]</button>
+                }
+                @if (hasTopics)
+                {
+                    <button type="button" class="af-tab @(activeTab == "topics" ? "is-active" : null)" role="tab" data-af-tab="topics" aria-selected="@(activeTab == "topics" ? "true" : "false")">@T["author.filter_topics"]</button>
+                }
+                @if (hasSeries)
+                {
+                    <button type="button" class="af-tab @(activeTab == "series" ? "is-active" : null)" role="tab" data-af-tab="series" aria-selected="@(activeTab == "series" ? "true" : "false")">@T["author.filter_series"]</button>
+                }
+            </div>
+
+            <div class="af-panels">
+                @if (hasFolders)
+                {
+                    <div class="af-panel-body @(activeTab == "folders" ? "is-open" : null)" data-af-panel="folders" role="tabpanel">
+                        <div class="af-pills">
+                            <a class="af-pill @(string.IsNullOrEmpty(Model.Folder) ? "is-active" : null)" href="@UrlWith(folder: "")">@T["author.filter_all"]</a>
+                            @foreach (var f in Model.Folders)
+                            {
+                                <a class="af-pill @(string.Equals(Model.Folder, f.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                                   href="@UrlWith(folder: f.Slug)" dir="auto">@f.Name <span class="n">@f.Count</span></a>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (hasCats)
+                {
+                    <div class="af-panel-body @(activeTab == "cats" ? "is-open" : null)" data-af-panel="cats" role="tabpanel">
+                        <div class="af-pills">
+                            <a class="af-pill @(string.IsNullOrEmpty(Model.Category) ? "is-active" : null)" href="@UrlWith(category: "")">@T["author.filter_all"]</a>
+                            @foreach (var c in Model.Categories)
+                            {
+                                <a class="af-pill @(string.Equals(Model.Category, c.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                                   href="@UrlWith(category: c.Slug)" dir="auto">@c.Name <span class="n">@c.Count</span></a>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (hasTags)
+                {
+                    <div class="af-panel-body @(activeTab == "tags" ? "is-open" : null)" data-af-panel="tags" role="tabpanel">
+                        <div class="af-pills">
+                            <a class="af-pill @(string.IsNullOrEmpty(Model.Tag) ? "is-active" : null)" href="@UrlWith(tag: "")">@T["author.filter_all"]</a>
+                            @foreach (var t in Model.Tags)
+                            {
+                                <a class="af-pill @(string.Equals(Model.Tag, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                                   href="@UrlWith(tag: t.Slug)" dir="auto">@t.Name <span class="n">@t.Count</span></a>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (hasTopics)
+                {
+                    <div class="af-panel-body @(activeTab == "topics" ? "is-open" : null)" data-af-panel="topics" role="tabpanel">
+                        <div class="af-pills">
+                            <a class="af-pill @(string.IsNullOrEmpty(Model.Topic) ? "is-active" : null)" href="@UrlWith(topic: "")">@T["author.filter_all"]</a>
+                            @foreach (var t in Model.Topics)
+                            {
+                                <a class="af-pill @(string.Equals(Model.Topic, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                                   href="@UrlWith(topic: t.Slug)" dir="auto">@t.Name</a>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (hasSeries)
+                {
+                    <div class="af-panel-body @(activeTab == "series" ? "is-open" : null)" data-af-panel="series" role="tabpanel">
+                        <div class="af-pills">
+                            <a class="af-pill @(string.IsNullOrEmpty(Model.Series) ? "is-active" : null)" href="@UrlWith(series: "")">@T["author.filter_all"]</a>
+                            @foreach (var s in Model.SeriesList)
+                            {
+                                <a class="af-pill @(string.Equals(Model.Series, s.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                                   href="@UrlWith(series: s.Slug)" dir="auto">@s.Name <span class="n">@s.Count</span></a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Folder)) { <input type="hidden" name="folder" value="@Model.Folder" /> }
+        @if (!string.IsNullOrEmpty(Model.Category)) { <input type="hidden" name="category" value="@Model.Category" /> }
+        @if (!string.IsNullOrEmpty(Model.Tag)) { <input type="hidden" name="tag" value="@Model.Tag" /> }
+        @if (!string.IsNullOrEmpty(Model.Series)) { <input type="hidden" name="series" value="@Model.Series" /> }
+        @if (!string.IsNullOrEmpty(Model.Topic)) { <input type="hidden" name="topic" value="@Model.Topic" /> }
+    </form>
 </section>
+
+<script>
+(function () {
+  var root = document.getElementById('authorFilters');
+  if (!root) return;
+  root.querySelectorAll('[data-af-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-af-tab');
+      root.querySelectorAll('[data-af-tab]').forEach(function (b) {
+        b.classList.toggle('is-active', b === btn);
+        b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+      });
+      root.querySelectorAll('[data-af-panel]').forEach(function (p) {
+        p.classList.toggle('is-open', p.getAttribute('data-af-panel') === id);
+      });
+    });
+  });
+})();
+</script>
