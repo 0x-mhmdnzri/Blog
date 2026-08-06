@@ -34,7 +34,6 @@ public partial class PostsController
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Request-path fallback for schedule/expire. Hosted service is primary (every 30s).</summary>
     private async Task ApplyScheduledAndExpirationAsync()
     {
         _db.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.TrackAll;
@@ -80,6 +79,96 @@ public partial class PostsController
             .Select(c => new CategoryOption { Id = c.Id, Name = c.Name })
             .ToListAsync();
 
+    private async Task LoadTaxonomyPickListsAsync(PostEditViewModel vm, int? postId = null)
+    {
+        vm.AvailableCategories = await GetCategoryOptionsAsync();
+
+        var userId = AuthorAccess.UserId(User);
+        var isSuper = AuthorAccess.IsSuperAdmin(User);
+        var foldersQ = _db.PostFolders.AsNoTracking().AsQueryable();
+        if (!isSuper && userId is not null)
+            foldersQ = foldersQ.Where(f => f.OwnerUserId == userId);
+
+        vm.AvailableFolders = await foldersQ
+            .OrderBy(f => f.DisplayOrder).ThenBy(f => f.Name)
+            .Select(f => new TaxonomyPickItem { Id = f.Id, Name = f.Name, Extra = f.Color })
+            .ToListAsync();
+
+        vm.AvailableTags = await _db.Tags.AsNoTracking()
+            .OrderBy(t => t.Name)
+            .Select(t => new TaxonomyPickItem { Id = t.Id, Name = t.Name })
+            .Take(200)
+            .ToListAsync();
+
+        vm.AvailableSeries = await _db.PostSeries.AsNoTracking()
+            .OrderBy(s => s.Name)
+            .Select(s => new TaxonomyPickItem { Id = s.Id, Name = s.Name })
+            .ToListAsync();
+
+        vm.AvailableTopics = await _db.TopicCollections.AsNoTracking()
+            .OrderBy(t => t.Name)
+            .Select(t => new TaxonomyPickItem { Id = t.Id, Name = t.Name })
+            .ToListAsync();
+
+        if (postId is int pid && pid > 0)
+        {
+            vm.FolderIds = await _db.PostFolderItems.AsNoTracking()
+                .Where(i => i.PostId == pid)
+                .Select(i => i.FolderId)
+                .ToListAsync();
+            vm.SeriesId = await _db.SeriesPosts.AsNoTracking()
+                .Where(sp => sp.PostId == pid)
+                .Select(sp => (int?)sp.SeriesId)
+                .FirstOrDefaultAsync();
+        }
+    }
+
+    private async Task ApplyFoldersAndSeriesAsync(Post post, PostEditViewModel vm)
+    {
+        var selectedFolders = (vm.FolderIds ?? new List<int>()).Where(id => id > 0).Distinct().ToList();
+
+        var existingFolderRows = await _db.PostFolderItems.AsTracking()
+            .Where(i => i.PostId == post.Id)
+            .ToListAsync();
+        var existingFolderIds = existingFolderRows.Select(r => r.FolderId).ToHashSet();
+
+        foreach (var row in existingFolderRows.Where(r => !selectedFolders.Contains(r.FolderId)))
+            _db.PostFolderItems.Remove(row);
+
+        foreach (var fid in selectedFolders.Where(id => !existingFolderIds.Contains(id)))
+        {
+            var folderOk = await _db.PostFolders.AsNoTracking().AnyAsync(f => f.Id == fid);
+            if (!folderOk) continue;
+            var max = await _db.PostFolderItems.Where(i => i.FolderId == fid).MaxAsync(i => (int?)i.SortOrder) ?? 0;
+            _db.PostFolderItems.Add(new PostFolderItem
+            {
+                FolderId = fid,
+                PostId = post.Id,
+                SortOrder = max + 1,
+                AddedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        var existingSeries = await _db.SeriesPosts.AsTracking()
+            .Where(sp => sp.PostId == post.Id)
+            .ToListAsync();
+        _db.SeriesPosts.RemoveRange(existingSeries);
+
+        if (vm.SeriesId is int sid && sid > 0
+            && await _db.PostSeries.AsNoTracking().AnyAsync(s => s.Id == sid))
+        {
+            var max = await _db.SeriesPosts.Where(sp => sp.SeriesId == sid).MaxAsync(sp => (int?)sp.SortOrder) ?? 0;
+            _db.SeriesPosts.Add(new SeriesPost
+            {
+                SeriesId = sid,
+                PostId = post.Id,
+                SortOrder = max + 1
+            });
+        }
+
+        await _db.SaveChangesAsync();
+    }
+
     private async Task<string> MakeUniqueSlugAsync(string baseSlug, string? languageCode = null)
     {
         var lang = AppCultures.Normalize(languageCode ?? _culture.CurrentCode);
@@ -108,7 +197,6 @@ public partial class PostsController
         }
     }
 
-    /// <summary>Apply schedule vs immediate publish. Non–SuperAdmin authors go to PendingReview (not public).</summary>
     private void ApplyPublishState(Post post, bool wantPublish, DateTime? scheduledLocalOrUtc, DateTime? expiresLocalOrUtc, bool wasPublished)
     {
         var offset = ReadClientTimezoneOffset();
@@ -135,7 +223,6 @@ public partial class PostsController
         {
             if (!isSuper)
             {
-                // Author publish request → queue for SuperAdmin; never public until approved
                 post.IsPublished = false;
                 post.ScheduledPublishAtUtc = null;
                 post.ReviewStatus = PostReviewStatus.PendingReview;
@@ -189,7 +276,6 @@ public partial class PostsController
         }
     }
 
-    /// <summary>Compat alias — older call sites used this name (CS0103 hotfix).</summary>
     private Task NotifySuperAdminsPostPendingAsync(Post post) =>
         NotifySuperAdminsPendingPostAsync(post);
 
