@@ -2,7 +2,7 @@
 @inject BlogApp.Services.IUiTranslator T
 
 <div class="container author-body py-4 py-md-5">
-    <div class="d-flex align-items-end justify-content-between gap-2 mb-3 flex-wrap">
+    <div class="author-posts-head-row">
         <div class="author-posts-head">
             <h2 class="h5 mb-1">
                 <svg class="author-section-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
@@ -10,10 +10,6 @@
             </h2>
             <p class="small text-muted-dark mb-0">@T["author.posts_sub"]</p>
         </div>
-        @if (Model.PostCount > 0)
-        {
-            <span class="small text-muted-dark ltr-field">@Model.FilteredCount / @Model.PostCount</span>
-        }
     </div>
 
     @if (Model.PostCount > 0)
@@ -25,19 +21,24 @@
     {
         <div class="author-empty">
             <svg class="author-empty-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-            <p class="mb-0">@T["author.no_posts"]</p>
+            <p class="mb-0">@(Model.HasActiveFilter ? T["author.no_filter_results"] : T["author.no_posts"])</p>
+            @if (Model.HasActiveFilter)
+            {
+                <a class="btn btn-ghost btn-sm mt-2" href="/author/@Model.UserName">@T["author.filter_clear"]</a>
+            }
         </div>
     }
     else
     {
-        <div class="row g-3">
+        <div class="row g-3 author-post-grid">
             @foreach (var p in Model.Posts)
             {
                 var lang = string.IsNullOrEmpty(p.LanguageCode) ? "fa" : p.LanguageCode;
+                var abs = $"{Context.Request.Scheme}://{Context.Request.Host}/iv/{lang}/{p.Slug}";
                 <div class="col-12 col-sm-6 col-lg-4">
-                    <div class="author-post-card">
+                    <article class="author-post-card">
                         <a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug"
-                           class="text-decoration-none d-block">
+                           class="author-post-main text-decoration-none">
                             @if (!string.IsNullOrEmpty(p.CoverUrl))
                             {
                                 <div class="author-post-cover">
@@ -55,10 +56,10 @@
                                 {
                                     <div class="eyebrow" dir="auto">@p.CategoryName</div>
                                 }
-                                <h3 class="h6 mb-2" dir="auto" style="color:var(--text);">@p.Title</h3>
+                                <h3 class="author-post-title" dir="auto">@p.Title</h3>
                                 @if (!string.IsNullOrWhiteSpace(p.Summary))
                                 {
-                                    <p class="small text-muted-dark mb-2 author-post-summary" dir="auto">@p.Summary</p>
+                                    <p class="author-post-summary" dir="auto">@p.Summary</p>
                                 }
                                 <div class="author-post-meta ltr-field">
                                     <time>@(p.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "—")</time>
@@ -66,15 +67,16 @@
                                     {
                                         <span>· @p.ReadingTimeMinutes min</span>
                                     }
-                                    <span>· @p.ViewCount.ToString("N0")</span>
+                                    <span class="views">· @p.ViewCount.ToString("N0") views</span>
                                 </div>
                             </div>
                         </a>
-                        <div class="author-post-actions px-3 pb-3">
-                            <a class="author-iv-link" href="/iv/@lang/@p.Slug" target="_blank" rel="noopener">Telegram reader</a>
-                            <a class="author-iv-link" href="https://t.me/share/url?url=@Uri.EscapeDataString($"{Context.Request.Scheme}://{Context.Request.Host}/iv/{lang}/{p.Slug}")&amp;text=@Uri.EscapeDataString(p.Title)" target="_blank" rel="noopener">Share TG</a>
+                        <div class="author-post-actions">
+                            <a class="author-iv-link" href="/iv/@lang/@p.Slug" target="_blank" rel="noopener">IV</a>
+                            <a class="author-iv-link" href="https://t.me/share/url?url=@Uri.EscapeDataString(abs)&amp;text=@Uri.EscapeDataString(p.Title)"
+                               target="_blank" rel="noopener">Telegram</a>
                         </div>
-                    </div>
+                    </article>
                 </div>
             }
         </div>
