@@ -1,0 +1,95 @@
+@model BlogApp.Models.ViewModels.TelegramInstantViewModel
+@{
+    Layout = null;
+    var dir = Model.LanguageCode is "fa" or "ar" ? "rtl" : "ltr";
+    var published = Model.PublishedAtUtc.ToString("yyyy-MM-ddTHH:mm:ssZ");
+}
+<!DOCTYPE html>
+<html lang="@Model.LanguageCode" dir="@dir">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@Model.Title — @Model.SiteName</title>
+    <meta name="description" content="@(Model.Summary ?? Model.Title)" />
+    <link rel="canonical" href="@Model.CanonicalUrl" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="@Model.Title" />
+    <meta property="og:description" content="@(Model.Summary ?? Model.Title)" />
+    <meta property="og:url" content="@Model.CanonicalUrl" />
+    @if (!string.IsNullOrEmpty(Model.CoverUrl))
+    {
+        <meta property="og:image" content="@Model.CoverUrl" />
+    }
+    <meta property="article:published_time" content="@published" />
+    <meta property="article:author" content="@Model.AuthorName" />
+    <meta name="telegram:channel" content="@Model.SiteName" />
+    <style>
+        :root { color-scheme: light dark; }
+        body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Vazirmatn", sans-serif; line-height: 1.65; color: #1a1a1a; background: #fff; }
+        @media (prefers-color-scheme: dark) {
+            body { color: #e8e8e8; background: #121212; }
+            a { color: #7eb6f7; }
+            .meta { color: #aaa; }
+            .summary { color: #bbb; border-color: #333; }
+        }
+        .wrap { max-width: 42rem; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+        h1 { font-size: 1.55rem; line-height: 1.35; margin: 0 0 .75rem; letter-spacing: -0.02em; }
+        .meta { font-size: .85rem; color: #666; margin-bottom: 1rem; }
+        .summary { font-size: 1.05rem; color: #444; margin: 0 0 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #eee; }
+        .cover { width: 100%; border-radius: 10px; margin: 0 0 1.25rem; display: block; }
+        article :is(h2,h3,h4) { margin-top: 1.4em; line-height: 1.3; }
+        article p { margin: .75em 0; }
+        article img { max-width: 100%; height: auto; border-radius: 8px; }
+        article pre { overflow-x: auto; padding: .75rem; border-radius: 8px; background: #f4f4f5; }
+        @media (prefers-color-scheme: dark) { article pre { background: #1e1e1e; } }
+        article code { font-size: .9em; }
+        .tags { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: .35rem; }
+        .tag { font-size: .75rem; padding: .2rem .5rem; border-radius: 999px; background: #f0f0f0; color: #444; }
+        @media (prefers-color-scheme: dark) { .tag { background: #2a2a2a; color: #ccc; } }
+        .footer { margin-top: 2rem; font-size: .8rem; color: #888; }
+        .footer a { color: inherit; }
+    </style>
+</head>
+<body>
+<article class="wrap" itemscope itemtype="https://schema.org/Article">
+    <header>
+        <h1 itemprop="headline" dir="auto">@Model.Title</h1>
+        <div class="meta">
+            <span itemprop="author" itemscope itemtype="https://schema.org/Person">
+                <span itemprop="name">@Model.AuthorName</span>
+            </span>
+            · <time itemprop="datePublished" datetime="@published">@Model.PublishedAtUtc.ToString("yyyy-MM-dd")</time>
+            · @Model.ReadingTimeMinutes min
+        </div>
+        @if (!string.IsNullOrEmpty(Model.CoverUrl))
+        {
+            <img class="cover" src="@Model.CoverUrl" alt="" itemprop="image" />
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Summary))
+        {
+            <p class="summary" dir="auto" itemprop="description">@Model.Summary</p>
+        }
+    </header>
+    <div class="body markdown-body" itemprop="articleBody" dir="auto">
+        @Html.Raw(Model.HtmlBody)
+    </div>
+    @if (Model.Tags.Count > 0)
+    {
+        <div class="tags">
+            @foreach (var t in Model.Tags)
+            {
+                <span class="tag">#@t</span>
+            }
+        </div>
+    }
+    <footer class="footer">
+        <a href="@Model.CanonicalUrl">@Model.SiteName</a>
+        @if (!string.IsNullOrEmpty(Model.AuthorUserName))
+        {
+            <span> · </span>
+            <a href="/author/@Model.AuthorUserName">@@@Model.AuthorUserName</a>
+        }
+    </footer>
+</article>
+</body>
+</html>
