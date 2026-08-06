@@ -153,12 +153,155 @@ public class MarkdownService
         html = TableBlockRegex.Replace(html, m =>
             $"<div class=\"md-table-wrap\" tabindex=\"0\">{m.Value}</div>");
 
-        html = ImgHtmlRegex.Replace(html, EnhanceImageTag);
+        html = ImgHtmlRegex.Replace(html, m => EnhanceImageTag(m.Groups[1].Value));
         html = VideoEmbedPlainRegex.Replace(html, m => EmbedVideo(m.Groups[1].Value));
         html = VideoEmbedRegex.Replace(html, m => EmbedVideo(m.Groups[1].Value));
 
         return html;
     }
 
-    // NOTE: remaining methods restored from previous version via partial - if incomplete, re-fetch
+    private static bool IsVideoPlaceholder(string plain) =>
+        plain.StartsWith("[[VIDEO_EMBED_", StringComparison.Ordinal) && plain.EndsWith("]]", StringComparison.Ordinal);
+
+    private string EnhanceImageTag(string attrs)
+    {
+        attrs = AttrLoadingRegex.Replace(attrs, "");
+        attrs = AttrDecodingRegex.Replace(attrs, "");
+
+        var srcMatch = AttrSrcRegex.Match(attrs);
+        if (!srcMatch.Success)
+            return $"<img {attrs} loading=\"lazy\" decoding=\"async\" />";
+
+        var src = srcMatch.Groups[1].Value;
+        var mediaMatch = MediaPathRegex.Match(src);
+        if (mediaMatch.Success && int.TryParse(mediaMatch.Groups[1].Value, out var mediaId))
+        {
+            try
+            {
+                var cdn = _cdn.GetFileUrl(mediaId);
+                if (!string.IsNullOrEmpty(cdn))
+                    attrs = AttrSrcRegex.Replace(attrs, $"src=\"{cdn}\"");
+            }
+            catch { /* ignore */ }
+        }
+
+        if (AttrClassRegex.IsMatch(attrs))
+            attrs = AttrClassRegex.Replace(attrs, "class=\"$1 media-blur\"");
+        else
+            attrs += " class=\"media-blur\"";
+
+        return $"<span class=\"media-blur-wrap\"><img {attrs} loading=\"lazy\" decoding=\"async\" /></span>";
+    }
+
+    private string EmbedVideo(string mediaId)
+    {
+        var src = $"/media/file/{mediaId}";
+        try
+        {
+            if (int.TryParse(mediaId, out var id))
+            {
+                var cdn = _cdn.GetFileUrl(id);
+                if (!string.IsNullOrEmpty(cdn)) src = cdn;
+            }
+        }
+        catch { /* ignore */ }
+
+        return $"<div class=\"post-video-embed media-blur-wrap\"><video class=\"media-blur\" controls preload=\"metadata\" playsinline src=\"{src}\"></video></div>";
+    }
+
+    private static string StripTags(string html)
+    {
+        if (string.IsNullOrEmpty(html)) return string.Empty;
+        return Regex.Replace(html, "<[^>]+>", string.Empty);
+    }
+
+    public string RenderToHtmlWithToc(string markdown, bool includeToc = true, string? cultureCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
+        var html = RenderToHtml(markdown);
+        if (!includeToc) return html;
+        var toc = BuildTocHtml(markdown, cultureCode);
+        if (string.IsNullOrEmpty(toc)) return html;
+        return toc + html;
+    }
+
+    public string BuildTocHtml(string markdown, string? cultureCode = null)
+    {
+        var headings = new List<(int Level, string Text, string Slug, string Dir)>();
+        foreach (Match m in HeadingRegex.Matches(markdown ?? string.Empty))
+        {
+            var level = m.Groups[1].Value.Length;
+            var text = m.Groups[2].Value.Trim();
+            if (string.IsNullOrEmpty(text)) continue;
+            headings.Add((level, text, SlugifyHeading(text), DetectDir(text)));
+        }
+        if (headings.Count < 2) return string.Empty;
+
+        var title = cultureCode is "en" ? "On this page" : cultureCode is "ar" ? "في هذه الصفحة" : "در این صفحه";
+        var closeLabel = cultureCode is "en" ? "Toggle" : "بستن";
+        var tocDir = headings.Count > 0 && headings.All(h => h.Dir == "ltr") ? "ltr" : "rtl";
+        var cssClass = "post-toc";
+
+        var sb = new StringBuilder();
+        sb.Append($"<nav class=\"{cssClass}\" dir=\"{tocDir}\" aria-label=\"{title}\">");
+        sb.Append($"<div class=\"post-toc-head\"><span class=\"post-toc-title\">{title}</span>");
+        sb.Append($"<button type=\"button\" class=\"post-toc-toggle\" aria-expanded=\"true\" aria-label=\"{closeLabel}\" data-toc-toggle></button></div>");
+        sb.Append("<ol class=\"post-toc-list\">");
+        var prev = 0;
+        foreach (var (level, text, slug, dir) in headings)
+        {
+            if (prev > 0 && level > prev)
+            {
+                for (var i = prev; i < level; i++) sb.Append("<ol>");
+            }
+            else if (prev > 0 && level < prev)
+            {
+                for (var i = level; i < prev; i++) sb.Append("</ol></li>");
+            }
+            else if (prev > 0)
+            {
+                sb.Append("</li>");
+            }
+            sb.Append($"<li><a href=\"#{slug}\" dir=\"{dir}\">{System.Net.WebUtility.HtmlEncode(text)}</a>");
+            prev = level;
+        }
+        while (prev > 1) { sb.Append("</li></ol>"); prev--; }
+        if (prev > 0) sb.Append("</li>");
+        sb.Append("</ol></nav>");
+        return sb.ToString();
+    }
+
+    public static string DetectDir(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "auto";
+        var rtl = 0;
+        var ltr = 0;
+        foreach (var ch in text)
+        {
+            var cat = char.GetUnicodeCategory(ch);
+            if (cat is UnicodeCategory.OtherLetter)
+            {
+                if (ch is >= '\u0600' and <= '\u06FF' or >= '\u0750' and <= '\u077F' or >= '\u08A0' and <= '\u08FF'
+                    or >= '\uFB50' and <= '\uFDFF' or >= '\uFE70' and <= '\uFEFF')
+                    rtl++;
+                else
+                    ltr++;
+            }
+            else if (cat is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter)
+            {
+                ltr++;
+            }
+        }
+        if (rtl == 0 && ltr == 0) return "auto";
+        return rtl >= ltr ? "rtl" : "ltr";
+    }
+
+    private static string SlugifyHeading(string text)
+    {
+        var s = text.Trim().ToLowerInvariant();
+        s = Regex.Replace(s, @"\s+", "-");
+        s = Regex.Replace(s, @"[^\w\u0600-\u06FF\-]", "");
+        if (string.IsNullOrEmpty(s)) s = "section";
+        return s.Length > 80 ? s[..80] : s;
+    }
 }
