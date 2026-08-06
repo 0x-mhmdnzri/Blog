@@ -39,10 +39,11 @@
                         @foreach (var c in colors)
                         {
                             var isDefault = c == "blue";
+                            var colorKey = "tax.color_" + c;
                             <label class="ff-swatch ff-swatch-@c @(isDefault ? "is-selected" : null)">
                                 <input type="radio" name="color" value="@c" @(isDefault ? "checked" : null) />
                                 <span class="ff-swatch-dot" aria-hidden="true"></span>
-                                <span class="visually-hidden">@T[$"tax.color_{c}"]</span>
+                                <span class="visually-hidden">@T[colorKey]</span>
                             </label>
                         }
                     </div>
