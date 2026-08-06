@@ -7,8 +7,8 @@ public sealed class SecurityHeadersMiddleware
 {
     private readonly RequestDelegate _next;
 
-    // CSP: allow self + known CDNs used by the public layout (Bootstrap, hljs, Google Fonts).
-    // Tighten further when offline-only assets are fully local.
+    // CSP: allow self + known CDNs (Bootstrap, Chart.js, jsvectormap, Google Fonts).
+    // script-src-elem is explicit so external map scripts are not forced to default-src.
     private const string ContentSecurityPolicy =
         "default-src 'self'; " +
         "base-uri 'self'; " +
@@ -20,6 +20,7 @@ public sealed class SecurityHeadersMiddleware
         "font-src 'self' https://fonts.gstatic.com data:; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; " +
         "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
+        "script-src-elem 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
         "connect-src 'self'; " +
         "upgrade-insecure-requests";
 
