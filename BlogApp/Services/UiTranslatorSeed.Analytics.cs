@@ -17,6 +17,7 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.Wizard)
             .Concat(UiTranslationCatalog.Analytics)
             .Concat(UiTranslationCatalog.Taxonomy)
+            .Concat(UiTranslationCatalog.TaxonomyFolders)
             .Concat(UiTranslationCatalog.Sidebar)
             .Concat(UiTranslationCatalog.Errors)
             .Concat(UiTranslationCatalog.Seo)
@@ -40,24 +41,25 @@ public sealed partial class UiTranslatorService
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
         {
-            foreach (var (code, value) in new[] { ("fa", fa), ("en", en), ("ar", ar) })
+            foreach (var (lang, value) in new[] { ("fa", fa), ("en", en), ("ar", ar) })
             {
-                var id = key + "|" + code;
-                if (set.Contains(id)) continue;
+                var token = key + "|" + lang;
+                if (set.Contains(token)) continue;
                 _db.UiTranslations.Add(new UiTranslation
                 {
                     Key = key,
-                    LanguageCode = code,
-                    Value = value,
                     Group = group,
-                    UpdatedAtUtc = DateTime.UtcNow
+                    LanguageCode = lang,
+                    Value = value
                 });
-                set.Add(id);
+                set.Add(token);
                 added++;
             }
         }
 
         if (added > 0)
             await _db.SaveChangesAsync(ct);
+
+        await InvalidateCacheAsync();
     }
 }
