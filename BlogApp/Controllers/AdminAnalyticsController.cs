@@ -56,12 +56,28 @@ public partial class AdminAnalyticsController : Controller
             })
             .ToList();
 
-        static List<NamedCount> Group(IEnumerable<string?> items) =>
+        static List<NamedCount> Group(IEnumerable<string?> items, int take = 12) =>
             items.Where(s => !string.IsNullOrWhiteSpace(s))
+                .GroupBy(s => s!.Trim())
+                .Select(g => new NamedCount { Name = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(take)
+                .ToList();
+
+        // Geo: normalize ISO-like codes (upper) and keep a wider set for the world map
+        static List<NamedCount> GroupCountries(IEnumerable<string?> items) =>
+            items.Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s =>
+                {
+                    var t = s!.Trim().ToUpperInvariant();
+                    if (t is "UNKNOWN" or "XX" or "ZZ" or "N/A" or "-" or "NULL") return null;
+                    return t.Length == 2 ? t : t;
+                })
+                .Where(s => !string.IsNullOrWhiteSpace(s))
                 .GroupBy(s => s!)
                 .Select(g => new NamedCount { Name = g.Key, Count = g.Count() })
                 .OrderByDescending(x => x.Count)
-                .Take(12)
+                .Take(80)
                 .ToList();
 
         var sessions = await _db.AnalyticsSessions.AsNoTracking()
@@ -158,7 +174,7 @@ public partial class AdminAnalyticsController : Controller
             Devices = Group(views.Select(v => v.DeviceType)),
             Browsers = Group(views.Select(v => v.Browser)),
             OperatingSystems = Group(views.Select(v => v.Os)),
-            Countries = Group(views.Select(v => v.CountryCode)),
+            Countries = GroupCountries(views.Select(v => v.CountryCode)),
             Referrers = Group(views.Select(v => v.ReferrerHost)),
             SearchKeywords = searchKw,
             ZeroResultKeywords = zeroKw,
