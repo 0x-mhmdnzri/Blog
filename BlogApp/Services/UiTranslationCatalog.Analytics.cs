@@ -81,5 +81,15 @@ public static partial class UiTranslationCatalog
         ("ana.col_category", "ana", "دسته", "Category", "الفئة"),
         ("ana.col_share", "ana", "سهم", "Share", "الحصة"),
         ("ana.empty_devices", "ana", "هنوز داده‌ای از دستگاه‌ها ثبت نشده.", "No device data recorded yet.", "لا بيانات أجهزة بعد."),
+
+        ("ana.empty_geo", "ana", "هنوز موقعیت جغرافیایی ثبت نشده.", "No geographic data recorded yet.", "لا بيانات جغرافيا بعد."),
+        ("ana.geo_sub", "ana", "توزیع بازدید بر اساس کشور در بازه انتخاب‌شده — نقشه و رتبه‌بندی", "Views by country in the selected range — map and ranking", "المشاهدات حسب الدولة في الفترة — خريطة وترتيب"),
+        ("ana.geo_mapped_views", "ana", "بازدید با کشور", "Mapped views", "مشاهدات مُحدَّدة"),
+        ("ana.geo_coverage", "ana", "پوشش", "Coverage", "التغطية"),
+        ("ana.geo_top", "ana", "برتر", "Top", "الأعلى"),
+        ("ana.geo_intensity", "ana", "شدت", "Intensity", "الشدة"),
+        ("ana.geo_ranking", "ana", "رتبه‌بندی کشورها", "Country ranking", "ترتيب الدول"),
+        ("ana.geo_filter", "ana", "فیلتر کشور…", "Filter country…", "تصفية الدولة…"),
+        ("ana.geo_empty_hint", "ana", "وقتی CountryCode در بازدیدها پر شود، نقشه و جدول اینجا ظاهر می‌شوند.", "When CountryCode is set on views, the map and ranking appear here.", "عند تعبئة رمز الدولة في المشاهدات تظهر الخريطة والترتيب هنا."),
     };
 }
