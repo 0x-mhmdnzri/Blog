@@ -10,7 +10,6 @@
         string? sort = null,
         string? q = null)
     {
-        // null = keep current; empty string = clear that dimension
         var f = folder is null ? Model.Folder : (folder.Length == 0 ? null : folder);
         var c = category is null ? Model.Category : (category.Length == 0 ? null : category);
         var t = tag is null ? Model.Tag : (tag.Length == 0 ? null : tag);
@@ -18,7 +17,6 @@
         var tp = topic is null ? Model.Topic : (topic.Length == 0 ? null : topic);
         var so = sort ?? Model.Sort;
         var qq = q ?? Model.Q;
-
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(qq)) parts.Add("q=" + Uri.EscapeDataString(qq));
         if (!string.IsNullOrWhiteSpace(so) && !string.Equals(so, "newest", StringComparison.OrdinalIgnoreCase))
@@ -31,176 +29,82 @@
         var qs = parts.Count > 0 ? "?" + string.Join("&", parts) : "";
         return "/author/" + Uri.EscapeDataString(Model.UserName) + qs;
     }
-
     var hasTaxonomy =
-        Model.Folders.Count > 0 ||
-        Model.Categories.Count > 0 ||
-        Model.Tags.Count > 0 ||
-        Model.SeriesList.Count > 0 ||
-        Model.Topics.Count > 0;
+        Model.Folders.Count > 0 || Model.Categories.Count > 0 || Model.Tags.Count > 0 ||
+        Model.SeriesList.Count > 0 || Model.Topics.Count > 0;
 }
 <link rel="stylesheet" href="~/css/author-filters.css" asp-append-version="true" />
-
-<section class="af" id="posts" aria-label="@T[\"author.posts_title\"]">
-    <form method="get" action="/author/@Model.UserName" class="af-bar" id="authorFilters">
-        <div class="af-toolbar">
-            <div class="af-search-wrap">
-                <svg class="af-search-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                <input type="search" name="q" value="@Model.Q" class="af-search"
-                       placeholder="@T[\"author.filter_search\"]" dir="auto" autocomplete="off" />
-            </div>
-            <select name="sort" class="af-select" onchange="this.form.submit()" aria-label="@T[\"author.filter_sort\"]">
-                <option value="newest" @(Model.Sort == "newest" ? "selected" : null)>@T["author.sort_newest"]</option>
-                <option value="oldest" @(Model.Sort == "oldest" ? "selected" : null)>@T["author.sort_oldest"]</option>
-                <option value="popular" @(Model.Sort == "popular" ? "selected" : null)>@T["author.sort_popular"]</option>
-                <option value="title" @(Model.Sort == "title" ? "selected" : null)>@T["author.sort_title"]</option>
-                <option value="read" @(Model.Sort == "read" ? "selected" : null)>@T["author.sort_read"]</option>
-            </select>
-            <button type="submit" class="btn btn-accent btn-sm af-apply">@T["author.filter_apply"]</button>
-            @if (Model.HasActiveFilter)
-            {
-                <a class="btn btn-ghost btn-sm" href="/author/@Model.UserName">@T["author.filter_clear"]</a>
-            }
-        </div>
-
-        @if (hasTaxonomy)
-        {
-            <nav class="af-nav" aria-label="taxonomy">
-                @if (Model.Folders.Count > 0)
-                {
-                    <a class="af-nav-link @(string.IsNullOrEmpty(Model.Folder) ? null : "is-on")" href="#folders">@T["author.filter_folders"]</a>
-                }
-                @if (Model.Categories.Count > 0)
-                {
-                    <a class="af-nav-link @(string.IsNullOrEmpty(Model.Category) ? null : "is-on")" href="#cats">@T["author.filter_cats"]</a>
-                }
-                @if (Model.Tags.Count > 0)
-                {
-                    <a class="af-nav-link @(string.IsNullOrEmpty(Model.Tag) ? null : "is-on")" href="#tags">@T["author.filter_tags"]</a>
-                }
-                @if (Model.Topics.Count > 0)
-                {
-                    <a class="af-nav-link @(string.IsNullOrEmpty(Model.Topic) ? null : "is-on")" href="#topics">@T["author.filter_topics"]</a>
-                }
-                @if (Model.SeriesList.Count > 0)
-                {
-                    <a class="af-nav-link @(string.IsNullOrEmpty(Model.Series) ? null : "is-on")" href="#series">@T["author.filter_series"]</a>
-                }
-            </nav>
-        }
-
-        @if (Model.HasActiveFilter)
-        {
-            <div class="af-active" role="status">
-                @if (!string.IsNullOrWhiteSpace(Model.Q))
-                {
-                    <a class="af-chip" href="@UrlWith(q: "")" title="@T[\"author.filter_clear\"]">«@Model.Q» ×</a>
-                }
-                @if (!string.IsNullOrWhiteSpace(Model.Folder))
-                {
-                    <a class="af-chip" href="@UrlWith(folder: "")">@T["author.filter_folders"]: @Model.Folder ×</a>
-                }
-                @if (!string.IsNullOrWhiteSpace(Model.Category))
-                {
-                    <a class="af-chip" href="@UrlWith(category: "")">@T["author.filter_cats"]: @Model.Category ×</a>
-                }
-                @if (!string.IsNullOrWhiteSpace(Model.Tag))
-                {
-                    <a class="af-chip" href="@UrlWith(tag: "")">@T["author.filter_tags"]: @Model.Tag ×</a>
-                }
-                @if (!string.IsNullOrWhiteSpace(Model.Series))
-                {
-                    <a class="af-chip" href="@UrlWith(series: "")">@T["author.filter_series"]: @Model.Series ×</a>
-                }
-                @if (!string.IsNullOrWhiteSpace(Model.Topic))
-                {
-                    <a class="af-chip" href="@UrlWith(topic: "")">@T["author.filter_topics"]: @Model.Topic ×</a>
-                }
-            </div>
-        }
-
-        @if (Model.Folders.Count > 0)
-        {
-            <div class="af-group" id="folders">
-                <span class="af-label">@T["author.filter_folders"]</span>
-                <div class="af-pills">
-                    <a class="af-pill @(string.IsNullOrEmpty(Model.Folder) ? "is-active" : null)" href="@UrlWith(folder: "")">@T["author.filter_all"]</a>
-                    @foreach (var f in Model.Folders)
-                    {
-                        <a class="af-pill @(string.Equals(Model.Folder, f.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
-                           href="@UrlWith(folder: f.Slug)">@f.Name <span class="n">@f.Count</span></a>
-                    }
-                </div>
-            </div>
-        }
-        @if (Model.Categories.Count > 0)
-        {
-            <div class="af-group" id="cats">
-                <span class="af-label">@T["author.filter_cats"]</span>
-                <div class="af-pills">
-                    <a class="af-pill @(string.IsNullOrEmpty(Model.Category) ? "is-active" : null)" href="@UrlWith(category: "")">@T["author.filter_all"]</a>
-                    @foreach (var c in Model.Categories)
-                    {
-                        <a class="af-pill @(string.Equals(Model.Category, c.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
-                           href="@UrlWith(category: c.Slug)">@c.Name <span class="n">@c.Count</span></a>
-                    }
-                </div>
-            </div>
-        }
-        @if (Model.Tags.Count > 0)
-        {
-            <div class="af-group" id="tags">
-                <span class="af-label">@T["author.filter_tags"]</span>
-                <div class="af-pills">
-                    <a class="af-pill @(string.IsNullOrEmpty(Model.Tag) ? "is-active" : null)" href="@UrlWith(tag: "")">@T["author.filter_all"]</a>
-                    @foreach (var t in Model.Tags)
-                    {
-                        <a class="af-pill @(string.Equals(Model.Tag, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
-                           href="@UrlWith(tag: t.Slug)">@t.Name <span class="n">@t.Count</span></a>
-                    }
-                </div>
-            </div>
-        }
-        @if (Model.Topics.Count > 0)
-        {
-            <div class="af-group" id="topics">
-                <span class="af-label">@T["author.filter_topics"]</span>
-                <div class="af-pills">
-                    <a class="af-pill @(string.IsNullOrEmpty(Model.Topic) ? "is-active" : null)" href="@UrlWith(topic: "")">@T["author.filter_all"]</a>
-                    @foreach (var t in Model.Topics)
-                    {
-                        <a class="af-pill @(string.Equals(Model.Topic, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
-                           href="@UrlWith(topic: t.Slug)">@t.Name</a>
-                    }
-                </div>
-            </div>
-        }
-        @if (Model.SeriesList.Count > 0)
-        {
-            <div class="af-group" id="series">
-                <span class="af-label">@T["author.filter_series"]</span>
-                <div class="af-pills">
-                    <a class="af-pill @(string.IsNullOrEmpty(Model.Series) ? "is-active" : null)" href="@UrlWith(series: "")">@T["author.filter_all"]</a>
-                    @foreach (var s in Model.SeriesList)
-                    {
-                        <a class="af-pill @(string.Equals(Model.Series, s.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
-                           href="@UrlWith(series: s.Slug)">@s.Name <span class="n">@s.Count</span></a>
-                    }
-                </div>
-            </div>
-        }
-
-        <div class="af-meta">
-            <span class="ltr-field">@Model.FilteredCount.ToString("N0")</span>
-            <span class="af-meta-sep">/</span>
-            <span class="ltr-field">@Model.PostCount.ToString("N0")</span>
-            <span class="af-meta-lbl">@T["author.filter_results"]</span>
-        </div>
-
-        @if (!string.IsNullOrEmpty(Model.Folder)) { <input type="hidden" name="folder" value="@Model.Folder" /> }
-        @if (!string.IsNullOrEmpty(Model.Category)) { <input type="hidden" name="category" value="@Model.Category" /> }
-        @if (!string.IsNullOrEmpty(Model.Tag)) { <input type="hidden" name="tag" value="@Model.Tag" /> }
-        @if (!string.IsNullOrEmpty(Model.Series)) { <input type="hidden" name="series" value="@Model.Series" /> }
-        @if (!string.IsNullOrEmpty(Model.Topic)) { <input type="hidden" name="topic" value="@Model.Topic" /> }
-    </form>
+<section class="af" id="posts" aria-label="@T["author.posts_title"]">
+<form method="get" action="/author/@Model.UserName" class="af-bar" id="authorFilters">
+<div class="af-toolbar">
+<div class="af-search-wrap">
+<svg class="af-search-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+<input type="search" name="q" value="@Model.Q" class="af-search" placeholder="@T["author.filter_search"]" dir="auto" autocomplete="off" />
+</div>
+<select name="sort" class="af-select" onchange="this.form.submit()" aria-label="@T["author.filter_sort"]">
+<option value="newest" @(Model.Sort == "newest" ? "selected" : null)>@T["author.sort_newest"]</option>
+<option value="oldest" @(Model.Sort == "oldest" ? "selected" : null)>@T["author.sort_oldest"]</option>
+<option value="popular" @(Model.Sort == "popular" ? "selected" : null)>@T["author.sort_popular"]</option>
+<option value="title" @(Model.Sort == "title" ? "selected" : null)>@T["author.sort_title"]</option>
+<option value="read" @(Model.Sort == "read" ? "selected" : null)>@T["author.sort_read"]</option>
+</select>
+<button type="submit" class="btn btn-accent btn-sm af-apply">@T["author.filter_apply"]</button>
+@if (Model.HasActiveFilter) { <a class="btn btn-ghost btn-sm" href="/author/@Model.UserName">@T["author.filter_clear"]</a> }
+</div>
+@if (hasTaxonomy) {
+<nav class="af-nav" aria-label="taxonomy">
+@if (Model.Folders.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Folder) ? null : "is-on")" href="#folders">@T["author.filter_folders"]</a> }
+@if (Model.Categories.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Category) ? null : "is-on")" href="#cats">@T["author.filter_cats"]</a> }
+@if (Model.Tags.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Tag) ? null : "is-on")" href="#tags">@T["author.filter_tags"]</a> }
+@if (Model.Topics.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Topic) ? null : "is-on")" href="#topics">@T["author.filter_topics"]</a> }
+@if (Model.SeriesList.Count > 0) { <a class="af-nav-link @(string.IsNullOrEmpty(Model.Series) ? null : "is-on")" href="#series">@T["author.filter_series"]</a> }
+</nav>
+}
+@if (Model.HasActiveFilter) {
+<div class="af-active" role="status">
+@if (!string.IsNullOrWhiteSpace(Model.Q)) { <a class="af-chip" href="@UrlWith(q: "")">«@Model.Q» ×</a> }
+@if (!string.IsNullOrWhiteSpace(Model.Folder)) { <a class="af-chip" href="@UrlWith(folder: "")">@T["author.filter_folders"]: @Model.Folder ×</a> }
+@if (!string.IsNullOrWhiteSpace(Model.Category)) { <a class="af-chip" href="@UrlWith(category: "")">@T["author.filter_cats"]: @Model.Category ×</a> }
+@if (!string.IsNullOrWhiteSpace(Model.Tag)) { <a class="af-chip" href="@UrlWith(tag: "")">@T["author.filter_tags"]: @Model.Tag ×</a> }
+@if (!string.IsNullOrWhiteSpace(Model.Series)) { <a class="af-chip" href="@UrlWith(series: "")">@T["author.filter_series"]: @Model.Series ×</a> }
+@if (!string.IsNullOrWhiteSpace(Model.Topic)) { <a class="af-chip" href="@UrlWith(topic: "")">@T["author.filter_topics"]: @Model.Topic ×</a> }
+</div>
+}
+@if (Model.Folders.Count > 0) {
+<div class="af-group" id="folders"><span class="af-label">@T["author.filter_folders"]</span><div class="af-pills">
+<a class="af-pill @(string.IsNullOrEmpty(Model.Folder) ? "is-active" : null)" href="@UrlWith(folder: "")">@T["author.filter_all"]</a>
+@foreach (var f in Model.Folders) { <a class="af-pill @(string.Equals(Model.Folder, f.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(folder: f.Slug)">@f.Name <span class="n">@f.Count</span></a> }
+</div></div>
+}
+@if (Model.Categories.Count > 0) {
+<div class="af-group" id="cats"><span class="af-label">@T["author.filter_cats"]</span><div class="af-pills">
+<a class="af-pill @(string.IsNullOrEmpty(Model.Category) ? "is-active" : null)" href="@UrlWith(category: "")">@T["author.filter_all"]</a>
+@foreach (var c in Model.Categories) { <a class="af-pill @(string.Equals(Model.Category, c.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(category: c.Slug)">@c.Name <span class="n">@c.Count</span></a> }
+</div></div>
+}
+@if (Model.Tags.Count > 0) {
+<div class="af-group" id="tags"><span class="af-label">@T["author.filter_tags"]</span><div class="af-pills">
+<a class="af-pill @(string.IsNullOrEmpty(Model.Tag) ? "is-active" : null)" href="@UrlWith(tag: "")">@T["author.filter_all"]</a>
+@foreach (var t in Model.Tags) { <a class="af-pill @(string.Equals(Model.Tag, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(tag: t.Slug)">@t.Name <span class="n">@t.Count</span></a> }
+</div></div>
+}
+@if (Model.Topics.Count > 0) {
+<div class="af-group" id="topics"><span class="af-label">@T["author.filter_topics"]</span><div class="af-pills">
+<a class="af-pill @(string.IsNullOrEmpty(Model.Topic) ? "is-active" : null)" href="@UrlWith(topic: "")">@T["author.filter_all"]</a>
+@foreach (var t in Model.Topics) { <a class="af-pill @(string.Equals(Model.Topic, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(topic: t.Slug)">@t.Name</a> }
+</div></div>
+}
+@if (Model.SeriesList.Count > 0) {
+<div class="af-group" id="series"><span class="af-label">@T["author.filter_series"]</span><div class="af-pills">
+<a class="af-pill @(string.IsNullOrEmpty(Model.Series) ? "is-active" : null)" href="@UrlWith(series: "")">@T["author.filter_all"]</a>
+@foreach (var s in Model.SeriesList) { <a class="af-pill @(string.Equals(Model.Series, s.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)" href="@UrlWith(series: s.Slug)">@s.Name <span class="n">@s.Count</span></a> }
+</div></div>
+}
+<div class="af-meta"><span class="ltr-field">@Model.FilteredCount.ToString("N0")</span><span class="af-meta-sep">/</span><span class="ltr-field">@Model.PostCount.ToString("N0")</span><span class="af-meta-lbl">@T["author.filter_results"]</span></div>
+@if (!string.IsNullOrEmpty(Model.Folder)) { <input type="hidden" name="folder" value="@Model.Folder" /> }
+@if (!string.IsNullOrEmpty(Model.Category)) { <input type="hidden" name="category" value="@Model.Category" /> }
+@if (!string.IsNullOrEmpty(Model.Tag)) { <input type="hidden" name="tag" value="@Model.Tag" /> }
+@if (!string.IsNullOrEmpty(Model.Series)) { <input type="hidden" name="series" value="@Model.Series" /> }
+@if (!string.IsNullOrEmpty(Model.Topic)) { <input type="hidden" name="topic" value="@Model.Topic" /> }
+</form>
 </section>
