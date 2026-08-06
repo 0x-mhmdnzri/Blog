@@ -78,6 +78,11 @@ public class HomeController : Controller
             query = query.Where(p => p.PostTags.Any(pt => pt.Tag.Slug == tag));
         if (folderId is int fid && fid > 0)
             query = query.Where(p => _db.Set<PostFolderItem>().Any(i => i.FolderId == fid && i.PostId == p.Id));
+        else if (string.IsNullOrWhiteSpace(q) && string.IsNullOrWhiteSpace(category) && string.IsNullOrWhiteSpace(tag))
+        {
+            // Root feed: only posts that are not inside any folder (folder grid is separate)
+            query = query.Where(p => !_db.Set<PostFolderItem>().Any(i => i.PostId == p.Id));
+        }
         if (featured == true)
             query = query.Where(p => p.IsFeatured);
         if (minRead is > 0)
@@ -140,6 +145,15 @@ public class HomeController : Controller
 
         ViewBag.Folders = folders;
         ViewBag.CurrentFolderId = folderId;
+        if (folderId is int openId && openId > 0)
+        {
+            var openFolder = folders.FirstOrDefault(f => f.Id == openId)
+                ?? await _db.Set<PostFolder>().AsNoTracking()
+                    .Where(f => f.Id == openId)
+                    .Select(f => new BlogFeedFolderItem { Id = f.Id, Name = f.Name, Color = f.Color, Count = f.Items.Count })
+                    .FirstOrDefaultAsync();
+            ViewBag.CurrentFolder = openFolder;
+        }
         ViewBag.Categories = categories;
         ViewBag.CurrentCategory = category;
         ViewBag.CurrentTag = tag;
