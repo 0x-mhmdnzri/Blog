@@ -237,73 +237,7 @@
         </div>
     </div>
 
-    <div class="container author-body py-4 py-md-5">
-        <div class="d-flex align-items-end justify-content-between gap-2 mb-3 flex-wrap">
-            <div class="author-posts-head">
-                <h2 class="h5 mb-1">
-                    <svg class="author-section-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
-                    @T["author.posts_title"]
-                </h2>
-                <p class="small text-muted-dark mb-0">@T["author.posts_sub"]</p>
-            </div>
-            @if (Model.PostCount > 0)
-            {
-                <span class="small text-muted-dark ltr-field">@Model.PostCount</span>
-            }
-        </div>
-
-        @if (!Model.Posts.Any())
-        {
-            <div class="author-empty">
-                <svg class="author-empty-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-                <p class="mb-0">@T["author.no_posts"]</p>
-            </div>
-        }
-        else
-        {
-            <div class="row g-3">
-                @foreach (var p in Model.Posts)
-                {
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug"
-                           class="author-post-card text-decoration-none">
-                            @if (!string.IsNullOrEmpty(p.CoverUrl))
-                            {
-                                <div class="author-post-cover">
-                                    <img src="@p.CoverUrl" alt="" loading="lazy" />
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="author-post-cover author-post-cover-empty" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-                                </div>
-                            }
-                            <div class="author-post-body">
-                                @if (!string.IsNullOrWhiteSpace(p.CategoryName))
-                                {
-                                    <div class="eyebrow" dir="auto">@p.CategoryName</div>
-                                }
-                                <h3 class="h6 mb-2" dir="auto" style="color:var(--text);">@p.Title</h3>
-                                @if (!string.IsNullOrWhiteSpace(p.Summary))
-                                {
-                                    <p class="small text-muted-dark mb-2 author-post-summary" dir="auto">@p.Summary</p>
-                                }
-                                <div class="author-post-meta ltr-field">
-                                    <time>@(p.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "—")</time>
-                                    @if (p.ReadingTimeMinutes > 0)
-                                    {
-                                        <span>· @p.ReadingTimeMinutes min</span>
-                                    }
-                                    <span>· @p.ViewCount.ToString("N0")</span>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                }
-            </div>
-        }
-    </div>
+    @await Html.PartialAsync("_AuthorPostsBody", Model)
 </section>
 
 @functions {
