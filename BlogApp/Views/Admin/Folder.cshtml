@@ -1,0 +1,191 @@
+@model FolderDetailViewModel
+@inject BlogApp.Services.IUiTranslator T
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = Model.Name;
+    var available = ViewBag.AvailablePosts as IEnumerable<dynamic>;
+}
+
+<header class="fd-hero">
+    <div class="fd-hero-main">
+        <a class="fd-back" asp-controller="Taxonomy" asp-action="Index">← @T["tax.back_folders"]</a>
+        <div class="fd-title-row">
+            <span class="fd-folder-icon fd-folder-icon-@Model.Color" aria-hidden="true">
+                <svg viewBox="0 0 64 52" width="40" height="32"><path class="fd-folder-back" d="M2 10c0-3.3 2.7-6 6-6h14l4 5h30c3.3 0 6 2.7 6 6v31c0 3.3-2.7 6-6 6H8c-3.3 0-6-2.7-6-6V10z"/><path class="fd-folder-front" d="M2 18c0-2.2 1.8-4 4-4h52c2.2 0 4 1.8 4 4v24c0 2.2-1.8 4-4 4H6c-2.2 0-4-1.8-4-4V18z"/></svg>
+            </span>
+            <div>
+                <h1 class="fd-title" dir="auto">@Model.Name</h1>
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <p class="fd-sub" dir="auto">@Model.Description</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="fd-stats">
+        <span class="fd-stat"><strong>@Model.Posts.Count</strong> @T["tax.folder_posts"]</span>
+    </div>
+</header>
+
+@if (TempData["TaxonomyMsg"] is string ok)
+{
+    <div class="fd-flash">@ok</div>
+}
+
+<form method="get" asp-action="Folder" asp-route-id="@Model.Id" class="fd-toolbar">
+    <input type="search" name="q" value="@Model.Search" class="fd-search" placeholder="@T["tax.folder_search"]" dir="auto" />
+    <select name="categoryId" class="fd-select">
+        <option value="">@T["tax.filter_all_cats"]</option>
+        @foreach (var c in Model.Categories)
+        {
+            if (Model.CategoryId == c.Id)
+            {
+                <option value="@c.Id" selected>@c.Name</option>
+            }
+            else
+            {
+                <option value="@c.Id">@c.Name</option>
+            }
+        }
+    </select>
+    <select name="tagId" class="fd-select">
+        <option value="">@T["tax.filter_all_tags"]</option>
+        @foreach (var t in Model.Tags)
+        {
+            if (Model.TagId == t.Id)
+            {
+                <option value="@t.Id" selected>@t.Name</option>
+            }
+            else
+            {
+                <option value="@t.Id">@t.Name</option>
+            }
+        }
+    </select>
+    <select name="sort" class="fd-select">
+        <option value="updated">@T["tax.sort_updated"]</option>
+        <option value="published">@T["tax.sort_published"]</option>
+        <option value="title">@T["tax.sort_title"]</option>
+        <option value="oldest">@T["tax.sort_oldest"]</option>
+    </select>
+    <button type="submit" class="fd-btn">@T["tax.apply"]</button>
+</form>
+
+<div class="fd-layout">
+    <section class="fd-list-panel">
+        @if (Model.Posts.Count == 0)
+        {
+            <div class="fd-empty">
+                <p class="fd-empty-title">@T["tax.folder_empty"]</p>
+                <p class="fd-empty-hint">@T["tax.folder_empty_hint"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="fd-list">
+                @foreach (var p in Model.Posts)
+                {
+                    <article class="fd-row">
+                        <div class="fd-row-main">
+                            <a class="fd-row-title" dir="auto" href="/@p.LanguageCode/post/@p.Slug">@p.Title</a>
+                            <div class="fd-row-meta">
+                                @if (!string.IsNullOrEmpty(p.CategoryName))
+                                {
+                                    <span class="fd-pill">@p.CategoryName</span>
+                                }
+                                @foreach (var tn in p.TagNames.Take(4))
+                                {
+                                    <span class="fd-pill fd-pill-tag">@tn</span>
+                                }
+                                <span class="fd-muted ltr-field">@PersianDate.DateTime(p.UpdatedAtUtc)</span>
+                                @if (!p.IsPublished)
+                                {
+                                    <span class="fd-pill fd-pill-draft">@T["tax.draft"]</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="fd-row-acts">
+                            <a class="fd-link" asp-controller="Posts" asp-action="Edit" asp-route-id="@p.Id">@T["tax.btn_edit"]</a>
+                            <form asp-controller="Taxonomy" asp-action="RemovePostFromFolder" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="folderId" value="@Model.Id" />
+                                <input type="hidden" name="postId" value="@p.Id" />
+                                <button type="submit" class="fd-link fd-link-danger">@T["tax.remove_from_folder"]</button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <aside class="fd-side">
+        <h2 class="fd-side-title">@T["tax.add_to_folder"]</h2>
+        @if (available is null || !available.Any())
+        {
+            <p class="fd-muted">@T["tax.no_posts_to_add"]</p>
+        }
+        else
+        {
+            <form asp-controller="Taxonomy" asp-action="AddPostToFolder" method="post" class="fd-add-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="folderId" value="@Model.Id" />
+                <select name="postId" class="fd-select w-100" required>
+                    <option value="">@T["tax.pick_post"]</option>
+                    @foreach (var ap in available)
+                    {
+                        <option value="@ap.Id">@ap.Title</option>
+                    }
+                </select>
+                <button type="submit" class="fd-btn fd-btn-accent w-100">@T["tax.add_post"]</button>
+            </form>
+        }
+    </aside>
+</div>
+
+<style>
+.fd-hero{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;align-items:flex-end;margin-bottom:1.1rem}
+.fd-back{font-size:.82rem;color:var(--text-muted);text-decoration:none}
+.fd-back:hover{color:var(--accent)}
+.fd-title-row{display:flex;align-items:center;gap:.75rem;margin-top:.35rem}
+.fd-title{margin:0;font-size:1.35rem;font-weight:750}
+.fd-sub{margin:.2rem 0 0;color:var(--text-muted);font-size:.88rem}
+.fd-folder-icon svg{display:block}
+.fd-folder-icon .fd-folder-back{fill:#7eb6f7}
+.fd-folder-icon .fd-folder-front{fill:#4a9aef}
+.fd-folder-icon-yellow .fd-folder-back{fill:#f5d76e}.fd-folder-icon-yellow .fd-folder-front{fill:#e8b923}
+.fd-folder-icon-red .fd-folder-back{fill:#f0a0a0}.fd-folder-icon-red .fd-folder-front{fill:#e05555}
+.fd-folder-icon-green .fd-folder-back{fill:#9ad4a8}.fd-folder-icon-green .fd-folder-front{fill:#4caf6a}
+.fd-folder-icon-purple .fd-folder-back{fill:#c4a8e8}.fd-folder-icon-purple .fd-folder-front{fill:#8b5cf6}
+.fd-folder-icon-gray .fd-folder-back{fill:#c5c9d0}.fd-folder-icon-gray .fd-folder-front{fill:#8b919a}
+.fd-folder-icon-orange .fd-folder-back{fill:#f5c48a}.fd-folder-icon-orange .fd-folder-front{fill:#e8913a}
+.fd-stat{font-size:.88rem;color:var(--text-muted)}
+.fd-flash{margin:0 0 .85rem;padding:.65rem .9rem;border-radius:10px;background:color-mix(in srgb,var(--success) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--success) 28%,var(--border));color:var(--success);font-size:.86rem}
+.fd-toolbar{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;align-items:center}
+.fd-search{flex:1;min-width:10rem;background:var(--bg);border:1px solid var(--border-soft);border-radius:10px;padding:.45rem .75rem;color:var(--text);font-size:.86rem}
+.fd-select{background:var(--bg);border:1px solid var(--border-soft);border-radius:10px;padding:.4rem .65rem;color:var(--text);font-size:.84rem}
+.fd-btn{border:1px solid var(--border-soft);background:var(--surface-2);color:var(--text);border-radius:9px;padding:.4rem .75rem;font-size:.84rem;cursor:pointer;font-family:inherit}
+.fd-btn-accent{background:color-mix(in srgb,var(--accent) 16%,var(--surface));border-color:color-mix(in srgb,var(--accent) 35%,var(--border));color:var(--accent)}
+.fd-layout{display:grid;grid-template-columns:1fr minmax(14rem,18rem);gap:1rem}
+@@media (max-width:900px){.fd-layout{grid-template-columns:1fr}}
+.fd-list-panel,.fd-side{background:var(--surface);border:1px solid var(--border-soft);border-radius:14px;padding:1rem}
+.fd-side-title{margin:0 0 .75rem;font-size:.92rem;font-weight:650}
+.fd-list{display:flex;flex-direction:column;gap:.55rem}
+.fd-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem;padding:.65rem .75rem;border-radius:10px;border:1px solid transparent}
+.fd-row:hover{background:var(--surface-2);border-color:var(--border-soft)}
+.fd-row-title{font-weight:600;color:var(--text);text-decoration:none;font-size:.92rem}
+.fd-row-title:hover{color:var(--accent)}
+.fd-row-meta{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.3rem;align-items:center}
+.fd-pill{font-size:.68rem;padding:.12rem .4rem;border-radius:6px;background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-soft)}
+.fd-pill-tag{background:color-mix(in srgb,#5b8def 12%,var(--surface));color:#5b8def;border-color:transparent}
+.fd-pill-draft{color:var(--danger)}
+.fd-muted{font-size:.78rem;color:var(--text-faint)}
+.fd-row-acts{display:flex;gap:.45rem;align-items:center}
+.fd-link{background:none;border:none;color:var(--accent);font-size:.8rem;cursor:pointer;padding:0;font-family:inherit;text-decoration:none}
+.fd-link-danger{color:var(--danger)}
+.fd-empty{text-align:center;padding:2rem 1rem;color:var(--text-muted)}
+.fd-empty-title{font-weight:650;color:var(--text);margin:0 0 .3rem}
+.fd-empty-hint{margin:0;font-size:.86rem}
+.fd-add-form{display:flex;flex-direction:column;gap:.5rem}
+.w-100{width:100%}
+</style>
