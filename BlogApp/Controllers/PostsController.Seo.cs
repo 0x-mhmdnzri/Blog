@@ -28,15 +28,13 @@ public partial class PostsController
             .Select(pt => pt.Tag!.Name)
             .ToArray() ?? Array.Empty<string>();
 
+        // Always prefer generated OG card (title, views, likes, read time) for richer shares.
         string? ogImage = null;
-        if (post.CoverMediaAssetId is > 0)
+        var cards = HttpContext.RequestServices.GetService(typeof(IPostOgCardService)) as IPostOgCardService;
+        if (cards is not null)
+            ogImage = cards.GetCardUrl(post, Request);
+        else if (post.CoverMediaAssetId is > 0)
             ogImage = $"{Request.Scheme}://{Request.Host}/media/{post.CoverMediaAssetId}";
-        else
-        {
-            var cards = HttpContext.RequestServices.GetService(typeof(IPostOgCardService)) as IPostOgCardService;
-            if (cards is not null)
-                ogImage = cards.GetCardUrl(post, Request);
-        }
         ViewData["OgImage"] = ogImage;
         ViewData["OgImageAlt"] = post.Title;
 
