@@ -42,7 +42,7 @@ public class MarkdownService
         new(@"<img\s+([^>]*?)\s*/?>", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
     private static readonly Regex MediaPathRegex =
-        new("(?:https?://[^/\\s\"']+)?/media/(\\d+)(?:/w/\\d+)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        new(@"(?:https?://[^/\s""']+)?/media/(\d+)(?:/w/\d+)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex VideoEmbedDirRegex =
         new(@"<p dir=""(?:ltr|rtl|auto)"" class=""md-p"">\[\[VIDEO_EMBED_(\d+)\]\]</p>", RegexOptions.Compiled);
@@ -50,29 +50,30 @@ public class MarkdownService
     private static readonly Regex VideoEmbedPlainRegex =
         new(@"<p>\[\[VIDEO_EMBED_(\d+)\]\]</p>", RegexOptions.Compiled);
 
+    // Fixed: in verbatim strings, escape " as "" not \"
     private static readonly Regex AttrLoadingRegex =
-        new(@"\s*loading\s*=\s*[\"'][^\"']*[\"']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"\s*loading\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex AttrDecodingRegex =
-        new(@"\s*decoding\s*=\s*[\"'][^\"']*[\"']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"\s*decoding\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex AttrSrcsetRegex =
-        new(@"\s*srcset\s*=\s*[\"'][^\"']*[\"']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"\s*srcset\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex AttrSizesRegex =
-        new(@"\s*sizes\s*=\s*[\"'][^\"']*[\"']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"\s*sizes\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex AttrSrcRegex =
-        new(@"src\s*=\s*[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"src\s*=\s*[""']([^""']+)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex AttrClassRegex =
-        new(@"class\s*=\s*[\"']([^\"']*)[\"']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"class\s*=\s*[""']([^""']*)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex AttrIdRegex =
-        new(@"\s*id\s*=\s*[\"'][^\"']*[\"']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"\s*id\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex AttrDirRegex =
-        new(@"\s*dir\s*=\s*[\"'][^\"']*[\"']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"\s*dir\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly int[] SrcsetWidths = [480, 800, 1280];
 
@@ -101,7 +102,6 @@ public class MarkdownService
         });
         var html = Markdown.ToHtml(withVideos, _pipeline);
 
-        // Preserve language-* classes for highlight.js; always LTR for source
         html = PreHtmlRegex.Replace(html, m =>
         {
             var attrs = m.Groups[1].Success ? m.Groups[1].Value : "";
@@ -257,7 +257,7 @@ public class MarkdownService
         var prev = 0;
         foreach (var (level, text, dir) in headings)
         {
-            var slug = Slugify(text);
+            var slug = SoftSlug(text);
             if (prev > 0 && level > prev)
             {
                 for (var i = prev; i < level; i++) sb.Append("<ol>");
@@ -290,7 +290,7 @@ public class MarkdownService
             var inner = m.Groups[3].Value;
             var plain = StripTags(inner);
             var dir = DetectDir(plain);
-            var slug = Slugify(plain);
+            var slug = SoftSlug(plain);
             attrs = AttrIdRegex.Replace(attrs, "");
             attrs = AttrDirRegex.Replace(attrs, "");
             return $"<h{level}{attrs} id=\"{slug}\" dir=\"{dir}\">{inner}</h{level}>";
@@ -340,7 +340,7 @@ public class MarkdownService
     private static bool IsVideoPlaceholder(string plain) =>
         plain.StartsWith("[[VIDEO_EMBED_", StringComparison.Ordinal) && plain.EndsWith("]]", StringComparison.Ordinal);
 
-    private static string Slugify(string text)
+    private static string SoftSlug(string text)
     {
         var s = text.Trim().ToLowerInvariant();
         s = Regex.Replace(s, @"\s+", "-");
