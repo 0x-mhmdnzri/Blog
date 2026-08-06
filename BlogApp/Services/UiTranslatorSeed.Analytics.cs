@@ -4,18 +4,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Services;
 
-public sealed class UiTranslatorSeed
+public sealed partial class UiTranslatorService
 {
-    private readonly ApplicationDbContext _db;
-
-    public UiTranslatorSeed(ApplicationDbContext db) => _db = db;
-
     public async Task EnsureSeedAsync(CancellationToken ct = default)
     {
         var existing = await _db.UiTranslations.AsNoTracking()
             .Select(t => t.Key + "|" + t.LanguageCode)
             .ToListAsync(ct);
-        var set = existing.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var set = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
 
         var insertRows = UiTranslationCatalog.All
             .Concat(UiTranslationCatalog.Wizard)
@@ -64,5 +60,7 @@ public sealed class UiTranslatorSeed
 
         if (added > 0)
             await _db.SaveChangesAsync(ct);
+
+        await InvalidateCacheAsync();
     }
 }
