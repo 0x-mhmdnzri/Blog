@@ -1,0 +1,89 @@
+@model AnalyticsDashboardViewModel
+@inject BlogApp.Services.IUiTranslator T
+@{
+    var geoTotal = Model.Countries.Sum(c => c.Count);
+    var geoTop = Model.Countries.OrderByDescending(c => c.Count).FirstOrDefault();
+    var geoCoverage = Model.TotalViews > 0
+        ? Math.Round(100.0 * geoTotal / Model.TotalViews, 1)
+        : 0;
+    var topShare = geoTotal > 0 && geoTop is not null
+        ? Math.Round(100.0 * geoTop.Count / geoTotal, 1)
+        : 0;
+}
+
+<section class="ana-geo" aria-label="@T["ana.chart_geo"]" id="ana-geo-section">
+    <header class="ana-geo-head">
+        <div class="ana-geo-head-text">
+            <h2 class="ana-geo-title">
+                <span class="pulse-dot" aria-hidden="true"></span>
+                @T["ana.chart_geo"]
+            </h2>
+            <p class="ana-geo-sub">@T["ana.geo_sub"]</p>
+        </div>
+        <div class="ana-geo-kpis" role="group">
+            <div class="ana-geo-kpi is-accent">
+                <span class="k">@T["ana.kpi_countries"]</span>
+                <span class="v ltr-field">@Model.Countries.Count</span>
+            </div>
+            <div class="ana-geo-kpi">
+                <span class="k">@T["ana.geo_mapped_views"]</span>
+                <span class="v ltr-field">@geoTotal</span>
+            </div>
+            <div class="ana-geo-kpi">
+                <span class="k">@T["ana.geo_coverage"]</span>
+                <span class="v ltr-field">@geoCoverage%</span>
+            </div>
+            @if (geoTop is not null)
+            {
+                <div class="ana-geo-kpi">
+                    <span class="k">@T["ana.geo_top"]</span>
+                    <span class="v ltr-field">@geoTop.Name · @topShare%</span>
+                </div>
+            }
+        </div>
+    </header>
+
+    @if (Model.Countries.Count == 0)
+    {
+        <div class="ana-geo-empty-block">
+            <p class="ana-geo-empty-title">@T["ana.empty_geo"]</p>
+            <p class="ana-geo-empty-hint">@T["ana.geo_empty_hint"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="ana-geo-body">
+            <div class="ana-geo-map-panel">
+                <div class="ana-geo-map-toolbar">
+                    <div class="ana-geo-legend" aria-hidden="true">
+                        <span class="ana-geo-legend-label">@T["ana.geo_intensity"]</span>
+                        <span class="ana-geo-legend-bar"></span>
+                        <span class="ana-geo-legend-low ltr-field">Low</span>
+                        <span class="ana-geo-legend-high ltr-field">High</span>
+                    </div>
+                    <div class="ana-geo-zoom" role="group" aria-label="Zoom">
+                        <button type="button" class="ana-geo-zoom-btn" id="anaGeoZoomIn" title="Zoom in">+</button>
+                        <button type="button" class="ana-geo-zoom-btn" id="anaGeoZoomOut" title="Zoom out">−</button>
+                        <button type="button" class="ana-geo-zoom-btn" id="anaGeoZoomReset" title="Reset">↺</button>
+                    </div>
+                </div>
+                <div class="ana-geo-map-wrap">
+                    <div id="anaGeoMap" role="img" aria-label="@T["ana.chart_geo"]"></div>
+                    <canvas id="anaGeoFlow" class="ana-geo-flow" aria-hidden="true"></canvas>
+                    <div id="anaGeoTip" class="ana-geo-tip" role="tooltip"></div>
+                </div>
+            </div>
+            <aside class="ana-geo-rank" aria-label="@T["ana.geo_ranking"]">
+                <div class="ana-geo-rank-head">
+                    <span class="ana-geo-rank-title">@T["ana.geo_ranking"]</span>
+                    <span class="ana-geo-rank-meta ltr-field">@Model.Countries.Count</span>
+                </div>
+                <div class="ana-geo-rank-search">
+                    <input type="search" id="anaGeoFilter" class="ana-geo-filter"
+                           placeholder="@T["ana.geo_filter"]" autocomplete="off" dir="auto" />
+                </div>
+                <ul class="ana-geo-rank-list" id="anaGeoRank"></ul>
+            </aside>
+        </div>
+    }
+</section>
