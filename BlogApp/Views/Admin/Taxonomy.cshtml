@@ -2,6 +2,7 @@
 @{
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = T["tax.title"];
+    var folderCount = Model.Folders?.Count ?? 0;
     var catCount = Model.Categories?.Count ?? 0;
     var tagCount = Model.Tags?.Count ?? 0;
     var seriesCount = Model.Series?.Count ?? 0;
@@ -25,7 +26,11 @@
 </header>
 
 <div class="tx-kpis" role="group" aria-label="@T["tax.stats_aria"]">
-    <button type="button" class="tx-kpi is-active" data-tx-tab="cats">
+    <button type="button" class="tx-kpi is-active" data-tx-tab="folders">
+        <span class="tx-kpi-label">@T["tax.tab_folders"]</span>
+        <span class="tx-kpi-value">@folderCount</span>
+    </button>
+    <button type="button" class="tx-kpi" data-tx-tab="cats">
         <span class="tx-kpi-label">@T["tax.tab_cats"]</span>
         <span class="tx-kpi-value">@catCount</span>
     </button>
@@ -44,14 +49,17 @@
 </div>
 
 <nav class="tx-seg" role="tablist" aria-label="@T["tax.tabs_aria"]">
-    <button type="button" class="tx-seg-item is-active" role="tab" aria-selected="true" data-tx-tab="cats">@T["tax.tab_cats"]</button>
+    <button type="button" class="tx-seg-item is-active" role="tab" aria-selected="true" data-tx-tab="folders">@T["tax.tab_folders"]</button>
+    <button type="button" class="tx-seg-item" role="tab" aria-selected="false" data-tx-tab="cats">@T["tax.tab_cats"]</button>
     <button type="button" class="tx-seg-item" role="tab" aria-selected="false" data-tx-tab="tags">@T["tax.tab_tags"]</button>
     <button type="button" class="tx-seg-item" role="tab" aria-selected="false" data-tx-tab="series">@T["tax.tab_series"]</button>
     <button type="button" class="tx-seg-item" role="tab" aria-selected="false" data-tx-tab="topics">@T["tax.tab_topics"]</button>
 </nav>
 
+@await Html.PartialAsync("_FoldersPanel", Model)
+
 @* Categories *@
-<section class="tx-panel is-active" id="tx-cats" role="tabpanel" data-panel="cats">
+<section class="tx-panel" id="tx-cats" role="tabpanel" data-panel="cats" hidden>
     <div class="tx-panel-head">
         <h2 class="tx-panel-title">@T["tax.cats_heading"]</h2>
         <p class="tx-panel-desc">@T["tax.cats_desc"]</p>
