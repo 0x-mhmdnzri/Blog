@@ -29,17 +29,36 @@
   }
   activate(initial);
 
-  function bindSearch(inputId, itemSelector) {
+  function bindSearch(inputId, itemSelector, emptyId) {
     var input = document.getElementById(inputId);
     if (!input) return;
+    var empty = emptyId ? document.getElementById(emptyId) : null;
+    var countLabel = document.getElementById('folderCountLabel');
     input.addEventListener('input', function () {
       var q = (input.value || '').trim().toLowerCase();
+      var visible = 0;
       document.querySelectorAll(itemSelector).forEach(function (el) {
         var name = el.getAttribute('data-name') || '';
-        el.classList.toggle('is-hidden', q && name.indexOf(q) === -1);
+        var hide = q && name.indexOf(q) === -1;
+        el.classList.toggle('is-hidden', !!hide);
+        if (!hide) visible++;
       });
+      if (empty) empty.hidden = !(q && visible === 0);
+      if (countLabel) countLabel.textContent = String(visible);
     });
   }
   bindSearch('catSearch', '#catTree .tx-tree-item');
   bindSearch('tagSearch', '#tagCloud .tx-tag');
+  bindSearch('folderSearch', '#folderGrid .ff-card', 'folderNoMatch');
+
+  // Color swatch selection chrome
+  document.querySelectorAll('.ff-swatches').forEach(function (group) {
+    group.addEventListener('change', function (e) {
+      var t = e.target;
+      if (!t || t.name !== 'color') return;
+      group.querySelectorAll('.ff-swatch').forEach(function (s) {
+        s.classList.toggle('is-selected', s.contains(t) && t.checked);
+      });
+    });
+  });
 })();
