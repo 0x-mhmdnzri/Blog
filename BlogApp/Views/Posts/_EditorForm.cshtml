@@ -12,55 +12,59 @@
     </div>
 }
 
-<div class="pw" id="postWizard" data-start-step="1">
+<div class="pw" id="postWizard" data-start-step="1"
+     data-i18n-published="@T["pe.status_published"]"
+     data-i18n-draft="@T["pe.status_draft"]"
+     data-i18n-chars="@T["pe.chars_suffix"]"
+     data-i18n-empty="—">
     <div class="pw-progress" aria-hidden="true"><span id="pwProgressBar"></span></div>
-    <div class="pw-steps" role="tablist" aria-label="مراحل نوشتن">
-        <button type="button" class="pw-step is-active" data-step="1" role="tab" aria-selected="true"><span class="pw-n">۱</span><span class="pw-label">اطلاعات پایه</span><span class="pw-hint">عنوان و طبقه‌بندی</span></button>
-        <button type="button" class="pw-step" data-step="2" role="tab" aria-selected="false"><span class="pw-n">۲</span><span class="pw-label">محتوا</span><span class="pw-hint">متن و رسانه</span></button>
-        <button type="button" class="pw-step" data-step="3" role="tab" aria-selected="false"><span class="pw-n">۳</span><span class="pw-label">انتشار</span><span class="pw-hint">زمان و وضعیت</span></button>
-        <button type="button" class="pw-step" data-step="4" role="tab" aria-selected="false"><span class="pw-n">۴</span><span class="pw-label">بازبینی</span><span class="pw-hint">تأیید و ذخیره</span></button>
+    <div class="pw-steps" role="tablist" aria-label="@T["pe.steps_aria"]">
+        <button type="button" class="pw-step is-active" data-step="1" role="tab" aria-selected="true"><span class="pw-n">@T["pe.n1"]</span><span class="pw-label">@T["pe.step1"]</span><span class="pw-hint">@T["pe.step1_hint"]</span></button>
+        <button type="button" class="pw-step" data-step="2" role="tab" aria-selected="false"><span class="pw-n">@T["pe.n2"]</span><span class="pw-label">@T["pe.step2"]</span><span class="pw-hint">@T["pe.step2_hint"]</span></button>
+        <button type="button" class="pw-step" data-step="3" role="tab" aria-selected="false"><span class="pw-n">@T["pe.n3"]</span><span class="pw-label">@T["pe.step3"]</span><span class="pw-hint">@T["pe.step3_hint"]</span></button>
+        <button type="button" class="pw-step" data-step="4" role="tab" aria-selected="false"><span class="pw-n">@T["pe.n4"]</span><span class="pw-label">@T["pe.step4"]</span><span class="pw-hint">@T["pe.step4_hint"]</span></button>
     </div>
 
     <div class="pw-panel is-active" data-panel="1" role="tabpanel">
         <div class="pw-card">
-            <h2><span class="dot"></span> اطلاعات پایه</h2>
+            <h2><span class="dot"></span> @T["pe.basics"]</h2>
             <div class="row g-3">
                 <div class="col-md-8">
-                    <label class="form-label" asp-for="Title">عنوان <span class="text-danger">*</span></label>
+                    <label class="form-label" asp-for="Title">@T["pe.title"] <span class="text-danger">*</span></label>
                     <input asp-for="Title" class="form-control" dir="auto" id="pwTitle" autocomplete="off" />
                     <span asp-validation-for="Title" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label" asp-for="LanguageCode">زبان</label>
+                    <label class="form-label" asp-for="LanguageCode">@T["pe.language"]</label>
                     <select asp-for="LanguageCode" class="form-select">
-                        <option value="fa">فارسی</option>
-                        <option value="en">English</option>
-                        <option value="ar">العربية</option>
+                        <option value="fa">@T["pe.lang_fa"]</option>
+                        <option value="en">@T["pe.lang_en"]</option>
+                        <option value="ar">@T["pe.lang_ar"]</option>
                     </select>
                 </div>
                 <div class="col-12">
-                    <label class="form-label" asp-for="Summary">خلاصه</label>
+                    <label class="form-label" asp-for="Summary">@T["pe.summary"]</label>
                     <div class="input-group">
-                        <input asp-for="Summary" class="form-control" dir="auto" maxlength="400" id="summary-input" placeholder="یک یا دو جمله برای کارت پست…" />
-                        <button type="button" class="btn btn-ghost" id="btn-ai-summarize" title="پیشنهاد خلاصه">AI</button>
+                        <input asp-for="Summary" class="form-control" dir="auto" maxlength="400" id="summary-input" placeholder="@T["pe.summary_ph"]" />
+                        <button type="button" class="btn btn-ghost" id="btn-ai-summarize" title="@T["pe.ai_summary"]">AI</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="pw-card">
-            <h2><span class="dot"></span> طبقه‌بندی از Taxonomy</h2>
-            <p class="text-muted-dark small mb-3">پوشه، دسته، برچسب و سری را از همان موجودی‌های <a asp-controller="Taxonomy" asp-action="Index" asp-fragment="folders">Taxonomy</a> انتخاب کنید.</p>
+            <h2><span class="dot"></span> @T["pe.taxonomy"]</h2>
+            <p class="text-muted-dark small mb-3">@T["pe.taxonomy_hint"] <a asp-controller="Taxonomy" asp-action="Index" asp-fragment="folders">Taxonomy</a></p>
 
             <div class="pw-tax">
                 <div class="pw-tax-block">
                     <div class="pw-tax-block-head">
                         <h3 class="pw-tax-title">@T["tax.tab_folders"]</h3>
-                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="folders">مدیریت</a>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="folders">@T["pe.manage"]</a>
                     </div>
                     @if (Model.AvailableFolders.Count == 0)
                     {
-                        <p class="pw-tax-empty">هنوز پوشه‌ای نیست. از Taxonomy بسازید.</p>
+                        <p class="pw-tax-empty">@T["pe.empty_folders"]</p>
                     }
                     else
                     {
@@ -80,10 +84,10 @@
                 <div class="pw-tax-block">
                     <div class="pw-tax-block-head">
                         <h3 class="pw-tax-title">@T["tax.tab_cats"]</h3>
-                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="cats">مدیریت</a>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="cats">@T["pe.manage"]</a>
                     </div>
                     <select asp-for="CategoryId" class="form-select form-select-sm pw-tax-select" id="pwCategory">
-                        <option value="">— بدون دسته —</option>
+                        <option value="">@T["pe.no_category"]</option>
                         @foreach (var c in Model.AvailableCategories)
                         {
                             <option value="@c.Id">@c.Name</option>
@@ -94,12 +98,12 @@
                 <div class="pw-tax-block">
                     <div class="pw-tax-block-head">
                         <h3 class="pw-tax-title">@T["tax.tab_tags"]</h3>
-                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="tags">مدیریت</a>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="tags">@T["pe.manage"]</a>
                     </div>
-                    <label class="form-label small" asp-for="TagsCsv">برچسب‌ها (کاما)</label>
+                    <label class="form-label small" asp-for="TagsCsv">@T["pe.tags_csv"]</label>
                     <div class="input-group input-group-sm">
                         <input asp-for="TagsCsv" class="form-control ltr-field" id="tags-input" placeholder="tag1, tag2" list="existing-tags" />
-                        <button type="button" class="btn btn-ghost" id="btn-ai-assist" title="پیشنهاد برچسب">AI</button>
+                        <button type="button" class="btn btn-ghost" id="btn-ai-assist" title="@T["pe.ai_tags"]">AI</button>
                     </div>
                     @if (Model.AvailableTags.Count > 0)
                     {
@@ -121,10 +125,10 @@
                 <div class="pw-tax-block">
                     <div class="pw-tax-block-head">
                         <h3 class="pw-tax-title">@T["tax.tab_series"]</h3>
-                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="series">مدیریت</a>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="series">@T["pe.manage"]</a>
                     </div>
                     <select asp-for="SeriesId" class="form-select form-select-sm pw-tax-select" id="pwSeries">
-                        <option value="">— بدون سری —</option>
+                        <option value="">@T["pe.no_series"]</option>
                         @foreach (var s in Model.AvailableSeries)
                         {
                             <option value="@s.Id">@s.Name</option>
@@ -135,12 +139,12 @@
                 <div class="pw-tax-block">
                     <div class="pw-tax-block-head">
                         <h3 class="pw-tax-title">@T["tax.tab_topics"]</h3>
-                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="topics">مدیریت</a>
+                        <a class="pw-tax-link" asp-controller="Taxonomy" asp-action="Index" asp-fragment="topics">@T["pe.manage"]</a>
                     </div>
-                    <p class="pw-tax-hint mb-1">موضوع‌ها مجموعه‌های دسته/برچسب هستند و مستقیم به نوشته وصل نمی‌شوند. با انتخاب دسته و برچسب، نوشته در topicهای مرتبط دیده می‌شود.</p>
+                    <p class="pw-tax-hint mb-1">@T["pe.topics_hint"]</p>
                     @if (Model.AvailableTopics.Count == 0)
                     {
-                        <p class="pw-tax-empty">موضوعی تعریف نشده.</p>
+                        <p class="pw-tax-empty">@T["pe.empty_topics"]</p>
                     }
                     else
                     {
@@ -156,19 +160,19 @@
         </div>
 
         <div class="pw-nav">
-            <a asp-controller="Admin" asp-action="Posts" class="btn btn-ghost">انصراف</a>
-            <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>ادامه ←</button></div>
+            <a asp-controller="Admin" asp-action="Posts" class="btn btn-ghost">@T["pe.cancel"]</a>
+            <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>@T["pe.continue"] ←</button></div>
         </div>
     </div>
 
     <div class="pw-panel" data-panel="2" role="tabpanel">
         <div class="pw-card">
             <h2>
-                <span class="dot"></span> محتوا
-                <span class="text-muted-dark small fw-normal ms-1">· <span id="reading-time-display">@(Model.ReadingTimeMinutes > 0 ? Model.ReadingTimeMinutes : "—")</span> دقیقه</span>
+                <span class="dot"></span> @T["pe.content"]
+                <span class="text-muted-dark small fw-normal ms-1">· <span id="reading-time-display">@(Model.ReadingTimeMinutes > 0 ? Model.ReadingTimeMinutes : "—")</span> @T["pe.minutes"]</span>
                 <span id="autosave-status" class="ltr-field"></span>
             </h2>
-            <label class="form-label" asp-for="ContentMarkdown">متن <span class="text-danger">*</span></label>
+            <label class="form-label" asp-for="ContentMarkdown">@T["pe.body"] <span class="text-danger">*</span></label>
             <div class="editor-shell mb-2">
                 <div class="editor-toolbar">
                     <button type="button" data-md-action="h2">H2</button>
@@ -194,31 +198,31 @@
                 </div>
             </div>
             <div id="ai-hints" class="alert mb-3 d-none" style="background:rgba(99,140,229,.1);border:1px solid rgba(99,140,229,.3);"></div>
-            <div id="dropzone" class="upload-dropzone mb-2">تصویر یا ویدیو را اینجا رها کنید یا کلیک کنید</div>
+            <div id="dropzone" class="upload-dropzone mb-2">@T["pe.dropzone"]</div>
             <input type="file" id="file-input" accept="image/*,video/*" class="d-none" />
             <span asp-validation-for="ContentMarkdown" class="text-danger small"></span>
         </div>
         <div class="pw-nav">
-            <button type="button" class="btn btn-ghost" data-pw-prev>→ قبلی</button>
-            <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>ادامه ←</button></div>
+            <button type="button" class="btn btn-ghost" data-pw-prev>→ @T["pe.back"]</button>
+            <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>@T["pe.continue"] ←</button></div>
         </div>
     </div>
 
     <div class="pw-panel" data-panel="3" role="tabpanel">
         <div class="pw-card">
-            <h2><span class="dot"></span> انتشار و نمایش</h2>
+            <h2><span class="dot"></span> @T["pe.publish_section"]</h2>
             <div class="pw-switch-grid mb-3">
                 <div class="pw-switch">
                     <input asp-for="IsPublished" class="form-check-input" type="checkbox" id="pwPub" />
-                    <label asp-for="IsPublished">منتشر شود</label>
+                    <label asp-for="IsPublished">@T["pe.is_published"]</label>
                 </div>
                 <div class="pw-switch">
                     <input asp-for="IsFeatured" class="form-check-input" type="checkbox" />
-                    <label asp-for="IsFeatured">نوشته ویژه</label>
+                    <label asp-for="IsFeatured">@T["pe.is_featured"]</label>
                 </div>
                 <div class="pw-switch">
                     <input asp-for="IsSticky" class="form-check-input" type="checkbox" />
-                    <label asp-for="IsSticky">چسبان در بالا</label>
+                    <label asp-for="IsSticky">@T["pe.is_sticky"]</label>
                 </div>
                 <div class="pw-switch">
                     <input asp-for="IsPremium" class="form-check-input" type="checkbox" />
@@ -244,12 +248,12 @@
                         : null;
                 }
                 <div class="col-md-6">
-                    <label class="form-label" asp-for="ScheduledPublishAtUtc">انتشار زمان‌بندی‌شده</label>
+                    <label class="form-label" asp-for="ScheduledPublishAtUtc">@T["pe.scheduled"]</label>
                     <input asp-for="ScheduledPublishAtUtc" type="datetime-local" class="form-control ltr-field" data-utc-iso="@schedIso" />
-                    <div class="form-text text-muted-dark">زمان محلی شما · هر ~۳۰ ثانیه توسط worker منتشر می‌شود</div>
+                    <div class="form-text text-muted-dark">@T["pe.scheduled_hint"]</div>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" asp-for="ExpiresAtUtc">انقضا</label>
+                    <label class="form-label" asp-for="ExpiresAtUtc">@T["pe.expires"]</label>
                     <input asp-for="ExpiresAtUtc" type="datetime-local" class="form-control ltr-field" data-utc-iso="@expIso" />
                 </div>
             </div>
@@ -258,7 +262,7 @@
         @if (Model.Revisions?.Any() == true)
         {
             <div class="pw-card">
-                <h2><span class="dot"></span> تاریخچه نسخه‌ها</h2>
+                <h2><span class="dot"></span> @T["pe.revisions"]</h2>
                 <ul class="list-group list-group-flush">
                     @foreach (var r in Model.Revisions)
                     {
@@ -287,34 +291,34 @@
         }
 
         <div class="pw-nav">
-            <button type="button" class="btn btn-ghost" data-pw-prev>→ قبلی</button>
-            <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>بازبینی ←</button></div>
+            <button type="button" class="btn btn-ghost" data-pw-prev>→ @T["pe.back"]</button>
+            <div class="pw-nav-right"><button type="button" class="btn btn-accent" data-pw-next>@T["pe.review_nav"] ←</button></div>
         </div>
     </div>
 
     <div class="pw-panel" data-panel="4" role="tabpanel">
         <div class="pw-card">
-            <h2><span class="dot"></span> بازبینی نهایی</h2>
-            <p class="text-muted-dark small mb-3">قبل از ذخیره یک‌بار خلاصه را چک کنید.</p>
+            <h2><span class="dot"></span> @T["pe.review_section"]</h2>
+            <p class="text-muted-dark small mb-3">@T["pe.review_hint"]</p>
             <div class="pw-review" id="pwReview">
-                <div class="pw-review-row"><span class="k">عنوان</span><span class="v" dir="auto" data-rv="title">—</span></div>
-                <div class="pw-review-row"><span class="k">دسته</span><span class="v" data-rv="category">—</span></div>
-                <div class="pw-review-row"><span class="k">پوشه‌ها</span><span class="v" data-rv="folders">—</span></div>
-                <div class="pw-review-row"><span class="k">سری</span><span class="v" data-rv="series">—</span></div>
-                <div class="pw-review-row"><span class="k">خلاصه</span><span class="v" dir="auto" data-rv="summary">—</span></div>
-                <div class="pw-review-row"><span class="k">برچسب‌ها</span><span class="v ltr-field" data-rv="tags">—</span></div>
-                <div class="pw-review-row"><span class="k">حجم محتوا</span><span class="v ltr-field" data-rv="chars">—</span></div>
-                <div class="pw-review-row"><span class="k">وضعیت</span><span class="v" data-rv="status">—</span></div>
+                <div class="pw-review-row"><span class="k">@T["pe.rv_title"]</span><span class="v" dir="auto" data-rv="title">—</span></div>
+                <div class="pw-review-row"><span class="k">@T["pe.rv_category"]</span><span class="v" data-rv="category">—</span></div>
+                <div class="pw-review-row"><span class="k">@T["pe.rv_folders"]</span><span class="v" data-rv="folders">—</span></div>
+                <div class="pw-review-row"><span class="k">@T["pe.rv_series"]</span><span class="v" data-rv="series">—</span></div>
+                <div class="pw-review-row"><span class="k">@T["pe.rv_summary"]</span><span class="v" dir="auto" data-rv="summary">—</span></div>
+                <div class="pw-review-row"><span class="k">@T["pe.rv_tags"]</span><span class="v ltr-field" data-rv="tags">—</span></div>
+                <div class="pw-review-row"><span class="k">@T["pe.rv_chars"]</span><span class="v ltr-field" data-rv="chars">—</span></div>
+                <div class="pw-review-row"><span class="k">@T["pe.rv_status"]</span><span class="v" data-rv="status">—</span></div>
             </div>
         </div>
         <div class="pw-nav">
-            <button type="button" class="btn btn-ghost" data-pw-prev>→ قبلی</button>
+            <button type="button" class="btn btn-ghost" data-pw-prev>→ @T["pe.back"]</button>
             <div class="pw-nav-right">
                 @if (Model.Id > 0)
                 {
-                    <button type="submit" formaction="@Url.Action("Duplicate")" formmethod="post" class="btn btn-ghost" name="id" value="@Model.Id">کپی</button>
+                    <button type="submit" formaction="@Url.Action("Duplicate")" formmethod="post" class="btn btn-ghost" name="id" value="@Model.Id">@T["pe.duplicate"]</button>
                 }
-                <button type="submit" class="btn btn-accent" id="pwSubmit">ذخیره نوشته</button>
+                <button type="submit" class="btn btn-accent" id="pwSubmit">@T["pe.save"]</button>
             </div>
         </div>
     </div>
@@ -383,15 +387,15 @@
     var seriesText = series && series.selectedIndex > 0 ? series.options[series.selectedIndex].text : '—';
     var folders = Array.prototype.map.call(root.querySelectorAll('.pw-tax-pick input[name="FolderIds"]:checked'), function (el) {
       return el.closest('.pw-tax-pick').querySelector('span').textContent.trim();
-    }).join('، ') || '—';
+    }).join(', ') || (root.getAttribute('data-i18n-empty') || '—');
     var summary = (document.getElementById('summary-input') || {}).value || '—';
     var tags = (document.getElementById('tags-input') || {}).value || '—';
     var md = (document.getElementById('markdown-input') || {}).value || '';
     var pub = document.getElementById('pwPub');
-    var status = pub && pub.checked ? 'منتشر' : 'پیش‌نویس';
+    var status = pub && pub.checked ? (root.getAttribute('data-i18n-published') || 'Published') : (root.getAttribute('data-i18n-draft') || 'Draft');
     setRv('title', title); setRv('category', catText); setRv('folders', folders); setRv('series', seriesText);
     setRv('summary', summary.trim() || '—');
-    setRv('tags', tags.trim() || '—'); setRv('chars', md.trim().length + ' نویسه'); setRv('status', status);
+    setRv('tags', tags.trim() || '—'); setRv('chars', md.trim().length + ' ' + (root.getAttribute('data-i18n-chars') || 'chars')); setRv('status', status);
   }
   function setRv(key, val) { var el = root.querySelector('[data-rv="' + key + '"]'); if (el) el.textContent = val; }
   root.querySelectorAll('[data-pw-next]').forEach(function (btn) { btn.addEventListener('click', function () { if (!validate(step)) return; show(step + 1); }); });
