@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using System.Text;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -18,7 +17,7 @@ public sealed partial class PostOgCardService
         {
             var dir = IOPath.Combine(_env.ContentRootPath, "App_Data", "og-cards");
             if (!Directory.Exists(dir)) return Task.CompletedTask;
-            foreach (var old in Directory.EnumerateFiles(dir, $"{postId}-*.png"))
+            foreach (var old in Directory.EnumerateFiles(dir, $"{postId}-*.*"))
             {
                 try { File.Delete(old); } catch { /* ignore */ }
             }
@@ -56,9 +55,12 @@ public sealed partial class PostOgCardService
                 try { File.Delete(old); } catch { /* ignore */ }
             }
 
-            var png = RenderAuthor(displayName, userName, bio, postCount, followerCount, totalViews);
-            await File.WriteAllBytesAsync(path, png, ct);
-            return png;
+            using var image = RenderAuthorImage(displayName, userName, bio, postCount, followerCount, totalViews);
+            await using var ms = new MemoryStream();
+            await image.SaveAsPngAsync(ms, ct);
+            var bytes = ms.ToArray();
+            await File.WriteAllBytesAsync(path, bytes, ct);
+            return bytes;
         }
         catch (Exception ex)
         {
@@ -67,7 +69,7 @@ public sealed partial class PostOgCardService
         }
     }
 
-    private byte[] RenderAuthor(
+    private Image<Rgba32> RenderAuthorImage(
         string displayName,
         string userName,
         string? bio,
@@ -75,88 +77,78 @@ public sealed partial class PostOgCardService
         int followerCount,
         long totalViews)
     {
-        var name = (displayName ?? "Author").Trim();
-        if (name.Length > 48) name = name[..45] + "\u2026";
+        var name = Truncate((displayName ?? "Author").Trim(), 48);
         var handle = string.IsNullOrWhiteSpace(userName) ? "" : "@" + userName.TrimStart('@');
-        var summary = (bio ?? "").Trim();
-        if (summary.Length > 110) summary = summary[..107] + "\u2026";
-
+        var summary = Truncate((bio ?? "").Trim(), 120);
         var site = _seo.SiteName;
         var accent = AccentFrom(userName + name);
-        var bg = Color.ParseHex("0d1117");
-        var panel = Color.ParseHex("161b22");
-        var border = Color.ParseHex("30363d");
-        var titleColor = Color.ParseHex("e6edf3");
-        var muted = Color.ParseHex("8b949e");
-        var chipBg = Color.ParseHex("21262d");
 
-        using var image = new Image<Rgba32>(Width, Height);
+        var image = new Image<Rgba32>(Width, Height);
         image.Mutate(ctx =>
         {
-            ctx.Fill(bg);
-            ctx.Fill(panel, new RectangleF(32, 32, Width - 64, Height - 64));
-            ctx.Draw(border, 2f, new RectangularPolygon(32, 32, Width - 64, Height - 64));
-            ctx.Fill(accent, new RectangleF(32, 32, 8, Height - 64));
+            DrawShell(ctx, accent);
 
             var family = ResolveFontFamily();
             var brandFont = family.CreateFont(20, FontStyle.Regular);
-            var titleFont = family.CreateFont(48, FontStyle.Bold);
+            var titleFont = family.CreateFont(46, FontStyle.Bold);
             var bodyFont = family.CreateFont(22, FontStyle.Regular);
-            var chipFont = family.CreateFont(20, FontStyle.Regular);
+            var chipFont = family.CreateFont(18, FontStyle.Regular);
             var smallFont = family.CreateFont(18, FontStyle.Regular);
+            var statLabelFont = family.CreateFont(16, FontStyle.Regular);
+            var statValueFont = family.CreateFont(22, FontStyle.Bold);
 
             ctx.DrawText(new RichTextOptions(brandFont)
             {
-                Origin = new PointF(Width - 56, 56),
+                Origin = new PointF(Width - 56, 52),
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Top
-            }, site, muted);
+            }, site, Muted);
 
-            DrawChip(ctx, 64, 58, "Author", chipFont, chipBg, accent);
+            DrawChip(ctx, 64, 52, "AUTHOR", chipFont, ChipBg, accent);
 
             ctx.DrawText(new RichTextOptions(titleFont)
             {
-                Origin = new PointF(64, 130),
+                Origin = new PointF(64, 120),
                 WrappingLength = Width - 160,
                 HorizontalAlignment = HorizontalAlignment.Left
-            }, name, titleColor);
+            }, name, TitleColor);
 
             if (!string.IsNullOrEmpty(handle))
             {
                 ctx.DrawText(new RichTextOptions(bodyFont)
                 {
-                    Origin = new PointF(64, 210),
+                    Origin = new PointF(64, 200),
                     HorizontalAlignment = HorizontalAlignment.Left
-                }, handle, muted);
+                }, handle, Muted);
             }
 
             if (!string.IsNullOrWhiteSpace(summary))
             {
                 ctx.DrawText(new RichTextOptions(bodyFont)
                 {
-                    Origin = new PointF(64, 280),
+                    Origin = new PointF(64, 260),
                     WrappingLength = Width - 160,
-                    HorizontalAlignment = HorizontalAlignment.Left
-                }, summary, muted);
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    LineSpacing = 1.2f
+                }, summary, Muted);
             }
 
-            var statsY = Height - 150f;
-            float x = 64;
-            x = DrawStatChip(ctx, x, statsY, "posts", FormatCount(postCount), chipFont, chipBg, titleColor);
-            x = DrawStatChip(ctx, x + 12, statsY, "followers", FormatCount(followerCount), chipFont, chipBg, titleColor);
-            DrawStatChip(ctx, x + 12, statsY, "views", FormatCount((int)Math.Min(totalViews, int.MaxValue)), chipFont, chipBg, titleColor);
+            DrawStatsBar(ctx, 64, Height - 168,
+                ("Posts", FormatCount(postCount)),
+                ("Followers", FormatCount(followerCount)),
+                ("Views", FormatCount(totalViews)),
+                ("Profile", handle.Length > 0 ? handle : "—"),
+                statLabelFont, statValueFont, accent);
 
             ctx.DrawText(new RichTextOptions(smallFont)
             {
-                Origin = new PointF(64, Height - 78),
+                Origin = new PointF(64, Height - 72),
                 HorizontalAlignment = HorizontalAlignment.Left
             }, site, accent);
-            ctx.Fill(accent, new RectangleF(64, Height - 58, 120, 4));
+            ctx.Fill(accent, new RectangleF(64, Height - 52, 100, 3));
         });
 
-        using var ms = new MemoryStream();
-        image.SaveAsPng(ms);
-        return ms.ToArray();
+        return image;
     }
 
     private static string AuthorHash(
@@ -171,7 +163,7 @@ public sealed partial class PostOgCardService
             < 10000 => 3,
             _ => 4 + (int)(totalViews / 10000)
         };
-        var raw = $"{userId}|{displayName}|{userName}|{bio}|{postCount}|{followerCount}|{viewTier}";
+        var raw = $"{userId}|{displayName}|{userName}|{bio}|{postCount}|{followerCount}|{viewTier}|v2";
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(hash.AsSpan(0, 6)).ToLowerInvariant();
     }
