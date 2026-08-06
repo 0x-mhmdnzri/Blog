@@ -41,9 +41,9 @@ public partial class PostsController
             SponsoredLabel = post.SponsoredLabel,
             TagsCsv = string.Join(", ", post.PostTags.Select(pt => pt.Tag.Name)),
             LanguageCode = post.LanguageCode,
-            TranslationStatus = post.TranslationStatus,
-            AvailableCategories = await GetCategoryOptionsAsync()
+            TranslationStatus = post.TranslationStatus
         };
+        await LoadTaxonomyPickListsAsync(vm, post.Id);
         return View(vm);
     }
 
@@ -85,7 +85,7 @@ public partial class PostsController
 
         if (!ModelState.IsValid)
         {
-            vm.AvailableCategories = await GetCategoryOptionsAsync();
+            await LoadTaxonomyPickListsAsync(vm, post.Id);
             return View(vm);
         }
 
@@ -114,6 +114,7 @@ public partial class PostsController
         await ApplyTagsAsync(post, vm.TagsCsv);
         await _db.SaveChangesAsync();
         if (changed) await SaveRevisionAsync(post, authorId, "after-edit");
+        await ApplyFoldersAndSeriesAsync(post, vm);
 
         if (post.ReviewStatus == PostReviewStatus.PendingReview && !wasPublished)
             await NotifySuperAdminsPendingPostAsync(post);

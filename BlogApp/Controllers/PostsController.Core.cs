@@ -83,10 +83,10 @@ public partial class PostsController
     {
         var vm = new PostEditViewModel
         {
-            AvailableCategories = await GetCategoryOptionsAsync(),
             LanguageCode = _culture.CurrentCode,
             TranslationStatus = TranslationStatus.Original
         };
+        await LoadTaxonomyPickListsAsync(vm);
         return View(vm);
     }
 
@@ -110,7 +110,7 @@ public partial class PostsController
 
         if (!ModelState.IsValid)
         {
-            vm.AvailableCategories = await GetCategoryOptionsAsync();
+            await LoadTaxonomyPickListsAsync(vm);
             return View(vm);
         }
 
@@ -148,8 +148,8 @@ public partial class PostsController
         post.TranslationGroupId = post.Id;
         await _db.SaveChangesAsync();
         await SaveRevisionAsync(post, authorId, "initial");
+        await ApplyFoldersAndSeriesAsync(post, vm);
 
-        // Authors always submit new posts for SuperAdmin approval (not a plain draft).
         if (!AuthorAccess.IsSuperAdmin(User))
         {
             post.IsPublished = false;
@@ -172,7 +172,6 @@ public partial class PostsController
             _logger.LogWarning(ex, "Domain event publish failed after Create PostId={Id}", post.Id);
         }
 
-        // Never send authors to the public post URL — stay in admin and surface pending modal.
         TempData["PostCreatedPending"] = post.ReviewStatus == PostReviewStatus.PendingReview
             ? "1"
             : "0";
