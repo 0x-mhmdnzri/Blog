@@ -168,10 +168,40 @@ public class HomeController : Controller
             || (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase) && page > 1))
             return PartialView("_PostCards", posts);
 
-        ViewData["Description"] = _seo.SiteDescription;
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var homeUrl = $"{baseUrl}/{lang}/";
+        var isFiltered = !string.IsNullOrWhiteSpace(q)
+                         || !string.IsNullOrWhiteSpace(category)
+                         || !string.IsNullOrWhiteSpace(tag)
+                         || folderId is > 0
+                         || featured == true
+                         || page > 1;
+
         ViewData["OgType"] = "website";
-        ViewData["OgImage"] = $"{Request.Scheme}://{Request.Host}/og/site.png";
+        ViewData["OgImage"] = $"{baseUrl}/og/site.png";
         ViewData["OgImageAlt"] = _seo.SiteName;
+        ViewData["Canonical"] = isFiltered ? $"{baseUrl}{Request.Path}{Request.QueryString}" : homeUrl;
+        ViewData["Description"] = !string.IsNullOrWhiteSpace(q)
+            ? $"Search results for “{q.Trim()}” · {_seo.SiteName}"
+            : !string.IsNullOrWhiteSpace(category)
+                ? $"{category} — {_seo.SiteDescription}"
+                : !string.IsNullOrWhiteSpace(tag)
+                    ? $"#{tag} — {_seo.SiteDescription}"
+                    : _seo.SiteDescription;
+
+        if (!isFiltered)
+        {
+            ViewData["Keywords"] = string.Join(", ",
+                new[] { _seo.SiteName, _seo.AuthorName, "blog", "articles", lang }
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Concat(categories.Take(8).Select(c => c.Name)));
+            ViewBag.WebsiteJsonLd = _seo.BuildWebsiteJsonLd(baseUrl);
+        }
+        else if (page > 3)
+        {
+            ViewData["NoIndex"] = true;
+        }
+
         return View(posts);
     }
 
