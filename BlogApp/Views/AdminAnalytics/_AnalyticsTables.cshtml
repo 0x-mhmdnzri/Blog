@@ -1,0 +1,107 @@
+@model AnalyticsDashboardViewModel
+@inject BlogApp.Services.IUiTranslator T
+
+<div class="row g-2 mb-3">
+    <div class="col-lg-6">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title mb-2">@T["ana.popular"]</div>
+            @if (Model.PopularPosts.Count == 0)
+            {
+                <p class="text-muted-dark small mb-0">@T["ana.empty_posts"]</p>
+            }
+            else
+            {
+                <div class="admin-table-wrap" style="border:none;border-radius:0;">
+                    <table class="admin-table" style="min-width:0;">
+                        <thead><tr><th>@T["col.title"]</th><th>@T["ana.col_all_time"]</th><th>@T["ana.col_range"]</th></tr></thead>
+                        <tbody>
+                        @foreach (var p in Model.PopularPosts)
+                        {
+                            <tr>
+                                <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
+                                <td class="ltr-field">@p.Views</td>
+                                <td class="ltr-field">@p.RangeViews</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title mb-2">@T["ana.trending"]</div>
+            @if (Model.TrendingPosts.Count == 0)
+            {
+                <p class="text-muted-dark small mb-0">@T["ana.empty_trending"]</p>
+            }
+            else
+            {
+                <div class="admin-table-wrap" style="border:none;border-radius:0;">
+                    <table class="admin-table" style="min-width:0;">
+                        <thead><tr><th>@T["col.title"]</th><th>@T["ana.col_recent"]</th></tr></thead>
+                        <tbody>
+                        @foreach (var p in Model.TrendingPosts)
+                        {
+                            <tr>
+                                <td dir="auto"><a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug">@p.Title</a></td>
+                                <td class="ltr-field">@p.RangeViews</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="row g-2 mb-2">
+    <div class="col-lg-6">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title mb-2">@T["ana.referrers"]</div>
+            @if (Model.Referrers.Count == 0)
+            {
+                <p class="text-muted-dark small mb-0">@T["ana.empty_referrers"]</p>
+            }
+            else
+            {
+                <div class="admin-table-wrap" style="border:none;border-radius:0;">
+                    <table class="admin-table" style="min-width:0;">
+                        <thead><tr><th>@T["ana.col_host"]</th><th>@T["ana.col_count"]</th></tr></thead>
+                        <tbody>
+                        @foreach (var r in Model.Referrers.Take(8))
+                        {
+                            <tr><td class="ltr-field">@r.Name</td><td class="ltr-field">@r.Count</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="chart-card chart-card-tight">
+            <div class="chart-title mb-2">@T["ana.search_kw"]</div>
+            @if (Model.SearchKeywords.Count == 0)
+            {
+                <p class="text-muted-dark small mb-0">@T["ana.empty_search"]</p>
+            }
+            else
+            {
+                <div class="admin-table-wrap" style="border:none;border-radius:0;">
+                    <table class="admin-table" style="min-width:0;">
+                        <thead><tr><th>@T["ana.col_query"]</th><th>@T["ana.col_count"]</th></tr></thead>
+                        <tbody>
+                        @foreach (var s in Model.SearchKeywords.Take(8))
+                        {
+                            <tr><td dir="auto">@s.Name</td><td class="ltr-field">@s.Count</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
