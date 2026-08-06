@@ -44,17 +44,37 @@ public class SeoController : Controller
 
         var baseUrl = await ResolveBaseUrlAsync();
         var sb = new StringBuilder();
+
+        // Default: invite major crawlers; block private surfaces only
         sb.AppendLine("User-agent: *");
         sb.AppendLine("Allow: /");
+        sb.AppendLine("Allow: /fa/");
+        sb.AppendLine("Allow: /en/");
+        sb.AppendLine("Allow: /ar/");
+        sb.AppendLine("Allow: /*/post/");
+        sb.AppendLine("Allow: /author/");
         sb.AppendLine("Disallow: /Posts/Create");
         sb.AppendLine("Disallow: /Posts/Edit");
         sb.AppendLine("Disallow: /Account/");
+        sb.AppendLine("Disallow: /Admin");
         sb.AppendLine("Disallow: /Admin/");
+        sb.AppendLine("Disallow: /AdminAnalytics");
         sb.AppendLine("Disallow: /AdminAnalytics/");
         sb.AppendLine("Disallow: /media/upload");
+        sb.AppendLine("Disallow: /api/");
         sb.AppendLine();
+
+        // Explicit welcome for Google / Bing (no crawl-delay)
+        foreach (var bot in new[] { "Googlebot", "Googlebot-Image", "Bingbot", "Slurp", "DuckDuckBot" })
+        {
+            sb.AppendLine($"User-agent: {bot}");
+            sb.AppendLine("Allow: /");
+            sb.AppendLine();
+        }
+
         sb.AppendLine($"Sitemap: {baseUrl}/sitemap.xml");
-        return Content(sb.ToString(), "text/plain");
+        sb.AppendLine($"Host: {baseUrl.Replace("https://", "").Replace("http://", "")}");
+        return Content(sb.ToString(), "text/plain; charset=utf-8");
     }
 
     /// <summary>IndexNow key verification file: https://host/{key}.txt</summary>
@@ -89,13 +109,20 @@ public class SeoController : Controller
             })
             .ToListAsync();
 
-        // Group translations for xhtml:link hreflang alternates
         var byGroup = posts.GroupBy(p => p.GroupId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
         var categories = await _db.Categories
             .AsNoTracking()
             .Select(c => new { c.Slug, c.Name })
+            .ToListAsync();
+
+        // Authors with at least one published post
+        var authors = await _db.Posts.AsNoTracking()
+            .Where(p => p.IsPublished && !p.IsDeleted && p.Author != null && p.Author.UserName != null)
+            .Select(p => new { p.Author!.UserName, p.UpdatedAtUtc })
+            .GroupBy(x => x.UserName!)
+            .Select(g => new { UserName = g.Key, LastMod = g.Max(x => x.UpdatedAtUtc) })
             .ToListAsync();
 
         var sb = new StringBuilder();
@@ -127,6 +154,13 @@ public class SeoController : Controller
         foreach (var lang in new[] { "fa", "en", "ar" })
             Url($"{baseUrl}/{lang}/", freq: "daily", priority: "0.9");
 
+        // Static marketing pages
+        foreach (var page in new[] { "about", "services", "projects", "contact" })
+        {
+            foreach (var lang in new[] { "fa", "en", "ar" })
+                Url($"{baseUrl}/{lang}/pages/{page}", freq: "monthly", priority: "0.6");
+        }
+
         foreach (var post in posts)
         {
             var loc = $"{baseUrl}/{post.LanguageCode}/post/{post.Slug}";
@@ -136,7 +170,6 @@ public class SeoController : Controller
                 alts = siblings
                     .Select(s => (s.LanguageCode, $"{baseUrl}/{s.LanguageCode}/post/{s.Slug}"))
                     .ToList();
-                // x-default → first original-ish (prefer fa, else first)
                 var def = siblings.FirstOrDefault(s => s.LanguageCode == "fa") ?? siblings[0];
                 alts.Add(("x-default", $"{baseUrl}/{def.LanguageCode}/post/{def.Slug}"));
             }
@@ -144,10 +177,14 @@ public class SeoController : Controller
             Url(loc, post.UpdatedAtUtc.ToString("yyyy-MM-dd"), "monthly", "0.8", alts);
         }
 
+        foreach (var a in authors)
+            Url($"{baseUrl}/author/{Uri.EscapeDataString(a.UserName)}",
+                a.LastMod.ToString("yyyy-MM-dd"), "weekly", "0.7");
+
         foreach (var cat in categories)
             Url($"{baseUrl}/?category={Uri.EscapeDataString(cat.Slug)}", freq: "weekly", priority: "0.5");
 
         sb.AppendLine("</urlset>");
-        return Content(sb.ToString(), "application/xml");
+        return Content(sb.ToString(), "application/xml; charset=utf-8");
     }
 }
