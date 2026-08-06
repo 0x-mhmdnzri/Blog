@@ -1,5 +1,7 @@
 /**
- * Post TOC — sticky sidebar + accordion + IntersectionObserver scroll-spy + smooth jump.
+ * Post TOC — accordion (mobile) + sticky sidebar (desktop) + scroll-spy.
+ * Critical: never call scrollIntoView on TOC links in a way that moves the window
+ * (mobile TOC sits in document flow; that caused jump-to-top loops).
  */
 (function () {
   'use strict';
@@ -8,18 +10,22 @@
   var clicking = false;
   var clickTimer = null;
 
+  function isDesktop() {
+    return window.matchMedia('(min-width: 1101px)').matches;
+  }
+
   function initOne(nav) {
     if (!nav || nav.dataset.tocReady) return;
     nav.dataset.tocReady = '1';
 
     var toggle = nav.querySelector('[data-toc-toggle]');
     var body = nav.querySelector('.toc-body');
-    var sticky = nav.closest('.post-aside-sticky');
     var isSidebar = nav.classList.contains('post-toc--sidebar');
 
     function setOpen(open) {
       if (!toggle || !body) return;
-      if (isSidebar && window.matchMedia('(min-width: 1101px)').matches) open = true;
+      // Desktop sidebar always expanded
+      if (isSidebar && isDesktop()) open = true;
       nav.classList.toggle('is-open', open);
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (open) body.removeAttribute('hidden');
@@ -31,7 +37,9 @@
     }
 
     if (toggle && body) {
-      setOpen(true);
+      // Mobile: start collapsed so content isn't pushed / jump-prone
+      // Desktop sidebar: always open
+      setOpen(isSidebar && isDesktop());
       if (!isSidebar) {
         toggle.addEventListener('click', function (e) {
           e.preventDefault();
@@ -58,26 +66,39 @@
       map.forEach(function (m) { m.el.classList.remove('is-section-active'); });
     }
 
-    function setActive(item) {
+    /**
+     * Scroll active TOC link only inside .toc-body overflow panel.
+     * Never use element.scrollIntoView — that scrolls the window and causes
+     * jump-to-top loops when the mobile TOC is in document flow.
+     */
+    function ensureLinkVisibleInPanel(link) {
+      if (!body || !link) return;
+      // Only for open, overflow panels (sidebar or expanded mobile accordion)
+      if (body.hasAttribute('hidden')) return;
+      if (body.scrollHeight <= body.clientHeight + 2) return;
+
+      var linkTop = link.offsetTop;
+      var linkBottom = linkTop + link.offsetHeight;
+      var viewTop = body.scrollTop;
+      var viewBottom = viewTop + body.clientHeight;
+
+      if (linkTop < viewTop + 4) {
+        body.scrollTop = Math.max(0, linkTop - 8);
+      } else if (linkBottom > viewBottom - 4) {
+        body.scrollTop = linkBottom - body.clientHeight + 8;
+      }
+    }
+
+    function setActive(item, scrollPanel) {
       if (!item) return;
       clearActive();
       item.a.classList.add('is-active');
       item.a.setAttribute('aria-current', 'true');
       item.el.classList.add('is-section-active');
 
-      var panel = body || sticky;
-      if (panel && item.a && typeof item.a.scrollIntoView === 'function') {
-        try {
-          item.a.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-        } catch (_) {
-          var linkRect = item.a.getBoundingClientRect();
-          var parentRect = panel.getBoundingClientRect();
-          if (linkRect.top < parentRect.top + 8) {
-            panel.scrollTop -= (parentRect.top + 8 - linkRect.top);
-          } else if (linkRect.bottom > parentRect.bottom - 8) {
-            panel.scrollTop += (linkRect.bottom - parentRect.bottom + 8);
-          }
-        }
+      // Only nudge the TOC panel on desktop sidebar — never on mobile doc-flow TOC
+      if (scrollPanel && isSidebar && isDesktop()) {
+        ensureLinkVisibleInPanel(item.a);
       }
     }
 
@@ -93,7 +114,6 @@
 
         clicking = true;
         if (clickTimer) clearTimeout(clickTimer);
-        if (!nav.classList.contains('is-open')) setOpen(true);
 
         var top = target.getBoundingClientRect().top + window.pageYOffset - HEADER_OFFSET;
         if (top < 0) top = 0;
@@ -102,13 +122,17 @@
         try { history.replaceState(null, '', '#' + encodeURIComponent(id)); } catch (_) {}
 
         var hit = map.find(function (m) { return m.id === id; });
-        if (hit) setActive(hit);
-
-        clickTimer = setTimeout(function () { clicking = false; }, 900);
-
-        if (!isSidebar && window.matchMedia('(max-width: 1100px)').matches) {
-          setTimeout(function () { setOpen(false); }, 550);
+        if (hit) {
+          currentId = hit.id;
+          setActive(hit, false);
         }
+
+        // Collapse mobile accordion after jump so content height is stable
+        if (!isSidebar && !isDesktop()) {
+          setOpen(false);
+        }
+
+        clickTimer = setTimeout(function () { clicking = false; }, 700);
       });
     });
 
@@ -119,65 +143,33 @@
       var item = map.find(function (m) { return m.id === id; });
       if (!item) return;
       currentId = id;
-      setActive(item);
+      setActive(item, true);
     }
 
     function pickFromScroll() {
       if (clicking) return;
-      var y = window.scrollY + HEADER_OFFSET + 16;
+      var y = window.scrollY + HEADER_OFFSET + 12;
       var active = map[0];
       for (var i = 0; i < map.length; i++) {
         var top = map[i].el.getBoundingClientRect().top + window.pageYOffset;
         if (top <= y) active = map[i];
+        else break;
       }
       if (active) activateById(active.id);
     }
 
-    if (typeof IntersectionObserver === 'function') {
-      var ratios = {};
-      map.forEach(function (m) { ratios[m.id] = 0; });
-
-      var io = new IntersectionObserver(function (entries) {
-        if (clicking) return;
-        entries.forEach(function (en) {
-          var id = en.target.id;
-          if (!id) return;
-          ratios[id] = en.isIntersecting ? en.intersectionRatio : 0;
-        });
-
-        var bestId = null;
-        var bestRatio = 0;
-        Object.keys(ratios).forEach(function (id) {
-          if (ratios[id] > bestRatio) {
-            bestRatio = ratios[id];
-            bestId = id;
-          }
-        });
-
-        if (bestId && bestRatio > 0) {
-          activateById(bestId);
-          return;
-        }
-        pickFromScroll();
-      }, {
-        root: null,
-        rootMargin: '-' + HEADER_OFFSET + 'px 0px -55% 0px',
-        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1]
-      });
-
-      map.forEach(function (m) { io.observe(m.el); });
-    }
-
+    // Single source of truth: scroll listener only (no IO fighting it)
     var ticking = false;
     window.addEventListener('scroll', function () {
-      if (ticking) return;
+      if (ticking || clicking) return;
       ticking = true;
       requestAnimationFrame(function () {
         ticking = false;
-        if (!clicking) pickFromScroll();
+        pickFromScroll();
       });
     }, { passive: true });
 
+    // Initial highlight without moving the page
     pickFromScroll();
 
     if (location.hash) {
@@ -185,11 +177,13 @@
       var h = map.find(function (m) { return m.id === hid; });
       if (h) {
         setTimeout(function () {
+          clicking = true;
           var top = h.el.getBoundingClientRect().top + window.pageYOffset - HEADER_OFFSET;
           window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-          setActive(h);
           currentId = h.id;
-        }, 120);
+          setActive(h, false);
+          setTimeout(function () { clicking = false; }, 700);
+        }, 80);
       }
     }
   }
