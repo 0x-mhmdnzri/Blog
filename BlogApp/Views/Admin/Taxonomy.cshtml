@@ -58,283 +58,355 @@
 
 @await Html.PartialAsync("~/Views/Shared/_FoldersPanel.cshtml", Model)
 
-@* Categories *@
-<section class="tx-panel" id="tx-cats" role="tabpanel" data-panel="cats" hidden>
-    <div class="tx-panel-head">
-        <h2 class="tx-panel-title">@T["tax.cats_heading"]</h2>
-        <p class="tx-panel-desc">@T["tax.cats_desc"]</p>
-    </div>
-    <form asp-controller="Taxonomy" asp-action="CreateCategory" method="post" class="tx-form-card">
-        @Html.AntiForgeryToken()
-        <div class="tx-form-grid">
-            <div class="tx-field">
-                <label class="tx-label">@T["tax.label_cat_name"]</label>
-                <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="@T["tax.ph_cat_name"]" />
+@* ── Categories ── *@
+<section class="tx-panel" id="tx-cats" role="tabpanel" data-panel="cats" hidden aria-labelledby="tx-cats-title">
+    <div class="tx-shell">
+        <div class="tx-shell-head">
+            <div>
+                <h2 class="tx-panel-title" id="tx-cats-title">@T["tax.cats_heading"]</h2>
+                <p class="tx-panel-desc">@T["tax.cats_desc"]</p>
             </div>
-            <div class="tx-field">
-                <label class="tx-label">@T["tax.label_parent"]</label>
-                <select class="form-select form-select-sm" name="parentId">
-                    <option value="">@T["tax.label_root"]</option>
-                    @foreach (var o in Model.ParentOptions)
-                    {
-                        <option value="@o.Id">@o.Name</option>
-                    }
-                </select>
-            </div>
-            <div class="tx-field tx-field-wide">
-                <label class="tx-label">@T["tax.label_description"]</label>
-                <input class="form-control form-control-sm" name="description" dir="auto" placeholder="@T["tax.ph_desc_short"]" />
-            </div>
-            <div class="tx-field tx-field-action">
-                <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_add"]</button>
-            </div>
-        </div>
-    </form>
-    @if (!(Model.Categories?.Any() ?? false))
-    {
-        <div class="tx-empty">
-            <div class="tx-empty-icon" aria-hidden="true">📁</div>
-            <p class="tx-empty-title">@T["tax.empty_cats"]</p>
-            <p class="tx-empty-hint">@T["tax.empty_cats_hint"]</p>
-        </div>
-    }
-    else
-    {
-        <div class="tx-search-row">
-            <input type="search" class="tx-search" id="catSearch" placeholder="@T["tax.ph_search_cats"]" autocomplete="off" />
-        </div>
-        <div class="tx-tree" id="catTree">
-            @foreach (var c in Model.Categories!)
+            @if (catCount > 0)
             {
-                <article class="tx-tree-item" data-name="@c.Name.ToLowerInvariant()" style="--depth:@c.Depth">
-                    <div class="tx-tree-main">
-                        <span class="tx-tree-indent" aria-hidden="true"></span>
-                        @if (c.Depth > 0)
-                        {
-                            <span class="tx-tree-branch" aria-hidden="true">└</span>
-                        }
-                        else
-                        {
-                            <span class="tx-tree-root-dot" aria-hidden="true"></span>
-                        }
-                        <div class="tx-tree-text">
-                            <div class="tx-tree-name" dir="auto">@c.Name</div>
-                            <div class="tx-tree-meta">
-                                <span class="ltr-field">@c.Slug</span>
-                                <span class="tx-dot">·</span>
-                                <span class="ltr-field">@string.Format(T["tax.posts_n"].ToString(), c.PostCount)</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tx-tree-actions">
-                        <a class="tx-act" asp-controller="Home" asp-action="Index" asp-route-category="@c.Slug">@T["tax.btn_view"]</a>
-                        <form asp-controller="Taxonomy" asp-action="DeleteCategory" method="post"
-                              onsubmit="return confirm('@T["tax.confirm_delete_cat"]');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@c.Id" />
-                            <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
-                        </form>
-                    </div>
-                </article>
+                <div class="tx-shell-tools">
+                    <label class="tx-search-wrap" for="catSearch">
+                        <svg class="tx-search-ico" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        <input type="search" class="tx-search-input" id="catSearch" placeholder="@T["tax.ph_search_cats"]" autocomplete="off" />
+                    </label>
+                    <span class="tx-count-badge ltr-field" id="catCountLabel">@catCount</span>
+                </div>
             }
         </div>
-    }
-</section>
 
-@* Tags *@
-<section class="tx-panel" id="tx-tags" role="tabpanel" data-panel="tags" hidden>
-    <div class="tx-panel-head">
-        <h2 class="tx-panel-title">@T["tax.tags_heading"]</h2>
-        <p class="tx-panel-desc">@T["tax.tags_desc"]</p>
-    </div>
-    <form asp-controller="Taxonomy" asp-action="CreateTag" method="post" class="tx-form-card">
-        @Html.AntiForgeryToken()
-        <div class="tx-form-grid">
-            <div class="tx-field">
-                <label class="tx-label">@T["tax.label_tag_name"]</label>
-                <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="@T["tax.ph_tag_name"]" />
-            </div>
-            <div class="tx-field tx-field-wide">
-                <label class="tx-label">@T["tax.label_description"]</label>
-                <input class="form-control form-control-sm" name="description" dir="auto" placeholder="@T["tax.ph_desc"]" />
-            </div>
-            <div class="tx-field tx-field-action">
-                <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_add_tag"]</button>
-            </div>
-        </div>
-    </form>
-    @if ((Model.Tags?.Count ?? 0) >= 2)
-    {
-        <form asp-controller="Taxonomy" asp-action="MergeTags" method="post" class="tx-form-card tx-form-merge">
+        <form asp-controller="Taxonomy" asp-action="CreateCategory" method="post" class="tx-create">
             @Html.AntiForgeryToken()
-            <div class="tx-merge-title">@T["tax.merge_title"]</div>
-            <div class="tx-form-grid">
+            <div class="tx-create-row tx-create-row-3">
                 <div class="tx-field">
-                    <label class="tx-label">@T["tax.label_merge_from"]</label>
-                    <select class="form-select form-select-sm" name="sourceId" required>
-                        @foreach (var t in Model.Tags!) { <option value="@t.Id">@t.Name (@t.PostCount)</option> }
+                    <label class="tx-label">@T["tax.label_cat_name"]</label>
+                    <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="@T["tax.ph_cat_name"]" maxlength="80" />
+                </div>
+                <div class="tx-field">
+                    <label class="tx-label">@T["tax.label_parent"]</label>
+                    <select class="form-select form-select-sm" name="parentId">
+                        <option value="">@T["tax.label_root"]</option>
+                        @foreach (var o in Model.ParentOptions)
+                        {
+                            <option value="@o.Id">@o.Name</option>
+                        }
                     </select>
                 </div>
                 <div class="tx-field">
-                    <label class="tx-label">@T["tax.label_merge_to"]</label>
-                    <select class="form-select form-select-sm" name="targetId" required>
-                        @foreach (var t in Model.Tags!) { <option value="@t.Id">@t.Name (@t.PostCount)</option> }
-                    </select>
+                    <label class="tx-label">@T["tax.label_description"]</label>
+                    <input class="form-control form-control-sm" name="description" dir="auto" placeholder="@T["tax.ph_desc_short"]" maxlength="200" />
                 </div>
-                <div class="tx-field tx-field-action">
-                    <button type="submit" class="btn btn-ghost btn-sm w-100">@T["tax.btn_merge"]</button>
+                <div class="tx-field tx-field-submit">
+                    <button type="submit" class="btn btn-accent btn-sm">@T["tax.btn_add"]</button>
                 </div>
             </div>
         </form>
-    }
-    @if ((Model.Tags?.Count ?? 0) == 0)
-    {
-        <div class="tx-empty">
-            <div class="tx-empty-icon" aria-hidden="true">🏷</div>
-            <p class="tx-empty-title">@T["tax.empty_tags"]</p>
-            <p class="tx-empty-hint">@T["tax.empty_tags_hint"]</p>
-        </div>
-    }
-    else
-    {
-        <div class="tx-search-row">
-            <input type="search" class="tx-search" id="tagSearch" placeholder="@T["tax.ph_search_tags"]" autocomplete="off" />
-        </div>
-        <div class="tx-tag-cloud" id="tagCloud">
-            @foreach (var t in Model.Tags!.OrderByDescending(x => x.PostCount))
+
+        @if (catCount == 0)
+        {
+            <div class="tx-empty">
+                <div class="tx-empty-glyph" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8" y="12" width="32" height="28" rx="4"/><path d="M16 12V10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/><path d="M18 22h12M18 28h8"/></svg>
+                </div>
+                <p class="tx-empty-title">@T["tax.empty_cats"]</p>
+                <p class="tx-empty-hint">@T["tax.empty_cats_hint"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="tx-rows" id="catTree">
+                @foreach (var c in Model.Categories!)
+                {
+                    <article class="tx-row" data-name="@c.Name.ToLowerInvariant()" style="--depth:@c.Depth">
+                        <div class="tx-row-main">
+                            <span class="tx-row-indent" aria-hidden="true"></span>
+                            <span class="tx-row-mark" aria-hidden="true">@(c.Depth > 0 ? "└" : "")</span>
+                            <div class="tx-row-text">
+                                <div class="tx-row-name" dir="auto">@c.Name</div>
+                                <div class="tx-row-meta">
+                                    <span class="ltr-field">@c.Slug</span>
+                                    <span class="tx-dot">·</span>
+                                    <span class="ltr-field">@string.Format(T["tax.posts_n"].ToString(), c.PostCount)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tx-row-actions">
+                            <a class="tx-act" asp-controller="Home" asp-action="Index" asp-route-category="@c.Slug">@T["tax.btn_view"]</a>
+                            <form asp-controller="Taxonomy" asp-action="DeleteCategory" method="post"
+                                  onsubmit="return confirm('@T["tax.confirm_delete_cat"]');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+            <p class="tx-no-match" id="catNoMatch" hidden>@T["tax.empty_cats"]</p>
+        }
+    </div>
+</section>
+
+@* ── Tags ── *@
+<section class="tx-panel" id="tx-tags" role="tabpanel" data-panel="tags" hidden aria-labelledby="tx-tags-title">
+    <div class="tx-shell">
+        <div class="tx-shell-head">
+            <div>
+                <h2 class="tx-panel-title" id="tx-tags-title">@T["tax.tags_heading"]</h2>
+                <p class="tx-panel-desc">@T["tax.tags_desc"]</p>
+            </div>
+            @if (tagCount > 0)
             {
-                var weight = t.PostCount switch { >= 20 => "xl", >= 10 => "lg", >= 3 => "md", _ => "sm" };
-                <div class="tx-tag" data-name="@t.Name.ToLowerInvariant()" data-weight="@weight">
-                    <a class="tx-tag-link" asp-controller="Home" asp-action="Index" asp-route-tag="@t.Slug" dir="auto">@t.Name</a>
-                    <span class="tx-tag-count ltr-field">@t.PostCount</span>
-                    <form asp-controller="Taxonomy" asp-action="DeleteTag" method="post" class="tx-tag-del"
-                          onsubmit="return confirm('@T["tax.confirm_delete_tag"]');">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@t.Id" />
-                        <button type="submit" class="tx-tag-x" title="@T["tax.btn_delete"]" aria-label="@T["tax.btn_delete"]">×</button>
-                    </form>
+                <div class="tx-shell-tools">
+                    <label class="tx-search-wrap" for="tagSearch">
+                        <svg class="tx-search-ico" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        <input type="search" class="tx-search-input" id="tagSearch" placeholder="@T["tax.ph_search_tags"]" autocomplete="off" />
+                    </label>
+                    <span class="tx-count-badge ltr-field" id="tagCountLabel">@tagCount</span>
                 </div>
             }
         </div>
-    }
-</section>
 
-@* Series *@
-<section class="tx-panel" id="tx-series" role="tabpanel" data-panel="series" hidden>
-    <div class="tx-panel-head">
-        <h2 class="tx-panel-title">@T["tax.series_heading"]</h2>
-        <p class="tx-panel-desc">@T["tax.series_desc"]</p>
-    </div>
-    <form asp-controller="Taxonomy" asp-action="CreateSeries" method="post" class="tx-form-card">
-        @Html.AntiForgeryToken()
-        <div class="tx-form-grid">
-            <div class="tx-field">
-                <label class="tx-label">@T["tax.label_series_name"]</label>
-                <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="@T["tax.ph_series_name"]" />
+        <form asp-controller="Taxonomy" asp-action="CreateTag" method="post" class="tx-create">
+            @Html.AntiForgeryToken()
+            <div class="tx-create-row tx-create-row-2">
+                <div class="tx-field">
+                    <label class="tx-label">@T["tax.label_tag_name"]</label>
+                    <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="@T["tax.ph_tag_name"]" maxlength="80" />
+                </div>
+                <div class="tx-field">
+                    <label class="tx-label">@T["tax.label_description"]</label>
+                    <input class="form-control form-control-sm" name="description" dir="auto" placeholder="@T["tax.ph_desc"]" maxlength="200" />
+                </div>
+                <div class="tx-field tx-field-submit">
+                    <button type="submit" class="btn btn-accent btn-sm">@T["tax.btn_add_tag"]</button>
+                </div>
             </div>
-            <div class="tx-field tx-field-wide">
-                <label class="tx-label">@T["tax.label_description"]</label>
-                <input class="form-control form-control-sm" name="description" dir="auto" placeholder="@T["tax.ph_desc"]" />
-            </div>
-            <div class="tx-field tx-field-action">
-                <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_create_series"]</button>
-            </div>
-        </div>
-    </form>
-    @if ((Model.Series?.Count ?? 0) == 0)
-    {
-        <div class="tx-empty">
-            <div class="tx-empty-icon" aria-hidden="true">📚</div>
-            <p class="tx-empty-title">@T["tax.empty_series"]</p>
-        </div>
-    }
-    else
-    {
-        <div class="tx-list">
-            @foreach (var s in Model.Series!)
-            {
-                <article class="tx-list-item">
-                    <div class="tx-list-text">
-                        <div class="tx-list-name" dir="auto">@s.Name</div>
-                        <div class="tx-list-meta">
-                            <span class="ltr-field">@s.Slug</span>
-                            <span class="tx-dot">·</span>
-                            <span class="ltr-field">@string.Format(T["tax.posts_n"].ToString(), s.PostCount)</span>
-                        </div>
-                    </div>
-                    <div class="tx-list-actions">
-                        <a class="tx-act" asp-controller="Taxonomy" asp-action="EditSeries" asp-route-id="@s.Id">@T["tax.btn_edit"]</a>
-                        <a class="tx-act" href="/series/@s.Slug">@T["tax.btn_public"]</a>
-                        <form asp-controller="Taxonomy" asp-action="DeleteSeries" method="post"
-                              onsubmit="return confirm('@T["tax.confirm_delete_series"]');">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@s.Id" />
-                            <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
-                        </form>
-                    </div>
-                </article>
-            }
-        </div>
-    }
-</section>
+        </form>
 
-@* Topics *@
-<section class="tx-panel" id="tx-topics" role="tabpanel" data-panel="topics" hidden>
-    <div class="tx-panel-head">
-        <h2 class="tx-panel-title">@T["tax.topics_heading"]</h2>
-        <p class="tx-panel-desc">@T["tax.topics_desc"]</p>
-    </div>
-    <form asp-controller="Taxonomy" asp-action="CreateTopic" method="post" class="tx-form-card">
-        @Html.AntiForgeryToken()
-        <div class="tx-form-grid">
-            <div class="tx-field">
-                <label class="tx-label">@T["tax.label_topic_name"]</label>
-                <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="@T["tax.ph_topic_name"]" />
-            </div>
-            <div class="tx-field tx-field-wide">
-                <label class="tx-label">@T["tax.label_description"]</label>
-                <input class="form-control form-control-sm" name="description" dir="auto" placeholder="@T["tax.ph_desc"]" />
-            </div>
-            <div class="tx-field tx-field-action">
-                <button type="submit" class="btn btn-accent btn-sm w-100">@T["tax.btn_create_topic"]</button>
-            </div>
-        </div>
-    </form>
-    @if ((Model.Topics?.Count ?? 0) == 0)
-    {
-        <div class="tx-empty">
-            <div class="tx-empty-icon" aria-hidden="true">🗂</div>
-            <p class="tx-empty-title">@T["tax.empty_topics"]</p>
-        </div>
-    }
-    else
-    {
-        <div class="tx-list">
-            @foreach (var t in Model.Topics!)
-            {
-                <article class="tx-list-item">
-                    <div class="tx-list-text">
-                        <div class="tx-list-name" dir="auto">@t.Name</div>
-                        <div class="tx-list-meta">
-                            <span class="ltr-field">@t.Slug</span>
-                            <span class="tx-dot">·</span>
-                            <span class="ltr-field">@string.Format(T["tax.items_n"].ToString(), t.ItemCount)</span>
-                        </div>
+        @if (tagCount >= 2)
+        {
+            <form asp-controller="Taxonomy" asp-action="MergeTags" method="post" class="tx-create tx-create-merge">
+                @Html.AntiForgeryToken()
+                <div class="tx-merge-label">@T["tax.merge_title"]</div>
+                <div class="tx-create-row tx-create-row-2">
+                    <div class="tx-field">
+                        <label class="tx-label">@T["tax.label_merge_from"]</label>
+                        <select class="form-select form-select-sm" name="sourceId" required>
+                            @foreach (var t in Model.Tags!) { <option value="@t.Id">@t.Name (@t.PostCount)</option> }
+                        </select>
                     </div>
-                    <div class="tx-list-actions">
-                        <a class="tx-act" asp-controller="Taxonomy" asp-action="EditTopic" asp-route-id="@t.Id">@T["tax.btn_edit"]</a>
-                        <a class="tx-act" href="/topic/@t.Slug">@T["tax.btn_public"]</a>
-                        <form asp-controller="Taxonomy" asp-action="DeleteTopic" method="post"
-                              onsubmit="return confirm('@T["tax.confirm_delete_topic"]');">
+                    <div class="tx-field">
+                        <label class="tx-label">@T["tax.label_merge_to"]</label>
+                        <select class="form-select form-select-sm" name="targetId" required>
+                            @foreach (var t in Model.Tags!) { <option value="@t.Id">@t.Name (@t.PostCount)</option> }
+                        </select>
+                    </div>
+                    <div class="tx-field tx-field-submit">
+                        <button type="submit" class="btn btn-ghost btn-sm">@T["tax.btn_merge"]</button>
+                    </div>
+                </div>
+            </form>
+        }
+
+        @if (tagCount == 0)
+        {
+            <div class="tx-empty">
+                <div class="tx-empty-glyph" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 24V12a4 4 0 0 1 4-4h12l16 16-16 16H12a4 4 0 0 1-4-4V24z"/><circle cx="16" cy="16" r="2.5" fill="currentColor" stroke="none"/></svg>
+                </div>
+                <p class="tx-empty-title">@T["tax.empty_tags"]</p>
+                <p class="tx-empty-hint">@T["tax.empty_tags_hint"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="tx-chip-cloud" id="tagCloud">
+                @foreach (var t in Model.Tags!.OrderByDescending(x => x.PostCount))
+                {
+                    string weight;
+                    if (t.PostCount >= 20) weight = "xl";
+                    else if (t.PostCount >= 10) weight = "lg";
+                    else if (t.PostCount >= 3) weight = "md";
+                    else weight = "sm";
+                    <div class="tx-chip" data-name="@t.Name.ToLowerInvariant()" data-weight="@weight">
+                        <a class="tx-chip-link" asp-controller="Home" asp-action="Index" asp-route-tag="@t.Slug" dir="auto">@t.Name</a>
+                        <span class="tx-chip-count ltr-field">@t.PostCount</span>
+                        <form asp-controller="Taxonomy" asp-action="DeleteTag" method="post" class="tx-chip-del"
+                              onsubmit="return confirm('@T["tax.confirm_delete_tag"]');">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@t.Id" />
-                            <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
+                            <button type="submit" class="tx-chip-x" title="@T["tax.btn_delete"]" aria-label="@T["tax.btn_delete"]">×</button>
                         </form>
                     </div>
-                </article>
+                }
+            </div>
+            <p class="tx-no-match" id="tagNoMatch" hidden>@T["tax.empty_tags"]</p>
+        }
+    </div>
+</section>
+
+@* ── Series ── *@
+<section class="tx-panel" id="tx-series" role="tabpanel" data-panel="series" hidden aria-labelledby="tx-series-title">
+    <div class="tx-shell">
+        <div class="tx-shell-head">
+            <div>
+                <h2 class="tx-panel-title" id="tx-series-title">@T["tax.series_heading"]</h2>
+                <p class="tx-panel-desc">@T["tax.series_desc"]</p>
+            </div>
+            @if (seriesCount > 0)
+            {
+                <div class="tx-shell-tools">
+                    <label class="tx-search-wrap" for="seriesSearch">
+                        <svg class="tx-search-ico" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        <input type="search" class="tx-search-input" id="seriesSearch" placeholder="@T["tax.ph_search_cats"]" autocomplete="off" />
+                    </label>
+                    <span class="tx-count-badge ltr-field" id="seriesCountLabel">@seriesCount</span>
+                </div>
             }
         </div>
-    }
+
+        <form asp-controller="Taxonomy" asp-action="CreateSeries" method="post" class="tx-create">
+            @Html.AntiForgeryToken()
+            <div class="tx-create-row tx-create-row-2">
+                <div class="tx-field">
+                    <label class="tx-label">@T["tax.label_series_name"]</label>
+                    <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="@T["tax.ph_series_name"]" maxlength="80" />
+                </div>
+                <div class="tx-field">
+                    <label class="tx-label">@T["tax.label_description"]</label>
+                    <input class="form-control form-control-sm" name="description" dir="auto" placeholder="@T["tax.ph_desc"]" maxlength="200" />
+                </div>
+                <div class="tx-field tx-field-submit">
+                    <button type="submit" class="btn btn-accent btn-sm">@T["tax.btn_create_series"]</button>
+                </div>
+            </div>
+        </form>
+
+        @if (seriesCount == 0)
+        {
+            <div class="tx-empty">
+                <div class="tx-empty-glyph" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 8h20a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4z"/><path d="M16 16h16M16 24h12M16 32h8"/></svg>
+                </div>
+                <p class="tx-empty-title">@T["tax.empty_series"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="tx-rows" id="seriesList">
+                @foreach (var s in Model.Series!)
+                {
+                    <article class="tx-row" data-name="@s.Name.ToLowerInvariant()">
+                        <div class="tx-row-main">
+                            <div class="tx-row-text">
+                                <div class="tx-row-name" dir="auto">@s.Name</div>
+                                <div class="tx-row-meta">
+                                    <span class="ltr-field">@s.Slug</span>
+                                    <span class="tx-dot">·</span>
+                                    <span class="ltr-field">@string.Format(T["tax.posts_n"].ToString(), s.PostCount)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tx-row-actions">
+                            <a class="tx-act" asp-controller="Taxonomy" asp-action="EditSeries" asp-route-id="@s.Id">@T["tax.btn_edit"]</a>
+                            <a class="tx-act" href="/series/@s.Slug">@T["tax.btn_public"]</a>
+                            <form asp-controller="Taxonomy" asp-action="DeleteSeries" method="post"
+                                  onsubmit="return confirm('@T["tax.confirm_delete_series"]');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@s.Id" />
+                                <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+            <p class="tx-no-match" id="seriesNoMatch" hidden>@T["tax.empty_series"]</p>
+        }
+    </div>
+</section>
+
+@* ── Topics ── *@
+<section class="tx-panel" id="tx-topics" role="tabpanel" data-panel="topics" hidden aria-labelledby="tx-topics-title">
+    <div class="tx-shell">
+        <div class="tx-shell-head">
+            <div>
+                <h2 class="tx-panel-title" id="tx-topics-title">@T["tax.topics_heading"]</h2>
+                <p class="tx-panel-desc">@T["tax.topics_desc"]</p>
+            </div>
+            @if (topicCount > 0)
+            {
+                <div class="tx-shell-tools">
+                    <label class="tx-search-wrap" for="topicSearch">
+                        <svg class="tx-search-ico" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        <input type="search" class="tx-search-input" id="topicSearch" placeholder="@T["tax.ph_search_cats"]" autocomplete="off" />
+                    </label>
+                    <span class="tx-count-badge ltr-field" id="topicCountLabel">@topicCount</span>
+                </div>
+            }
+        </div>
+
+        <form asp-controller="Taxonomy" asp-action="CreateTopic" method="post" class="tx-create">
+            @Html.AntiForgeryToken()
+            <div class="tx-create-row tx-create-row-2">
+                <div class="tx-field">
+                    <label class="tx-label">@T["tax.label_topic_name"]</label>
+                    <input class="form-control form-control-sm" name="name" required dir="auto" placeholder="@T["tax.ph_topic_name"]" maxlength="80" />
+                </div>
+                <div class="tx-field">
+                    <label class="tx-label">@T["tax.label_description"]</label>
+                    <input class="form-control form-control-sm" name="description" dir="auto" placeholder="@T["tax.ph_desc"]" maxlength="200" />
+                </div>
+                <div class="tx-field tx-field-submit">
+                    <button type="submit" class="btn btn-accent btn-sm">@T["tax.btn_create_topic"]</button>
+                </div>
+            </div>
+        </form>
+
+        @if (topicCount == 0)
+        {
+            <div class="tx-empty">
+                <div class="tx-empty-glyph" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="24" cy="24" r="14"/><path d="M24 16v16M16 24h16"/></svg>
+                </div>
+                <p class="tx-empty-title">@T["tax.empty_topics"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="tx-rows" id="topicList">
+                @foreach (var t in Model.Topics!)
+                {
+                    <article class="tx-row" data-name="@t.Name.ToLowerInvariant()">
+                        <div class="tx-row-main">
+                            <div class="tx-row-text">
+                                <div class="tx-row-name" dir="auto">@t.Name</div>
+                                <div class="tx-row-meta">
+                                    <span class="ltr-field">@t.Slug</span>
+                                    <span class="tx-dot">·</span>
+                                    <span class="ltr-field">@string.Format(T["tax.items_n"].ToString(), t.ItemCount)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tx-row-actions">
+                            <a class="tx-act" asp-controller="Taxonomy" asp-action="EditTopic" asp-route-id="@t.Id">@T["tax.btn_edit"]</a>
+                            <a class="tx-act" href="/topic/@t.Slug">@T["tax.btn_public"]</a>
+                            <form asp-controller="Taxonomy" asp-action="DeleteTopic" method="post"
+                                  onsubmit="return confirm('@T["tax.confirm_delete_topic"]');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@t.Id" />
+                                <button type="submit" class="tx-act tx-act-danger">@T["tax.btn_delete"]</button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+            <p class="tx-no-match" id="topicNoMatch" hidden>@T["tax.empty_topics"]</p>
+        }
+    </div>
 </section>
 
 <link rel="stylesheet" href="~/css/taxonomy-admin.css" asp-append-version="true" />
