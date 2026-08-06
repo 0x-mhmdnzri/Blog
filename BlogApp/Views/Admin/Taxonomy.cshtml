@@ -56,7 +56,7 @@
     <button type="button" class="tx-seg-item" role="tab" aria-selected="false" data-tx-tab="topics">@T["tax.tab_topics"]</button>
 </nav>
 
-@await Html.PartialAsync("_FoldersPanel", Model)
+@await Html.PartialAsync("~/Views/Shared/_FoldersPanel.cshtml", Model)
 
 @* Categories *@
 <section class="tx-panel" id="tx-cats" role="tabpanel" data-panel="cats" hidden>
