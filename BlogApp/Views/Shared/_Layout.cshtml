@@ -7,11 +7,18 @@
     var pageTitle = ViewData["Title"] as string;
     var fullTitle = pageTitle != null ? $"{pageTitle} · {Seo.SiteName}" : $"{Seo.SiteName} — {Seo.SiteDescription}";
     var description = ViewData["Description"] as string ?? Seo.SiteDescription;
+    var keywords = ViewData["Keywords"] as string;
     var currentUrl = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
     var canonicalUrl = ViewData["Canonical"] as string ?? currentUrl;
     var ogType = ViewData["OgType"] as string ?? "website";
     var ogImage = ViewData["OgImage"] as string;
+    var ogImageAlt = ViewData["OgImageAlt"] as string ?? pageTitle ?? Seo.SiteName;
     var noIndex = ViewData["NoIndex"] as bool? ?? false;
+    var pageAuthor = ViewData["Author"] as string ?? Seo.AuthorName;
+    var articlePublished = ViewData["ArticlePublished"] as string;
+    var articleModified = ViewData["ArticleModified"] as string;
+    var articleSection = ViewData["ArticleSection"] as string;
+    var articleTags = ViewData["ArticleTags"] as string[] ?? Array.Empty<string>();
     var isStaff = User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin);
     var isReader = User.IsInRole(AppRoles.Reader) || isStaff;
     var isAuth = User.Identity?.IsAuthenticated == true;
@@ -23,6 +30,10 @@
     var locale = culture.Locale;
 
     var hreflang = ViewBag.HreflangLinks as IEnumerable<dynamic>;
+
+    var robotsContent = noIndex
+        ? "noindex, nofollow"
+        : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 
     var ctrl = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLowerInvariant();
     var act = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLowerInvariant();
@@ -47,11 +58,18 @@
     <title>@fullTitle</title>
     <link rel="icon" type="image/x-icon" href="~/favicon.ico">
     <meta name="description" content="@description" />
-    <meta name="author" content="@Seo.AuthorName" />
-    <meta name="robots" content="@(noIndex ? "noindex, nofollow" : "index, follow")" />
+    @if (!string.IsNullOrWhiteSpace(keywords))
+    {
+        <meta name="keywords" content="@keywords" />
+    }
+    <meta name="author" content="@pageAuthor" />
+    <meta name="robots" content="@robotsContent" />
+    <meta name="googlebot" content="@robotsContent" />
+    <meta name="bingbot" content="@robotsContent" />
     <link rel="canonical" href="@canonicalUrl" />
     <meta name="theme-color" content="#0b0e14" id="meta-theme-color" />
     <meta name="color-scheme" content="dark light" />
+    <link rel="alternate" type="application/rss+xml" title="@Seo.SiteName RSS" href="/feed.xml" />
 
     @if (hreflang != null)
     {
@@ -71,6 +89,34 @@
     @if (!string.IsNullOrEmpty(ogImage))
     {
         <meta property="og:image" content="@ogImage" />
+        <meta property="og:image:secure_url" content="@ogImage" />
+        <meta property="og:image:alt" content="@ogImageAlt" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/png" />
+    }
+    @if (string.Equals(ogType, "article", StringComparison.OrdinalIgnoreCase))
+    {
+        if (!string.IsNullOrEmpty(articlePublished))
+        {
+            <meta property="article:published_time" content="@articlePublished" />
+        }
+        if (!string.IsNullOrEmpty(articleModified))
+        {
+            <meta property="article:modified_time" content="@articleModified" />
+        }
+        if (!string.IsNullOrWhiteSpace(pageAuthor))
+        {
+            <meta property="article:author" content="@pageAuthor" />
+        }
+        if (!string.IsNullOrWhiteSpace(articleSection))
+        {
+            <meta property="article:section" content="@articleSection" />
+        }
+        foreach (var tag in articleTags)
+        {
+            <meta property="article:tag" content="@tag" />
+        }
     }
 
     <meta name="twitter:card" content="@(string.IsNullOrEmpty(ogImage) ? "summary" : "summary_large_image")" />
@@ -79,10 +125,21 @@
     @if (!string.IsNullOrEmpty(Seo.TwitterHandle))
     {
         <meta name="twitter:site" content="@Seo.TwitterHandle" />
+        <meta name="twitter:creator" content="@Seo.TwitterHandle" />
     }
     @if (!string.IsNullOrEmpty(ogImage))
     {
         <meta name="twitter:image" content="@ogImage" />
+        <meta name="twitter:image:alt" content="@ogImageAlt" />
+    }
+
+    @if (ViewBag.WebsiteJsonLd is string websiteLd && !string.IsNullOrWhiteSpace(websiteLd))
+    {
+        <script type="application/ld+json">@Html.Raw(websiteLd)</script>
+    }
+    @if (ViewBag.PersonJsonLd is string personLd && !string.IsNullOrWhiteSpace(personLd))
+    {
+        <script type="application/ld+json">@Html.Raw(personLd)</script>
     }
 
     <script>
@@ -216,7 +273,6 @@
         </nav>
     </header>
 
-    @* Drawer must NOT live inside .site-header — header backdrop-filter creates a containing block that clips fixed children to the bar height. *@
     <div class="site-nav-drawer" id="siteNavDrawer" aria-hidden="true">
         <div class="site-nav-drawer-backdrop" data-nav-drawer-close></div>
         <div class="site-nav-drawer-panel" role="dialog" aria-modal="true" aria-label="@T["nav.menu"]">
