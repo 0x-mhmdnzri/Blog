@@ -26,10 +26,11 @@ public sealed class OgCardController : Controller
         _users = users;
     }
 
+    /// <summary>Post share card — title, summary, views, likes, read time, date.</summary>
     [HttpGet("post/{id:int}.png")]
     [HttpGet("post/{id:int}")]
-    [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "v" })]
-    public async Task<IActionResult> PostCard(int id, CancellationToken ct)
+    [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "v", "force" })]
+    public async Task<IActionResult> PostCard(int id, bool force = false, CancellationToken ct = default)
     {
         var post = await _db.Posts.AsNoTracking()
             .Include(p => p.Author)
@@ -37,13 +38,17 @@ public sealed class OgCardController : Controller
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted && p.IsPublished, ct);
         if (post is null) return NotFound();
 
+        if (force)
+            await _cards.InvalidatePostAsync(post.Id, ct);
+
         var png = await _cards.GetOrCreatePngAsync(post, ct);
         if (png is null || png.Length == 0) return NotFound();
 
-        Response.Headers.CacheControl = "public, max-age=86400";
+        Response.Headers.CacheControl = force ? "no-store" : "public, max-age=86400";
         return File(png, "image/png");
     }
 
+    /// <summary>Default site OG card for home / generic pages.</summary>
     [HttpGet("site.png")]
     [HttpGet("site")]
     [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "v" })]
@@ -55,6 +60,7 @@ public sealed class OgCardController : Controller
         return File(png, "image/png");
     }
 
+    /// <summary>Author profile share card — posts, followers, total views.</summary>
     [HttpGet("author/{userId}.png")]
     [HttpGet("author/{userId}")]
     [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "v" })]

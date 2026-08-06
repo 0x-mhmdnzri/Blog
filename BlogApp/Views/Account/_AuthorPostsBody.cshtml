@@ -34,7 +34,7 @@
             @foreach (var p in Model.Posts)
             {
                 var lang = string.IsNullOrEmpty(p.LanguageCode) ? "fa" : p.LanguageCode;
-                var abs = $"{Context.Request.Scheme}://{Context.Request.Host}/iv/{lang}/{p.Slug}";
+                var absIv = $"{Context.Request.Scheme}://{Context.Request.Host}/iv/{lang}/{p.Slug}";
                 <div class="col-12 col-sm-6 col-lg-4">
                     <article class="author-post-card">
                         <a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug"
@@ -73,7 +73,8 @@
                         </a>
                         <div class="author-post-actions">
                             <a class="author-iv-link" href="/iv/@lang/@p.Slug" target="_blank" rel="noopener">IV</a>
-                            <a class="author-iv-link" href="https://t.me/share/url?url=@Uri.EscapeDataString(abs)&amp;text=@Uri.EscapeDataString(p.Title)"
+                            <a class="author-iv-link"
+                               href="https://t.me/share/url?url=@Uri.EscapeDataString(absIv)&amp;text=@Uri.EscapeDataString(p.Title)"
                                target="_blank" rel="noopener">Telegram</a>
                         </div>
                     </article>
