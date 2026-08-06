@@ -1,0 +1,48 @@
+namespace BlogApp.Services;
+
+public static partial class UiTranslationCatalog
+{
+    public static readonly (string Key, string Group, string Fa, string En, string Ar)[] TaxonomyFolders =
+    {
+        ("tax.tab_folders", "tax", "پوشه‌ها", "Folders", "المجلدات"),
+        ("tax.folders_heading", "tax", "پوشه‌های نوشته", "Post folders", "مجلدات المقالات"),
+        ("tax.folders_desc", "tax", "مانند Finder — پوشه بسازید و نوشته‌ها را داخل آن مرتب کنید.", "Like Finder — create folders and organize posts inside them.", "مثل Finder — أنشئ مجلدات ونظّم المقالات داخلها."),
+        ("tax.label_folder_name", "tax", "نام پوشه", "Folder name", "اسم المجلد"),
+        ("tax.ph_folder_name", "tax", "مثلاً پیش‌نویس‌ها", "e.g. Drafts", "مثل المسودات"),
+        ("tax.label_folder_color", "tax", "رنگ", "Color", "اللون"),
+        ("tax.color_blue", "tax", "آبی", "Blue", "أزرق"),
+        ("tax.color_yellow", "tax", "زرد", "Yellow", "أصفر"),
+        ("tax.color_red", "tax", "قرمز", "Red", "أحمر"),
+        ("tax.color_green", "tax", "سبز", "Green", "أخضر"),
+        ("tax.color_purple", "tax", "بنفش", "Purple", "بنفسجي"),
+        ("tax.color_orange", "tax", "نارنجی", "Orange", "برتقالي"),
+        ("tax.color_gray", "tax", "خاکستری", "Gray", "رمادي"),
+        ("tax.btn_create_folder", "tax", "ساخت پوشه", "Create folder", "إنشاء مجلد"),
+        ("tax.empty_folders", "tax", "هنوز پوشه‌ای نیست", "No folders yet", "لا مجلدات بعد"),
+        ("tax.empty_folders_hint", "tax", "اولین پوشه را بسازید تا نوشته‌ها را گروه‌بندی کنید.", "Create the first folder to group posts.", "أنشئ أول مجلد لتجميع المقالات."),
+        ("tax.confirm_delete_folder", "tax", "این پوشه حذف شود؟ نوشته‌ها پاک نمی‌شوند.", "Delete this folder? Posts are not deleted.", "حذف هذا المجلد؟ المقالات لا تُحذف."),
+        ("tax.msg_folder_added", "tax", "پوشه ساخته شد.", "Folder created.", "تم إنشاء المجلد."),
+        ("tax.msg_folder_deleted", "tax", "پوشه حذف شد.", "Folder deleted.", "تم حذف المجلد."),
+        ("tax.msg_folder_has_children", "tax", "ابتدا زیرپوشه‌ها را حذف کنید.", "Delete subfolders first.", "احذف المجلدات الفرعية أولاً."),
+        ("tax.msg_post_added_folder", "tax", "نوشته به پوشه اضافه شد.", "Post added to folder.", "أُضيفت المقالة إلى المجلد."),
+        ("tax.msg_post_removed_folder", "tax", "نوشته از پوشه خارج شد.", "Post removed from folder.", "أُزيلت المقالة من المجلد."),
+        ("tax.back_folders", "tax", "بازگشت به پوشه‌ها", "Back to folders", "العودة إلى المجلدات"),
+        ("tax.folder_posts", "tax", "نوشته", "posts", "مقالات"),
+        ("tax.folder_search", "tax", "جستجو در پوشه…", "Search in folder…", "بحث في المجلد…"),
+        ("tax.filter_all_cats", "tax", "همه دسته‌ها", "All categories", "كل التصنيفات"),
+        ("tax.filter_all_tags", "tax", "همه برچسب‌ها", "All tags", "كل الوسوم"),
+        ("tax.sort_updated", "tax", "جدیدترین ویرایش", "Recently updated", "آخر تحديث"),
+        ("tax.sort_published", "tax", "تاریخ انتشار", "Publish date", "تاريخ النشر"),
+        ("tax.sort_title", "tax", "عنوان", "Title", "العنوان"),
+        ("tax.sort_oldest", "tax", "قدیمی‌ترین", "Oldest", "الأقدم"),
+        ("tax.apply", "tax", "اعمال", "Apply", "تطبيق"),
+        ("tax.folder_empty", "tax", "این پوشه خالی است", "This folder is empty", "هذا المجلد فارغ"),
+        ("tax.folder_empty_hint", "tax", "از ستون کنار، نوشته اضافه کنید.", "Add a post from the side panel.", "أضف مقالة من اللوحة الجانبية."),
+        ("tax.add_to_folder", "tax", "افزودن نوشته", "Add post", "إضافة مقالة"),
+        ("tax.no_posts_to_add", "tax", "نوشته‌ای برای افزودن نیست.", "No posts available to add.", "لا مقالات للإضافة."),
+        ("tax.pick_post", "tax", "انتخاب نوشته…", "Choose a post…", "اختر مقالة…"),
+        ("tax.add_post", "tax", "افزودن به پوشه", "Add to folder", "إضافة إلى المجلد"),
+        ("tax.remove_from_folder", "tax", "خارج کردن", "Remove", "إزالة"),
+        ("tax.draft", "tax", "پیش‌نویس", "Draft", "مسودة"),
+    };
+}
