@@ -50,7 +50,6 @@ public class MarkdownService
     private static readonly Regex VideoEmbedPlainRegex =
         new(@"<p>\[\[VIDEO_EMBED_(\d+)\]\]</p>", RegexOptions.Compiled);
 
-    // Fixed: in verbatim strings, escape " as "" not \"
     private static readonly Regex AttrLoadingRegex =
         new(@"\s*loading\s*=\s*[""'][^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -102,6 +101,7 @@ public class MarkdownService
         });
         var html = Markdown.ToHtml(withVideos, _pipeline);
 
+        // Code blocks always LTR (source code)
         html = PreHtmlRegex.Replace(html, m =>
         {
             var attrs = m.Groups[1].Success ? m.Groups[1].Value : "";
@@ -121,6 +121,7 @@ public class MarkdownService
             return "<code" + attrs + ">";
         });
 
+        // Prose: FA/AR → RTL, Latin → LTR
         html = ParagraphHtmlRegex.Replace(html, m =>
         {
             var inner = m.Groups[2].Value;
@@ -233,6 +234,10 @@ public class MarkdownService
         return Math.Max(1, (int)Math.Ceiling(words / 200.0));
     }
 
+    /// <summary>
+    /// Hierarchical TOC matching post-toc.css / post-toc.js
+    /// (data-toc, toc-toggle, toc-body, toc-list, toc-link, toc-depth-N).
+    /// </summary>
     public string GenerateTableOfContents(string markdown, string cssClass = "post-toc", string? cultureCode = null)
     {
         var headings = new List<(int Level, string Text, string Dir)>();
@@ -241,41 +246,48 @@ public class MarkdownService
             var level = m.Groups[1].Value.Length;
             var text = m.Groups[2].Value.Trim();
             if (string.IsNullOrEmpty(text)) continue;
+            // Strip inline markdown noise for TOC labels
+            text = Regex.Replace(text, @"[`*_~]+", "");
+            if (string.IsNullOrWhiteSpace(text)) continue;
             headings.Add((level, text, DetectDir(text)));
         }
         if (headings.Count < 2) return string.Empty;
 
-        var title = cultureCode is "en" ? "On this page" : cultureCode is "ar" ? "في هذه الصفحة" : "در این صفحه";
-        var closeLabel = cultureCode is "en" ? "Toggle" : "بستن";
+        var minLevel = headings.Min(h => h.Level);
+        var title = cultureCode is "en" ? "On this page"
+            : cultureCode is "ar" ? "في هذه الصفحة"
+            : "در این صفحه";
+        var openLabel = cultureCode is "en" ? "Expand table of contents"
+            : cultureCode is "ar" ? "فتح الفهرس"
+            : "باز کردن فهرست";
+        var closeLabel = cultureCode is "en" ? "Collapse table of contents"
+            : cultureCode is "ar" ? "إغلاق الفهرس"
+            : "بستن فهرست";
         var tocDir = cultureCode is "fa" or "ar" ? "rtl" : "ltr";
 
         var sb = new StringBuilder();
-        sb.Append($"<nav class=\"{cssClass}\" dir=\"{tocDir}\" aria-label=\"{title}\">");
-        sb.Append($"<div class=\"post-toc-head\"><span class=\"post-toc-title\">{title}</span>");
-        sb.Append($"<button type=\"button\" class=\"post-toc-toggle\" aria-expanded=\"true\" aria-label=\"{closeLabel}\" data-toc-toggle></button></div>");
-        sb.Append("<ol class=\"post-toc-list\">");
-        var prev = 0;
+        sb.Append($"<nav class=\"{cssClass}\" dir=\"{tocDir}\" aria-label=\"{title}\" data-toc>");
+        sb.Append("<button type=\"button\" class=\"toc-toggle\" aria-expanded=\"true\"");
+        sb.Append($" aria-label=\"{closeLabel}\" data-toc-toggle data-label-open=\"{openLabel}\" data-label-close=\"{closeLabel}\">");
+        sb.Append("<span class=\"toc-toggle-chevron\" aria-hidden=\"true\"></span>");
+        sb.Append($"<span class=\"toc-title\">{title}</span>");
+        sb.Append($"<span class=\"toc-count\">{headings.Count}</span>");
+        sb.Append("</button>");
+        sb.Append("<div class=\"toc-body\">");
+
+        // Flat list with depth classes (simpler + more reliable than nested <ol>)
+        sb.Append("<ul class=\"toc-list\">");
         foreach (var (level, text, dir) in headings)
         {
+            var depth = Math.Max(0, level - minLevel);
+            if (depth > 3) depth = 3;
             var slug = SoftSlug(text);
-            if (prev > 0 && level > prev)
-            {
-                for (var i = prev; i < level; i++) sb.Append("<ol>");
-            }
-            else if (prev > 0 && level < prev)
-            {
-                for (var i = level; i < prev; i++) sb.Append("</ol></li>");
-            }
-            else if (prev > 0)
-            {
-                sb.Append("</li>");
-            }
-            sb.Append($"<li><a href=\"#{slug}\" dir=\"{dir}\">{System.Net.WebUtility.HtmlEncode(text)}</a>");
-            prev = level;
+            var encoded = System.Net.WebUtility.HtmlEncode(text);
+            sb.Append($"<li class=\"toc-item toc-depth-{depth}\">");
+            sb.Append($"<a class=\"toc-link\" href=\"#{slug}\" dir=\"{dir}\">{encoded}</a>");
+            sb.Append("</li>");
         }
-        while (prev > 1) { sb.Append("</li></ol>"); prev--; }
-        if (prev > 0) sb.Append("</li>");
-        sb.Append("</ol></nav>");
+        sb.Append("</ul></div></nav>");
         return sb.ToString();
     }
 
@@ -327,12 +339,6 @@ public class MarkdownService
         if (rtl == 0 && ltr == 0) return "auto";
         return rtl >= ltr ? "rtl" : "ltr";
     }
-
-    private static bool IsSymbol(char ch) =>
-        char.GetUnicodeCategory(ch) is UnicodeCategory.MathSymbol
-            or UnicodeCategory.CurrencySymbol
-            or UnicodeCategory.ModifierSymbol
-            or UnicodeCategory.OtherSymbol;
 
     private static string StripTags(string html) =>
         string.IsNullOrEmpty(html) ? string.Empty : Regex.Replace(html, "<[^>]+>", string.Empty);
