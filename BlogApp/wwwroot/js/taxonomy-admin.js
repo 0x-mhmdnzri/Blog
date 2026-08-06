@@ -29,11 +29,11 @@
   }
   activate(initial);
 
-  function bindSearch(inputId, itemSelector, emptyId) {
+  function bindSearch(inputId, itemSelector, emptyId, countId) {
     var input = document.getElementById(inputId);
     if (!input) return;
     var empty = emptyId ? document.getElementById(emptyId) : null;
-    var countLabel = document.getElementById('folderCountLabel');
+    var countLabel = countId ? document.getElementById(countId) : null;
     input.addEventListener('input', function () {
       var q = (input.value || '').trim().toLowerCase();
       var visible = 0;
@@ -47,11 +47,13 @@
       if (countLabel) countLabel.textContent = String(visible);
     });
   }
-  bindSearch('catSearch', '#catTree .tx-tree-item');
-  bindSearch('tagSearch', '#tagCloud .tx-tag');
-  bindSearch('folderSearch', '#folderGrid .ff-card', 'folderNoMatch');
 
-  // Color swatch selection chrome
+  bindSearch('folderSearch', '#folderGrid .ff-card', 'folderNoMatch', 'folderCountLabel');
+  bindSearch('catSearch', '#catTree .tx-row', 'catNoMatch', 'catCountLabel');
+  bindSearch('tagSearch', '#tagCloud .tx-chip', 'tagNoMatch', 'tagCountLabel');
+  bindSearch('seriesSearch', '#seriesList .tx-row', 'seriesNoMatch', 'seriesCountLabel');
+  bindSearch('topicSearch', '#topicList .tx-row', 'topicNoMatch', 'topicCountLabel');
+
   document.querySelectorAll('.ff-swatches').forEach(function (group) {
     group.addEventListener('change', function (e) {
       var t = e.target;
