@@ -8,8 +8,7 @@ namespace BlogApp.Controllers;
 
 public partial class AdminController
 {
-    [HttpGet]
-    [HttpGet("/Blogs")]
+    /// <summary>Conventional route: /Admin/Posts. Finder UI is page-local (Layout=null).</summary>
     public async Task<IActionResult> Posts(string? scope = null, int? folderId = null, int? categoryId = null, int? tagId = null, string? q = null, string? sort = null)
     {
         ViewBag.ShowAuthorColumn = AuthorAccess.CanManageAllPosts(User);
@@ -122,8 +121,14 @@ public partial class AdminController
             Categories = categories,
             Tags = tags
         };
-        return View(vm);
+        return View("Posts", vm);
     }
+
+    /// <summary>Attribute-only aliases — must not share attributes with conventional Posts.</summary>
+    [HttpGet("/Blogs")]
+    [HttpGet("/Blog")]
+    public Task<IActionResult> Blogs(string? scope = null, int? folderId = null, int? categoryId = null, int? tagId = null, string? q = null, string? sort = null)
+        => Posts(scope, folderId, categoryId, tagId, q, sort);
 
     [HttpGet]
     public async Task<IActionResult> PostsData()
