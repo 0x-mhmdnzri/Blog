@@ -63,11 +63,7 @@ public class CategoryTreeItem
     public int PostCount { get; set; }
 }
 
-public class CategoryOption
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-}
+// CategoryOption is defined in PostEditViewModel.cs (shared)
 
 public class TagAdminItem
 {
