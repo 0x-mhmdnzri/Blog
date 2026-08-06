@@ -1,0 +1,116 @@
+@model BlogApp.Models.ViewModels.PublicAuthorProfileViewModel
+@{
+    string UrlWith(string? folder = null, string? category = null, string? tag = null, string? series = null, string? topic = null, string? sort = null, string? q = null)
+    {
+        var f = folder ?? Model.Folder;
+        var c = category ?? Model.Category;
+        var t = tag ?? Model.Tag;
+        var s = series ?? Model.Series;
+        var tp = topic ?? Model.Topic;
+        var so = sort ?? Model.Sort;
+        var qq = q ?? Model.Q;
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(qq)) parts.Add("q=" + Uri.EscapeDataString(qq));
+        if (!string.IsNullOrWhiteSpace(so) && so != "newest") parts.Add("sort=" + Uri.EscapeDataString(so));
+        if (!string.IsNullOrWhiteSpace(f)) parts.Add("folder=" + Uri.EscapeDataString(f));
+        if (!string.IsNullOrWhiteSpace(c)) parts.Add("category=" + Uri.EscapeDataString(c));
+        if (!string.IsNullOrWhiteSpace(t)) parts.Add("tag=" + Uri.EscapeDataString(t));
+        if (!string.IsNullOrWhiteSpace(s)) parts.Add("series=" + Uri.EscapeDataString(s));
+        if (!string.IsNullOrWhiteSpace(tp)) parts.Add("topic=" + Uri.EscapeDataString(tp));
+        var qs = parts.Count > 0 ? "?" + string.Join("&", parts) : "";
+        return "/author/" + Uri.EscapeDataString(Model.UserName) + qs;
+    }
+}
+<link rel="stylesheet" href="~/css/author-filters.css" asp-append-version="true" />
+
+<form method="get" action="/author/@Model.UserName" class="af-bar" id="authorFilters">
+    <div class="af-row">
+        <input type="search" name="q" value="@Model.Q" class="af-search" placeholder="جستجو در نوشته‌ها…" dir="auto" />
+        <select name="sort" class="af-select" onchange="this.form.submit()">
+            <option value="newest" selected="@(Model.Sort == "newest")">جدیدترین</option>
+            <option value="oldest" selected="@(Model.Sort == "oldest")">قدیمی‌ترین</option>
+            <option value="popular" selected="@(Model.Sort == "popular")">محبوب</option>
+            <option value="title" selected="@(Model.Sort == "title")">عنوان</option>
+            <option value="read" selected="@(Model.Sort == "read")">زمان مطالعه</option>
+        </select>
+        <div class="af-actions">
+            <button type="submit" class="btn btn-accent btn-sm">اعمال</button>
+            @if (Model.HasActiveFilter)
+            {
+                <a class="btn btn-ghost btn-sm" href="/author/@Model.UserName">پاک کردن</a>
+            }
+        </div>
+    </div>
+
+    @if (Model.Folders.Count > 0)
+    {
+        <div class="af-row af-pills" id="folders">
+            <span class="af-label">Folders</span>
+            <a class="af-pill @(string.IsNullOrEmpty(Model.Folder) ? "is-active" : null)" href="@UrlWith(folder: "")">همه</a>
+            @foreach (var f in Model.Folders)
+            {
+                <a class="af-pill @(string.Equals(Model.Folder, f.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                   href="@UrlWith(folder: f.Slug)">@f.Name <span class="n">@f.Count</span></a>
+            }
+        </div>
+    }
+    @if (Model.Categories.Count > 0)
+    {
+        <div class="af-row af-pills" id="cats">
+            <span class="af-label">Cats</span>
+            <a class="af-pill @(string.IsNullOrEmpty(Model.Category) ? "is-active" : null)" href="@UrlWith(category: "")">همه</a>
+            @foreach (var c in Model.Categories)
+            {
+                <a class="af-pill @(string.Equals(Model.Category, c.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                   href="@UrlWith(category: c.Slug)">@c.Name <span class="n">@c.Count</span></a>
+            }
+        </div>
+    }
+    @if (Model.Tags.Count > 0)
+    {
+        <div class="af-row af-pills" id="tags">
+            <span class="af-label">Tags</span>
+            <a class="af-pill @(string.IsNullOrEmpty(Model.Tag) ? "is-active" : null)" href="@UrlWith(tag: "")">همه</a>
+            @foreach (var t in Model.Tags)
+            {
+                <a class="af-pill @(string.Equals(Model.Tag, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                   href="@UrlWith(tag: t.Slug)">@t.Name <span class="n">@t.Count</span></a>
+            }
+        </div>
+    }
+    @if (Model.SeriesList.Count > 0)
+    {
+        <div class="af-row af-pills" id="series">
+            <span class="af-label">Series</span>
+            <a class="af-pill @(string.IsNullOrEmpty(Model.Series) ? "is-active" : null)" href="@UrlWith(series: "")">همه</a>
+            @foreach (var s in Model.SeriesList)
+            {
+                <a class="af-pill @(string.Equals(Model.Series, s.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                   href="@UrlWith(series: s.Slug)">@s.Name <span class="n">@s.Count</span></a>
+            }
+        </div>
+    }
+    @if (Model.Topics.Count > 0)
+    {
+        <div class="af-row af-pills" id="topics">
+            <span class="af-label">Topics</span>
+            <a class="af-pill @(string.IsNullOrEmpty(Model.Topic) ? "is-active" : null)" href="@UrlWith(topic: "")">همه</a>
+            @foreach (var t in Model.Topics)
+            {
+                <a class="af-pill @(string.Equals(Model.Topic, t.Slug, StringComparison.OrdinalIgnoreCase) ? "is-active" : null)"
+                   href="@UrlWith(topic: t.Slug)">@t.Name</a>
+            }
+        </div>
+    }
+
+    <div class="af-meta ltr-field">
+        @Model.FilteredCount / @Model.PostCount
+    </div>
+
+    @* preserve active taxonomy filters when searching *@
+    @if (!string.IsNullOrEmpty(Model.Folder)) { <input type="hidden" name="folder" value="@Model.Folder" /> }
+    @if (!string.IsNullOrEmpty(Model.Category)) { <input type="hidden" name="category" value="@Model.Category" /> }
+    @if (!string.IsNullOrEmpty(Model.Tag)) { <input type="hidden" name="tag" value="@Model.Tag" /> }
+    @if (!string.IsNullOrEmpty(Model.Series)) { <input type="hidden" name="series" value="@Model.Series" /> }
+    @if (!string.IsNullOrEmpty(Model.Topic)) { <input type="hidden" name="topic" value="@Model.Topic" /> }
+</form>

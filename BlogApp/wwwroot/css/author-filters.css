@@ -1,0 +1,99 @@
+/* Author profile post filters */
+.af-bar {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: .9rem 1rem;
+  margin-bottom: 1.15rem;
+}
+.af-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+  margin-bottom: .65rem;
+}
+.af-row:last-child { margin-bottom: 0; }
+.af-search {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: .42rem .75rem;
+  color: var(--text);
+  font-size: .86rem;
+  font-family: inherit;
+}
+.af-select {
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: .4rem .65rem;
+  color: var(--text);
+  font-size: .84rem;
+  font-family: inherit;
+  max-width: 11rem;
+}
+.af-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  align-items: center;
+}
+.af-label {
+  font-size: .72rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  margin-inline-end: .15rem;
+}
+.af-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .28rem .65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: .78rem;
+  text-decoration: none !important;
+  transition: border-color .12s, background .12s, color .12s;
+}
+.af-pill:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-soft));
+}
+.af-pill.is-active {
+  color: var(--accent);
+  font-weight: 650;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-soft));
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+.af-pill .n {
+  font-size: .68rem;
+  opacity: .7;
+  direction: ltr;
+}
+.af-actions {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+.af-meta {
+  font-size: .78rem;
+  color: var(--text-faint);
+  margin-top: .55rem;
+}
+.author-post-actions {
+  display: flex;
+  gap: .4rem;
+  margin-top: .55rem;
+  flex-wrap: wrap;
+}
+.author-iv-link {
+  font-size: .72rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+.author-iv-link:hover { text-decoration: underline; }
