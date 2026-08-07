@@ -6,8 +6,10 @@ using BlogApp.Models.ViewModels;
 using BlogApp.Services;
 using BlogApp.Services.Analytics;
 using BlogApp.Services.Messaging;
+using BlogApp.Services.Seo;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Controllers;
@@ -15,12 +17,17 @@ namespace BlogApp.Controllers;
 public partial class PostsController
 {
     [HttpGet("post/{slug}")]
+    [OutputCache(PolicyName = "post")]
     public async Task<IActionResult> Details(string slug, string? sort = null)
     {
         if (string.IsNullOrWhiteSpace(slug) || slug.Length > 220)
             return NotFound();
 
-        await ApplyScheduledAndExpirationAsync();
+        // P0.2: scheduling is handled by ContentScheduleHostedService; skip on crawler hits
+        var ua = HttpContext.Request.Headers.UserAgent.ToString();
+        var isBot = BotDetector.TryMatch(ua, out _);
+        if (!isBot)
+            await ApplyScheduledAndExpirationAsync();
         var lang = _culture.CurrentCode;
 
         var post = await _db.Posts.Include(p => p.Category).Include(p => p.Author)
