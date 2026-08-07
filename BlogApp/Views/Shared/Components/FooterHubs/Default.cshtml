@@ -1,0 +1,43 @@
+@model BlogApp.ViewComponents.FooterHubsModel
+@if (Model.Categories.Count == 0 && Model.Series.Count == 0 && Model.Authors.Count == 0)
+{
+    return;
+}
+<div class="footer-hubs">
+    @if (Model.Categories.Count > 0)
+    {
+        <div class="footer-hub">
+            <div class="footer-hub-label">Categories</div>
+            <div class="footer-hub-links">
+                @foreach (var c in Model.Categories)
+                {
+                    <a href="@c.Url" dir="auto">@c.Name</a>
+                }
+            </div>
+        </div>
+    }
+    @if (Model.Series.Count > 0)
+    {
+        <div class="footer-hub">
+            <div class="footer-hub-label">Series</div>
+            <div class="footer-hub-links">
+                @foreach (var s in Model.Series)
+                {
+                    <a href="@s.Url" dir="auto">@s.Name</a>
+                }
+            </div>
+        </div>
+    }
+    @if (Model.Authors.Count > 0)
+    {
+        <div class="footer-hub">
+            <div class="footer-hub-label">Authors</div>
+            <div class="footer-hub-links">
+                @foreach (var a in Model.Authors)
+                {
+                    <a href="@a.Url" class="ltr-field">@a.Name</a>
+                }
+            </div>
+        </div>
+    }
+</div>
