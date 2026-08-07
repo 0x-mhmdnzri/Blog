@@ -1,0 +1,47 @@
+@if (!isSuper)
+{
+    <div class="st-alert st-alert-info">@T["seo.meta_super_only"]</div>
+}
+
+<form asp-action="SeoSaveMeta" method="post" class="st-card st-form">
+    @Html.AntiForgeryToken()
+    <div class="st-card-head">
+        <h2 class="st-card-title">@T["seo.tab_meta"]</h2>
+        <p class="st-card-desc">نام سایت، توضیح پیش‌فرض، Twitter و robots.txt</p>
+    </div>
+
+    <div class="st-fields st-fields-2">
+        <div class="st-field">
+            <label class="st-label">@T["seo.site_name"]</label>
+            <input class="form-control" name="SiteName" value="@Model.Meta.SiteName" maxlength="120" @(isSuper ? null : "disabled") />
+        </div>
+        <div class="st-field">
+            <label class="st-label">@T["seo.author_name"]</label>
+            <input class="form-control" name="AuthorName" value="@Model.Meta.AuthorName" maxlength="120" @(isSuper ? null : "disabled") />
+        </div>
+        <div class="st-field st-field-full">
+            <label class="st-label">@T["seo.site_desc"]</label>
+            <textarea class="form-control" name="SiteDescription" rows="2" maxlength="400" @(isSuper ? null : "disabled")>@Model.Meta.SiteDescription</textarea>
+        </div>
+        <div class="st-field">
+            <label class="st-label">@T["seo.twitter"]</label>
+            <input class="form-control ltr-field" name="TwitterHandle" value="@Model.Meta.TwitterHandle" placeholder="@@site" maxlength="80" @(isSuper ? null : "disabled") />
+        </div>
+        <div class="st-field">
+            <label class="st-label">@T["seo.base_url"]</label>
+            <input class="form-control ltr-field" name="BaseUrl" value="@Model.Meta.BaseUrl" placeholder="https://example.com" maxlength="200" @(isSuper ? null : "disabled") />
+        </div>
+        <div class="st-field st-field-full">
+            <label class="st-label">@T["seo.robots_custom"]</label>
+            <textarea class="form-control ltr-field st-mono" name="RobotsTxt" rows="8" maxlength="4000" placeholder="User-agent: *" @(isSuper ? null : "disabled")>@Model.Meta.RobotsTxt</textarea>
+            <p class="st-hint">@T["seo.robots_hint"]</p>
+        </div>
+    </div>
+
+    @if (isSuper)
+    {
+        <div class="st-form-foot">
+            <button type="submit" class="btn btn-accent">@T["seo.save_meta"]</button>
+        </div>
+    }
+</form>
