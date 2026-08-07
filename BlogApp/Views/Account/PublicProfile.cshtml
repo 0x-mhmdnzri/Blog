@@ -176,6 +176,8 @@
         </div>
     </header>
 
+    @await Html.PartialAsync("_AuthorContribution", Model)
+
     @await Html.PartialAsync("_AuthorPostsBody", Model)
 </section>
 
