@@ -1,0 +1,67 @@
+@{
+    var avgHealth = Model.PostHealth.Count > 0
+        ? (int)Math.Round(Model.PostHealth.Average(h => (double)h.Score))
+        : 0;
+    var healthyCount = Model.PostHealth.Count(h => h.Score >= 80);
+    var weakCount = Model.PostHealth.Count(h => h.Score < 50);
+}
+
+<div class="st-toolbar">
+    <p class="st-toolbar-text">@T["seo.health_hint"]</p>
+    @if (Model.PostHealth.Count > 0)
+    {
+        <div class="st-health-legend">
+            <span><i class="st-dot st-dot-good"></i> ≥80</span>
+            <span><i class="st-dot st-dot-mid"></i> 50–79</span>
+            <span><i class="st-dot st-dot-low"></i> <50</span>
+        </div>
+    }
+</div>
+
+@if (Model.PostHealth.Count == 0)
+{
+    <div class="st-empty">
+        <p class="st-empty-title">@T["seo.empty_health"]</p>
+    </div>
+}
+else
+{
+    <div class="st-kpis st-kpis-3 st-mb">
+        <div class="st-kpi">
+            <span class="st-kpi-label">میانگین</span>
+            <span class="st-kpi-val">@avgHealth</span>
+        </div>
+        <div class="st-kpi">
+            <span class="st-kpi-label">سالم</span>
+            <span class="st-kpi-val st-val-good">@healthyCount</span>
+        </div>
+        <div class="st-kpi">
+            <span class="st-kpi-label">ضعیف</span>
+            <span class="st-kpi-val st-val-bad">@weakCount</span>
+        </div>
+    </div>
+
+    <div class="st-filter-bar">
+        <input type="search" class="st-filter" id="healthFilter" placeholder="فیلتر عنوان…" autocomplete="off" />
+    </div>
+
+    <div class="st-health" id="healthList">
+        @foreach (var h in Model.PostHealth.OrderBy(x => x.Score))
+        {
+            var cls = h.Score >= 80 ? "good" : h.Score >= 50 ? "mid" : "low";
+            <article class="st-health-row" data-q="@h.Title.ToLowerInvariant()">
+                <div class="st-health-main">
+                    <a class="st-health-title" dir="auto" asp-controller="Posts" asp-action="Edit" asp-route-id="@h.Id">@h.Title</a>
+                    <div class="st-flags">
+                        <span class="st-flag @(h.HasSummary ? "on" : "")">@(h.HasSummary ? "✓" : "—") @T["seo.has_summary"]</span>
+                        <span class="st-flag @(h.HasCover ? "on" : "")">@(h.HasCover ? "✓" : "—") @T["seo.has_cover"]</span>
+                    </div>
+                </div>
+                <div class="st-score st-score-@cls">
+                    <div class="st-score-track"><i style="width:@h.Score%"></i></div>
+                    <span class="st-score-num ltr-field">@h.Score</span>
+                </div>
+            </article>
+        }
+    </div>
+}
