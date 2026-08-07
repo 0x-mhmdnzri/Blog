@@ -74,10 +74,20 @@ public class HomeController : Controller
                            || p.TranslationStatus == TranslationStatus.Approved)
                         : true);
 
+        // P1.1: unknown taxonomy slug → hard 404 (avoid soft-404 empty 200 pages)
         if (!string.IsNullOrWhiteSpace(category))
+        {
+            if (!categories.Any(c => string.Equals(c.Slug, category, StringComparison.OrdinalIgnoreCase)))
+                return NotFound();
             query = query.Where(p => p.Category != null && p.Category.Slug == category);
+        }
         if (!string.IsNullOrWhiteSpace(tag))
+        {
+            var tagExists = await _db.Tags.AsNoTracking().AnyAsync(t => t.Slug == tag);
+            if (!tagExists)
+                return NotFound();
             query = query.Where(p => p.PostTags.Any(pt => pt.Tag.Slug == tag));
+        }
         if (folderId is int fid && fid > 0)
             query = query.Where(p => _db.Set<PostFolderItem>().Any(i => i.FolderId == fid && i.PostId == p.Id));
         else if (string.IsNullOrWhiteSpace(q) && string.IsNullOrWhiteSpace(category) && string.IsNullOrWhiteSpace(tag))
