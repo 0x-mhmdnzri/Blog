@@ -184,7 +184,6 @@ public static class ClickDepthAnalyzer
             {
                 Id = p.Id,
                 Title = p.Title,
-                hardSlug = p.Slug,
                 Slug = p.Slug,
                 LanguageCode = p.LanguageCode,
                 Depth = -1,
@@ -194,18 +193,6 @@ public static class ClickDepthAnalyzer
             .OrderBy(x => x.ViewCount)
             .Take(50)
             .ToList();
-
-        // strip invalid hardSlug property if present in source — rebuild list
-        report.Unreachable = report.Unreachable.Select(x => new DeepPostItem
-        {
-            Id = x.Id,
-            Title = x.Title,
-            Slug = x.Slug,
-            LanguageCode = x.LanguageCode,
-            Depth = -1,
-            ViewCount = x.ViewCount,
-            CategoryName = x.CategoryName
-        }).ToList();
 
         report.Beyond4Count = report.Beyond4.Count;
         report.UnreachableCount = posts.Count(p => !depth.ContainsKey(p.Id));
