@@ -36,10 +36,6 @@ public class SeoController : Controller
         return $"{Request.Scheme}://{Request.Host}";
     }
 
-    /// <summary>
-    /// Paths that must never be crawled (admin, account, APIs, editors).
-    /// Shared by search bots and AI bots so crawl budget is not wasted.
-    /// </summary>
     private static void AppendPrivateDisallows(StringBuilder sb)
     {
         sb.AppendLine("Disallow: /Posts/Create");
@@ -161,7 +157,6 @@ public class SeoController : Controller
         return Content(sb.ToString(), "text/plain; charset=utf-8");
     }
 
-    /// <summary>IndexNow key verification file: https://host/{key}.txt</summary>
     [HttpGet("{key}.txt")]
     public IActionResult IndexNowKey(string key)
     {
@@ -210,6 +205,16 @@ public class SeoController : Controller
     {
         var baseUrl = await ResolveBaseUrlAsync();
         return Xml(await SitemapBuilder.BuildTaxonomiesAsync(_db, baseUrl));
+    }
+
+    /// <summary>P3.1 — Google News sitemap (posts published in last 48h).</summary>
+    [HttpGet("sitemap-news.xml")]
+    [ResponseCache(Duration = 600, Location = ResponseCacheLocation.Any)]
+    public async Task<IActionResult> SitemapNews()
+    {
+        var baseUrl = await ResolveBaseUrlAsync();
+        var xml = await SitemapBuilder.BuildNewsAsync(_db, baseUrl, _seo.SiteName);
+        return Xml(xml);
     }
 
     private static ContentResult Xml(string xml) =>
