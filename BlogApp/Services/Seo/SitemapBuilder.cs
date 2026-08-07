@@ -6,12 +6,13 @@ using Microsoft.EntityFrameworkCore;
 namespace BlogApp.Services.Seo;
 
 /// <summary>
-/// P1.3 — builds clean, split XML sitemaps: only canonical indexable 200-class URLs
-/// with accurate lastmod. Sitemap index + posts / pages / authors / taxonomies.
+/// P1.3 + P3.1 — clean split XML sitemaps with accurate lastmod and dynamic
+/// changefreq/priority by content freshness. Google News sitemap for recent posts.
 /// </summary>
 public static class SitemapBuilder
 {
     public const int MaxUrlsPerFile = 40_000; // protocol limit 50k; stay under
+    public static readonly TimeSpan NewsWindow = TimeSpan.FromHours(48);
 
     public static string FormatLastMod(DateTime utc) =>
         DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToString("yyyy-MM-ddTHH:mm:ssZ");
@@ -19,12 +20,30 @@ public static class SitemapBuilder
     public static DateTime BestLastMod(DateTime updatedAt, DateTime? publishedAt) =>
         publishedAt.HasValue && publishedAt.Value > updatedAt ? publishedAt.Value : updatedAt;
 
+    /// <summary>P3.1 — fresher content → higher priority + more frequent changefreq.</summary>
+    public static (string Freq, string Priority) CadenceFor(DateTime? lastmodUtc, DateTime now)
+    {
+        if (lastmodUtc is null)
+            return ("monthly", "0.5");
+
+        var age = now - lastmodUtc.Value;
+        if (age < TimeSpan.FromHours(24))
+            return ("hourly", "1.0");
+        if (age < TimeSpan.FromDays(7))
+            return ("daily", "0.9");
+        if (age < TimeSpan.FromDays(30))
+            return ("weekly", "0.8");
+        if (age < TimeSpan.FromDays(180))
+            return ("monthly", "0.6");
+        return ("yearly", "0.4");
+    }
+
     public static Task<string> BuildIndexAsync(string baseUrl)
     {
         var sb = new StringBuilder();
         sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         sb.AppendLine("<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
-        foreach (var name in new[] { "pages", "posts", "authors", "taxonomies" })
+        foreach (var name in new[] { "pages", "posts", "authors", "taxonomies", "news" })
         {
             sb.AppendLine("  <sitemap>");
             sb.AppendLine($"    <loc>{Escape($"{baseUrl}/sitemap-{name}.xml")}</loc>");
@@ -37,10 +56,11 @@ public static class SitemapBuilder
 
     public static Task<string> BuildPagesAsync(string baseUrl)
     {
+        var now = DateTime.UtcNow;
         var sb = StartUrlset();
-        AppendUrl(sb, $"{baseUrl}/", DateTime.UtcNow, "daily", "1.0");
+        AppendUrl(sb, $"{baseUrl}/", now, "daily", "1.0");
         foreach (var lang in AppCultures.All.Select(c => c.Code))
-            AppendUrl(sb, $"{baseUrl}/{lang}/", DateTime.UtcNow, "daily", "0.9");
+            AppendUrl(sb, $"{baseUrl}/{lang}/", now, "daily", "0.9");
 
         foreach (var page in new[] { "about", "services", "projects", "contact" })
         {
@@ -82,6 +102,7 @@ public static class SitemapBuilder
         {
             var loc = $"{baseUrl}/{post.LanguageCode}/post/{post.Slug}";
             var last = BestLastMod(post.UpdatedAtUtc, post.PublishedAtUtc);
+            var (freq, priority) = CadenceFor(last, now);
 
             List<(string Lang, string Href)>? alts = null;
             if (byGroup.TryGetValue(post.GroupId, out var siblings) && siblings.Count > 1)
@@ -93,9 +114,60 @@ public static class SitemapBuilder
                 alts.Add(("x-default", $"{baseUrl}/{def.LanguageCode}/post/{def.Slug}"));
             }
 
-            AppendUrl(sb, loc, last, "monthly", "0.8", alts);
+            AppendUrl(sb, loc, last, freq, priority, alts);
         }
         EndUrlset(sb);
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// P3.1 — Google News sitemap for posts published within the news window (48h).
+    /// Spec: https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap
+    /// </summary>
+    public static async Task<string> BuildNewsAsync(ApplicationDbContext db, string baseUrl, string publicationName, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var since = now - NewsWindow;
+
+        var posts = await db.Posts.AsNoTracking()
+            .Where(p => p.IsPublished && !p.IsDeleted)
+            .Where(p => p.ExpiresAtUtc == null || p.ExpiresAtUtc > now)
+            .Where(p => p.ScheduledPublishAtUtc == null || p.ScheduledPublishAtUtc <= now)
+            .Where(p => p.TranslationStatus == TranslationStatus.Original
+                        || p.TranslationStatus == TranslationStatus.Approved)
+            .Where(p => p.PublishedAtUtc != null && p.PublishedAtUtc >= since)
+            .OrderByDescending(p => p.PublishedAtUtc)
+            .Take(1000)
+            .Select(p => new
+            {
+                p.Slug,
+                p.Title,
+                p.LanguageCode,
+                p.PublishedAtUtc
+            })
+            .ToListAsync(ct);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        sb.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:news=\"http://www.google.com/schemas/sitemap-news/0.9\">");
+        foreach (var p in posts)
+        {
+            var loc = $"{baseUrl}/{p.LanguageCode}/post/{p.Slug}";
+            var pubDate = (p.PublishedAtUtc ?? now).ToUniversalTime();
+            var lang = string.IsNullOrWhiteSpace(p.LanguageCode) ? "fa" : p.LanguageCode;
+            sb.AppendLine("  <url>");
+            sb.AppendLine($"    <loc>{Escape(loc)}</loc>");
+            sb.AppendLine("    <news:news>");
+            sb.AppendLine("      <news:publication>");
+            sb.AppendLine($"        <news:name>{Escape(publicationName)}</news:name>");
+            sb.AppendLine($"        <news:language>{Escape(lang)}</news:language>");
+            sb.AppendLine("      </news:publication>");
+            sb.AppendLine($"      <news:publication_date>{FormatLastMod(pubDate)}</news:publication_date>");
+            sb.AppendLine($"      <news:title>{Escape(p.Title)}</news:title>");
+            sb.AppendLine("    </news:news>");
+            sb.AppendLine("  </url>");
+        }
+        sb.AppendLine("</urlset>");
         return sb.ToString();
     }
 
@@ -118,7 +190,11 @@ public static class SitemapBuilder
 
         var sb = StartUrlset();
         foreach (var a in authors)
-            AppendUrl(sb, $"{baseUrl}/author/{Uri.EscapeDataString(a.UserName)}", a.LastMod, "weekly", "0.7");
+        {
+            var (freq, priority) = CadenceFor(a.LastMod, now);
+            if (priority is "1.0" or "0.9") priority = "0.8";
+            AppendUrl(sb, $"{baseUrl}/author/{Uri.EscapeDataString(a.UserName)}", a.LastMod, freq, priority);
+        }
         EndUrlset(sb);
         return sb.ToString();
     }
@@ -171,14 +247,23 @@ public static class SitemapBuilder
 
         var sb = StartUrlset();
         foreach (var c in categories)
+        {
+            var (freq, _) = CadenceFor(c.LastMod, now);
             AppendUrl(sb, $"{baseUrl}/?category={Uri.EscapeDataString(c.Slug)}",
-                c.LastMod, "weekly", "0.5");
+                c.LastMod, freq, "0.5");
+        }
         foreach (var t in tags)
+        {
+            var (freq, _) = CadenceFor(t.LastMod, now);
             AppendUrl(sb, $"{baseUrl}/?tag={Uri.EscapeDataString(t.Slug)}",
-                t.LastMod, "weekly", "0.4");
+                t.LastMod, freq, "0.4");
+        }
         foreach (var s in series)
+        {
+            var (freq, _) = CadenceFor(s.LastMod, now);
             AppendUrl(sb, $"{baseUrl}/series/{Uri.EscapeDataString(s.Slug)}",
-                s.LastMod, "weekly", "0.5");
+                s.LastMod, freq, "0.5");
+        }
         EndUrlset(sb);
         return sb.ToString();
     }
