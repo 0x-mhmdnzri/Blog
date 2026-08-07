@@ -1,5 +1,6 @@
 using BlogApp.Data;
 using BlogApp.Models;
+using BlogApp.Services.Seo;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlogApp.Services.Analytics;
@@ -30,6 +31,11 @@ public sealed class AnalyticsTracker : IAnalyticsTracker
 
     public async Task TrackPostViewAsync(HttpContext http, Post post, CancellationToken ct = default)
     {
+        // P0.2: crawlers must not write analytics or Set-Cookie — that blocks OutputCache storage
+        // and inflates TTFB under hostload. Bot hits are recorded by BotCrawlLoggingMiddleware.
+        if (BotDetector.TryMatch(http.Request.Headers.UserAgent.ToString(), out _))
+            return;
+
         var hash = VisitorIdentity.ComputeHash(http);
         var profile = ClientHints.From(http);
         var sessionKey = GetOrCreateSessionKey(http);
@@ -104,6 +110,9 @@ public sealed class AnalyticsTracker : IAnalyticsTracker
     {
         query = (query ?? "").Trim();
         if (query.Length is < 1 or > 200) return;
+
+        if (BotDetector.TryMatch(http.Request.Headers.UserAgent.ToString(), out _))
+            return;
 
         _db.SearchQueryLogs.Add(new SearchQueryLog
         {
