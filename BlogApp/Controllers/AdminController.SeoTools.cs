@@ -90,6 +90,14 @@ public partial class AdminController
             ViewBag.CrawlWaste = await CrawlWasteAnalyzer.BuildAsync(_db, days);
         }
 
+        if (string.Equals(vm.ActiveTab, "health", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(vm.ActiveTab, "orphans", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(vm.ActiveTab, "overview", StringComparison.OrdinalIgnoreCase))
+        {
+            var baseForOrphans = ViewBag.BaseUrlPreview as string ?? "";
+            ViewBag.Orphans = await OrphanPageAnalyzer.BuildAsync(_db, baseForOrphans);
+        }
+
         return View("SeoTools", vm);
     }
 
@@ -134,7 +142,7 @@ public partial class AdminController
 
         var status = model.StatusCode is 301 or 302 or 307 or 308 ? model.StatusCode : 301;
 
-        var existing = await _db.RedirectRules.FirstOrDefaultAsync(r => r.FromPath == from);
+        var existing = await _db.RedirectRules.AsTracking().FirstOrDefaultAsync(r => r.FromPath == from);
         if (existing is not null)
         {
             existing.ToUrl = to;
@@ -263,6 +271,78 @@ public partial class AdminController
             TempData["SeoErr"] = string.Format(_t["seo.indexnow_failed"], ex.Message);
         }
         return RedirectToAction(nameof(SeoTools), new { tab = "indexnow" });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SeoOrphanFeature(int postId)
+    {
+        var post = await _db.Posts.AsTracking().FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
+        if (post is null)
+        {
+            TempData["SeoErr"] = "Post not found.";
+            return RedirectToAction(nameof(SeoTools), new { tab = "orphans" });
+        }
+        post.IsFeatured = true;
+        post.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        TempData["SeoOk"] = $"Featured «{post.Title}» — now on home hub (no longer orphan).";
+        return RedirectToAction(nameof(SeoTools), new { tab = "orphans" });
+    }
+
+    /// <summary>P1.2 — 301 orphan post path → category filter or home (frees crawl budget).</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SeoOrphanRedirect(int postId, string? target = "category")
+    {
+        var post = await _db.Posts.AsTracking().Include(p => p.Category)
+            .FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
+        if (post is null)
+        {
+            TempData["SeoErr"] = "Post not found.";
+            return RedirectToAction(nameof(SeoTools), new { tab = "orphans" });
+        }
+
+        var fromPath = $"/{post.LanguageCode}/post/{post.Slug}";
+        var altFrom = $"/post/{post.Slug}";
+
+        string toUrl;
+        if (string.Equals(target, "category", StringComparison.OrdinalIgnoreCase)
+            && post.Category is not null)
+            toUrl = $"/?category={Uri.EscapeDataString(post.Category.Slug)}";
+        else
+            toUrl = $"/{post.LanguageCode}/";
+
+        async Task UpsertAsync(string from)
+        {
+            var existing = await _db.RedirectRules.AsTracking().FirstOrDefaultAsync(r => r.FromPath == from);
+            if (existing is not null)
+            {
+                existing.ToUrl = toUrl;
+                existing.StatusCode = 301;
+                existing.IsActive = true;
+                existing.Notes = $"P1.2 orphan → {target}";
+            }
+            else
+            {
+                _db.RedirectRules.Add(new RedirectRule
+                {
+                    FromPath = from,
+                    ToUrl = toUrl,
+                    StatusCode = 301,
+                    IsActive = true,
+                    Notes = $"P1.2 orphan → {target}",
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+            }
+        }
+
+        await UpsertAsync(fromPath);
+        await UpsertAsync(altFrom);
+        post.IsPublished = false;
+        post.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        TempData["SeoOk"] = $"Orphan redirected: {fromPath} → {toUrl} (unpublished).";
+        return RedirectToAction(nameof(SeoTools), new { tab = "orphans" });
     }
 
     private static string NormalizeFromPath(string? raw)
