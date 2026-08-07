@@ -69,7 +69,6 @@ try
 
     builder.Services.AddBlogPerformance(builder.Configuration);
 
-    // Developer Features (MassTransit EDD, health, metrics, plugins, widgets) — monolith
     builder.Services.AddDeveloperFeatures(builder.Configuration);
 
     builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -363,6 +362,7 @@ try
     app.UseMiddleware<SecurityHeadersMiddleware>();
     app.UseResponseCompression();
     app.UseMiddleware<RequestLoggingMiddleware>();
+    app.UseMiddleware<ServerTimingMiddleware>();
     app.UseMiddleware<BotCrawlLoggingMiddleware>();
 
     app.Use(async (ctx, next) =>
@@ -462,7 +462,7 @@ try
             pattern: "{controller=Home}/{action=Index}/{id?}")
         .RequireRateLimiting("global");
 
-    Log.Information("BlogApp monolith listening ForceHttps={ForceHttps} MassTransit EDD enabled; ContentSchedule + IndexNow + Comments spam + BotCrawlLog registered",
+    Log.Information("BlogApp monolith listening ForceHttps={ForceHttps}; P0.2 ServerTiming + OutputCache + BotCrawlLog registered",
         forceHttps);
     app.Run();
 }
