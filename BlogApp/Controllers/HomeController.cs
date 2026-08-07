@@ -121,8 +121,7 @@ public class HomeController : Controller
         {
             Id = p.Id,
             Title = p.Title,
-            hardSlug = p.Slug,
-            Slug = p.Slug,
+            Slug = p.Slug.ToString(),
             Summary = p.Summary,
             CategoryName = p.Category != null ? p.Category.Name : null,
             PublishedAtUtc = p.PublishedAtUtc,
@@ -294,19 +293,4 @@ public class HomeController : Controller
         ViewBag.OriginalPath = feature?.OriginalPath;
         return View();
     }
-}
-
-public sealed class BlogFeedFolderItem
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Color { get; set; } = "blue";
-    public int Count { get; set; }
-}
-
-public class BlogFeedSeriesItem
-{
-    public string Name { get; set; } = "";
-    public string Slug { get; set; } = "";
-    public int Count { get; set; }
 }
