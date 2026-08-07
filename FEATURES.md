@@ -96,6 +96,65 @@ Items below are **not** fully done yet. Everything else is treated as shipped in
 
 ---
 
+## PRD: Crawl Rate & Indexing Optimization
+
+**Status:** In progress  
+**Owner:** Mohammad Nazari  
+**Last updated:** 2026-08-07  
+
+Primary goal: sustained increase in crawl frequency, indexing rate, and domain authority — measured, not anecdotal.
+
+### Success metrics
+
+| Metric | Source | Target |
+|--------|--------|--------|
+| Pages crawled/day (by bot) | Server log analysis | Baseline Month 1, then trend |
+| Crawl requests wasted on non-200/non-canonical | Log analysis | <5% of total |
+| Time-to-index for new pages | GSC Coverage / URL Inspection | −30–50% |
+| Indexed / total canonical pages | GSC Index Coverage | >90% |
+| TTFB median | RUM / synthetic | <200ms |
+| Domain authority proxy | Ahrefs/Moz/Majestic | QoQ upward |
+
+### P0 — Foundational
+
+- [ ] **P0.1** Bot log pipeline: capture user-agent + path + status + response time for Googlebot/Bingbot/AI bots (30–90 day retention, admin summary)
+- [ ] **P0.2** Server response under crawl load (TTFB <200ms median; hostload / stability)
+- [x] **P0.3** Explicit `robots.txt` policy for AI crawlers (allow high-value public content; disallow admin/account/api/private) — *shipped 2026-08-07*
+
+### P1 — Crawl waste elimination
+
+- [ ] **P1.1** Redirect chains, soft 404s, duplicate/parameter URLs (canonicalize or noindex)
+- [ ] **P1.2** Orphan pages (zero internal inlinks): link in or remove/redirect
+- [ ] **P1.3** Clean XML sitemap(s): only canonical, indexable, 200 URLs + accurate `lastmod`; split by type if large
+
+### P2 — Discoverability / internal architecture
+
+- [ ] **P2.1** Priority pages ≤3–4 clicks from homepage
+- [ ] **P2.2** New posts linked from high-authority hubs on publish (not sitemap-only)
+
+### P3 — Freshness & demand signals
+
+- [ ] **P3.1** Content update cadence for pages we want recrawled often
+- [ ] **P3.2** Structured data + mobile rendering parity (Googlebot Smartphone)
+
+### P4 — Authority (ongoing)
+
+- [ ] **P4.1** Quality backlink acquisition
+- [ ] **P4.2** Quarterly DA/DR review (not weekly noise)
+
+### Ongoing discipline
+
+- [ ] Monthly crawl-health audit (logs + GSC Coverage)
+- [ ] Crawl budget dashboard (logs + GSC + server performance)
+
+### Notes
+
+- Log analysis is ground truth; GSC alone is not enough.
+- AI crawler blocking is a product tradeoff (search budget vs AI-answer surfaces) — policy is explicit, not default-deny-all.
+- Full PRD body lives in product docs / this checklist drives implementation order.
+
+---
+
 ## Implemented (reference)
 
-Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (FTS5 full-content / Spotlight-style) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, search keyword analytics & reading duration & bounce rate, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule / **CSV import (double opt-in)** / **post→campaign one action** / export subscribers, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events, dismissible site announcement banner, unified moderation queue (comments + reports + spam), output cache (home/post/taxonomy) with publish invalidation, Redis distributed cache in compose, background job dead-letter UI with email retries, **reading progress bar (short-post safe)**, **infinite scroll with retry/timeout**, **TOC IntersectionObserver auto-highlight on deep posts**, **enterprise module** (tenants, workspaces, domains, SSO config, approval, lifecycle, legal hold, GDPR export/erase, backup/DR, localization admin).
+Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (FTS5 full-content / Spotlight-style) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, search keyword analytics & reading duration & bounce rate, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule / **CSV import (double opt-in)** / **post→campaign one action** / export subscribers, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events, dismissible site announcement banner, unified moderation queue (comments + reports + spam), output cache (home/post/taxonomy) with publish invalidation, Redis distributed cache in compose, background job dead-letter UI with email retries, **reading progress bar (short-post safe)**, **infinite scroll with retry/timeout**, **TOC IntersectionObserver auto-highlight on deep posts**, **enterprise module** (tenants, workspaces, domains, SSO config, approval, lifecycle, legal hold, GDPR export/erase, backup/DR, localization admin), **robots.txt AI crawler policy (P0.3)**.
