@@ -8,6 +8,12 @@ namespace BlogApp.Middleware;
 /// Cookie is ALWAYS refreshed so the user's choice survives across pages and sessions (1 year sliding).
 /// Sets CultureInfo and stores CultureDescriptor in HttpContext.Items.
 /// Strips culture segment from Path for downstream routing when present.
+///
+/// IMPORTANT: Number formats always use ASCII digits (0-9) and '.' / ',' separators.
+/// fa-IR / ar native digits and Arabic decimal separator U+066B (٫) are illegal in HTTP
+/// headers (ETag, Content-Range, custom X-*). Forcing Latin numerals prevents
+/// InvalidOperationException / ObjectDisposedException on responses under FA culture.
+/// UI strings still resolve via CurrentUICulture (FA/EN/AR).
 /// </summary>
 public sealed class CultureMiddleware
 {
@@ -52,11 +58,37 @@ public sealed class CultureMiddleware
         context.Items[CultureService.HttpContextKey] = culture;
         WriteCultureCookie(context, culture.Code);
 
-        var cultureInfo = new System.Globalization.CultureInfo(culture.Locale);
+        var cultureInfo = CreateSafeCulture(culture.Locale);
         System.Globalization.CultureInfo.CurrentCulture = cultureInfo;
         System.Globalization.CultureInfo.CurrentUICulture = cultureInfo;
 
         await _next(context);
+    }
+
+    /// <summary>
+    /// Build a culture for the locale but force ASCII digits & separators so
+    /// int/double.ToString() and string interpolation never emit non-ASCII
+    /// numerals into HTTP headers, cookies, or machine-readable payloads.
+    /// </summary>
+    private static System.Globalization.CultureInfo CreateSafeCulture(string locale)
+    {
+        var cultureInfo = new System.Globalization.CultureInfo(locale);
+        var nfi = (System.Globalization.NumberFormatInfo)cultureInfo.NumberFormat.Clone();
+
+        // Latin digits 0-9
+        nfi.NativeDigits = new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+        nfi.DigitSubstitution = System.Globalization.DigitShapes.None;
+
+        // ASCII decimal / group separators (fa-IR default decimal is U+066B ٫)
+        nfi.NumberDecimalSeparator = ".";
+        nfi.NumberGroupSeparator = ",";
+        nfi.PercentDecimalSeparator = ".";
+        nfi.PercentGroupSeparator = ",";
+        nfi.CurrencyDecimalSeparator = ".";
+        nfi.CurrencyGroupSeparator = ",";
+
+        cultureInfo.NumberFormat = nfi;
+        return cultureInfo;
     }
 
     private static void WriteCultureCookie(HttpContext context, string code)
