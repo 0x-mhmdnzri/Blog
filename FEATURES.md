@@ -112,13 +112,18 @@ Primary goal: sustained increase in crawl frequency, indexing rate, and domain a
 | Crawl requests wasted on non-200/non-canonical | Log analysis | <5% of total |
 | Time-to-index for new pages | GSC Coverage / URL Inspection | −30–50% |
 | Indexed / total canonical pages | GSC Index Coverage | >90% |
-| TTFB median | RUM / synthetic | <200ms |
+| TTFB median | RUM / synthetic + bot log p50 | <200ms |
 | Domain authority proxy | Ahrefs/Moz/Majestic | QoQ upward |
 
 ### P0 — Foundational
 
 - [x] **P0.1** Bot log pipeline: capture user-agent + path + status + response time for Googlebot/Bingbot/AI bots (90-day retention, admin summary on SEO → Crawl) — *shipped 2026-08-07*
-- [ ] **P0.2** Server response under crawl load (TTFB <200ms median; hostload / stability)
+- [x] **P0.2** Server response under crawl load (TTFB <200ms median; hostload / stability) — *shipped 2026-08-07*
+  - Skip analytics/cookies for known bots (unblocks OutputCache storage)
+  - `[OutputCache(PolicyName="post")]` on post Details; home policy available
+  - Skip schedule tick on bot hits (background worker owns publish/expire)
+  - `Server-Timing: app;dur=` header for TTFB observability
+  - Crawl tab: p50 / p95 / % hits >200ms
 - [x] **P0.3** Explicit `robots.txt` policy for AI crawlers (allow high-value public content; disallow admin/account/api/private) — *shipped 2026-08-07*
 
 ### P1 — Crawl waste elimination
@@ -157,4 +162,4 @@ Primary goal: sustained increase in crawl frequency, indexing rate, and domain a
 
 ## Implemented (reference)
 
-Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (FTS5 full-content / Spotlight-style) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, search keyword analytics & reading duration & bounce rate, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule / **CSV import (double opt-in)** / **post→campaign one action** / export subscribers, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events, dismissible site announcement banner, unified moderation queue (comments + reports + spam), output cache (home/post/taxonomy) with publish invalidation, Redis distributed cache in compose, background job dead-letter UI with email retries, **reading progress bar (short-post safe)**, **infinite scroll with retry/timeout**, **TOC IntersectionObserver auto-highlight on deep posts**, **enterprise module** (tenants, workspaces, domains, SSO config, approval, lifecycle, legal hold, GDPR export/erase, backup/DR, localization admin), **robots.txt AI crawler policy (P0.3)**, **bot crawl log pipeline (P0.1)**.
+Markdown editor, soft delete, reading-time field, SEO metadata / canonical / sitemap / robots / OG / JSON-LD / slugs / redirects / broken links, nested categories & tags & series, media library & upload, threaded comments & moderation & reactions & reporting, search (FTS5 full-content / Spotlight-style) & bookmarks & reading history & dark mode, likes & reactions & share & follow authors & activity feed & @mentions, email + in-app notifications & digests, post view / traffic / geo / device / referral / popular / trending / heatmaps analytics, search keyword analytics & reading duration & bounce rate, account lockout & audit logs & rate limiting & sessions, user management & feature flags & site settings & maintenance & reports, REST API & API keys & webhooks & rate limits & RSS/Atom, response caching helpers & background jobs & search index worker, language switcher & RTL, memberships/premium/donations/sponsored labels (basic), newsletter subscribe / campaigns / segments / double opt-in / schedule / **CSV import (double opt-in)** / **post→campaign one action** / export subscribers, theme system & widgets & middleware slots & extension SDK surface & health & metrics & tracing & structured logging & OpenTelemetry & MassTransit domain events, dismissible site announcement banner, unified moderation queue (comments + reports + spam), output cache (home/post/taxonomy) with publish invalidation, Redis distributed cache in compose, background job dead-letter UI with email retries, **reading progress bar (short-post safe)**, **infinite scroll with retry/timeout**, **TOC IntersectionObserver auto-highlight on deep posts**, **enterprise module** (tenants, workspaces, domains, SSO config, approval, lifecycle, legal hold, GDPR export/erase, backup/DR, localization admin), **robots.txt AI crawler policy (P0.3)**, **bot crawl log pipeline (P0.1)**, **crawl TTFB/hostload stability (P0.2)**.
