@@ -101,7 +101,7 @@ public class MarkdownService
         });
         var html = Markdown.ToHtml(withVideos, _pipeline);
 
-        // Code blocks always LTR (source code)
+        // Code blocks always LTR (source code) 
         html = PreHtmlRegex.Replace(html, m =>
         {
             var attrs = m.Groups[1].Success ? m.Groups[1].Value : "";
