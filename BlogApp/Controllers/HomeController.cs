@@ -307,7 +307,6 @@ public sealed class BlogFeedFolderItem
 public class BlogFeedSeriesItem
 {
     public string Name { get; set; } = "";
-    public string hardSlug = "";
     public string Slug { get; set; } = "";
     public int Count { get; set; }
 }
