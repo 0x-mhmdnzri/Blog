@@ -1,0 +1,79 @@
+<section class="st-card st-form st-mb">
+    <div class="st-card-head">
+        <h2 class="st-card-title">@T["seo.add_redirect"]</h2>
+        <p class="st-card-desc">مسیر قدیم → مقصد جدید</p>
+    </div>
+    <form asp-action="SeoAddRedirect" method="post">
+        @Html.AntiForgeryToken()
+        <div class="st-fields st-fields-redir">
+            <div class="st-field">
+                <label class="st-label">@T["seo.from_path"]</label>
+                <input class="form-control ltr-field" name="FromPath" required placeholder="/post/old-slug" maxlength="500" />
+            </div>
+            <div class="st-field">
+                <label class="st-label">@T["seo.to_url"]</label>
+                <input class="form-control ltr-field" name="ToUrl" required placeholder="/post/new-slug" maxlength="1000" />
+            </div>
+            <div class="st-field st-field-sm">
+                <label class="st-label">@T["seo.status"]</label>
+                <select class="form-select" name="StatusCode">
+                    <option value="301">301</option>
+                    <option value="302">302</option>
+                    <option value="307">307</option>
+                    <option value="308">308</option>
+                </select>
+            </div>
+            <div class="st-field st-field-full">
+                <label class="st-label">@T["seo.notes"]</label>
+                <input class="form-control form-control-sm" name="Notes" maxlength="300" placeholder="@T["seo.notes"]" />
+            </div>
+            <div class="st-field st-field-btn">
+                <button type="submit" class="btn btn-accent btn-sm w-100">@T["seo.add"]</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+@if (Model.Redirects.Count == 0)
+{
+    <div class="st-empty">
+        <p class="st-empty-title">@T["seo.empty_redirects"]</p>
+        <p class="st-empty-hint">اولین ریدایرکت را از فرم بالا اضافه کنید.</p>
+    </div>
+}
+else
+{
+    <div class="st-filter-bar">
+        <input type="search" class="st-filter" id="redirFilter" placeholder="فیلتر مسیر…" autocomplete="off" />
+        <span class="st-filter-count" id="redirCount">@Model.Redirects.Count</span>
+    </div>
+    <div class="st-rows" id="redirList">
+        @foreach (var r in Model.Redirects)
+        {
+            <article class="st-row @(r.IsActive ? "" : "is-off")" data-q="@((r.FromPath + " " + r.ToUrl).ToLowerInvariant())">
+                <div class="st-redir">
+                    <code class="st-path ltr-field">@r.FromPath</code>
+                    <span class="st-arrow" aria-hidden="true">→</span>
+                    <code class="st-path ltr-field">@r.ToUrl</code>
+                </div>
+                <div class="st-row-meta">
+                    <span class="st-pill st-pill-code">@r.StatusCode</span>
+                    <span class="st-pill">@r.HitCount hit</span>
+                    @if (!r.IsActive) { <span class="st-pill st-pill-off">off</span> }
+                </div>
+                <div class="st-row-acts">
+                    <form asp-action="SeoToggleRedirect" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@r.Id" />
+                        <button type="submit" class="st-btn">@(r.IsActive ? T["seo.disable"] : T["seo.enable"])</button>
+                    </form>
+                    <form asp-action="SeoDeleteRedirect" method="post" onsubmit="return confirm('@T["msg.confirm_delete"]');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@r.Id" />
+                        <button type="submit" class="st-btn st-btn-danger">@T["btn.delete"]</button>
+                    </form>
+                </div>
+            </article>
+        }
+    </div>
+}
