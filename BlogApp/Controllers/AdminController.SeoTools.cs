@@ -43,7 +43,6 @@ public partial class AdminController
             {
                 Id = p.Id,
                 Title = p.Title,
-                hardSlug = p.Slug,
                 Slug = p.Slug,
                 HasSummary = hasSum,
                 HasCover = hasCover,
