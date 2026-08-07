@@ -119,3 +119,67 @@
         <a class="st-chip-link" href="?tab=crawl&days=90">90d</a>
     </p>
 </section>
+
+@{
+    var waste = ViewBag.CrawlWaste as BlogApp.Services.Seo.CrawlWasteReport;
+}
+@if (waste is not null)
+{
+    <section class="st-card" style="margin-top:1rem">
+        <div class="st-card-head">
+            <h2 class="st-card-title">Crawl waste (P1.1)</h2>
+            <p class="st-card-desc">Redirect chains · query-string bot hits · 404 paths</p>
+        </div>
+        <div class="st-kpis">
+            <div class="st-kpi @(waste.ChainCount > 0 ? "st-kpi-warn" : "")">
+                <span class="st-kpi-label">Redirect chains</span>
+                <span class="st-kpi-val">@waste.ChainCount</span>
+            </div>
+            <div class="st-kpi">
+                <span class="st-kpi-label">Bot hits with ?query</span>
+                <span class="st-kpi-val">@waste.BotHitsWithQuery.ToString("N0")</span>
+            </div>
+            <div class="st-kpi">
+                <span class="st-kpi-label">Bot 3xx / 404</span>
+                <span class="st-kpi-val">@waste.BotRedirectHits / @waste.BotNotFoundHits</span>
+            </div>
+            <div class="st-kpi">
+                <span class="st-kpi-label">Active redirects</span>
+                <span class="st-kpi-val">@waste.ActiveRedirects</span>
+            </div>
+        </div>
+        @if (waste.Chains.Count > 0)
+        {
+            <div class="st-table-wrap" style="margin-top:.75rem">
+                <table class="st-table">
+                    <thead><tr><th>Hops</th><th>Chain</th></tr></thead>
+                    <tbody>
+                    @foreach (var ch in waste.Chains)
+                    {
+                        <tr>
+                            <td>@ch.Hops</td>
+                            <td><code style="word-break:break-all;font-size:.8rem">@ch.PathVia</code></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <p class="st-card-desc" style="margin-top:.5rem">Runtime flattens chains to a single hop automatically.</p>
+        }
+        @if (waste.Top404Paths.Count > 0)
+        {
+            <h3 class="st-card-title" style="font-size:.95rem;margin-top:1rem">Top 404 paths (bots)</h3>
+            <div class="st-table-wrap">
+                <table class="st-table">
+                    <thead><tr><th>Path</th><th>Hits</th></tr></thead>
+                    <tbody>
+                    @foreach (var row in waste.Top404Paths)
+                    {
+                        <tr><td><code style="word-break:break-all">@row.Path</code></td><td>@row.Hits</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
