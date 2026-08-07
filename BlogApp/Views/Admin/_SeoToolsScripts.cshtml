@@ -1,0 +1,24 @@
+<script>
+(function () {
+  function bindFilter(inputId, listId, countId) {
+    var input = document.getElementById(inputId);
+    var list = document.getElementById(listId);
+    if (!input || !list) return;
+    var countEl = countId ? document.getElementById(countId) : null;
+    input.addEventListener('input', function () {
+      var q = (input.value || '').trim().toLowerCase();
+      var rows = list.querySelectorAll('[data-q]');
+      var n = 0;
+      rows.forEach(function (row) {
+        var ok = !q || (row.getAttribute('data-q') || '').indexOf(q) !== -1;
+        row.classList.toggle('is-hidden', !ok);
+        if (ok) n++;
+      });
+      if (countEl) countEl.textContent = String(n);
+    });
+  }
+  bindFilter('redirFilter', 'redirList', 'redirCount');
+  bindFilter('brokenFilter', 'brokenList', 'brokenCount');
+  bindFilter('healthFilter', 'healthList', null);
+})();
+</script>
