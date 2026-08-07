@@ -1,5 +1,6 @@
 using BlogApp.Models;
 using BlogApp.Services;
+using BlogApp.Services.Seo;
 
 namespace BlogApp.Middleware;
 
@@ -56,7 +57,10 @@ public sealed class CultureMiddleware
         }
 
         context.Items[CultureService.HttpContextKey] = culture;
-        WriteCultureCookie(context, culture.Code);
+        // P1.1 / P0.2: bots must not receive Set-Cookie (blocks OutputCache storage)
+        var ua = context.Request.Headers.UserAgent.ToString();
+        if (!BotDetector.TryMatch(ua, out _))
+            WriteCultureCookie(context, culture.Code);
 
         var cultureInfo = CreateSafeCulture(culture.Locale);
         System.Globalization.CultureInfo.CurrentCulture = cultureInfo;
@@ -65,21 +69,14 @@ public sealed class CultureMiddleware
         await _next(context);
     }
 
-    /// <summary>
-    /// Build a culture for the locale but force ASCII digits & separators so
-    /// int/double.ToString() and string interpolation never emit non-ASCII
-    /// numerals into HTTP headers, cookies, or machine-readable payloads.
-    /// </summary>
     private static System.Globalization.CultureInfo CreateSafeCulture(string locale)
     {
         var cultureInfo = new System.Globalization.CultureInfo(locale);
         var nfi = (System.Globalization.NumberFormatInfo)cultureInfo.NumberFormat.Clone();
 
-        // Latin digits 0-9
         nfi.NativeDigits = new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
         nfi.DigitSubstitution = System.Globalization.DigitShapes.None;
 
-        // ASCII decimal / group separators (fa-IR default decimal is U+066B ٫)
         nfi.NumberDecimalSeparator = ".";
         nfi.NumberGroupSeparator = ",";
         nfi.PercentDecimalSeparator = ".";
@@ -110,10 +107,6 @@ public sealed class CultureMiddleware
             });
     }
 
-    /// <summary>
-    /// Cookie always wins when present. Without a cookie the site default is FA (Persian).
-    /// Accept-Language is intentionally ignored so browsers set to English do not flip the UI.
-    /// </summary>
     private static CultureDescriptor ResolveFromCookieOrHeader(HttpContext context)
     {
         var cookie = context.Request.Cookies[CultureService.CookieName];
