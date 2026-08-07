@@ -88,6 +88,13 @@ public partial class AdminController
         {
             vm.Crawl = await BotCrawlSummary.BuildAsync(_db, days);
             ViewBag.CrawlWaste = await CrawlWasteAnalyzer.BuildAsync(_db, days);
+            // Ongoing discipline: monthly crawl-health audit + daily budget series
+            if (string.Equals(vm.ActiveTab, "crawl", StringComparison.OrdinalIgnoreCase)
+                && vm.Crawl is not null)
+            {
+                ViewBag.CrawlAudit = await CrawlHealthAudit.BuildAsync(
+                    _db, vm.Crawl, ViewBag.CrawlWaste as CrawlWasteReport, days);
+            }
         }
 
         if (string.Equals(vm.ActiveTab, "health", StringComparison.OrdinalIgnoreCase)
