@@ -1,0 +1,290 @@
+@model CrawlMonitorViewModel
+@using System.Text.Json
+@{
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = "Crawl & Indexing";
+    var json = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    var s = Model.Summary;
+    var a = Model.Audit;
+    string Badge(string st) => st switch
+    {
+        "ok" => "cm-badge-ok",
+        "warn" => "cm-badge-warn",
+        "fail" => "cm-badge-fail",
+        _ => "cm-badge-warn"
+    };
+}
+<div class="ana-toolbar d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div class="range-tabs mb-0">
+        <a class="admin-tab @(Model.RangeDays == 7 ? "active" : "")" asp-action="Crawl" asp-route-range="7">۷ روز</a>
+        <a class="admin-tab @(Model.RangeDays == 30 ? "active" : "")" asp-action="Crawl" asp-route-range="30">۳۰ روز</a>
+        <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Crawl" asp-route-range="90">۹۰ روز</a>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-range="@Model.RangeDays">← Analytics</a>
+        <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="SeoTools" asp-route-tab="crawl">SEO → Crawl</a>
+        <a class="btn btn-accent btn-sm" asp-controller="Admin" asp-action="SeoAuthority">Authority</a>
+    </div>
+</div>
+
+<p class="text-muted small mb-3">
+    مانیتور فازهای <strong>Crawl Rate &amp; Indexing Optimization</strong> —
+    منبع حقیقت: لاگ بات‌ها (BotCrawlHits) + آنالایزرهای ساختاری. GSC مکمل است، نه جایگزین.
+</p>
+
+<div class="row g-2 mb-3">
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-compact">
+            <div class="kpi-label">Bot hits (@Model.RangeDays d)</div>
+            <div class="kpi-value ltr-field">@s.TotalHits.ToString("N0")</div>
+            <div class="kpi-sub">Search @s.SearchHits.ToString("N0") · AI @s.AiHits.ToString("N0")</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-compact @(s.WastePercent > 5 ? "kpi-danger" : "kpi-good")">
+            <div class="kpi-label">Waste %</div>
+            <div class="kpi-value ltr-field">@s.WastePercent.ToString("0.#")%</div>
+            <div class="kpi-sub">target &lt;5%</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-compact @(s.P50Ms > 200 ? "kpi-danger" : "kpi-good")">
+            <div class="kpi-label">TTFB p50 / p95</div>
+            <div class="kpi-value ltr-field">@s.P50Ms / @s.P95Ms <small>ms</small></div>
+            <div class="kpi-sub">&gt;200ms @s.SlowOver200Pct.ToString("0.#")%</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-compact @(a.Score < 70 ? "kpi-danger" : "kpi-good")">
+            <div class="kpi-label">Health grade</div>
+            <div class="kpi-value ltr-field">@a.Grade <small>@a.Score</small></div>
+            <div class="kpi-sub">avg @a.HitsPerDayAvg.ToString("N0")/day</div>
+        </div>
+    </div>
+</div>
+
+@* ── Phase cards ── *@
+<div class="row g-3 mb-4">
+@foreach (var phase in Model.Phases)
+{
+    <div class="col-12 col-lg-6">
+        <div class="chart-card chart-card-tight h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="chart-title mb-0"><span class="cm-phase-tag">@phase.Phase</span> @phase.Title</div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0 cm-table">
+                    <tbody>
+                    @foreach (var it in phase.Items)
+                    {
+                        <tr>
+                            <td style="width:3.5rem"><code class="small">@it.Id</code></td>
+                            <td>
+                                <div class="fw-semibold">@it.Title</div>
+                                <div class="text-muted small">@it.Detail</div>
+                            </td>
+                            <td class="text-end ltr-field small">@it.Metric</td>
+                            <td style="width:4rem" class="text-end">
+                                <span class="cm-badge @Badge(it.Status)">@it.Status.ToUpperInvariant()</span>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+</div>
+
+@if (a.Daily.Count > 0)
+{
+    <div class="chart-card mb-4">
+        <div class="chart-title">Crawl budget — daily series</div>
+        <div class="chart-wrap" style="height:220px">
+            <canvas id="crawlHitsChart"></canvas>
+        </div>
+        <p class="text-muted small mt-2 mb-0">
+            Search @a.SearchSharePct.ToString("0.#")% · AI @a.AiSharePct.ToString("0.#")% · peak @a.PeakDayHits.ToString("N0") on @a.PeakDay
+        </p>
+    </div>
+}
+
+@if (a.Checks.Count > 0)
+{
+    <div class="chart-card mb-4">
+        <div class="chart-title">Monthly crawl-health checklist</div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead>
+                <tbody>
+                @foreach (var ch in a.Checks)
+                {
+                    var st = ch.Pass ? "ok" : (ch.Severity == "fail" ? "fail" : "warn");
+                    <tr>
+                        <td>@ch.Title</td>
+                        <td><span class="cm-badge @Badge(st)">@(ch.Pass ? "PASS" : ch.Severity.ToUpperInvariant())</span></td>
+                        <td class="text-muted small">@ch.Detail</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-6">
+        <div class="chart-card h-100">
+            <div class="chart-title">P1.2 Orphans · P2.1 Depth</div>
+            @if (Model.Orphans is null && Model.Depth is null)
+            {
+                <p class="text-muted small mb-0">Analyzers unavailable (schema lag or empty catalog).</p>
+            }
+            else
+            {
+                <ul class="list-unstyled small mb-0">
+                    @if (Model.Orphans is not null)
+                    {
+                        <li>Orphans: <strong class="ltr-field">@Model.Orphans.OrphanCount</strong> / @Model.Orphans.PublishedCount published</li>
+                        <li>With content inlinks: @Model.Orphans.WithContentInlinks</li>
+                    }
+                    @if (Model.Depth is not null)
+                    {
+                        <li>Beyond depth 4: <strong class="ltr-field">@Model.Depth.Beyond4Count</strong></li>
+                        <li>Unreachable: @Model.Depth.UnreachableCount · max depth @Model.Depth.MaxDepth</li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="chart-card h-100">
+            <div class="chart-title">P2.2 Hub links (featured / sticky)</div>
+            <p class="small mb-2">Featured <strong class="ltr-field">@Model.FeaturedCount</strong> · Sticky <strong class="ltr-field">@Model.StickyCount</strong> · Published @Model.PublishedCount</p>
+            @if (Model.RecentFeatured.Count == 0)
+            {
+                <p class="text-muted small mb-0">No featured posts in the last 14 days.</p>
+            }
+            else
+            {
+                <ul class="list-unstyled small mb-0">
+                @foreach (var p in Model.RecentFeatured)
+                {
+                    <li class="mb-1">
+                        <span class="text-muted ltr-field">@(p.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "—")</span>
+                        · <a href="/@(p.LanguageCode)/@p.Slug">@p.Title</a>
+                    </li>
+                }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-6">
+        <div class="chart-card h-100">
+            <div class="chart-title">P3 Freshness</div>
+            <ul class="list-unstyled small mb-0">
+                <li>News sitemap window (48h): <strong class="ltr-field">@Model.NewsWindowPosts</strong></li>
+                <li>Updated last 7d: <strong class="ltr-field">@Model.UpdatedLast7d</strong></li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="chart-card h-100">
+            <div class="chart-title">P4 Authority ops</div>
+            <ul class="list-unstyled small mb-0">
+                <li>Open backlink leads: <strong class="ltr-field">@Model.OpenBacklinkLeads</strong></li>
+                <li>Acquired: <strong class="ltr-field">@Model.AcquiredBacklinks</strong></li>
+                <li>Snapshots: @Model.AuthoritySnapshotCount
+                    @if (!string.IsNullOrEmpty(Model.LastAuthorityPeriod))
+                    {
+                        <span>· last @Model.LastAuthorityPeriod DR/DA @Model.LastAuthorityDr</span>
+                    }
+                </li>
+            </ul>
+            <p class="mt-2 mb-0"><a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="SeoAuthority">Open Authority tracker</a></p>
+        </div>
+    </div>
+</div>
+
+@if (Model.Waste is not null)
+{
+    <div class="chart-card mb-4">
+        <div class="chart-title">P1.1 Crawl waste detail</div>
+        <div class="row g-2 small">
+            <div class="col-6 col-md-3">Chains: <strong class="ltr-field">@Model.Waste.ChainCount</strong></div>
+            <div class="col-6 col-md-3">Bot ?query: <strong class="ltr-field">@Model.Waste.BotHitsWithQuery.ToString("N0")</strong></div>
+            <div class="col-6 col-md-3">Bot 404: <strong class="ltr-field">@Model.Waste.BotNotFoundHits.ToString("N0")</strong></div>
+            <div class="col-6 col-md-3">Active redirects: <strong class="ltr-field">@Model.Waste.ActiveRedirects</strong></div>
+        </div>
+    </div>
+}
+
+<style>
+.cm-phase-tag {
+  display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem; border-radius: 4px; background: rgba(111,179,210,.15); color: #6fb3d2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-inline-end: 0.35rem;
+}
+.cm-badge {
+  display: inline-block; padding: 0.12rem 0.4rem; border-radius: 4px;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.03em;
+}
+.cm-badge-ok { background: rgba(158,203,140,.2); color: #9ecb8c; }
+.cm-badge-warn { background: rgba(227,179,65,.2); color: #e3b341; }
+.cm-badge-fail { background: rgba(229,99,122,.2); color: #e5637a; }
+.cm-table td { vertical-align: top; }
+</style>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    if (typeof Chart === 'undefined') return;
+    var el = document.getElementById('crawlHitsChart');
+    if (!el) return;
+    var styles = getComputedStyle(document.documentElement);
+    var accent = styles.getPropertyValue('--accent').trim() || '#e3b341';
+    var muted = styles.getPropertyValue('--text-muted').trim();
+    Chart.defaults.color = muted;
+    Chart.defaults.font.family = 'Vazirmatn, sans-serif';
+    new Chart(el, {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => d.Date.Length >= 10 ? d.Date.Substring(5) : d.Date), json)),
+            datasets: [
+                {
+                    label: 'Search',
+                    data: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => d.SearchHits), json)),
+                    backgroundColor: 'rgba(111,179,210,0.7)',
+                    stack: 'h'
+                },
+                {
+                    label: 'AI',
+                    data: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => d.AiHits), json)),
+                    backgroundColor: 'rgba(201,160,242,0.7)',
+                    stack: 'h'
+                },
+                {
+                    label: 'Other',
+                    data: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => Math.Max(0, d.Hits - d.SearchHits - d.AiHits)), json)),
+                    backgroundColor: 'rgba(139,147,167,0.45)',
+                    stack: 'h'
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+            scales: {
+                x: { stacked: true, grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+                y: { stacked: true, beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 5 } }
+            }
+        }
+    });
+})();
+</script>
+}

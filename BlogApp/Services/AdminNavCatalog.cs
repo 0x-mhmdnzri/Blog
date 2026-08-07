@@ -31,7 +31,10 @@ public sealed class AdminNavItem
             "flags" => string.Equals(Controller, "AdminSettings", StringComparison.OrdinalIgnoreCase)
                        && action is "FeatureFlags",
             "taxonomy" => string.Equals(controller, "Taxonomy", StringComparison.OrdinalIgnoreCase),
-            "analytics" => string.Equals(controller, "AdminAnalytics", StringComparison.OrdinalIgnoreCase),
+            "analytics" => string.Equals(controller, "AdminAnalytics", StringComparison.OrdinalIgnoreCase)
+                           && !string.Equals(action, "Crawl", StringComparison.OrdinalIgnoreCase),
+            "crawlmonitor" => string.Equals(controller, "AdminAnalytics", StringComparison.OrdinalIgnoreCase)
+                              && string.Equals(action, "Crawl", StringComparison.OrdinalIgnoreCase),
             "authorintel" => string.Equals(controller, "AdminAuthorIntel", StringComparison.OrdinalIgnoreCase),
             "profile" => string.Equals(controller, "Account", StringComparison.OrdinalIgnoreCase)
                          && action is "Profile",
@@ -105,6 +108,10 @@ public static class AdminNavCatalog
         new() { Key = "analytics", GroupKey = "admin.group.growth", LabelKey = "admin.nav.analytics",
             Controller = "AdminAnalytics", Action = "Index",
             Icon = "M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" },
+
+        new() { Key = "crawlmonitor", GroupKey = "admin.group.growth", LabelKey = "admin.nav.crawl_monitor",
+            Controller = "AdminAnalytics", Action = "Crawl", SuperAdminOnly = true, SuperOnlyTag = true,
+            Icon = "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" },
 
         new() { Key = "authorintel", GroupKey = "admin.group.growth", LabelKey = "admin.nav.author_intel",
             Controller = "AdminAuthorIntel", Action = "Index", SuperAdminOnly = true, SuperOnlyTag = true,
