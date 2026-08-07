@@ -43,6 +43,7 @@ public partial class AdminController
             {
                 Id = p.Id,
                 Title = p.Title,
+                hardSlug = p.Slug,
                 Slug = p.Slug,
                 HasSummary = hasSum,
                 HasCover = hasCover,
@@ -96,6 +97,12 @@ public partial class AdminController
         {
             var baseForOrphans = ViewBag.BaseUrlPreview as string ?? "";
             ViewBag.Orphans = await OrphanPageAnalyzer.BuildAsync(_db, baseForOrphans);
+        }
+
+        if (string.Equals(vm.ActiveTab, "depth", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(vm.ActiveTab, "overview", StringComparison.OrdinalIgnoreCase))
+        {
+            ViewBag.ClickDepth = await ClickDepthAnalyzer.BuildAsync(_db);
         }
 
         return View("SeoTools", vm);
@@ -289,7 +296,6 @@ public partial class AdminController
         return RedirectToAction(nameof(SeoTools), new { tab = "orphans" });
     }
 
-    /// <summary>P1.2 — 301 orphan post path → category filter or home (frees crawl budget).</summary>
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SeoOrphanRedirect(int postId, string? target = "category")
     {
