@@ -1,21 +1,26 @@
 using BlogApp.Developer.Domain;
 using BlogApp.Developer.Observability;
 using BlogApp.Services;
+using BlogApp.Services.Seo;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace BlogApp.Developer.Messaging;
 
-/// <summary>Reacts to post.published — metrics, IndexNow ping, structured log.</summary>
 public sealed class PostPublishedConsumer : IConsumer<PostPublishedIntegrationEvent>
 {
     private readonly ILogger<PostPublishedConsumer> _log;
     private readonly IIndexNowService _indexNow;
+    private readonly IHubLinkOnPublishService _hubs;
 
-    public PostPublishedConsumer(ILogger<PostPublishedConsumer> log, IIndexNowService indexNow)
+    public PostPublishedConsumer(
+        ILogger<PostPublishedConsumer> log,
+        IIndexNowService indexNow,
+        IHubLinkOnPublishService hubs)
     {
         _log = log;
         _indexNow = indexNow;
+        _hubs = hubs;
     }
 
     public async Task Consume(ConsumeContext<PostPublishedIntegrationEvent> context)
@@ -26,24 +31,18 @@ public sealed class PostPublishedConsumer : IConsumer<PostPublishedIntegrationEv
             "EDD PostPublished PostId={PostId} Slug={Slug} Author={Author} At={At:o}",
             m.PostId, m.Slug, m.AuthorId, m.PublishedAtUtc);
 
-        try
-        {
-            // Language not on integration event — IndexNow builds URL with default path helpers
-            await _indexNow.NotifyPostAsync(m.PostId, m.Slug, languageCode: null, context.CancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _log.LogWarning(ex, "IndexNow ping failed PostId={Id}", m.PostId);
-        }
+        try { await _hubs.EnsureHubLinksAsync(m.PostId, context.CancellationToken); }
+        catch (Exception ex) { _log.LogWarning(ex, "P2.2 hub-link failed PostId={Id}", m.PostId); }
+
+        try { await _indexNow.NotifyPostAsync(m.PostId, m.Slug, languageCode: null, context.CancellationToken); }
+        catch (Exception ex) { _log.LogWarning(ex, "IndexNow ping failed PostId={Id}", m.PostId); }
     }
 }
 
 public sealed class PostCreatedConsumer : IConsumer<PostCreatedIntegrationEvent>
 {
     private readonly ILogger<PostCreatedConsumer> _log;
-
     public PostCreatedConsumer(ILogger<PostCreatedConsumer> log) => _log = log;
-
     public Task Consume(ConsumeContext<PostCreatedIntegrationEvent> context)
     {
         var m = context.Message;
@@ -56,9 +55,7 @@ public sealed class PostCreatedConsumer : IConsumer<PostCreatedIntegrationEvent>
 public sealed class CommentApprovedConsumer : IConsumer<CommentApprovedIntegrationEvent>
 {
     private readonly ILogger<CommentApprovedConsumer> _log;
-
     public CommentApprovedConsumer(ILogger<CommentApprovedConsumer> log) => _log = log;
-
     public Task Consume(ConsumeContext<CommentApprovedIntegrationEvent> context)
     {
         var m = context.Message;
@@ -71,9 +68,7 @@ public sealed class CommentApprovedConsumer : IConsumer<CommentApprovedIntegrati
 public sealed class AuthorFollowedConsumer : IConsumer<AuthorFollowedIntegrationEvent>
 {
     private readonly ILogger<AuthorFollowedConsumer> _log;
-
     public AuthorFollowedConsumer(ILogger<AuthorFollowedConsumer> log) => _log = log;
-
     public Task Consume(ConsumeContext<AuthorFollowedIntegrationEvent> context)
     {
         var m = context.Message;
