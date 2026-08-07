@@ -32,6 +32,7 @@ public sealed class AdminNavItem
                        && action is "FeatureFlags",
             "taxonomy" => string.Equals(controller, "Taxonomy", StringComparison.OrdinalIgnoreCase),
             "analytics" => string.Equals(controller, "AdminAnalytics", StringComparison.OrdinalIgnoreCase),
+            "authorintel" => string.Equals(controller, "AdminAuthorIntel", StringComparison.OrdinalIgnoreCase),
             "profile" => string.Equals(controller, "Account", StringComparison.OrdinalIgnoreCase)
                          && action is "Profile",
             "authors" => string.Equals(controller, "Account", StringComparison.OrdinalIgnoreCase)
@@ -105,6 +106,10 @@ public static class AdminNavCatalog
             Controller = "AdminAnalytics", Action = "Index",
             Icon = "M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" },
 
+        new() { Key = "authorintel", GroupKey = "admin.group.growth", LabelKey = "admin.nav.author_intel",
+            Controller = "AdminAuthorIntel", Action = "Index", SuperAdminOnly = true, SuperOnlyTag = true,
+            Icon = "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" },
+
         new() { Key = "seo", GroupKey = "admin.group.growth", LabelKey = "admin.nav.seo",
             Controller = "Admin", Action = "SeoTools",
             Icon = "M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" },
@@ -147,7 +152,7 @@ public static class AdminNavCatalog
 
         new() { Key = "settings", GroupKey = "admin.group.system", LabelKey = "admin.nav.settings",
             Controller = "AdminSettings", Action = "Index", SuperAdminOnly = true,
-            Icon = "M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
+            Icon = "M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" },
 
         new() { Key = "flags", GroupKey = "admin.group.system", LabelKey = "admin.nav.flags",
             Controller = "AdminSettings", Action = "FeatureFlags", SuperAdminOnly = true,
