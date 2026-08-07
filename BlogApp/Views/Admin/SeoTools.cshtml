@@ -22,7 +22,7 @@
     <div class="st-hero-text">
         <p class="st-eyebrow">SEO</p>
         <h1 class="st-title">@T["admin.nav.seo"]</h1>
-        <p class="st-sub">Meta, redirects, broken links, content health, orphans, import, IndexNow, crawl logs</p>
+        <p class="st-sub">Meta, redirects, broken links, content health, orphans, depth, import, IndexNow, crawl logs</p>
     </div>
     <div class="st-hero-actions">
         <a class="st-chip-link" href="@Model.SitemapUrl" target="_blank" rel="noopener">sitemap.xml</a>
@@ -43,6 +43,7 @@
     </a>
     <a class="st-tab @TabClass("health")" asp-action="SeoTools" asp-route-tab="health">@T["seo.tab_health"]</a>
     <a class="st-tab @TabClass("orphans")" asp-action="SeoTools" asp-route-tab="orphans">Orphans</a>
+    <a class="st-tab @TabClass("depth")" asp-action="SeoTools" asp-route-tab="depth">Depth</a>
     <a class="st-tab @TabClass("import")" asp-action="SeoTools" asp-route-tab="import">@T["seo.tab_import"]</a>
     <a class="st-tab @TabClass("indexnow")" asp-action="SeoTools" asp-route-tab="indexnow">@T["seo.tab_indexnow"]</a>
     <a class="st-tab @TabClass("crawl")" asp-action="SeoTools" asp-route-tab="crawl">Crawl</a>
@@ -71,6 +72,10 @@ else if (tab == "health")
 else if (tab == "orphans")
 {
     <partial name="_SeoTabOrphans" />
+}
+else if (tab == "depth")
+{
+    <partial name="_SeoTabDepth" />
 }
 else if (tab == "import")
 {
