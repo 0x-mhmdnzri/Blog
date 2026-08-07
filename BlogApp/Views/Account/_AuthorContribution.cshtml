@@ -1,0 +1,131 @@
+@model BlogApp.Models.ViewModels.PublicAuthorProfileViewModel
+@inject BlogApp.Services.IUiTranslator T
+@{
+    var c = Model.Contribution;
+    if (c is null) { return; }
+    var weekCount = c.Days.Count > 0 ? (c.Days.Count + 6) / 7 : 0;
+    string YearUrl(int y)
+    {
+        var path = $"/author/{Model.UserName}";
+        var qs = new List<string> { $"year={y}" };
+        if (!string.IsNullOrWhiteSpace(Model.Q)) qs.Add("q=" + Uri.EscapeDataString(Model.Q));
+        if (!string.IsNullOrWhiteSpace(Model.Sort) && Model.Sort != "newest") qs.Add("sort=" + Uri.EscapeDataString(Model.Sort));
+        if (!string.IsNullOrWhiteSpace(Model.Folder)) qs.Add("folder=" + Uri.EscapeDataString(Model.Folder));
+        if (!string.IsNullOrWhiteSpace(Model.Category)) qs.Add("category=" + Uri.EscapeDataString(Model.Category));
+        if (!string.IsNullOrWhiteSpace(Model.Tag)) qs.Add("tag=" + Uri.EscapeDataString(Model.Tag));
+        if (!string.IsNullOrWhiteSpace(Model.Series)) qs.Add("series=" + Uri.EscapeDataString(Model.Series));
+        if (!string.IsNullOrWhiteSpace(Model.Topic)) qs.Add("topic=" + Uri.EscapeDataString(Model.Topic));
+        return path + "?" + string.Join("&", qs);
+    }
+}
+
+<section class="author-contrib" aria-label="@T["author.contrib_title"]">
+    <div class="author-contrib-card">
+        <div class="author-contrib-head">
+            <p class="author-contrib-summary">
+                <strong class="ltr-field">@c.TotalInYear.ToString("N0")</strong>
+                @T["author.contrib_in_year"]
+                <span class="ltr-field">@c.SelectedYear</span>
+            </p>
+            @if (c.AvailableYears.Count > 0)
+            {
+                <div class="author-contrib-years" role="navigation" aria-label="@T["author.contrib_years"]">
+                    @foreach (var y in c.AvailableYears.Take(6))
+                    {
+                        <a class="author-contrib-year @(y == c.SelectedYear ? "is-active" : null)"
+                           href="@YearUrl(y)">@y</a>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="author-contrib-graph-wrap">
+            <div class="author-contrib-graph" style="--weeks: @weekCount">
+                <div class="author-contrib-months">
+                    @for (var wi = 0; wi < weekCount; wi++)
+                    {
+                        var label = c.MonthLabels.FirstOrDefault(m => m.WeekIndex == wi)?.Label;
+                        <span class="author-contrib-month">@(label ?? "")</span>
+                    }
+                </div>
+                <div class="author-contrib-body">
+                    <div class="author-contrib-dowl" aria-hidden="true">
+                        <span>@(c.UsePersianCalendar ? "د" : "Mon")</span>
+                        <span></span>
+                        <span>@(c.UsePersianCalendar ? "چ" : "Wed")</span>
+                        <span></span>
+                        <span>@(c.UsePersianCalendar ? "ج" : "Fri")</span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="author-contrib-cells" role="grid" aria-readonly="true">
+                        @for (var wi = 0; wi < weekCount; wi++)
+                        {
+                            @for (var di = 0; di < 7; di++)
+                            {
+                                var idx = wi * 7 + di;
+                                if (idx >= c.Days.Count)
+                                {
+                                    <span class="author-contrib-cell is-empty"></span>
+                                }
+                                else
+                                {
+                                    var day = c.Days[idx];
+                                    <span class="author-contrib-cell level-@day.Level @(day.InSelectedYear ? null : "is-out")"
+                                          title="@day.Tooltip"
+                                          role="gridcell"
+                                          data-count="@day.Count"></span>
+                                }
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="author-contrib-legend">
+                <span class="author-contrib-legend-label">@T["author.contrib_less"]</span>
+                <span class="author-contrib-cell level-0"></span>
+                <span class="author-contrib-cell level-1"></span>
+                <span class="author-contrib-cell level-2"></span>
+                <span class="author-contrib-cell level-3"></span>
+                <span class="author-contrib-cell level-4"></span>
+                <span class="author-contrib-legend-label">@T["author.contrib_more"]</span>
+            </div>
+        </div>
+    </div>
+
+    @if (c.ActivityGroups.Count > 0)
+    {
+        <div class="author-activity">
+            <h2 class="author-activity-title">@T["author.activity_title"]</h2>
+            @foreach (var g in c.ActivityGroups)
+            {
+                <div class="author-activity-month">
+                    <h3 class="author-activity-month-title">@g.MonthTitle</h3>
+                    @foreach (var item in g.Items)
+                    {
+                        <div class="author-activity-item">
+                            <div class="author-activity-icon" aria-hidden="true">
+                                <svg viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25Zm1.75-.25a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V2.75a.25.25 0 0 0-.25-.25ZM3.5 6.25a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5Z"/></svg>
+                            </div>
+                            <div class="author-activity-body">
+                                <p class="author-activity-headline">@item.Title</p>
+                                @if (item.Posts.Count > 0)
+                                {
+                                    <ul class="author-activity-posts">
+                                        @foreach (var p in item.Posts.Take(12))
+                                        {
+                                            <li>
+                                                <a asp-controller="Posts" asp-action="Details" asp-route-slug="@p.Slug" dir="auto">@p.Title</a>
+                                                <span class="author-activity-date ltr-field">@p.PublishedAtUtc.ToString("MMM d")</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</section>
