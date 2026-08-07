@@ -1,3 +1,5 @@
+@model BlogApp.Models.ViewModels.SeoToolsViewModel
+@inject BlogApp.Services.IUiTranslator T
 @{
     var avgHealth = Model.PostHealth.Count > 0
         ? (int)Math.Round(Model.PostHealth.Average(h => (double)h.Score))
