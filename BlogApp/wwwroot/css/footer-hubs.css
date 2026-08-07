@@ -1,0 +1,29 @@
+/* P2.1 — footer discovery hubs */
+.footer-hubs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem 1.5rem;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.footer-hub-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b949e;
+  margin-bottom: 0.4rem;
+}
+.footer-hub-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+.footer-hub-links a {
+  font-size: 0.8rem;
+  color: #c9d1d9;
+  text-decoration: none;
+}
+.footer-hub-links a:hover {
+  color: #e3b341;
+}
