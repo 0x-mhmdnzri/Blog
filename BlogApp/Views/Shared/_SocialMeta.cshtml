@@ -1,0 +1,116 @@
+@inject BlogApp.Services.SeoService Seo
+@inject BlogApp.Services.ICultureService Culture
+@*
+  Shared Open Graph + Twitter Card meta for all platforms:
+  LinkedIn, X/Twitter, Telegram, WhatsApp, Facebook, Discord, Slack, iMessage.
+  Image: 1200×630 GitHub-style card from /og/* (views, category, tags, read time).
+*@
+@{
+    var pageTitle = ViewData["Title"] as string;
+    var description = ViewData["Description"] as string ?? Seo.SiteDescription;
+    var currentUrl = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+    var canonicalUrl = ViewData["Canonical"] as string ?? currentUrl;
+    var ogType = ViewData["OgType"] as string ?? "website";
+    var ogImage = ViewData["OgImage"] as string;
+    var ogImageAlt = ViewData["OgImageAlt"] as string ?? pageTitle ?? Seo.SiteName;
+    var pageAuthor = ViewData["Author"] as string ?? Seo.AuthorName;
+    var articlePublished = ViewData["ArticlePublished"] as string;
+    var articleModified = ViewData["ArticleModified"] as string;
+    var articleSection = ViewData["ArticleSection"] as string;
+    var articleTags = ViewData["ArticleTags"] as string[] ?? Array.Empty<string>();
+    var locale = Culture.Current.Locale;
+    var profileUser = ViewData["ProfileUsername"] as string;
+
+    string? ogImageJpeg = null;
+    if (!string.IsNullOrEmpty(ogImage)
+        && ogImage.Contains("/og/post/", StringComparison.OrdinalIgnoreCase)
+        && ogImage.Contains(".png", StringComparison.OrdinalIgnoreCase))
+    {
+        ogImageJpeg = ogImage.Replace(".png", ".jpg", StringComparison.OrdinalIgnoreCase);
+    }
+}
+
+<meta property="og:site_name" content="@Seo.SiteName" />
+<meta property="og:type" content="@ogType" />
+<meta property="og:title" content="@(pageTitle ?? Seo.SiteName)" />
+<meta property="og:description" content="@description" />
+<meta property="og:url" content="@canonicalUrl" />
+<meta property="og:locale" content="@locale" />
+@if (!string.Equals(locale, "fa-IR", StringComparison.OrdinalIgnoreCase))
+{
+    <meta property="og:locale:alternate" content="fa_IR" />
+}
+@if (!string.Equals(locale, "en-US", StringComparison.OrdinalIgnoreCase) && !string.Equals(locale, "en", StringComparison.OrdinalIgnoreCase))
+{
+    <meta property="og:locale:alternate" content="en_US" />
+}
+@if (!string.Equals(locale, "ar-SA", StringComparison.OrdinalIgnoreCase) && !string.Equals(locale, "ar", StringComparison.OrdinalIgnoreCase))
+{
+    <meta property="og:locale:alternate" content="ar_SA" />
+}
+@if (!string.IsNullOrEmpty(ogImage))
+{
+    <meta property="og:image" content="@ogImage" />
+    <meta property="og:image:secure_url" content="@ogImage" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="@ogImageAlt" />
+    @if (!string.IsNullOrEmpty(ogImageJpeg))
+    {
+        <meta property="og:image" content="@ogImageJpeg" />
+        <meta property="og:image:secure_url" content="@ogImageJpeg" />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="@ogImageAlt" />
+    }
+}
+@if (string.Equals(ogType, "article", StringComparison.OrdinalIgnoreCase))
+{
+    if (!string.IsNullOrEmpty(articlePublished))
+    {
+        <meta property="article:published_time" content="@articlePublished" />
+    }
+    if (!string.IsNullOrEmpty(articleModified))
+    {
+        <meta property="article:modified_time" content="@articleModified" />
+    }
+    if (!string.IsNullOrWhiteSpace(pageAuthor))
+    {
+        <meta property="article:author" content="@pageAuthor" />
+    }
+    if (!string.IsNullOrWhiteSpace(articleSection))
+    {
+        <meta property="article:section" content="@articleSection" />
+    }
+    foreach (var tag in articleTags)
+    {
+        <meta property="article:tag" content="@tag" />
+    }
+}
+@if (string.Equals(ogType, "profile", StringComparison.OrdinalIgnoreCase))
+{
+    if (!string.IsNullOrWhiteSpace(profileUser))
+    {
+        <meta property="profile:username" content="@profileUser" />
+    }
+    if (!string.IsNullOrWhiteSpace(pageAuthor))
+    {
+        <meta property="profile:first_name" content="@pageAuthor" />
+    }
+}
+
+<meta name="twitter:card" content="@(string.IsNullOrEmpty(ogImage) ? "summary" : "summary_large_image")" />
+<meta name="twitter:title" content="@(pageTitle ?? Seo.SiteName)" />
+<meta name="twitter:description" content="@description" />
+@if (!string.IsNullOrEmpty(Seo.TwitterHandle))
+{
+    <meta name="twitter:site" content="@Seo.TwitterHandle" />
+    <meta name="twitter:creator" content="@Seo.TwitterHandle" />
+}
+@if (!string.IsNullOrEmpty(ogImage))
+{
+    <meta name="twitter:image" content="@ogImage" />
+    <meta name="twitter:image:alt" content="@ogImageAlt" />
+}
