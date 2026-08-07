@@ -1,0 +1,39 @@
+<section class="st-card">
+    <div class="st-card-head">
+        <h2 class="st-card-title">@T["seo.indexnow_title"]</h2>
+        <p class="st-card-desc">@T["seo.indexnow_hint"]</p>
+    </div>
+
+    <div class="st-status">
+        <div class="st-status-cell">
+            <span class="st-status-label">@T["seo.indexnow_status"]</span>
+            <span class="st-status-val @(Model.IndexNowEnabled ? "on" : "off")">
+                @(Model.IndexNowEnabled ? "enabled" : "disabled")
+            </span>
+        </div>
+        <div class="st-status-cell">
+            <span class="st-status-label">Key</span>
+            <span class="st-status-val ltr-field">@(Model.IndexNowHasKey ? Model.IndexNowKeyHint : "—")</span>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.IndexNowKeyUrl))
+        {
+            <div class="st-status-cell st-status-wide">
+                <span class="st-status-label">Verify URL</span>
+                <a class="st-status-link ltr-field" href="@Model.IndexNowKeyUrl" target="_blank" rel="noopener">@Model.IndexNowKeyUrl</a>
+            </div>
+        }
+    </div>
+
+    <p class="st-hint st-mt">@T["seo.indexnow_config"]</p>
+
+    @if (isSuper)
+    {
+        <form asp-action="SeoIndexNowSubmitAll" method="post" class="st-form-foot">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-accent"
+                    @(Model.IndexNowEnabled && Model.IndexNowHasKey ? null : "disabled")>
+                @T["seo.indexnow_submit_all"]
+            </button>
+        </form>
+    }
+</section>
