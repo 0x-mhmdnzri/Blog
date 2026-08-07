@@ -132,7 +132,7 @@ public class AuthorIntelPostRow
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public stringSlug { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
     public string LanguageCode { get; set; } = "en";
     public bool IsPublished { get; set; }
     public DateTime? PublishedAtUtc { get; set; }
