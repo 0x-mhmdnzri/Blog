@@ -5,10 +5,13 @@ namespace BlogApp.Middleware;
 
 /// <summary>
 /// Applies active RedirectRule rows before MVC routing.
+/// P1.1: flattens redirect chains to a single hop (max 5) so crawlers burn less budget.
 /// Location target is validated (relative path or same-host absolute) to block open redirects.
 /// </summary>
 public class RedirectMiddleware
 {
+    private const int MaxChainHops = 5;
+
     private readonly RequestDelegate _next;
     private readonly ILogger<RedirectMiddleware> _logger;
 
@@ -25,38 +28,61 @@ public class RedirectMiddleware
             var path = context.Request.Path.Value ?? "/";
             if (!path.StartsWith('/')) path = "/" + path;
 
-            // Never hijack auth / admin / upload
             if (!path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/Account", StringComparison.OrdinalIgnoreCase)
                 && !path.StartsWith("/media/", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
-                    var rule = await db.RedirectRules
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(r => r.IsActive && r.FromPath == path);
+                    var start = await db.RedirectRules.AsNoTracking()
+                        .Where(r => r.IsActive && r.FromPath == path)
+                        .Select(r => new RuleRow(r.Id, r.FromPath, r.ToUrl, r.StatusCode))
+                        .FirstOrDefaultAsync();
 
-                    if (rule is not null)
+                    if (start is not null)
                     {
-                        if (!IsSafeRedirectTarget(context, rule.ToUrl))
+                        var byFrom = new Dictionary<string, RuleRow>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            [start.FromPath] = start
+                        };
+
+                        var more = await db.RedirectRules.AsNoTracking()
+                            .Where(r => r.IsActive && r.FromPath != path)
+                            .Select(r => new RuleRow(r.Id, r.FromPath, r.ToUrl, r.StatusCode))
+                            .ToListAsync();
+                        foreach (var r in more)
+                        {
+                            if (!byFrom.ContainsKey(r.FromPath))
+                                byFrom[r.FromPath] = r;
+                        }
+
+                        var (finalUrl, status, hops) = ResolveChain(byFrom, path, start);
+
+                        if (!IsSafeRedirectTarget(context, finalUrl))
                         {
                             _logger.LogWarning(
                                 "Blocked unsafe redirect rule RuleId={RuleId} To={ToUrl}",
-                                rule.Id, rule.ToUrl);
+                                start.Id, finalUrl);
                         }
                         else
                         {
-                            _logger.LogInformation(
-                                "SEO redirect From={FromPath} To={ToUrl} Status={StatusCode} RuleId={RuleId}",
-                                rule.FromPath, rule.ToUrl, rule.StatusCode, rule.Id);
+                            if (hops > 1)
+                                _logger.LogInformation(
+                                    "SEO redirect chain flattened hops={Hops} From={FromPath} To={ToUrl} RuleId={RuleId}",
+                                    hops, path, finalUrl, start.Id);
+                            else
+                                _logger.LogInformation(
+                                    "SEO redirect From={FromPath} To={ToUrl} Status={StatusCode} RuleId={RuleId}",
+                                    path, finalUrl, status, start.Id);
 
+                            var ruleId = start.Id;
                             _ = Task.Run(async () =>
                             {
                                 try
                                 {
                                     await using var scope = context.RequestServices.CreateAsyncScope();
                                     var scopedDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                                    var tracked = await scopedDb.RedirectRules.FindAsync(rule.Id);
+                                    var tracked = await scopedDb.RedirectRules.FindAsync(ruleId);
                                     if (tracked is not null)
                                     {
                                         tracked.HitCount++;
@@ -66,13 +92,13 @@ public class RedirectMiddleware
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.LogWarning(ex, "Failed to increment redirect HitCount RuleId={RuleId}", rule.Id);
+                                    _logger.LogWarning(ex, "Failed to increment redirect HitCount RuleId={RuleId}", ruleId);
                                 }
                             });
 
-                            var status = rule.StatusCode is 301 or 302 or 307 or 308 ? rule.StatusCode : 301;
-                            context.Response.StatusCode = status;
-                            context.Response.Headers.Location = rule.ToUrl;
+                            var code = status is 301 or 302 or 307 or 308 ? status : 301;
+                            context.Response.StatusCode = code;
+                            context.Response.Headers.Location = finalUrl;
                             return;
                         }
                     }
@@ -87,12 +113,58 @@ public class RedirectMiddleware
         await _next(context);
     }
 
+    private sealed record RuleRow(int Id, string FromPath, string ToUrl, int StatusCode);
+
+    private static (string FinalUrl, int Status, int Hops) ResolveChain(
+        Dictionary<string, RuleRow> byFrom,
+        string startPath,
+        RuleRow start)
+    {
+        var current = start.ToUrl.Trim();
+        var status = start.StatusCode is 301 or 302 or 307 or 308 ? start.StatusCode : 301;
+        var hops = 1;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { startPath };
+
+        for (var i = 0; i < MaxChainHops; i++)
+        {
+            var nextPath = ToRelativePath(current);
+            if (nextPath is null || !seen.Add(nextPath))
+                break;
+
+            if (!byFrom.TryGetValue(nextPath, out var next))
+                break;
+
+            current = next.ToUrl.Trim();
+            if (next.StatusCode is 302 or 307)
+                status = next.StatusCode;
+            hops++;
+        }
+
+        return (current, status, hops);
+    }
+
+    private static string? ToRelativePath(string toUrl)
+    {
+        if (string.IsNullOrWhiteSpace(toUrl)) return null;
+        toUrl = toUrl.Trim();
+        if (toUrl.StartsWith('/') && !toUrl.StartsWith("//", StringComparison.Ordinal))
+        {
+            var q = toUrl.IndexOf('?', StringComparison.Ordinal);
+            return q >= 0 ? toUrl[..q] : toUrl;
+        }
+        if (Uri.TryCreate(toUrl, UriKind.Absolute, out var uri))
+        {
+            var p = uri.AbsolutePath;
+            return string.IsNullOrEmpty(p) ? "/" : p;
+        }
+        return null;
+    }
+
     private static bool IsSafeRedirectTarget(HttpContext context, string? toUrl)
     {
         if (string.IsNullOrWhiteSpace(toUrl)) return false;
         toUrl = toUrl.Trim();
 
-        // Relative path on this site
         if (toUrl.StartsWith('/') && !toUrl.StartsWith("//", StringComparison.Ordinal))
             return !toUrl.Contains('\\') && !toUrl.Contains('\0');
 
@@ -102,7 +174,6 @@ public class RedirectMiddleware
         if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
             return false;
 
-        // Same host only (prevents open redirect / phishing via admin-managed rules)
         var host = context.Request.Host.Host;
         return string.Equals(uri.Host, host, StringComparison.OrdinalIgnoreCase);
     }
