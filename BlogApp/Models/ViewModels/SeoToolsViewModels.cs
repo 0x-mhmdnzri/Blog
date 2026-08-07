@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using BlogApp.Models;
+using BlogApp.Services.Seo;
 
 namespace BlogApp.Models.ViewModels;
 
@@ -22,6 +23,9 @@ public class SeoToolsViewModel
     public bool IndexNowHasKey { get; set; }
     public string? IndexNowKeyHint { get; set; }
     public string? IndexNowKeyUrl { get; set; }
+
+    /// <summary>P0.1 bot crawl log summary (null until tab=crawl loads).</summary>
+    public BotCrawlSummaryDto? Crawl { get; set; }
 }
 
 public class SeoMetaForm
