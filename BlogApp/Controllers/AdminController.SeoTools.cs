@@ -83,9 +83,11 @@ public partial class AdminController
         ViewBag.BaseUrlPreview = baseUrl;
 
         if (string.Equals(vm.ActiveTab, "crawl", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(vm.ActiveTab, "overview", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(vm.ActiveTab, "overview", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(vm.ActiveTab, "redirects", StringComparison.OrdinalIgnoreCase))
         {
             vm.Crawl = await BotCrawlSummary.BuildAsync(_db, days);
+            ViewBag.CrawlWaste = await CrawlWasteAnalyzer.BuildAsync(_db, days);
         }
 
         return View("SeoTools", vm);
@@ -194,7 +196,7 @@ public partial class AdminController
 
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = AppRoles.SuperAdmin)]
-    [RequestSizeLimit(52_428_800)] // 50 MB
+    [RequestSizeLimit(52_428_800)]
     public async Task<IActionResult> SeoImport(
         IFormFile? file,
         string format = "wordpress",
