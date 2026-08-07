@@ -1,0 +1,109 @@
+@using BlogApp.Services.Seo
+@{
+    var report = ViewBag.ClickDepth as ClickDepthReport;
+}
+@if (report is null)
+{
+    <section class="st-card"><p class="st-card-desc">Depth analysis not loaded.</p></section>
+    return;
+}
+
+<div class="st-kpis">
+    <div class="st-kpi">
+        <span class="st-kpi-label">Published</span>
+        <span class="st-kpi-val">@report.PublishedCount.ToString("N0")</span>
+    </div>
+    <div class="st-kpi">
+        <span class="st-kpi-label">Reachable ≤4</span>
+        <span class="st-kpi-val">@((report.ReachableCount - report.Beyond4Count).ToString("N0"))</span>
+    </div>
+    <div class="st-kpi @(report.Beyond4Count > 0 ? "st-kpi-warn" : "")">
+        <span class="st-kpi-label">Depth > 4</span>
+        <span class="st-kpi-val">@report.Beyond4Count.ToString("N0")</span>
+    </div>
+    <div class="st-kpi @(report.UnreachableCount > 0 ? "st-kpi-warn" : "")">
+        <span class="st-kpi-label">Unreachable</span>
+        <span class="st-kpi-val">@report.UnreachableCount.ToString("N0")</span>
+    </div>
+    <div class="st-kpi">
+        <span class="st-kpi-label">Max depth</span>
+        <span class="st-kpi-val">@report.MaxDepth</span>
+    </div>
+</div>
+
+<section class="st-card st-mb">
+    <div class="st-card-head">
+        <h2 class="st-card-title">Click depth (P2.1)</h2>
+        <p class="st-card-desc">
+            Approximate hops from homepage via feed, category/series hubs, and related peers.
+            Target: priority pages ≤ 4 clicks. Hubs in footer + home series strip keep taxonomy at depth 1.
+        </p>
+    </div>
+    @if (report.DepthHistogram.Count > 0)
+    {
+        <div class="st-table-wrap">
+            <table class="st-table">
+                <thead><tr><th>Depth</th><th>Posts</th></tr></thead>
+                <tbody>
+                @foreach (var kv in report.DepthHistogram.OrderBy(x => x.Key))
+                {
+                    <tr>
+                        <td>@kv.Key</td>
+                        <td>@kv.Value.ToString("N0")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@if (report.Beyond4.Count > 0)
+{
+    <section class="st-card st-mb">
+        <div class="st-card-head">
+            <h2 class="st-card-title">Beyond 4 clicks</h2>
+            <p class="st-card-desc">Feature, add to a series, or link from a hub post.</p>
+        </div>
+        <div class="st-table-wrap">
+            <table class="st-table">
+                <thead><tr><th>Post</th><th>Depth</th><th>Views</th><th>Category</th></tr></thead>
+                <tbody>
+                @foreach (var o in report.Beyond4)
+                {
+                    <tr>
+                        <td><a href="@o.Path" target="_blank" rel="noopener" dir="auto">@o.Title</a></td>
+                        <td>@o.Depth</td>
+                        <td>@o.ViewCount.ToString("N0")</td>
+                        <td>@(o.CategoryName ?? "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@if (report.Unreachable.Count > 0)
+{
+    <section class="st-card">
+        <div class="st-card-head">
+            <h2 class="st-card-title">Structurally unreachable</h2>
+            <p class="st-card-desc">No path via feed/hubs/related — usually no category and not on home. Assign category or Feature.</p>
+        </div>
+        <div class="st-table-wrap">
+            <table class="st-table">
+                <thead><tr><th>Post</th><th>Views</th></tr></thead>
+                <tbody>
+                @foreach (var o in report.Unreachable)
+                {
+                    <tr>
+                        <td><a href="@o.Path" target="_blank" rel="noopener" dir="auto">@o.Title</a></td>
+                        <td>@o.ViewCount.ToString("N0")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
