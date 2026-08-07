@@ -1,0 +1,117 @@
+@model BlogApp.Services.Seo.BotCrawlSummaryDto?
+@{
+    var c = Model;
+}
+@if (c is null)
+{
+    <section class="st-card">
+        <p class="st-card-desc">No crawl data yet. Hits appear after search/AI bots visit public pages.</p>
+    </section>
+    return;
+}
+
+<div class="st-kpis">
+    <div class="st-kpi">
+        <span class="st-kpi-label">Hits (@c.Days d)</span>
+        <span class="st-kpi-val">@c.TotalHits.ToString("N0")</span>
+    </div>
+    <div class="st-kpi">
+        <span class="st-kpi-label">Search / AI</span>
+        <span class="st-kpi-val">@c.SearchHits.ToString("N0") / @c.AiHits.ToString("N0")</span>
+    </div>
+    <div class="st-kpi @(c.WastePercent > 5 ? "st-kpi-warn" : "")">
+        <span class="st-kpi-label">Waste (non-200/304)</span>
+        <span class="st-kpi-val">@c.WastePercent.ToString("0.#")%</span>
+    </div>
+    <div class="st-kpi">
+        <span class="st-kpi-label">Avg / p95 ms</span>
+        <span class="st-kpi-val">@c.AvgMs / @c.P95Ms</span>
+    </div>
+</div>
+
+<div class="st-split">
+    <section class="st-card">
+        <div class="st-card-head">
+            <h2 class="st-card-title">By bot family</h2>
+            <p class="st-card-desc">Search vs AI vs archive · last @c.Days days · retention 90d</p>
+        </div>
+        <div class="st-table-wrap">
+            <table class="st-table">
+                <thead>
+                    <tr>
+                        <th>Family</th>
+                        <th>Kind</th>
+                        <th>Hits</th>
+                        <th>Avg ms</th>
+                        <th>Non-OK</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var f in c.ByFamily)
+                {
+                    <tr>
+                        <td><code>@f.Family</code></td>
+                        <td>@f.Kind</td>
+                        <td>@f.Hits.ToString("N0")</td>
+                        <td>@f.AvgMs</td>
+                        <td>@f.NonOk</td>
+                    </tr>
+                }
+                @if (c.ByFamily.Count == 0)
+                {
+                    <tr><td colspan="5">No bot hits in window.</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="st-card">
+        <div class="st-card-head">
+            <h2 class="st-card-title">Top paths</h2>
+            <p class="st-card-desc">Where crawl budget is spent</p>
+        </div>
+        <div class="st-table-wrap">
+            <table class="st-table">
+                <thead>
+                    <tr>
+                        <th>Path</th>
+                        <th>Hits</th>
+                        <th>Avg ms</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var p in c.TopPaths)
+                {
+                    <tr>
+                        <td><code style="word-break:break-all">@p.Path</code></td>
+                        <td>@p.Hits.ToString("N0")</td>
+                        <td>@p.AvgMs</td>
+                        <td>@p.LastStatus</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<section class="st-card" style="margin-top:1rem">
+    <div class="st-card-head">
+        <h2 class="st-card-title">Status codes</h2>
+    </div>
+    <p class="st-card-desc">
+        @foreach (var s in c.ByStatus)
+        {
+            <span class="st-chip-link" style="margin-inline-end:.35rem">@s.Code · @s.Count</span>
+        }
+        @if (c.ByStatus.Count == 0) { <span>—</span> }
+    </p>
+    <p class="st-card-desc" style="margin-top:.75rem">
+        Range:
+        <a class="st-chip-link" href="?tab=crawl&days=7">7d</a>
+        <a class="st-chip-link" href="?tab=crawl&days=30">30d</a>
+        <a class="st-chip-link" href="?tab=crawl&days=90">90d</a>
+    </p>
+</section>
