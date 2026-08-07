@@ -1,19 +1,45 @@
 @model BlogApp.Models.ViewModels.AuthorIntelDetailViewModel
+@inject BlogApp.Services.IUiTranslator T
+@inject BlogApp.Services.ICultureService Culture
 @{
-    ViewData["Title"] = $"Intel · {Model.DisplayName}";
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = $"{T["ai.title"]} · {Model.DisplayName}";
     var range = (int)(ViewBag.Range ?? 90);
+    var dir = Culture.Current.Direction;
+
+    string MomentumLabel(string m) => m switch
+    {
+        "rising" => T["ai.momentum_rising"],
+        "declining" => T["ai.momentum_declining"],
+        "dormant" => T["ai.momentum_dormant"],
+        _ => T["ai.momentum_stable"]
+    };
+
+    string HealthLabel(string h) => h switch
+    {
+        "Excellent" => T["ai.health_excellent"],
+        "Good" => T["ai.health_good"],
+        "Weak" => T["ai.health_weak"],
+        "Critical" => T["ai.health_critical"],
+        _ => T["ai.health_neutral"]
+    };
+
+    string HealthClass(string h) => (h ?? "Neutral").ToLowerInvariant().Replace(" ", "");
+    string RangeCls(int r) => range == r ? "is-active" : "";
 }
 
 <link rel="stylesheet" href="~/css/author-intel.css" asp-append-version="true" />
 
-<div class="ai-page ai-detail">
+<div class="ai-page ai-detail" dir="@dir">
     <div class="ai-detail-nav">
-        <a href="@Url.Action("Index")" class="ai-back">← All authors</a>
-        <div class="ai-range">
-            <a class="@(range == 30 ? "is-active" : "")" href="@Url.Action("Detail", new { id = Model.UserId, range = 30 })">30d</a>
-            <a class="@(range == 90 ? "is-active" : "")" href="@Url.Action("Detail", new { id = Model.UserId, range = 90 })">90d</a>
-            <a class="@(range == 180 ? "is-active" : "")" href="@Url.Action("Detail", new { id = Model.UserId, range = 180 })">180d</a>
+        <a href="@Url.Action("Index")" class="ai-back">
+            <span class="ai-back-arrow" aria-hidden="true">←</span>
+            @T["ai.back"]
+        </a>
+        <div class="ai-range" role="group">
+            <a class="@RangeCls(30)" href="@Url.Action("Detail", new { id = Model.UserId, range = 30 })">@T["ai.range_30"]</a>
+            <a class="@RangeCls(90)" href="@Url.Action("Detail", new { id = Model.UserId, range = 90 })">@T["ai.range_90"]</a>
+            <a class="@RangeCls(180)" href="@Url.Action("Detail", new { id = Model.UserId, range = 180 })">@T["ai.range_180"]</a>
         </div>
     </div>
 
@@ -25,29 +51,33 @@
             }
             else
             {
-                <span>@(string.IsNullOrEmpty(Model.DisplayName) ? "?" : Model.DisplayName[0].ToString().ToUpperInvariant())</span>
+                <span>@(string.IsNullOrEmpty(Model.DisplayName) ? "?" : char.ToUpperInvariant(Model.DisplayName.Trim()[0]))</span>
             }
         </div>
-        <div>
+        <div class="ai-hero-body">
             <h1 class="ai-title">@Model.DisplayName</h1>
-            <div class="ai-handle">@@@Model.UserName</div>
+            <div class="ai-handle ltr-field">@@@Model.UserName</div>
             @if (!string.IsNullOrWhiteSpace(Model.Bio))
             {
                 <p class="ai-bio">@Model.Bio</p>
             }
+            <div class="ai-hero-meta">
+                <span>@T["ai.joined"] <time class="ltr-field" datetime="@Model.JoinedAtUtc.ToString("yyyy-MM-dd")">@Model.JoinedAtUtc.ToString("yyyy-MM-dd")</time></span>
+                <a class="ai-link" href="@Url.Action("PublicProfile", "Account", new { userName = Model.UserName })" target="_blank" rel="noopener">@T["ai.view_profile"]</a>
+            </div>
         </div>
-        <div class="ai-health ai-health--lg ai-health--@Model.HealthLabel.ToLowerInvariant().Replace(" ", "")">
+        <div class="ai-health ai-health--lg ai-health--@HealthClass(Model.HealthLabel)">
             <span class="ai-health-score">@Model.HealthScore</span>
-            <span class="ai-health-lbl">@Model.HealthLabel</span>
-            <span class="ai-momentum ai-momentum--@Model.Momentum">@Model.Momentum</span>
+            <span class="ai-health-lbl">@HealthLabel(Model.HealthLabel)</span>
+            <span class="ai-momentum ai-momentum--@Model.Momentum">@MomentumLabel(Model.Momentum)</span>
         </div>
     </header>
 
     @if (Model.Insights.Count > 0)
     {
-        <section class="ai-insights">
-            <h2 class="ai-section-title">Insights</h2>
-            <ul>
+        <section class="ai-insights" aria-labelledby="ai-insights-title">
+            <h2 id="ai-insights-title" class="ai-section-title">@T["ai.section_insights"]</h2>
+            <ul class="ai-insight-list">
                 @foreach (var tip in Model.Insights)
                 {
                     <li>@tip</li>
@@ -56,43 +86,73 @@
         </section>
     }
 
-    <div class="ai-kpis">
-        <div class="ai-kpi"><span class="ai-kpi-val">@Model.PublishedPosts</span><span class="ai-kpi-lbl">Published</span></div>
-        <div class="ai-kpi"><span class="ai-kpi-val">@Model.TotalViews.ToString("N0")</span><span class="ai-kpi-lbl">Total views</span></div>
-        <div class="ai-kpi"><span class="ai-kpi-val">@Model.Likes</span><span class="ai-kpi-lbl">Likes</span></div>
-        <div class="ai-kpi"><span class="ai-kpi-val">@Model.Followers</span><span class="ai-kpi-lbl">Followers</span></div>
-        <div class="ai-kpi"><span class="ai-kpi-val">@Model.EngagementRate.ToString("0.##")%</span><span class="ai-kpi-lbl">Eng. rate</span></div>
-        <div class="ai-kpi"><span class="ai-kpi-val">@Model.CurrentStreakDays</span><span class="ai-kpi-lbl">Streak</span></div>
-        <div class="ai-kpi"><span class="ai-kpi-val">@Model.OpenReports</span><span class="ai-kpi-lbl">Open reports</span></div>
+    <section class="ai-section" aria-labelledby="ai-overview-title">
+        <h2 id="ai-overview-title" class="ai-section-title">@T["ai.section_overview"]</h2>
+        <div class="ai-kpis">
+            <div class="ai-kpi"><span class="ai-kpi-val">@Model.PublishedPosts</span><span class="ai-kpi-lbl">@T["ai.kpi_published"]</span></div>
+            <div class="ai-kpi"><span class="ai-kpi-val">@Model.TotalViews.ToString("N0")</span><span class="ai-kpi-lbl">@T["ai.kpi_total_views"]</span></div>
+            <div class="ai-kpi"><span class="ai-kpi-val">@Model.Likes</span><span class="ai-kpi-lbl">@T["ai.kpi_likes"]</span></div>
+            <div class="ai-kpi"><span class="ai-kpi-val">@Model.Followers</span><span class="ai-kpi-lbl">@T["ai.kpi_followers"]</span></div>
+            <div class="ai-kpi"><span class="ai-kpi-val">@Model.EngagementRate.ToString("0.##")%</span><span class="ai-kpi-lbl">@T["ai.kpi_eng_rate"]</span></div>
+            <div class="ai-kpi"><span class="ai-kpi-val">@Model.CurrentStreakDays</span><span class="ai-kpi-lbl">@T["ai.kpi_streak"]</span></div>
+            <div class="ai-kpi"><span class="ai-kpi-val">@Model.OpenReports</span><span class="ai-kpi-lbl">@T["ai.kpi_open_reports"]</span></div>
+            <div class="ai-kpi"><span class="ai-kpi-val">@Model.DraftPosts</span><span class="ai-kpi-lbl">@T["ai.kpi_drafts"]</span></div>
+        </div>
+    </section>
+
+    <div class="ai-split">
+        <section class="ai-section" aria-labelledby="ai-eng-title">
+            <h2 id="ai-eng-title" class="ai-section-title">@T["ai.section_engagement"]</h2>
+            <div class="ai-kpis ai-kpis--compact">
+                <div class="ai-kpi"><span class="ai-kpi-val">@Model.UniqueVisitors30d.ToString("N0")</span><span class="ai-kpi-lbl">@T["ai.kpi_unique"]</span></div>
+                <div class="ai-kpi"><span class="ai-kpi-val">@Model.ReturningVisitorPct.ToString("0.#")%</span><span class="ai-kpi-lbl">@T["ai.kpi_returning"]</span></div>
+                <div class="ai-kpi"><span class="ai-kpi-val">@Model.AvgViewsPerPost.ToString("N1")</span><span class="ai-kpi-lbl">@T["ai.kpi_avg_views"]</span></div>
+                <div class="ai-kpi"><span class="ai-kpi-val">@(Model.AvgReadSeconds > 0 ? Model.AvgReadSeconds.ToString("0") + "s" : "—")</span><span class="ai-kpi-lbl">@T["ai.kpi_avg_read"]</span></div>
+                <div class="ai-kpi"><span class="ai-kpi-val">@Model.Bookmarks</span><span class="ai-kpi-lbl">@T["ai.kpi_bookmarks"]</span></div>
+                <div class="ai-kpi"><span class="ai-kpi-val">@Model.CommentsApproved</span><span class="ai-kpi-lbl">@T["ai.kpi_comments"]</span></div>
+            </div>
+        </section>
+
+        <section class="ai-section" aria-labelledby="ai-risk-title">
+            <h2 id="ai-risk-title" class="ai-section-title">@T["ai.section_risk"]</h2>
+            <div class="ai-kpis ai-kpis--compact">
+                <div class="ai-kpi"><span class="ai-kpi-val">@Model.OpenReports</span><span class="ai-kpi-lbl">@T["ai.kpi_open_reports"]</span></div>
+                <div class="ai-kpi"><span class="ai-kpi-val">@Model.PendingReviewPosts</span><span class="ai-kpi-lbl">@T["ai.kpi_pending"]</span></div>
+                <div class="ai-kpi"><span class="ai-kpi-val">@Model.RejectedPosts</span><span class="ai-kpi-lbl">@T["ai.kpi_rejected"]</span></div>
+                <div class="ai-kpi"><span class="ai-kpi-val">@Model.LongestStreakDays</span><span class="ai-kpi-lbl">@T["ai.kpi_best_streak"]</span></div>
+            </div>
+        </section>
     </div>
 
-    <section class="ai-section">
-        <h2 class="ai-section-title">Recent posts</h2>
+    <section class="ai-section" aria-labelledby="ai-recent-title">
+        <h2 id="ai-recent-title" class="ai-section-title">@T["ai.section_recent"]</h2>
         @if (Model.RecentPosts.Count == 0)
         {
-            <div class="ai-empty">No published posts.</div>
+            <div class="ai-empty" role="status">@T["ai.no_posts"]</div>
         }
         else
         {
-            <table class="ai-table">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Views</th>
-                        <th>Published</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var p in Model.RecentPosts)
-                    {
+            <div class="ai-table-wrap">
+                <table class="ai-table">
+                    <thead>
                         <tr>
-                            <td>@p.Title</td>
-                            <td>@p.Views.ToString("N0")</td>
-                            <td>@(p.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "—")</td>
+                            <th scope="col">@T["ai.col_title"]</th>
+                            <th scope="col">@T["ai.col_views"]</th>
+                            <th scope="col">@T["ai.col_published"]</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.RecentPosts)
+                        {
+                            <tr>
+                                <td class="ai-td-title">@p.Title</td>
+                                <td class="ltr-field">@p.Views.ToString("N0")</td>
+                                <td class="ltr-field">@(p.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
     </section>
 </div>
