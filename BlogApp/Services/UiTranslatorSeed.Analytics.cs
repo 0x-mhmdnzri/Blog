@@ -37,7 +37,8 @@ public sealed partial class UiTranslatorService
             .Concat(UiTranslationCatalog.UsersRoles)
             .Concat(UiTranslationCatalog.ApiKeysAdmin)
             .Concat(UiTranslationCatalog.Report)
-            .Concat(UiTranslationCatalog.PostEditor);
+            .Concat(UiTranslationCatalog.PostEditor)
+            .Concat(UiTranslationCatalog.AuthorIntel);
 
         var added = 0;
         foreach (var (key, group, fa, en, ar) in insertRows)
