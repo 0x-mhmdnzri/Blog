@@ -1,3 +1,7 @@
+@{
+    var isSuper = BlogApp.Services.AuthorAccess.IsSuperAdmin(User);
+}
+
 @if (!isSuper)
 {
     <div class="st-alert st-alert-info">@T["seo.meta_super_only"]</div>
