@@ -205,6 +205,9 @@ public class PublicAuthorProfileViewModel
         || !string.IsNullOrWhiteSpace(Series)
         || !string.IsNullOrWhiteSpace(Topic)
         || (!string.IsNullOrWhiteSpace(Sort) && Sort != "newest");
+
+    /// <summary>GitHub-style publishing activity for the selected year.</summary>
+    public AuthorContributionViewModel Contribution { get; set; } = new();
 }
 
 public class AuthorFilterOption
@@ -217,7 +220,7 @@ public class AuthorFilterOption
 public class AuthorPostItem
 {
     public string Title { get; set; } = string.Empty;
-    public string Slug { get; set; } = string.Empty;
+    public stringSlug { get; set; } = string.Empty;
     public string LanguageCode { get; set; } = "fa";
     public string? Summary { get; set; }
     public DateTime? PublishedAtUtc { get; set; }
@@ -225,6 +228,54 @@ public class AuthorPostItem
     public int ReadingTimeMinutes { get; set; }
     public string? CategoryName { get; set; }
     public string? CoverUrl { get; set; }
+}
+
+public class AuthorContributionViewModel
+{
+    public int SelectedYear { get; set; }
+    public List<int> AvailableYears { get; set; } = new();
+    public int TotalInYear { get; set; }
+    public bool UsePersianCalendar { get; set; }
+    public List<AuthorContributionMonthLabel> MonthLabels { get; set; } = new();
+    public List<AuthorContributionDay> Days { get; set; } = new();
+    public List<AuthorContributionActivityGroup> ActivityGroups { get; set; } = new();
+}
+
+public class AuthorContributionDay
+{
+    public DateTime Date { get; set; }
+    public int Count { get; set; }
+    public int Level { get; set; }
+    public string Tooltip { get; set; } = string.Empty;
+    public bool InSelectedYear { get; set; }
+}
+
+public class AuthorContributionMonthLabel
+{
+    public string Label { get; set; } = string.Empty;
+    public int WeekIndex { get; set; }
+}
+
+public class AuthorContributionActivityGroup
+{
+    public string MonthTitle { get; set; } = string.Empty;
+    public int SortKey { get; set; }
+    public List<AuthorContributionActivityItem> Items { get; set; } = new();
+}
+
+public class AuthorContributionActivityItem
+{
+    public string Kind { get; set; } = "posts";
+    public string Title { get; set; } = string.Empty;
+    public string? Detail { get; set; }
+    public List<AuthorContributionPostLink> Posts { get; set; } = new();
+}
+
+public class AuthorContributionPostLink
+{
+    public string Title { get; set; } = string.Empty;
+    public stringSlug { get; set; } = string.Empty;
+    public DateTime PublishedAtUtc { get; set; }
 }
 
 public class TelegramInstantViewModel
