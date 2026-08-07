@@ -15,19 +15,26 @@ public static class PerformanceServiceExtensions
 
         // Distributed cache: Redis when configured, otherwise in-memory distributed
         var provider = perf.Cache.Provider?.Trim().ToLowerInvariant() ?? "memory";
-        if (provider == "redis" && !string.IsNullOrWhiteSpace(perf.Cache.RedisConnection))
+        var useRedis = provider == "redis" && !string.IsNullOrWhiteSpace(perf.Cache.RedisConnection);
+        if (useRedis)
         {
             services.AddStackExchangeRedisCache(o =>
             {
                 o.Configuration = perf.Cache.RedisConnection;
                 o.InstanceName = perf.Cache.RedisInstanceName;
             });
-            Console.WriteLine($"[Performance] Distributed cache: Redis ({perf.Cache.RedisInstanceName})");
+            // Shared output-cache store across instances (P0.2 hostload / multi-node)
+            services.AddStackExchangeRedisOutputCache(o =>
+            {
+                o.Configuration = perf.Cache.RedisConnection!;
+                o.InstanceName = (perf.Cache.RedisInstanceName ?? "BlogApp:") + "oc:";
+            });
+            Console.WriteLine($"[Performance] Distributed + OutputCache store: Redis ({perf.Cache.RedisInstanceName})");
         }
         else
         {
             services.AddDistributedMemoryCache();
-            Console.WriteLine("[Performance] Distributed cache: memory");
+            Console.WriteLine("[Performance] Distributed cache: memory; OutputCache: in-process");
         }
 
         if (perf.Cache.ResponseCacheEnabled)
@@ -44,7 +51,7 @@ public static class PerformanceServiceExtensions
                 options.AddPolicy("home", b => b
                     .AddPolicy(typeof(AnonymousGetOutputCachePolicy))
                     .Expire(TimeSpan.FromSeconds(Math.Max(5, perf.Cache.HomeFeedSeconds)))
-                    .SetVaryByQuery("category", "tag", "q", "page", "sort", "featured", "minRead")
+                    .SetVaryByQuery("category", "tag", "q", "page", "sort", "featured", "minRead", "folderId", "partial")
                     .SetVaryByHeader("Accept-Language")
                     .Tag(OutputCacheInvalidator.TagHome, OutputCacheInvalidator.TagTaxonomy));
 
@@ -65,6 +72,8 @@ public static class PerformanceServiceExtensions
                 options.AddPolicy("public-page", b => b
                     .AddPolicy(typeof(AnonymousGetOutputCachePolicy))
                     .Expire(TimeSpan.FromSeconds(Math.Max(10, perf.Cache.PostPageSeconds)))
+                    .SetVaryByQuery("q", "sort", "folder", "category", "tag", "series", "topic", "year")
+                    .SetVaryByHeader("Accept-Language")
                     .Tag(OutputCacheInvalidator.TagPages));
             });
         }
