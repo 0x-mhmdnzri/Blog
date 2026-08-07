@@ -1,67 +1,87 @@
 @model BlogApp.Models.ViewModels.AuthorIntelIndexViewModel
+@inject BlogApp.Services.IUiTranslator T
+@inject BlogApp.Services.ICultureService Culture
 @{
-    ViewData["Title"] = "Author Intelligence";
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    ViewData["Title"] = T["ai.title"];
+    var sort = Model.Sort ?? "health";
+    var dir = Culture.Current.Direction;
+
+    string MomentumLabel(string m) => m switch
+    {
+        "rising" => T["ai.momentum_rising"],
+        "declining" => T["ai.momentum_declining"],
+        "dormant" => T["ai.momentum_dormant"],
+        _ => T["ai.momentum_stable"]
+    };
+
+    string HealthLabel(string h) => h switch
+    {
+        "Excellent" => T["ai.health_excellent"],
+        "Good" => T["ai.health_good"],
+        "Weak" => T["ai.health_weak"],
+        "Critical" => T["ai.health_critical"],
+        _ => T["ai.health_neutral"]
+    };
+
+    string HealthClass(string h) => (h ?? "Neutral").ToLowerInvariant().Replace(" ", "");
+    string SortCls(string key) => sort == key ? "is-active" : "";
 }
 
 <link rel="stylesheet" href="~/css/author-intel.css" asp-append-version="true" />
 
-<div class="ai-page">
+<div class="ai-page" dir="@dir">
     <header class="ai-header">
-        <div>
-            <h1 class="ai-title">Author Intelligence</h1>
-            <p class="ai-sub">Behavioral analytics, engagement health, and creator profiles — SuperAdmin only.</p>
+        <div class="ai-header-text">
+            <p class="ai-eyebrow">@T["admin.super_only"]</p>
+            <h1 class="ai-title">@T["ai.title"]</h1>
+            <p class="ai-sub">@T["ai.subtitle"]</p>
         </div>
-        <form method="get" class="ai-search" action="@Url.Action("Index")">
-            <input type="search" name="q" value="@Model.Q" placeholder="Search authors…" class="ai-input" />
-            <input type="hidden" name="sort" value="@(Model.Sort ?? "health")" />
-            <button type="submit" class="ai-btn">Search</button>
+        <form method="get" class="ai-search" action="@Url.Action("Index")" role="search">
+            <label class="visually-hidden" for="ai-q">@T["ai.search_ph"]</label>
+            <input id="ai-q" type="search" name="q" value="@Model.Q" placeholder="@T["ai.search_ph"]" class="ai-input" autocomplete="off" />
+            <input type="hidden" name="sort" value="@sort" />
+            <button type="submit" class="ai-btn">@T["ai.search_btn"]</button>
         </form>
     </header>
 
-    @{
-        var sort = Model.Sort ?? "health";
-        string SortLink(string key, string label)
-        {
-            var cls = sort == key ? "is-active" : "";
-            return $"<a class=\"ai-sort {cls}\" href=\"{Url.Action("Index", new { q = Model.Q, sort = key })}\">{label}</a>";
-        }
-    }
-
     <div class="ai-toolbar">
-        <div class="ai-sorts">
-            @Html.Raw(SortLink("health", "Health"))
-            @Html.Raw(SortLink("views", "Views"))
-            @Html.Raw(SortLink("posts", "Posts"))
-            @Html.Raw(SortLink("followers", "Followers"))
-            @Html.Raw(SortLink("engagement", "Engagement"))
-            @Html.Raw(SortLink("recent", "Recent"))
-            @Html.Raw(SortLink("name", "Name"))
-        </div>
+        <nav class="ai-sorts" aria-label="@T["ai.sort_health"]">
+            <a class="ai-sort @SortCls("health")" href="@Url.Action("Index", new { q = Model.Q, sort = "health" })">@T["ai.sort_health"]</a>
+            <a class="ai-sort @SortCls("views")" href="@Url.Action("Index", new { q = Model.Q, sort = "views" })">@T["ai.sort_views"]</a>
+            <a class="ai-sort @SortCls("posts")" href="@Url.Action("Index", new { q = Model.Q, sort = "posts" })">@T["ai.sort_posts"]</a>
+            <a class="ai-sort @SortCls("followers")" href="@Url.Action("Index", new { q = Model.Q, sort = "followers" })">@T["ai.sort_followers"]</a>
+            <a class="ai-sort @SortCls("engagement")" href="@Url.Action("Index", new { q = Model.Q, sort = "engagement" })">@T["ai.sort_engagement"]</a>
+            <a class="ai-sort @SortCls("recent")" href="@Url.Action("Index", new { q = Model.Q, sort = "recent" })">@T["ai.sort_recent"]</a>
+            <a class="ai-sort @SortCls("name")" href="@Url.Action("Index", new { q = Model.Q, sort = "name" })">@T["ai.sort_name"]</a>
+        </nav>
     </div>
 
-    <div class="ai-kpis">
+    <div class="ai-kpis" role="group">
         <div class="ai-kpi">
             <span class="ai-kpi-val">@Model.TotalAuthors</span>
-            <span class="ai-kpi-lbl">Authors</span>
+            <span class="ai-kpi-lbl">@T["ai.kpi_authors"]</span>
         </div>
         <div class="ai-kpi">
             <span class="ai-kpi-val">@Model.ActiveAuthors</span>
-            <span class="ai-kpi-lbl">Active</span>
+            <span class="ai-kpi-lbl">@T["ai.kpi_active"]</span>
         </div>
-        <div class="ai-kpi">
+        <div class="ai-kpi ai-kpi--good">
             <span class="ai-kpi-val">@Model.RisingAuthors</span>
-            <span class="ai-kpi-lbl">Rising</span>
+            <span class="ai-kpi-lbl">@T["ai.kpi_rising"]</span>
         </div>
-        <div class="ai-kpi">
+        <div class="ai-kpi ai-kpi--warn">
             <span class="ai-kpi-val">@Model.DormantAuthors</span>
-            <span class="ai-kpi-lbl">Dormant</span>
+            <span class="ai-kpi-lbl">@T["ai.kpi_dormant"]</span>
         </div>
     </div>
 
     @if (Model.Authors.Count == 0)
     {
-        <div class="ai-empty">No authors match this filter.</div>
+        <div class="ai-empty" role="status">
+            <div class="ai-empty-title">@T["ai.empty"]</div>
+            <p class="ai-empty-hint">@T["ai.empty_hint"]</p>
+        </div>
     }
     else
     {
@@ -73,46 +93,46 @@
                         <div class="ai-avatar @(a.HasAvatar ? "" : "ai-avatar--ph")">
                             @if (a.HasAvatar)
                             {
-                                <img src="@Url.Action("ProfileImage", "Account", new { userId = a.UserId })" alt="" />
+                                <img src="@Url.Action("ProfileImage", "Account", new { userId = a.UserId })" alt="" loading="lazy" />
                             }
                             else
                             {
-                                <span>@(string.IsNullOrEmpty(a.DisplayName) ? "?" : a.DisplayName[0].ToString().ToUpperInvariant())</span>
+                                <span>@(string.IsNullOrEmpty(a.DisplayName) ? "?" : char.ToUpperInvariant(a.DisplayName.Trim()[0]))</span>
                             }
                         </div>
                         <div class="ai-card-id">
                             <div class="ai-name">@a.DisplayName</div>
-                            <div class="ai-handle">@@@a.UserName</div>
+                            <div class="ai-handle ltr-field">@@@a.UserName</div>
                         </div>
-                        <div class="ai-health ai-health--@a.HealthLabel.ToLowerInvariant().Replace(" ", "")" title="Health @a.HealthScore">
+                        <div class="ai-health ai-health--@HealthClass(a.HealthLabel)" title="@a.HealthScore">
                             <span class="ai-health-score">@a.HealthScore</span>
-                            <span class="ai-health-lbl">@a.HealthLabel</span>
+                            <span class="ai-health-lbl">@HealthLabel(a.HealthLabel)</span>
                         </div>
                     </div>
 
-                    <div class="ai-momentum ai-momentum--@a.Momentum">@a.Momentum</div>
+                    <div class="ai-momentum ai-momentum--@a.Momentum">@MomentumLabel(a.Momentum)</div>
 
                     <div class="ai-stats">
-                        <div><strong>@a.PublishedPosts</strong><span>posts</span></div>
-                        <div><strong>@a.Views30d.ToString("N0")</strong><span>views 30d</span></div>
-                        <div><strong>@a.Likes</strong><span>likes</span></div>
-                        <div><strong>@a.Followers</strong><span>followers</span></div>
-                        <div><strong>@a.EngagementRate.ToString("0.##")%</strong><span>eng.</span></div>
-                        <div><strong>@a.CurrentStreakDays</strong><span>streak</span></div>
+                        <div><strong>@a.PublishedPosts</strong><span>@T["ai.stat_posts"]</span></div>
+                        <div><strong>@a.Views30d.ToString("N0")</strong><span>@T["ai.stat_views_30d"]</span></div>
+                        <div><strong>@a.Likes</strong><span>@T["ai.stat_likes"]</span></div>
+                        <div><strong>@a.Followers</strong><span>@T["ai.stat_followers"]</span></div>
+                        <div><strong>@a.EngagementRate.ToString("0.##")%</strong><span>@T["ai.stat_eng"]</span></div>
+                        <div><strong>@a.CurrentStreakDays</strong><span>@T["ai.stat_streak"]</span></div>
                     </div>
 
                     <div class="ai-card-foot">
                         @if (a.LastPublishedAtUtc.HasValue)
                         {
-                            <span>Last publish @a.LastPublishedAtUtc.Value.ToString("yyyy-MM-dd")</span>
+                            <span>@T["ai.last_publish"] <time class="ltr-field" datetime="@a.LastPublishedAtUtc.Value.ToString("yyyy-MM-dd")">@a.LastPublishedAtUtc.Value.ToString("yyyy-MM-dd")</time></span>
                         }
                         else
                         {
-                            <span>No publishes yet</span>
+                            <span>@T["ai.no_publishes"]</span>
                         }
                         @if (a.OpenReports > 0)
                         {
-                            <span class="ai-badge-risk">@a.OpenReports report(s)</span>
+                            <span class="ai-badge-risk">@a.OpenReports @T["ai.reports_badge"]</span>
                         }
                     </div>
                 </a>
