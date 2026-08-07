@@ -172,7 +172,6 @@ public class PublicAuthorProfileViewModel
     public long TotalViews { get; set; }
     public List<AuthorPostItem> Posts { get; set; } = new();
 
-    // Filters
     public string? Q { get; set; }
     public string Sort { get; set; } = "newest";
     public string? Folder { get; set; }
@@ -206,7 +205,6 @@ public class PublicAuthorProfileViewModel
         || !string.IsNullOrWhiteSpace(Topic)
         || (!string.IsNullOrWhiteSpace(Sort) && Sort != "newest");
 
-    /// <summary>GitHub-style publishing activity for the selected year.</summary>
     public AuthorContributionViewModel Contribution { get; set; } = new();
 }
 
@@ -220,7 +218,7 @@ public class AuthorFilterOption
 public class AuthorPostItem
 {
     public string Title { get; set; } = string.Empty;
-    public stringSlug { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
     public string LanguageCode { get; set; } = "fa";
     public string? Summary { get; set; }
     public DateTime? PublishedAtUtc { get; set; }
@@ -274,7 +272,7 @@ public class AuthorContributionActivityItem
 public class AuthorContributionPostLink
 {
     public string Title { get; set; } = string.Empty;
-    public stringSlug { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
     public DateTime PublishedAtUtc { get; set; }
 }
 
