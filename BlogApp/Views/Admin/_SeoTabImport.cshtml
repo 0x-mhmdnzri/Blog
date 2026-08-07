@@ -1,0 +1,56 @@
+@{
+    var isSuper = BlogApp.Services.AuthorAccess.IsSuperAdmin(User);
+}
+
+@if (!isSuper)
+{
+    <div class="st-alert st-alert-info">@T["seo.meta_super_only"]</div>
+}
+else
+{
+    <section class="st-card st-form">
+        <div class="st-card-head">
+            <h2 class="st-card-title">@T["seo.import_title"]</h2>
+            <p class="st-card-desc">@T["seo.import_hint"]</p>
+        </div>
+        <form asp-action="SeoImport" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="st-fields st-fields-import">
+                <div class="st-field st-field-file">
+                    <label class="st-label">@T["seo.import_file"]</label>
+                    <input type="file" class="form-control" name="file" accept=".xml,.json,.wxr,application/xml,application/json" required />
+                </div>
+                <div class="st-field">
+                    <label class="st-label">@T["seo.import_format"]</label>
+                    <select class="form-select" name="format">
+                        <option value="wordpress">WordPress WXR</option>
+                        <option value="ghost">Ghost JSON</option>
+                    </select>
+                </div>
+                <div class="st-field">
+                    <label class="st-label">@T["seo.import_lang"]</label>
+                    <select class="form-select" name="languageCode">
+                        <option value="fa">fa</option>
+                        <option value="en">en</option>
+                        <option value="ar">ar</option>
+                    </select>
+                </div>
+                <div class="st-field st-field-full">
+                    <div class="st-checks">
+                        <label class="st-check">
+                            <input type="checkbox" name="createRedirects" value="true" checked />
+                            <span>@T["seo.import_redirects"]</span>
+                        </label>
+                        <label class="st-check">
+                            <input type="checkbox" name="publishImmediately" value="true" checked />
+                            <span>@T["seo.import_publish"]</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="st-form-foot">
+                <button type="submit" class="btn btn-accent">@T["seo.import_run"]</button>
+            </div>
+        </form>
+    </section>
+}
