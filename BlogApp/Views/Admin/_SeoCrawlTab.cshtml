@@ -1,6 +1,7 @@
 @model BlogApp.Services.Seo.BotCrawlSummaryDto?
 @{
     var c = Model;
+    var audit = ViewBag.CrawlAudit as BlogApp.Services.Seo.CrawlHealthAuditDto;
 }
 @if (c is null)
 {
@@ -31,7 +32,108 @@
         <span class="st-kpi-label">>200ms (target)</span>
         <span class="st-kpi-val">@c.SlowOver200Pct.ToString("0.#")%</span>
     </div>
+    @if (audit is not null)
+    {
+        <div class="st-kpi @(audit.Score < 70 ? "st-kpi-warn" : "")">
+            <span class="st-kpi-label">Health grade</span>
+            <span class="st-kpi-val">@audit.Grade <small>@audit.Score</small></span>
+        </div>
+    }
 </div>
+
+@if (audit is not null)
+{
+    <section class="st-card" style="margin-bottom:1rem">
+        <div class="st-card-head">
+            <h2 class="st-card-title">Monthly crawl-health audit</h2>
+            <p class="st-card-desc">
+                Ongoing discipline · window @audit.Days d · generated @audit.GeneratedAtUtc.ToString("u") UTC ·
+                avg @audit.HitsPerDayAvg.ToString("N0") hits/day · peak @audit.PeakDayHits.ToString("N0") on @audit.PeakDay
+            </p>
+        </div>
+        <div class="st-table-wrap">
+            <table class="st-table">
+                <thead>
+                    <tr>
+                        <th>Check</th>
+                        <th>Result</th>
+                        <th>Detail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var ch in audit.Checks)
+                {
+                    var badge = ch.Pass ? "pass" : (ch.Severity == "fail" ? "fail" : "warn");
+                    <tr>
+                        <td>@ch.Title</td>
+                        <td>
+                            <span class="st-chip-link" data-audit="@badge">
+                                @(ch.Pass ? "PASS" : ch.Severity.ToUpperInvariant())
+                            </span>
+                        </td>
+                        <td class="st-card-desc" style="margin:0">@ch.Detail</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <p class="st-card-desc" style="margin-top:.75rem">
+            Targets from PRD: waste <5% · TTFB p50 <200ms · log analysis is ground truth (GSC is complementary).
+            Range:
+            <a class="st-chip-link" href="?tab=crawl&days=7">7d</a>
+            <a class="st-chip-link" href="?tab=crawl&days=30">30d</a>
+            <a class="st-chip-link" href="?tab=crawl&days=90">90d</a>
+        </p>
+    </section>
+
+    @if (audit.Daily.Count > 0)
+    {
+        var maxHits = Math.Max(1, audit.Daily.Max(d => d.Hits));
+        <section class="st-card" style="margin-bottom:1rem">
+            <div class="st-card-head">
+                <h2 class="st-card-title">Crawl budget — daily series</h2>
+                <p class="st-card-desc">Hits/day · search vs AI · waste overlay (server logs)</p>
+            </div>
+            <div class="st-table-wrap">
+                <table class="st-table">
+                    <thead>
+                        <tr>
+                            <th>Date (UTC)</th>
+                            <th>Hits</th>
+                            <th>Search</th>
+                            <th>AI</th>
+                            <th>Waste</th>
+                            <th>Avg ms</th>
+                            <th style="min-width:8rem">Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var d in audit.Daily.AsEnumerable().Reverse().Take(31).Reverse())
+                    {
+                        var pct = (int)Math.Round(100.0 * d.Hits / maxHits);
+                        <tr>
+                            <td><code>@d.Date</code></td>
+                            <td>@d.Hits.ToString("N0")</td>
+                            <td>@d.SearchHits.ToString("N0")</td>
+                            <td>@d.AiHits.ToString("N0")</td>
+                            <td>@d.WasteHits.ToString("N0")</td>
+                            <td>@d.AvgMs</td>
+                            <td>
+                                <div style="background:var(--border-soft,#1e2430);border-radius:4px;height:8px;overflow:hidden">
+                                    <div style="width:@(pct)%;height:100%;background:rgba(111,179,210,.75)"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <p class="st-card-desc" style="margin-top:.5rem">
+                Search share @audit.SearchSharePct.ToString("0.#")% · AI share @audit.AiSharePct.ToString("0.#")%
+            </p>
+        </section>
+    }
+}
 
 <div class="st-split">
     <section class="st-card">
@@ -111,12 +213,6 @@
             <span class="st-chip-link" style="margin-inline-end:.35rem">@s.Code · @s.Count</span>
         }
         @if (c.ByStatus.Count == 0) { <span>—</span> }
-    </p>
-    <p class="st-card-desc" style="margin-top:.75rem">
-        Target TTFB median < 200ms · Range:
-        <a class="st-chip-link" href="?tab=crawl&days=7">7d</a>
-        <a class="st-chip-link" href="?tab=crawl&days=30">30d</a>
-        <a class="st-chip-link" href="?tab=crawl&days=90">90d</a>
     </p>
 </section>
 
