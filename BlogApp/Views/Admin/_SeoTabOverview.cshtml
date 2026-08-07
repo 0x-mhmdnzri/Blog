@@ -1,0 +1,100 @@
+@{
+    var avgHealth = Model.PostHealth.Count > 0
+        ? (int)Math.Round(Model.PostHealth.Average(h => (double)h.Score))
+        : 0;
+    var healthyCount = Model.PostHealth.Count(h => h.Score >= 80);
+    var weakCount = Model.PostHealth.Count(h => h.Score < 50);
+}
+
+<div class="st-kpis">
+    <a class="st-kpi" asp-action="SeoTools" asp-route-tab="health">
+        <span class="st-kpi-label">@T["seo.kpi_published"]</span>
+        <span class="st-kpi-val">@Model.PublishedCount.ToString("N0")</span>
+    </a>
+    <a class="st-kpi" asp-action="SeoTools" asp-route-tab="redirects">
+        <span class="st-kpi-label">@T["seo.kpi_redirects"]</span>
+        <span class="st-kpi-val">@Model.Redirects.Count.ToString("N0")</span>
+    </a>
+    <a class="st-kpi @(Model.BrokenLinks.Count > 0 ? "st-kpi-warn" : "")" asp-action="SeoTools" asp-route-tab="broken">
+        <span class="st-kpi-label">@T["seo.kpi_broken"]</span>
+        <span class="st-kpi-val">@Model.BrokenLinks.Count.ToString("N0")</span>
+    </a>
+    <a class="st-kpi" asp-action="SeoTools" asp-route-tab="health">
+        <span class="st-kpi-label">@T["seo.kpi_no_summary"]</span>
+        <span class="st-kpi-val">@Model.MissingSummaryCount.ToString("N0")</span>
+    </a>
+</div>
+
+<div class="st-split">
+    <section class="st-card">
+        <div class="st-card-head">
+            <h2 class="st-card-title">@T["seo.live_endpoints"]</h2>
+            <p class="st-card-desc">@T["seo.live_hint"]</p>
+        </div>
+        <div class="st-endpoints">
+            <a class="st-ep" href="@Model.SitemapUrl" target="_blank" rel="noopener">
+                <span class="st-ep-body">
+                    <strong>sitemap.xml</strong>
+                    <span class="st-ep-url ltr-field">@Model.SitemapUrl</span>
+                </span>
+                <span class="st-ep-go" aria-hidden="true">↗</span>
+            </a>
+            <a class="st-ep" href="@Model.RobotsUrl" target="_blank" rel="noopener">
+                <span class="st-ep-body">
+                    <strong>robots.txt</strong>
+                    <span class="st-ep-url ltr-field">@Model.RobotsUrl</span>
+                </span>
+                <span class="st-ep-go" aria-hidden="true">↗</span>
+            </a>
+            @if (!string.IsNullOrEmpty(Model.IndexNowKeyUrl))
+            {
+                <a class="st-ep" href="@Model.IndexNowKeyUrl" target="_blank" rel="noopener">
+                    <span class="st-ep-body">
+                        <strong>IndexNow key</strong>
+                        <span class="st-ep-url ltr-field">@Model.IndexNowKeyUrl</span>
+                    </span>
+                    <span class="st-ep-go" aria-hidden="true">↗</span>
+                </a>
+            }
+        </div>
+    </section>
+
+    <section class="st-card">
+        <div class="st-card-head">
+            <h2 class="st-card-title">@T["seo.capabilities"]</h2>
+        </div>
+        <ul class="st-caps">
+            <li>@T["seo.cap_meta"]</li>
+            <li>@T["seo.cap_redirect"]</li>
+            <li>@T["seo.cap_broken"]</li>
+            <li>@T["seo.cap_sitemap"]</li>
+            <li>@T["seo.cap_og"]</li>
+            <li>@T["seo.cap_import"]</li>
+            <li>@T["seo.cap_indexnow"]</li>
+            <li>@T["seo.cap_hreflang"]</li>
+        </ul>
+        @if (Model.PostHealth.Count > 0)
+        {
+            <div class="st-health-snap">
+                <div class="st-snap-row">
+                    <span>میانگین سلامت</span>
+                    <strong class="ltr-field">@avgHealth</strong>
+                </div>
+                <div class="st-snap-bar"><i style="width:@avgHealth%"></i></div>
+                <div class="st-snap-meta">
+                    <span class="st-snap-good">@healthyCount خوب</span>
+                    <span class="st-snap-weak">@weakCount ضعیف</span>
+                </div>
+            </div>
+        }
+    </section>
+</div>
+
+<div class="st-shortcuts">
+    <a asp-action="SeoTools" asp-route-tab="meta">@T["seo.tab_meta"]</a>
+    <a asp-action="SeoTools" asp-route-tab="redirects">@T["seo.tab_redirects"]</a>
+    <a asp-action="SeoTools" asp-route-tab="broken">@T["seo.tab_broken"]</a>
+    <a asp-action="SeoTools" asp-route-tab="health">@T["seo.tab_health"]</a>
+    <a asp-action="SeoTools" asp-route-tab="indexnow">@T["seo.tab_indexnow"]</a>
+    <a asp-action="SeoTools" asp-route-tab="crawl">Crawl</a>
+</div>
