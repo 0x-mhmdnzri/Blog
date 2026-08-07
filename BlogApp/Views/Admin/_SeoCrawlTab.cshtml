@@ -23,9 +23,13 @@
         <span class="st-kpi-label">Waste (non-200/304)</span>
         <span class="st-kpi-val">@c.WastePercent.ToString("0.#")%</span>
     </div>
-    <div class="st-kpi">
-        <span class="st-kpi-label">Avg / p95 ms</span>
-        <span class="st-kpi-val">@c.AvgMs / @c.P95Ms</span>
+    <div class="st-kpi @(c.P50Ms > 200 ? "st-kpi-warn" : "")">
+        <span class="st-kpi-label">TTFB p50 / p95</span>
+        <span class="st-kpi-val">@c.P50Ms / @c.P95Ms <small>ms</small></span>
+    </div>
+    <div class="st-kpi @(c.SlowOver200Pct > 10 ? "st-kpi-warn" : "")">
+        <span class="st-kpi-label">>200ms (target)</span>
+        <span class="st-kpi-val">@c.SlowOver200Pct.ToString("0.#")%</span>
     </div>
 </div>
 
@@ -109,7 +113,7 @@
         @if (c.ByStatus.Count == 0) { <span>—</span> }
     </p>
     <p class="st-card-desc" style="margin-top:.75rem">
-        Range:
+        Target TTFB median < 200ms · Range:
         <a class="st-chip-link" href="?tab=crawl&days=7">7d</a>
         <a class="st-chip-link" href="?tab=crawl&days=30">30d</a>
         <a class="st-chip-link" href="?tab=crawl&days=90">90d</a>
