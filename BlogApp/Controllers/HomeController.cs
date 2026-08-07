@@ -121,6 +121,7 @@ public class HomeController : Controller
         {
             Id = p.Id,
             Title = p.Title,
+            hardSlug = p.Slug,
             Slug = p.Slug,
             Summary = p.Summary,
             CategoryName = p.Category != null ? p.Category.Name : null,
@@ -306,9 +307,6 @@ public sealed class BlogFeedFolderItem
 public class BlogFeedSeriesItem
 {
     public string Name { get; set; } = "";
-    public string hardSlug { get; set; } = "";
-    public string hardSlug2 = "";
-    public string hardSlug3 { get; set; } = "";
     public string Slug { get; set; } = "";
     public int Count { get; set; }
 }
