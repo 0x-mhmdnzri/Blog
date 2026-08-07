@@ -1,0 +1,98 @@
+@model BlogApp.Models.ViewModels.AuthorIntelDetailViewModel
+@{
+    ViewData["Title"] = $"Intel · {Model.DisplayName}";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+    var range = (int)(ViewBag.Range ?? 90);
+}
+
+<link rel="stylesheet" href="~/css/author-intel.css" asp-append-version="true" />
+
+<div class="ai-page ai-detail">
+    <div class="ai-detail-nav">
+        <a href="@Url.Action("Index")" class="ai-back">← All authors</a>
+        <div class="ai-range">
+            <a class="@(range == 30 ? "is-active" : "")" href="@Url.Action("Detail", new { id = Model.UserId, range = 30 })">30d</a>
+            <a class="@(range == 90 ? "is-active" : "")" href="@Url.Action("Detail", new { id = Model.UserId, range = 90 })">90d</a>
+            <a class="@(range == 180 ? "is-active" : "")" href="@Url.Action("Detail", new { id = Model.UserId, range = 180 })">180d</a>
+        </div>
+    </div>
+
+    <header class="ai-detail-hero">
+        <div class="ai-avatar ai-avatar--lg @(Model.HasAvatar ? "" : "ai-avatar--ph")">
+            @if (Model.HasAvatar)
+            {
+                <img src="@Url.Action("ProfileImage", "Account", new { userId = Model.UserId })" alt="" />
+            }
+            else
+            {
+                <span>@(string.IsNullOrEmpty(Model.DisplayName) ? "?" : Model.DisplayName[0].ToString().ToUpperInvariant())</span>
+            }
+        </div>
+        <div>
+            <h1 class="ai-title">@Model.DisplayName</h1>
+            <div class="ai-handle">@@@Model.UserName</div>
+            @if (!string.IsNullOrWhiteSpace(Model.Bio))
+            {
+                <p class="ai-bio">@Model.Bio</p>
+            }
+        </div>
+        <div class="ai-health ai-health--lg ai-health--@Model.HealthLabel.ToLowerInvariant().Replace(" ", "")">
+            <span class="ai-health-score">@Model.HealthScore</span>
+            <span class="ai-health-lbl">@Model.HealthLabel</span>
+            <span class="ai-momentum ai-momentum--@Model.Momentum">@Model.Momentum</span>
+        </div>
+    </header>
+
+    @if (Model.Insights.Count > 0)
+    {
+        <section class="ai-insights">
+            <h2 class="ai-section-title">Insights</h2>
+            <ul>
+                @foreach (var tip in Model.Insights)
+                {
+                    <li>@tip</li>
+                }
+            </ul>
+        </section>
+    }
+
+    <div class="ai-kpis">
+        <div class="ai-kpi"><span class="ai-kpi-val">@Model.PublishedPosts</span><span class="ai-kpi-lbl">Published</span></div>
+        <div class="ai-kpi"><span class="ai-kpi-val">@Model.TotalViews.ToString("N0")</span><span class="ai-kpi-lbl">Total views</span></div>
+        <div class="ai-kpi"><span class="ai-kpi-val">@Model.Likes</span><span class="ai-kpi-lbl">Likes</span></div>
+        <div class="ai-kpi"><span class="ai-kpi-val">@Model.Followers</span><span class="ai-kpi-lbl">Followers</span></div>
+        <div class="ai-kpi"><span class="ai-kpi-val">@Model.EngagementRate.ToString("0.##")%</span><span class="ai-kpi-lbl">Eng. rate</span></div>
+        <div class="ai-kpi"><span class="ai-kpi-val">@Model.CurrentStreakDays</span><span class="ai-kpi-lbl">Streak</span></div>
+        <div class="ai-kpi"><span class="ai-kpi-val">@Model.OpenReports</span><span class="ai-kpi-lbl">Open reports</span></div>
+    </div>
+
+    <section class="ai-section">
+        <h2 class="ai-section-title">Recent posts</h2>
+        @if (Model.RecentPosts.Count == 0)
+        {
+            <div class="ai-empty">No published posts.</div>
+        }
+        else
+        {
+            <table class="ai-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Views</th>
+                        <th>Published</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.RecentPosts)
+                    {
+                        <tr>
+                            <td>@p.Title</td>
+                            <td>@p.Views.ToString("N0")</td>
+                            <td>@(p.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+</div>
