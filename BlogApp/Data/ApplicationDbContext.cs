@@ -297,5 +297,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         ConfigureNewsletter(modelBuilder);
         ConfigureEnterprise(modelBuilder);
         ConfigureFolders(modelBuilder);
+        ApplyBotCrawlModel(modelBuilder);
     }
 }
