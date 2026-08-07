@@ -4,15 +4,10 @@
     Layout = "~/Views/Admin/_AdminLayout.cshtml";
     ViewData["Title"] = T["admin.nav.seo"];
     var tab = Model.ActiveTab ?? "overview";
-    var isSuper = BlogApp.Services.AuthorAccess.IsSuperAdmin(User);
     string TabClass(string id) => tab == id ? "is-active" : "";
-
-    var avgHealth = Model.PostHealth.Count > 0
-        ? (int)Math.Round(Model.PostHealth.Average(h => (double)h.Score))
-        : 0;
-    var healthyCount = Model.PostHealth.Count(h => h.Score >= 80);
-    var weakCount = Model.PostHealth.Count(h => h.Score < 50);
 }
+
+<link rel="stylesheet" href="~/css/seo-tools.css" asp-append-version="true" />
 
 @if (TempData["SeoOk"] is string ok)
 {
@@ -85,5 +80,4 @@ else if (tab == "crawl")
     <partial name="_SeoCrawlTab" model="Model.Crawl" />
 }
 
-<partial name="_SeoToolsStyles" />
 <partial name="_SeoToolsScripts" />
