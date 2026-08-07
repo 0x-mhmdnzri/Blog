@@ -29,7 +29,7 @@
         <span class="st-kpi-val">@c.P50Ms / @c.P95Ms <small>ms</small></span>
     </div>
     <div class="st-kpi @(c.SlowOver200Pct > 10 ? "st-kpi-warn" : "")">
-        <span class="st-kpi-label">>200ms (target)</span>
+        <span class="st-kpi-label">@(">200ms (target)")</span>
         <span class="st-kpi-val">@c.SlowOver200Pct.ToString("0.#")%</span>
     </div>
     @if (audit is not null)
@@ -78,7 +78,7 @@
             </table>
         </div>
         <p class="st-card-desc" style="margin-top:.75rem">
-            Targets from PRD: waste <5% · TTFB p50 <200ms · log analysis is ground truth (GSC is complementary).
+            Targets from PRD: waste @("<5%") · TTFB p50 @("<200ms") · log analysis is ground truth (GSC is complementary).
             Range:
             <a class="st-chip-link" href="?tab=crawl&days=7">7d</a>
             <a class="st-chip-link" href="?tab=crawl&days=30">30d</a>
