@@ -1,0 +1,84 @@
+@using BlogApp.Services.Seo
+@{
+    var report = ViewBag.Orphans as OrphanPageReport;
+}
+@if (report is null)
+{
+    <section class="st-card">
+        <p class="st-card-desc">Orphan analysis not loaded.</p>
+    </section>
+    return;
+}
+
+<div class="st-kpis">
+    <div class="st-kpi">
+        <span class="st-kpi-label">Published</span>
+        <span class="st-kpi-val">@report.PublishedCount.ToString("N0")</span>
+    </div>
+    <div class="st-kpi @(report.OrphanCount > 0 ? "st-kpi-warn" : "")">
+        <span class="st-kpi-label">Orphans</span>
+        <span class="st-kpi-val">@report.OrphanCount.ToString("N0")</span>
+    </div>
+    <div class="st-kpi">
+        <span class="st-kpi-label">With content inlinks</span>
+        <span class="st-kpi-val">@report.WithContentInlinks.ToString("N0")</span>
+    </div>
+</div>
+
+<section class="st-card st-mb">
+    <div class="st-card-head">
+        <h2 class="st-card-title">Orphan pages (P1.2)</h2>
+        <p class="st-card-desc">
+            Published posts with <strong>zero Markdown inlinks</strong> from other posts and not featured / sticky / series / folder.
+            Prefer linking from a hub post or featuring; redirect+unpublish if the URL should die.
+        </p>
+    </div>
+
+    @if (report.Orphans.Count == 0)
+    {
+        <p class="st-empty-title">No orphans detected.</p>
+    }
+    else
+    {
+        <div class="st-table-wrap">
+            <table class="st-table">
+                <thead>
+                    <tr>
+                        <th>Post</th>
+                        <th>Views</th>
+                        <th>Published</th>
+                        <th>Category</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var o in report.Orphans)
+                {
+                    <tr>
+                        <td>
+                            <a href="@o.Path" target="_blank" rel="noopener" dir="auto">@o.Title</a>
+                            <div><code style="font-size:.75rem">@o.Path</code></div>
+                        </td>
+                        <td>@o.ViewCount.ToString("N0")</td>
+                        <td class="ltr-field">@(o.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>@(o.CategoryName ?? "—")</td>
+                        <td style="white-space:nowrap">
+                            <form asp-action="SeoOrphanFeature" method="post" style="display:inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="postId" value="@o.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline" title="Feature on home">Feature</button>
+                            </form>
+                            <form asp-action="SeoOrphanRedirect" method="post" style="display:inline" onsubmit="return confirm('Unpublish and 301 to category/home?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="postId" value="@o.Id" />
+                                <input type="hidden" name="target" value="category" />
+                                <button type="submit" class="btn btn-sm btn-outline" title="301 + unpublish">Redirect</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
