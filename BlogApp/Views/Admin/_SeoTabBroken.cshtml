@@ -1,0 +1,40 @@
+<div class="st-toolbar">
+    <p class="st-toolbar-text">@T["seo.broken_hint"]</p>
+    <form asp-action="SeoScanBrokenLinks" method="post">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-accent btn-sm">@T["seo.scan_now"]</button>
+    </form>
+</div>
+
+@if (Model.BrokenLinks.Count == 0)
+{
+    <div class="st-empty st-empty-ok">
+        <p class="st-empty-title">@T["seo.empty_broken"]</p>
+        <p class="st-empty-hint">اسکن دستی یا دوره‌ای لینک‌های داخلی را بررسی می‌کند.</p>
+    </div>
+}
+else
+{
+    <div class="st-filter-bar">
+        <input type="search" class="st-filter" id="brokenFilter" placeholder="فیلتر عنوان یا URL…" autocomplete="off" />
+        <span class="st-filter-count" id="brokenCount">@Model.BrokenLinks.Count</span>
+    </div>
+    <div class="st-rows" id="brokenList">
+        @foreach (var b in Model.BrokenLinks)
+        {
+            <article class="st-row st-row-warn" data-q="@((b.PostTitle + " " + b.Url).ToLowerInvariant())">
+                <div class="st-row-body">
+                    <a class="st-row-title" dir="auto" asp-controller="Posts" asp-action="Edit" asp-route-id="@b.PostId">@b.PostTitle</a>
+                    <div class="st-row-sub">
+                        <span class="ltr-field st-url">@b.Url</span>
+                        <span class="st-sep">·</span>
+                        <span class="ltr-field">@b.DetectedAtUtc.ToString("yyyy-MM-dd HH:mm")</span>
+                    </div>
+                </div>
+                <div class="st-row-acts">
+                    <a class="st-btn" asp-controller="Posts" asp-action="Edit" asp-route-id="@b.PostId">ویرایش</a>
+                </div>
+            </article>
+        }
+    </div>
+}
