@@ -1,6 +1,7 @@
 using BlogApp.Models;
 using BlogApp.Models.ViewModels;
 using BlogApp.Services;
+using BlogApp.Services.Seo;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ namespace BlogApp.Controllers;
 public partial class AdminController
 {
     [HttpGet]
-    public async Task<IActionResult> SeoTools(string? tab = null)
+    public async Task<IActionResult> SeoTools(string? tab = null, int days = 30)
     {
         var site = HttpContext.RequestServices.GetRequiredService<ISiteConfigService>();
         var indexOpt = HttpContext.RequestServices.GetRequiredService<IOptions<IndexNowOptions>>().Value;
@@ -80,6 +81,13 @@ public partial class AdminController
         };
 
         ViewBag.BaseUrlPreview = baseUrl;
+
+        if (string.Equals(vm.ActiveTab, "crawl", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(vm.ActiveTab, "overview", StringComparison.OrdinalIgnoreCase))
+        {
+            vm.Crawl = await BotCrawlSummary.BuildAsync(_db, days);
+        }
+
         return View("SeoTools", vm);
     }
 
