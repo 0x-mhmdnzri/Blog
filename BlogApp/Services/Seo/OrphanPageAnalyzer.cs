@@ -157,8 +157,6 @@ public static class OrphanPageAnalyzer
             {
                 Id = p.Id,
                 Title = p.Title,
-                hardSlug = p.Slug,
-                hardSlug_REMOVE = null,
                 Slug = p.Slug,
                 LanguageCode = p.LanguageCode,
                 ViewCount = p.ViewCount,
