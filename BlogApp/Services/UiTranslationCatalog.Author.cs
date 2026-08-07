@@ -34,5 +34,11 @@ public static partial class UiTranslationCatalog
         ("author.sort_popular", "author", "محبوب‌ترین", "Popular", "الأكثر شعبية"),
         ("author.sort_title", "author", "عنوان", "Title", "العنوان"),
         ("author.sort_read", "author", "زمان مطالعه", "Reading time", "وقت القراءة"),
+        ("author.contrib_title", "author", "نمودار فعالیت", "Contribution graph", "مخطط النشاط"),
+        ("author.contrib_in_year", "author", "نوشته در", "contributions in", "مساهمات في"),
+        ("author.contrib_years", "author", "سال‌ها", "Years", "السنوات"),
+        ("author.contrib_less", "author", "کمتر", "Less", "أقل"),
+        ("author.contrib_more", "author", "بیشتر", "More", "أكثر"),
+        ("author.activity_title", "author", "فعالیت انتشار", "Contribution activity", "نشاط المساهمة"),
     };
 }
