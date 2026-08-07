@@ -18,7 +18,8 @@ public partial class AccountController
         string? category = null,
         string? tag = null,
         string? series = null,
-        string? topic = null)
+        string? topic = null,
+        int? year = null)
     {
         if (string.IsNullOrWhiteSpace(userName) || userName.Length > 64)
             return NotFound();
@@ -151,7 +152,7 @@ public partial class AccountController
             .Select(p => new AuthorPostItem
             {
                 Title = p.Title,
-               Slug = p.Slug,
+                Slug = p.Slug,
                 LanguageCode = p.LanguageCode,
                 Summary = p.Summary,
                 PublishedAtUtc = p.PublishedAtUtc,
@@ -168,6 +169,17 @@ public partial class AccountController
             && (User.IsInRole(AppRoles.Reader) || User.IsInRole(AppRoles.Author) || User.IsInRole(AppRoles.SuperAdmin));
         var isFollowing = canFollow
             && await _db.AuthorFollows.AnyAsync(f => f.FollowerUserId == viewerId && f.AuthorUserId == user.Id);
+
+        // Publishing activity (GitHub-style contribution graph)
+        var publishDates = await baseQuery
+            .Where(p => p.PublishedAtUtc != null)
+            .Select(p => new { p.Title, p.Slug, Date = p.PublishedAtUtc!.Value })
+            .ToListAsync();
+
+        var cultureSvc = HttpContext.RequestServices.GetService(typeof(ICultureService)) as ICultureService;
+        var cultureCode = cultureSvc?.CurrentCode ?? "fa";
+        var contribution = BuildAuthorContribution(
+            publishDates.Select(x => (x.Title, x.Slug, x.Date)).ToList(), year, cultureCode);
 
         var display = string.IsNullOrWhiteSpace(user.DisplayName) ? user.UserName! : user.DisplayName;
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -239,8 +251,169 @@ public partial class AccountController
             Categories = categories,
             Tags = tags,
             SeriesList = seriesList,
-            Topics = topics
+            Topics = topics,
+            Contribution = contribution
         };
         return View(vm);
+    }
+
+    private static AuthorContributionViewModel BuildAuthorContribution(
+        List<(string Title, string Slug, DateTime Date)> posts,
+        int? yearParam,
+        string cultureCode)
+    {
+        var usePersian = string.Equals(cultureCode, "fa", StringComparison.OrdinalIgnoreCase);
+        var pc = usePersian ? new System.Globalization.PersianCalendar() : null;
+        var today = DateTime.UtcNow.Date;
+
+        int YearOf(DateTime d) => usePersian ? pc!.GetYear(d) : d.Year;
+        int MonthOf(DateTime d) => usePersian ? pc!.GetMonth(d) : d.Month;
+        int DayOf(DateTime d) => usePersian ? pc!.GetDayOfMonth(d) : d.Day;
+
+        string[] faMonths = { "", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند" };
+        string[] enMonths = { "", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        string MonthName(int m) =>
+            m >= 1 && m <= 12
+                ? (usePersian ? faMonths[m] : enMonths[m])
+                : "";
+
+        var years = posts.Select(p => YearOf(p.Date)).Distinct().OrderByDescending(y => y).ToList();
+        var currentYear = YearOf(today);
+        if (!years.Contains(currentYear))
+            years.Insert(0, currentYear);
+        years = years.Distinct().OrderByDescending(y => y).ToList();
+
+        var selectedYear = yearParam is int yp && years.Contains(yp)
+            ? yp
+            : (years.Count > 0 ? years[0] : currentYear);
+
+        DateTime yearStart, yearEndExclusive;
+        if (usePersian)
+        {
+            yearStart = pc!.ToDateTime(selectedYear, 1, 1, 0, 0, 0, 0);
+            yearEndExclusive = pc.ToDateTime(selectedYear + 1, 1, 1, 0, 0, 0, 0);
+        }
+        else
+        {
+            yearStart = new DateTime(selectedYear, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            yearEndExclusive = new DateTime(selectedYear + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        }
+
+        var gridStart = yearStart.Date;
+        while (gridStart.DayOfWeek != DayOfWeek.Monday)
+            gridStart = gridStart.AddDays(-1);
+
+        var gridEnd = yearEndExclusive.Date.AddDays(-1);
+        while (gridEnd.DayOfWeek != DayOfWeek.Sunday)
+            gridEnd = gridEnd.AddDays(1);
+
+        var counts = posts
+            .GroupBy(p => p.Date.Date)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        static int LevelOf(int c) => c <= 0 ? 0 : c == 1 ? 1 : c <= 3 ? 2 : c <= 6 ? 3 : 4;
+
+        var days = new List<AuthorContributionDay>();
+        for (var d = gridStart; d <= gridEnd; d = d.AddDays(1))
+        {
+            counts.TryGetValue(d, out var c);
+            var inYear = d >= yearStart.Date && d < yearEndExclusive.Date;
+            var tipCount = inYear ? c : 0;
+            var dateLabel = usePersian
+                ? $"{DayOf(d)} {MonthName(MonthOf(d))} {YearOf(d)}"
+                : d.ToString("MMM d, yyyy");
+            days.Add(new AuthorContributionDay
+            {
+                Date = d,
+                Count = inYear ? c : 0,
+                Level = inYear ? LevelOf(c) : 0,
+                InSelectedYear = inYear,
+                Tooltip = tipCount == 0
+                    ? (usePersian ? $"بدون نوشته در {dateLabel}" : $"No posts on {dateLabel}")
+                    : (usePersian
+                        ? $"{tipCount} نوشته در {dateLabel}"
+                        : $"{tipCount} post{(tipCount == 1 ? "" : "s")} on {dateLabel}")
+            });
+        }
+
+        var monthLabels = new List<AuthorContributionMonthLabel>();
+        var weekCount = (days.Count + 6) / 7;
+        int? lastMonth = null;
+        for (var wi = 0; wi < weekCount; wi++)
+        {
+            DateTime? inYearDay = null;
+            for (var r = 0; r < 7; r++)
+            {
+                var idx = wi * 7 + r;
+                if (idx < days.Count && days[idx].InSelectedYear)
+                {
+                    inYearDay = days[idx].Date;
+                    break;
+                }
+            }
+            if (inYearDay is null) continue;
+            var m = MonthOf(inYearDay.Value);
+            if (lastMonth != m)
+            {
+                monthLabels.Add(new AuthorContributionMonthLabel
+                {
+                    Label = MonthName(m),
+                    WeekIndex = wi
+                });
+                lastMonth = m;
+            }
+        }
+
+        var totalInYear = posts.Count(p =>
+            p.Date.Date >= yearStart.Date && p.Date.Date < yearEndExclusive.Date);
+
+        var yearPosts = posts
+            .Where(p => p.Date.Date >= yearStart.Date && p.Date.Date < yearEndExclusive.Date)
+            .OrderByDescending(p => p.Date)
+            .ToList();
+
+        var groups = yearPosts
+            .GroupBy(p => YearOf(p.Date) * 100 + MonthOf(p.Date))
+            .OrderByDescending(g => g.Key)
+            .Select(g =>
+            {
+                var first = g.First();
+                var m = MonthOf(first.Date);
+                var y = YearOf(first.Date);
+                var list = g.ToList();
+                return new AuthorContributionActivityGroup
+                {
+                    MonthTitle = $"{MonthName(m)} {y}",
+                    SortKey = g.Key,
+                    Items = new List<AuthorContributionActivityItem>
+                    {
+                        new AuthorContributionActivityItem
+                        {
+                            Kind = "posts",
+                            Title = usePersian
+                                ? $"منتشر کرد {list.Count} نوشته"
+                                : $"Published {list.Count} post{(list.Count == 1 ? "" : "s")}",
+                            Posts = list.Select(p => new AuthorContributionPostLink
+                            {
+                                Title = p.Title,
+                                Slug = p.Slug,
+                                PublishedAtUtc = p.Date
+                            }).ToList()
+                        }
+                    }
+                };
+            })
+            .ToList();
+
+        return new AuthorContributionViewModel
+        {
+            SelectedYear = selectedYear,
+            AvailableYears = years,
+            TotalInYear = totalInYear,
+            UsePersianCalendar = usePersian,
+            MonthLabels = monthLabels,
+            Days = days,
+            ActivityGroups = groups
+        };
     }
 }
