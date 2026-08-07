@@ -30,7 +30,10 @@ public sealed class BotCrawlSummaryDto
     public int WasteHits { get; set; }
     public double WastePercent { get; set; }
     public int AvgMs { get; set; }
+    public int P50Ms { get; set; }
     public int P95Ms { get; set; }
+    /// <summary>Share of bot hits with elapsed > 200ms (TTFB SLA breach).</summary>
+    public double SlowOver200Pct { get; set; }
     public List<BotCrawlFamilyStat> ByFamily { get; set; } = new();
     public List<BotCrawlPathStat> TopPaths { get; set; } = new();
     public List<(int Code, int Count)> ByStatus { get; set; } = new();
@@ -38,6 +41,8 @@ public sealed class BotCrawlSummaryDto
 
 public static class BotCrawlSummary
 {
+    public const int TtfbTargetMs = 200;
+
     public static async Task<BotCrawlSummaryDto> BuildAsync(ApplicationDbContext db, int days = 30, CancellationToken ct = default)
     {
         days = Math.Clamp(days, 1, 90);
@@ -55,11 +60,14 @@ public static class BotCrawlSummary
         dto.AiHits = rows.Count(r => r.BotKind == "ai");
         dto.ArchiveHits = rows.Count(r => r.BotKind == "archive");
         dto.WasteHits = rows.Count(r => r.StatusCode is not (200 or 304));
-        dto.WastePercent = dto.TotalHits == 0 ? 0 : Math.Round(100.0 * dto.WasteHits / dto.TotalHits, 1);
+        dto.WastePercent = Math.Round(100.0 * dto.WasteHits / dto.TotalHits, 1);
         dto.AvgMs = (int)rows.Average(r => r.ElapsedMs);
 
         var sortedMs = rows.Select(r => r.ElapsedMs).OrderBy(x => x).ToList();
+        dto.P50Ms = sortedMs[(int)Math.Clamp(Math.Ceiling(sortedMs.Count * 0.50) - 1, 0, sortedMs.Count - 1)];
         dto.P95Ms = sortedMs[(int)Math.Clamp(Math.Ceiling(sortedMs.Count * 0.95) - 1, 0, sortedMs.Count - 1)];
+        var slow = rows.Count(r => r.ElapsedMs > TtfbTargetMs);
+        dto.SlowOver200Pct = Math.Round(100.0 * slow / dto.TotalHits, 1);
 
         dto.ByFamily = rows
             .GroupBy(r => (r.BotFamily, r.BotKind))
