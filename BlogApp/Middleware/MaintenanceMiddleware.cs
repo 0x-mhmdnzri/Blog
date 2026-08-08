@@ -4,7 +4,7 @@ using BlogApp.Services;
 namespace BlogApp.Middleware;
 
 /// <summary>
-/// When MaintenanceMode is on, only SuperAdmin (and static assets / health) may browse the public site.
+/// When MaintenanceMode is on, only SuperAdmin (and static assets / health / OG cards) may browse the public site.
 /// </summary>
 public sealed class MaintenanceMiddleware
 {
@@ -88,6 +88,10 @@ a{color:#e3b341}
         if (path.StartsWith("/lib", StringComparison.OrdinalIgnoreCase)) return true;
         if (path.StartsWith("/favicon", StringComparison.OrdinalIgnoreCase)) return true;
         if (path.StartsWith("/media/", StringComparison.OrdinalIgnoreCase)) return true;
+        // Social crawlers must always reach share cards
+        if (path.StartsWith("/og/", StringComparison.OrdinalIgnoreCase)) return true;
+        if (path.StartsWith("/health", StringComparison.OrdinalIgnoreCase)) return true;
+        if (path.StartsWith("/ready", StringComparison.OrdinalIgnoreCase)) return true;
         return false;
     }
 }

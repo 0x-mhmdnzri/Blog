@@ -28,24 +28,37 @@ public sealed class SecurityHeadersMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        var path = context.Request.Path.Value ?? "";
+        var isOg = path.StartsWith("/og/", StringComparison.OrdinalIgnoreCase)
+                   || path.Equals("/og", StringComparison.OrdinalIgnoreCase);
+
         context.Response.OnStarting(() =>
         {
             var h = context.Response.Headers;
 
             h["X-Content-Type-Options"] = "nosniff";
-            h["X-Frame-Options"] = "DENY";
+            // OG images must be embeddable by LinkedIn / WhatsApp / Telegram / X crawlers
+            if (isOg)
+            {
+                h.Remove("X-Frame-Options");
+                h["Cross-Origin-Resource-Policy"] = "cross-origin";
+                h["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups";
+            }
+            else
+            {
+                h["X-Frame-Options"] = "DENY";
+                h["Cross-Origin-Opener-Policy"] = "same-origin";
+                h["Cross-Origin-Resource-Policy"] = "same-origin";
+            }
+
             h["Referrer-Policy"] = "strict-origin-when-cross-origin";
             h["Permissions-Policy"] =
                 "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()";
-            h["Cross-Origin-Opener-Policy"] = "same-origin";
-            h["Cross-Origin-Resource-Policy"] = "same-origin";
             h["X-Permitted-Cross-Domain-Policies"] = "none";
 
-            // Do not overwrite if a more specific CSP was set by an action.
             if (!h.ContainsKey("Content-Security-Policy"))
                 h["Content-Security-Policy"] = ContentSecurityPolicy;
 
-            // Strip legacy server fingerprints if any proxy added them.
             h.Remove("Server");
             h.Remove("X-Powered-By");
 
