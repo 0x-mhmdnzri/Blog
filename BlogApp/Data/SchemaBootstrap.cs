@@ -147,6 +147,8 @@ public static partial class SchemaBootstrap
         await EnsureThemeTablesAsync(db);
         await EnsureEnterpriseTablesAsync(db);
         await EnsureFolderTablesAsync(db);
+        // P4 — backlink leads + quarterly DA/DR snapshots
+        await SchemaBootstrapAuthority.EnsureAuthorityTablesAsync(db);
 
         logger?.LogInformation("Schema bootstrap complete");
     }

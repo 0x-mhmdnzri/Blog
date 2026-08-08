@@ -298,5 +298,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         ConfigureEnterprise(modelBuilder);
         ConfigureFolders(modelBuilder);
         ApplyBotCrawlModel(modelBuilder);
+        ApplyAuthorityModel(modelBuilder);
     }
 }
