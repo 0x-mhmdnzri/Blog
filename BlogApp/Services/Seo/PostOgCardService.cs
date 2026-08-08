@@ -31,6 +31,10 @@ public interface IPostOgCardService
         int followerCount,
         long totalViews,
         CancellationToken ct = default);
+    /// <summary>Never-fail minimal PNG for crawlers when full render fails.</summary>
+    byte[] CreateFallbackPng(string title);
+    /// <summary>Never-fail minimal JPEG for crawlers when full render fails.</summary>
+    byte[] CreateFallbackJpeg(string title);
 }
 
 /// <summary>
@@ -67,7 +71,6 @@ public sealed partial class PostOgCardService : IPostOgCardService
     public string GetCardUrl(Post post, HttpRequest request)
     {
         var hash = ContentHash(post);
-        // Absolute HTTPS URL — required by LinkedIn / WhatsApp / Telegram crawlers
         return $"{request.Scheme}://{request.Host}/og/post/{post.Id}.png?v={hash}";
     }
 
@@ -186,7 +189,6 @@ public sealed partial class PostOgCardService : IPostOgCardService
             var statLabelFont = family.CreateFont(16, FontStyle.Regular);
             var statValueFont = family.CreateFont(22, FontStyle.Bold);
 
-            // Brand top-right
             ctx.DrawText(new RichTextOptions(brandFont)
             {
                 Origin = new PointF(Width - 56, 52),
@@ -194,7 +196,6 @@ public sealed partial class PostOgCardService : IPostOgCardService
                 VerticalAlignment = VerticalAlignment.Top
             }, site, Muted);
 
-            // Chips: language + category
             float chipX = 64;
             chipX = DrawChip(ctx, chipX, 52, lang, chipFont, ChipBg, accent) + 10;
             if (!string.IsNullOrWhiteSpace(category))
@@ -203,7 +204,6 @@ public sealed partial class PostOgCardService : IPostOgCardService
                 DrawChip(ctx, chipX, 52, cat, chipFont, ChipBg, TitleColor);
             }
 
-            // Title
             ctx.DrawText(new RichTextOptions(titleFont)
             {
                 Origin = new PointF(64, 110),
@@ -213,7 +213,6 @@ public sealed partial class PostOgCardService : IPostOgCardService
                 LineSpacing = 1.12f
             }, title, TitleColor);
 
-            // Summary
             if (!string.IsNullOrWhiteSpace(summary))
             {
                 ctx.DrawText(new RichTextOptions(bodyFont)
@@ -225,7 +224,6 @@ public sealed partial class PostOgCardService : IPostOgCardService
                 }, summary, Muted);
             }
 
-            // Tag chips
             if (tags.Count > 0)
             {
                 float tx = 64;
@@ -238,7 +236,6 @@ public sealed partial class PostOgCardService : IPostOgCardService
                 }
             }
 
-            // Stats row — GitHub-repo style
             DrawStatsBar(ctx, 64, Height - 168,
                 ("Views", views),
                 ("Likes", likes),
@@ -246,7 +243,6 @@ public sealed partial class PostOgCardService : IPostOgCardService
                 ("Date", dateStr),
                 statLabelFont, statValueFont, accent);
 
-            // Footer
             var footer = $"{Truncate(author, 40)}  ·  {site}";
             ctx.DrawText(new RichTextOptions(smallFont)
             {
@@ -309,9 +305,7 @@ public sealed partial class PostOgCardService : IPostOgCardService
         ctx.Fill(Bg);
         ctx.Fill(Panel, new RectangleF(28, 28, Width - 56, Height - 56));
         ctx.Draw(Border, 1.5f, new RectangularPolygon(28, 28, Width - 56, Height - 56));
-        // Left accent bar
         ctx.Fill(accent, new RectangleF(28, 28, 7, Height - 56));
-        // Subtle top highlight line
         ctx.Fill(Color.FromRgba(255, 255, 255, 12), new RectangleF(35, 28, Width - 63, 1));
     }
 
@@ -349,12 +343,10 @@ public sealed partial class PostOgCardService : IPostOgCardService
                 TextMeasurer.MeasureSize(value, new TextOptions(valueFont)).Width);
             cursor += w + gap + 16;
 
-            // Divider between stats
             if (cursor < Width - 120)
                 ctx.Fill(Border, new RectangleF(cursor - gap / 2 - 4, y + 4, 1, 42));
         }
 
-        // Accent underline under stats region
         ctx.Fill(Color.FromRgba(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 40),
             new RectangleF(x, y + 58, Math.Min(cursor - x, Width - 160), 2));
     }
@@ -372,7 +364,6 @@ public sealed partial class PostOgCardService : IPostOgCardService
         const float padY = 6f;
         var w = measure.Width + padX * 2;
         var h = measure.Height + padY * 2;
-        // Rounded-ish via fill rect (ImageSharp.Drawing rounded requires more deps)
         ctx.Fill(bg, new RectangleF(x, y, w, h));
         ctx.Draw(Border, 1f, new RectangularPolygon(x, y, w, h));
         ctx.DrawText(new RichTextOptions(font)
@@ -408,9 +399,9 @@ public sealed partial class PostOgCardService : IPostOgCardService
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(seed ?? ""));
         var h = bytes[0] / 255f;
-        if (h < 0.33f) return Color.ParseHex("e3b341"); // gold
-        if (h < 0.66f) return Color.ParseHex("58a6ff"); // blue
-        return Color.ParseHex("a371f7"); // purple
+        if (h < 0.33f) return Color.ParseHex("e3b341");
+        if (h < 0.66f) return Color.ParseHex("58a6ff");
+        return Color.ParseHex("a371f7");
     }
 
     private static FontFamily ResolveFontFamily()
@@ -422,18 +413,30 @@ public sealed partial class PostOgCardService : IPostOgCardService
             var candidates = new[]
             {
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
                 "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
                 "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
                 "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+                "/usr/share/fonts/opentype/noto/NotoSansArabic-Regular.otf",
+                "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
                 "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
                 "/System/Library/Fonts/Supplemental/Arial.ttf",
+                "/Library/Fonts/Arial Unicode.ttf",
+                "/Library/Fonts/Arial.ttf",
+                "/System/Library/Fonts/Helvetica.ttc",
+                "/System/Library/Fonts/SFNS.ttf",
+                "/System/Library/Fonts/SFNSText.ttf",
                 "C:/Windows/Fonts/arial.ttf",
+                "C:/Windows/Fonts/arialuni.ttf",
                 "C:/Windows/Fonts/tahoma.ttf",
-                "C:/Windows/Fonts/segoeui.ttf"
+                "C:/Windows/Fonts/segoeui.ttf",
+                "C:/Windows/Fonts/calibri.ttf",
+                IOPath.Combine(AppContext.BaseDirectory, "Fonts", "DejaVuSans.ttf"),
+                IOPath.Combine(AppContext.BaseDirectory, "fonts", "DejaVuSans.ttf"),
             };
             foreach (var candidate in candidates)
             {
-                if (!File.Exists(candidate)) continue;
+                if (string.IsNullOrEmpty(candidate) || !File.Exists(candidate)) continue;
                 try
                 {
                     var col = new FontCollection();
@@ -442,8 +445,75 @@ public sealed partial class PostOgCardService : IPostOgCardService
                 }
                 catch { /* next */ }
             }
-            _family = SystemFonts.Families.First();
-            return _family.Value;
+
+            try
+            {
+                var first = SystemFonts.Families.FirstOrDefault();
+                if (!first.Equals(default(FontFamily)))
+                {
+                    _family = first;
+                    return _family.Value;
+                }
+            }
+            catch { /* ignore */ }
+
+            throw new InvalidOperationException(
+                "No usable font found for OG cards. Install fonts-dejavu-core (Linux) or ship Fonts/DejaVuSans.ttf under the app.");
+        }
+    }
+
+    public byte[] CreateFallbackPng(string title)
+        => CreateFallbackBytes(title, asJpeg: false);
+
+    public byte[] CreateFallbackJpeg(string title)
+        => CreateFallbackBytes(title, asJpeg: true);
+
+    private byte[] CreateFallbackBytes(string title, bool asJpeg)
+    {
+        try
+        {
+            using var image = new Image<Rgba32>(Width, Height);
+            image.Mutate(ctx =>
+            {
+                ctx.Fill(Bg);
+                ctx.Fill(Panel, new RectangleF(28, 28, Width - 56, Height - 56));
+                var accent = Color.ParseHex("e3b341");
+                ctx.Fill(accent, new RectangleF(28, 28, 7, Height - 56));
+                try
+                {
+                    var family = ResolveFontFamily();
+                    var titleFont = family.CreateFont(40, FontStyle.Bold);
+                    var small = family.CreateFont(20, FontStyle.Regular);
+                    var t = Truncate((title ?? "Post").Trim(), 80);
+                    ctx.DrawText(new RichTextOptions(titleFont)
+                    {
+                        Origin = new PointF(64, 200),
+                        WrappingLength = Width - 160,
+                        HorizontalAlignment = HorizontalAlignment.Left
+                    }, t, TitleColor);
+                    ctx.DrawText(new RichTextOptions(small)
+                    {
+                        Origin = new PointF(64, Height - 80),
+                        HorizontalAlignment = HorizontalAlignment.Left
+                    }, _seo.SiteName, accent);
+                }
+                catch
+                {
+                    // solid card without text
+                }
+            });
+            using var ms = new MemoryStream();
+            if (asJpeg)
+                image.SaveAsJpeg(ms, new JpegEncoder { Quality = 88 });
+            else
+                image.SaveAsPng(ms);
+            return ms.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "OG fallback card failed");
+            return Convert.FromBase64String(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
         }
     }
 
