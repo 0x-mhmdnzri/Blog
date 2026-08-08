@@ -6,285 +6,848 @@
     var json = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
     var s = Model.Summary;
     var a = Model.Audit;
-    string Badge(string st) => st switch
+    var waste = Model.Waste;
+    string StatusLabel(string st) => st switch
     {
-        "ok" => "cm-badge-ok",
-        "warn" => "cm-badge-warn",
-        "fail" => "cm-badge-fail",
-        _ => "cm-badge-warn"
+        "ok" => "OK",
+        "warn" => "Warn",
+        "fail" => "Fail",
+        _ => st
     };
+    int okCount = Model.Phases.SelectMany(p => p.Items).Count(i => i.Status == "ok");
+    int warnCount = Model.Phases.SelectMany(p => p.Items).Count(i => i.Status == "warn");
+    int failCount = Model.Phases.SelectMany(p => p.Items).Count(i => i.Status == "fail");
+    int itemTotal = Math.Max(1, okCount + warnCount + failCount);
 }
-<div class="ana-toolbar d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <div class="range-tabs mb-0">
-        <a class="admin-tab @(Model.RangeDays == 7 ? "active" : "")" asp-action="Crawl" asp-route-range="7">۷ روز</a>
-        <a class="admin-tab @(Model.RangeDays == 30 ? "active" : "")" asp-action="Crawl" asp-route-range="30">۳۰ روز</a>
-        <a class="admin-tab @(Model.RangeDays == 90 ? "active" : "")" asp-action="Crawl" asp-route-range="90">۹۰ روز</a>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-ghost btn-sm" asp-action="Index" asp-route-range="@Model.RangeDays">← Analytics</a>
-        <a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="SeoTools" asp-route-tab="crawl">SEO → Crawl</a>
-        <a class="btn btn-accent btn-sm" asp-controller="Admin" asp-action="SeoAuthority">Authority</a>
-    </div>
-</div>
 
-<p class="text-muted small mb-3">
-    مانیتور فازهای <strong>Crawl Rate &amp; Indexing Optimization</strong> —
-    منبع حقیقت: لاگ بات‌ها (BotCrawlHits) + آنالایزرهای ساختاری. GSC مکمل است، نه جایگزین.
-</p>
+<div class="cm-page">
 
-<div class="row g-2 mb-3">
-    <div class="col-6 col-lg-3">
-        <div class="kpi-card kpi-compact">
-            <div class="kpi-label">Bot hits (@Model.RangeDays d)</div>
-            <div class="kpi-value ltr-field">@s.TotalHits.ToString("N0")</div>
-            <div class="kpi-sub">Search @s.SearchHits.ToString("N0") · AI @s.AiHits.ToString("N0")</div>
-        </div>
+  @* ── Header ── *@
+  <header class="cm-header">
+    <div class="cm-header-main">
+      <div class="cm-eyebrow">Admin · Analytics</div>
+      <h1 class="cm-title">Crawl &amp; Indexing</h1>
+      <p class="cm-lede">
+        Ground truth from bot logs and structural analyzers.
+        GSC is complementary — not a substitute.
+      </p>
     </div>
-    <div class="col-6 col-lg-3">
-        <div class="kpi-card kpi-compact @(s.WastePercent > 5 ? "kpi-danger" : "kpi-good")">
-            <div class="kpi-label">Waste %</div>
-            <div class="kpi-value ltr-field">@s.WastePercent.ToString("0.#")%</div>
-            <div class="kpi-sub">target &lt;5%</div>
-        </div>
+    <div class="cm-header-actions">
+      <div class="cm-range" role="tablist" aria-label="Date range">
+        <a class="cm-range-btn @(Model.RangeDays == 7 ? "is-active" : "")" asp-action="Crawl" asp-route-range="7">7d</a>
+        <a class="cm-range-btn @(Model.RangeDays == 30 ? "is-active" : "")" asp-action="Crawl" asp-route-range="30">30d</a>
+        <a class="cm-range-btn @(Model.RangeDays == 90 ? "is-active" : "")" asp-action="Crawl" asp-route-range="90">90d</a>
+      </div>
+      <div class="cm-links">
+        <a class="cm-link" asp-action="Index" asp-route-range="@Model.RangeDays">Analytics</a>
+        <a class="cm-link" asp-controller="Admin" asp-action="SeoTools" asp-route-tab="crawl">SEO tools</a>
+        <a class="cm-link cm-link-accent" asp-controller="Admin" asp-action="SeoAuthority">Authority</a>
+      </div>
     </div>
-    <div class="col-6 col-lg-3">
-        <div class="kpi-card kpi-compact @(s.P50Ms > 200 ? "kpi-danger" : "kpi-good")">
-            <div class="kpi-label">TTFB p50 / p95</div>
-            <div class="kpi-value ltr-field">@s.P50Ms / @s.P95Ms <small>ms</small></div>
-            <div class="kpi-sub">&gt;200ms @s.SlowOver200Pct.ToString("0.#")%</div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-3">
-        <div class="kpi-card kpi-compact @(a.Score < 70 ? "kpi-danger" : "kpi-good")">
-            <div class="kpi-label">Health grade</div>
-            <div class="kpi-value ltr-field">@a.Grade <small>@a.Score</small></div>
-            <div class="kpi-sub">avg @a.HitsPerDayAvg.ToString("N0")/day</div>
-        </div>
-    </div>
-</div>
+  </header>
 
-@* ── Phase cards ── *@
-<div class="row g-3 mb-4">
-@foreach (var phase in Model.Phases)
-{
-    <div class="col-12 col-lg-6">
-        <div class="chart-card chart-card-tight h-100">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="chart-title mb-0"><span class="cm-phase-tag">@phase.Phase</span> @phase.Title</div>
+  @* ── Health strip ── *@
+  <section class="cm-health" aria-label="Crawl health">
+    <div class="cm-health-grade @(a.Score >= 80 ? "is-good" : a.Score >= 60 ? "is-warn" : "is-bad")">
+      <span class="cm-health-letter">@a.Grade</span>
+      <span class="cm-health-score">@a.Score<span>/100</span></span>
+    </div>
+    <div class="cm-health-body">
+      <div class="cm-health-label">Crawl health · last @Model.RangeDays days</div>
+      <div class="cm-health-meta">
+        <span>avg <strong class="ltr-field">@a.HitsPerDayAvg.ToString("N0")</strong>/day</span>
+        <span class="cm-dot" aria-hidden="true"></span>
+        <span>peak <strong class="ltr-field">@a.PeakDayHits.ToString("N0")</strong> on @a.PeakDay</span>
+        <span class="cm-dot" aria-hidden="true"></span>
+        <span>search @a.SearchSharePct.ToString("0.#")% · AI @a.AiSharePct.ToString("0.#")%</span>
+      </div>
+      <div class="cm-health-bar" title="OK @okCount · Warn @warnCount · Fail @failCount">
+        <span class="cm-health-seg is-ok" style="width:@(100.0 * okCount / itemTotal)%"></span>
+        <span class="cm-health-seg is-warn" style="width:@(100.0 * warnCount / itemTotal)%"></span>
+        <span class="cm-health-seg is-fail" style="width:@(100.0 * failCount / itemTotal)%"></span>
+      </div>
+      <div class="cm-health-legend">
+        <span><i class="cm-pip is-ok"></i>@okCount ok</span>
+        <span><i class="cm-pip is-warn"></i>@warnCount warn</span>
+        <span><i class="cm-pip is-fail"></i>@failCount fail</span>
+      </div>
+    </div>
+  </section>
+
+  @* ── KPI row ── *@
+  <section class="cm-kpis" aria-label="Key metrics">
+    <article class="cm-kpi">
+      <div class="cm-kpi-label">Bot hits</div>
+      <div class="cm-kpi-value ltr-field">@s.TotalHits.ToString("N0")</div>
+      <div class="cm-kpi-sub">Search @s.SearchHits.ToString("N0") · AI @s.AiHits.ToString("N0")</div>
+    </article>
+    <article class="cm-kpi @(s.WastePercent > 5 ? "is-bad" : "is-good")">
+      <div class="cm-kpi-label">Waste</div>
+      <div class="cm-kpi-value ltr-field">@s.WastePercent.ToString("0.#")%</div>
+      <div class="cm-kpi-sub">target &lt; 5%</div>
+    </article>
+    <article class="cm-kpi @(s.P50Ms > 200 ? "is-bad" : "is-good")">
+      <div class="cm-kpi-label">TTFB p50 / p95</div>
+      <div class="cm-kpi-value ltr-field">@s.P50Ms <span class="cm-kpi-unit">/ @s.P95Ms ms</span></div>
+      <div class="cm-kpi-sub">&gt;200ms @s.SlowOver200Pct.ToString("0.#")%</div>
+    </article>
+    <article class="cm-kpi">
+      <div class="cm-kpi-label">Published</div>
+      <div class="cm-kpi-value ltr-field">@Model.PublishedCount.ToString("N0")</div>
+      <div class="cm-kpi-sub">Featured @Model.FeaturedCount · Sticky @Model.StickyCount</div>
+    </article>
+  </section>
+
+  @* ── Phase grid ── *@
+  <section class="cm-phases" aria-label="PRD phases">
+    @foreach (var phase in Model.Phases)
+    {
+      var phaseFail = phase.Items.Any(i => i.Status == "fail");
+      var phaseWarn = !phaseFail && phase.Items.Any(i => i.Status == "warn");
+      <article class="cm-phase @(phaseFail ? "is-bad" : phaseWarn ? "is-warn" : "is-good")">
+        <header class="cm-phase-head">
+          <span class="cm-phase-id">@phase.Phase</span>
+          <h2 class="cm-phase-title">@phase.Title</h2>
+        </header>
+        <ul class="cm-phase-list">
+        @foreach (var it in phase.Items)
+        {
+          <li class="cm-phase-item">
+            <div class="cm-phase-item-top">
+              <span class="cm-status cm-status-@it.Status">@StatusLabel(it.Status)</span>
+              <span class="cm-phase-item-id">@it.Id</span>
+              <span class="cm-phase-item-title">@it.Title</span>
             </div>
-            <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0 cm-table">
-                    <tbody>
-                    @foreach (var it in phase.Items)
-                    {
-                        <tr>
-                            <td style="width:3.5rem"><code class="small">@it.Id</code></td>
-                            <td>
-                                <div class="fw-semibold">@it.Title</div>
-                                <div class="text-muted small">@it.Detail</div>
-                            </td>
-                            <td class="text-end ltr-field small">@it.Metric</td>
-                            <td style="width:4rem" class="text-end">
-                                <span class="cm-badge @Badge(it.Status)">@it.Status.ToUpperInvariant()</span>
-                            </td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
+            <div class="cm-phase-item-metric ltr-field">@it.Metric</div>
+            @if (!string.IsNullOrWhiteSpace(it.Detail))
+            {
+              <div class="cm-phase-item-detail">@it.Detail</div>
+            }
+          </li>
+        }
+        </ul>
+      </article>
+    }
+  </section>
+
+  @* ── Chart + checklist ── *@
+  <div class="cm-split">
+    @if (a.Daily.Count > 0)
+    {
+      <section class="cm-panel cm-panel-chart">
+        <header class="cm-panel-head">
+          <h2 class="cm-panel-title">Crawl budget</h2>
+          <p class="cm-panel-sub">Daily hits · search vs AI vs other</p>
+        </header>
+        <div class="cm-chart-wrap">
+          <canvas id="crawlHitsChart" aria-label="Daily crawl hits chart"></canvas>
+        </div>
+      </section>
+    }
+
+    @if (a.Checks.Count > 0)
+    {
+      <section class="cm-panel">
+        <header class="cm-panel-head">
+          <h2 class="cm-panel-title">Health checklist</h2>
+          <p class="cm-panel-sub">Monthly audit signals</p>
+        </header>
+        <ul class="cm-check-list">
+        @foreach (var ch in a.Checks)
+        {
+          var st = ch.Pass ? "ok" : (ch.Severity == "fail" ? "fail" : "warn");
+          <li class="cm-check">
+            <span class="cm-status cm-status-@st">@(ch.Pass ? "Pass" : StatusLabel(st))</span>
+            <div class="cm-check-body">
+              <div class="cm-check-title">@ch.Title</div>
+              @if (!string.IsNullOrWhiteSpace(ch.Detail))
+              {
+                <div class="cm-check-detail">@ch.Detail</div>
+              }
             </div>
+          </li>
+        }
+        </ul>
+      </section>
+    }
+  </div>
+
+  @* ── Structure & ops ── *@
+  <div class="cm-grid-3">
+    <section class="cm-panel">
+      <header class="cm-panel-head">
+        <h2 class="cm-panel-title">Structure</h2>
+        <p class="cm-panel-sub">Orphans · click depth</p>
+      </header>
+      @if (Model.Orphans is null && Model.Depth is null)
+      {
+        <p class="cm-empty">Analyzers unavailable</p>
+      }
+      else
+      {
+        <dl class="cm-stats">
+          @if (Model.Orphans is not null)
+          {
+            <div class="cm-stat">
+              <dt>Orphans</dt>
+              <dd class="ltr-field">@Model.Orphans.OrphanCount <span class="cm-stat-muted">/ @Model.Orphans.PublishedCount</span></dd>
+            </div>
+            <div class="cm-stat">
+              <dt>With content inlinks</dt>
+              <dd class="ltr-field">@Model.Orphans.WithContentInlinks</dd>
+            </div>
+          }
+          @if (Model.Depth is not null)
+          {
+            <div class="cm-stat">
+              <dt>Beyond depth 4</dt>
+              <dd class="ltr-field">@Model.Depth.Beyond4Count</dd>
+            </div>
+            <div class="cm-stat">
+              <dt>Unreachable · max</dt>
+              <dd class="ltr-field">@Model.Depth.UnreachableCount · @Model.Depth.MaxDepth</dd>
+            </div>
+          }
+        </dl>
+      }
+    </section>
+
+    <section class="cm-panel">
+      <header class="cm-panel-head">
+        <h2 class="cm-panel-title">Hubs &amp; freshness</h2>
+        <p class="cm-panel-sub">Featured · news window</p>
+      </header>
+      <dl class="cm-stats">
+        <div class="cm-stat">
+          <dt>Featured · sticky</dt>
+          <dd class="ltr-field">@Model.FeaturedCount · @Model.StickyCount</dd>
         </div>
-    </div>
-}
+        <div class="cm-stat">
+          <dt>News window (48h)</dt>
+          <dd class="ltr-field">@Model.NewsWindowPosts</dd>
+        </div>
+        <div class="cm-stat">
+          <dt>Updated last 7d</dt>
+          <dd class="ltr-field">@Model.UpdatedLast7d</dd>
+        </div>
+      </dl>
+      @if (Model.RecentFeatured.Count > 0)
+      {
+        <ul class="cm-featured">
+        @foreach (var p in Model.RecentFeatured.Take(5))
+        {
+          <li>
+            <time class="ltr-field" datetime="@(p.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "")">@(p.PublishedAtUtc?.ToString("MM-dd") ?? "—")</time>
+            <a href="/@(p.LanguageCode)/@p.Slug">@p.Title</a>
+          </li>
+        }
+        </ul>
+      }
+    </section>
+
+    <section class="cm-panel">
+      <header class="cm-panel-head">
+        <h2 class="cm-panel-title">Authority</h2>
+        <p class="cm-panel-sub">Leads · quarterly DR/DA</p>
+      </header>
+      <dl class="cm-stats">
+        <div class="cm-stat">
+          <dt>Open leads</dt>
+          <dd class="ltr-field">@Model.OpenBacklinkLeads</dd>
+        </div>
+        <div class="cm-stat">
+          <dt>Acquired</dt>
+          <dd class="ltr-field">@Model.AcquiredBacklinks</dd>
+        </div>
+        <div class="cm-stat">
+          <dt>Snapshots</dt>
+          <dd class="ltr-field">
+            @Model.AuthoritySnapshotCount
+            @if (!string.IsNullOrEmpty(Model.LastAuthorityPeriod))
+            {
+              <span class="cm-stat-muted">· @Model.LastAuthorityPeriod · @Model.LastAuthorityDr</span>
+            }
+          </dd>
+        </div>
+      </dl>
+      <a class="cm-text-link" asp-controller="Admin" asp-action="SeoAuthority">Open tracker →</a>
+    </section>
+  </div>
+
+  @* ── Waste strip ── *@
+  @if (waste is not null)
+  {
+    <section class="cm-waste" aria-label="Crawl waste">
+      <div class="cm-waste-label">P1.1 Waste detail</div>
+      <div class="cm-waste-grid">
+        <div><span class="cm-waste-n ltr-field">@waste.ChainCount</span> chains</div>
+        <div><span class="cm-waste-n ltr-field">@waste.BotHitsWithQuery.ToString("N0")</span> bot ?query</div>
+        <div><span class="cm-waste-n ltr-field">@waste.BotNotFoundHits.ToString("N0")</span> bot 404</div>
+        <div><span class="cm-waste-n ltr-field">@waste.ActiveRedirects</span> redirects</div>
+      </div>
+    </section>
+  }
+
 </div>
-
-@if (a.Daily.Count > 0)
-{
-    <div class="chart-card mb-4">
-        <div class="chart-title">Crawl budget — daily series</div>
-        <div class="chart-wrap" style="height:220px">
-            <canvas id="crawlHitsChart"></canvas>
-        </div>
-        <p class="text-muted small mt-2 mb-0">
-            Search @a.SearchSharePct.ToString("0.#")% · AI @a.AiSharePct.ToString("0.#")% · peak @a.PeakDayHits.ToString("N0") on @a.PeakDay
-        </p>
-    </div>
-}
-
-@if (a.Checks.Count > 0)
-{
-    <div class="chart-card mb-4">
-        <div class="chart-title">Monthly crawl-health checklist</div>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead>
-                <tbody>
-                @foreach (var ch in a.Checks)
-                {
-                    var st = ch.Pass ? "ok" : (ch.Severity == "fail" ? "fail" : "warn");
-                    <tr>
-                        <td>@ch.Title</td>
-                        <td><span class="cm-badge @Badge(st)">@(ch.Pass ? "PASS" : ch.Severity.ToUpperInvariant())</span></td>
-                        <td class="text-muted small">@ch.Detail</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
-    </div>
-}
-
-<div class="row g-3 mb-4">
-    <div class="col-12 col-lg-6">
-        <div class="chart-card h-100">
-            <div class="chart-title">P1.2 Orphans · P2.1 Depth</div>
-            @if (Model.Orphans is null && Model.Depth is null)
-            {
-                <p class="text-muted small mb-0">Analyzers unavailable (schema lag or empty catalog).</p>
-            }
-            else
-            {
-                <ul class="list-unstyled small mb-0">
-                    @if (Model.Orphans is not null)
-                    {
-                        <li>Orphans: <strong class="ltr-field">@Model.Orphans.OrphanCount</strong> / @Model.Orphans.PublishedCount published</li>
-                        <li>With content inlinks: @Model.Orphans.WithContentInlinks</li>
-                    }
-                    @if (Model.Depth is not null)
-                    {
-                        <li>Beyond depth 4: <strong class="ltr-field">@Model.Depth.Beyond4Count</strong></li>
-                        <li>Unreachable: @Model.Depth.UnreachableCount · max depth @Model.Depth.MaxDepth</li>
-                    }
-                </ul>
-            }
-        </div>
-    </div>
-    <div class="col-12 col-lg-6">
-        <div class="chart-card h-100">
-            <div class="chart-title">P2.2 Hub links (featured / sticky)</div>
-            <p class="small mb-2">Featured <strong class="ltr-field">@Model.FeaturedCount</strong> · Sticky <strong class="ltr-field">@Model.StickyCount</strong> · Published @Model.PublishedCount</p>
-            @if (Model.RecentFeatured.Count == 0)
-            {
-                <p class="text-muted small mb-0">No featured posts in the last 14 days.</p>
-            }
-            else
-            {
-                <ul class="list-unstyled small mb-0">
-                @foreach (var p in Model.RecentFeatured)
-                {
-                    <li class="mb-1">
-                        <span class="text-muted ltr-field">@(p.PublishedAtUtc?.ToString("yyyy-MM-dd") ?? "—")</span>
-                        · <a href="/@(p.LanguageCode)/@p.Slug">@p.Title</a>
-                    </li>
-                }
-                </ul>
-            }
-        </div>
-    </div>
-</div>
-
-<div class="row g-3 mb-4">
-    <div class="col-12 col-lg-6">
-        <div class="chart-card h-100">
-            <div class="chart-title">P3 Freshness</div>
-            <ul class="list-unstyled small mb-0">
-                <li>News sitemap window (48h): <strong class="ltr-field">@Model.NewsWindowPosts</strong></li>
-                <li>Updated last 7d: <strong class="ltr-field">@Model.UpdatedLast7d</strong></li>
-            </ul>
-        </div>
-    </div>
-    <div class="col-12 col-lg-6">
-        <div class="chart-card h-100">
-            <div class="chart-title">P4 Authority ops</div>
-            <ul class="list-unstyled small mb-0">
-                <li>Open backlink leads: <strong class="ltr-field">@Model.OpenBacklinkLeads</strong></li>
-                <li>Acquired: <strong class="ltr-field">@Model.AcquiredBacklinks</strong></li>
-                <li>Snapshots: @Model.AuthoritySnapshotCount
-                    @if (!string.IsNullOrEmpty(Model.LastAuthorityPeriod))
-                    {
-                        <span>· last @Model.LastAuthorityPeriod DR/DA @Model.LastAuthorityDr</span>
-                    }
-                </li>
-            </ul>
-            <p class="mt-2 mb-0"><a class="btn btn-ghost btn-sm" asp-controller="Admin" asp-action="SeoAuthority">Open Authority tracker</a></p>
-        </div>
-    </div>
-</div>
-
-@if (Model.Waste is not null)
-{
-    <div class="chart-card mb-4">
-        <div class="chart-title">P1.1 Crawl waste detail</div>
-        <div class="row g-2 small">
-            <div class="col-6 col-md-3">Chains: <strong class="ltr-field">@Model.Waste.ChainCount</strong></div>
-            <div class="col-6 col-md-3">Bot ?query: <strong class="ltr-field">@Model.Waste.BotHitsWithQuery.ToString("N0")</strong></div>
-            <div class="col-6 col-md-3">Bot 404: <strong class="ltr-field">@Model.Waste.BotNotFoundHits.ToString("N0")</strong></div>
-            <div class="col-6 col-md-3">Active redirects: <strong class="ltr-field">@Model.Waste.ActiveRedirects</strong></div>
-        </div>
-    </div>
-}
 
 <style>
-.cm-phase-tag {
-  display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
-  padding: 0.1rem 0.4rem; border-radius: 4px; background: rgba(111,179,210,.15); color: #6fb3d2;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-inline-end: 0.35rem;
+/* ── Crawl monitor — minimal system ── */
+.cm-page {
+  --cm-ok: #7cb87a;
+  --cm-warn: #d4a84b;
+  --cm-fail: #d66a7a;
+  --cm-ok-bg: rgba(124, 184, 122, 0.12);
+  --cm-warn-bg: rgba(212, 168, 75, 0.12);
+  --cm-fail-bg: rgba(214, 106, 122, 0.12);
+  --cm-radius: 10px;
+  --cm-gap: 1rem;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-bottom: 2.5rem;
 }
-.cm-badge {
-  display: inline-block; padding: 0.12rem 0.4rem; border-radius: 4px;
-  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.03em;
+
+/* Header */
+.cm-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-soft, #1e2430);
 }
-.cm-badge-ok { background: rgba(158,203,140,.2); color: #9ecb8c; }
-.cm-badge-warn { background: rgba(227,179,65,.2); color: #e3b341; }
-.cm-badge-fail { background: rgba(229,99,122,.2); color: #e5637a; }
-.cm-table td { vertical-align: top; }
+.cm-eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+.cm-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.35rem;
+  color: var(--text);
+  line-height: 1.2;
+}
+.cm-lede {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.cm-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+.cm-range {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--surface, #12151c);
+  border: 1px solid var(--border-soft, #1e2430);
+}
+.cm-range-btn {
+  min-width: 2.75rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none !important;
+  text-align: center;
+  transition: background .15s, color .15s;
+}
+.cm-range-btn:hover { color: var(--text); }
+.cm-range-btn.is-active {
+  background: var(--accent, #e3b341);
+  color: #0d0f14;
+}
+.cm-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+.cm-link {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none !important;
+}
+.cm-link:hover { color: var(--text); }
+.cm-link-accent { color: var(--accent, #e3b341); font-weight: 600; }
+.cm-link-accent:hover { opacity: 0.9; }
+
+/* Health strip */
+.cm-health {
+  display: flex;
+  gap: 1.25rem;
+  align-items: stretch;
+  margin-bottom: 1.25rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--cm-radius);
+  background: var(--surface, #12151c);
+  border: 1px solid var(--border-soft, #1e2430);
+}
+.cm-health-grade {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: var(--cm-warn-bg);
+}
+.cm-health-grade.is-good { background: var(--cm-ok-bg); }
+.cm-health-grade.is-bad { background: var(--cm-fail-bg); }
+.cm-health-letter {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.cm-health-grade.is-good .cm-health-letter { color: var(--cm-ok); }
+.cm-health-grade.is-warn .cm-health-letter { color: var(--cm-warn); }
+.cm-health-grade.is-bad .cm-health-letter { color: var(--cm-fail); }
+.cm-health-score {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cm-health-score span { font-weight: 500; opacity: 0.7; }
+.cm-health-body { flex: 1; min-width: 0; }
+.cm-health-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+.cm-health-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.65rem;
+}
+.cm-health-meta strong { color: var(--text); font-weight: 600; }
+.cm-dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: var(--text-muted); opacity: 0.5;
+}
+.cm-health-bar {
+  display: flex;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
+  margin-bottom: 0.45rem;
+}
+.cm-health-seg { height: 100%; }
+.cm-health-seg.is-ok { background: var(--cm-ok); }
+.cm-health-seg.is-warn { background: var(--cm-warn); }
+.cm-health-seg.is-fail { background: var(--cm-fail); }
+.cm-health-legend {
+  display: flex;
+  gap: 0.85rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.cm-health-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.cm-pip {
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.cm-pip.is-ok { background: var(--cm-ok); }
+.cm-pip.is-warn { background: var(--cm-warn); }
+.cm-pip.is-fail { background: var(--cm-fail); }
+
+/* KPIs */
+.cm-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+}
+.cm-kpi {
+  padding: 0.9rem 1rem;
+  border-radius: var(--cm-radius);
+  background: var(--surface, #12151c);
+  border: 1px solid var(--border-soft, #1e2430);
+}
+.cm-kpi.is-good { border-color: rgba(124, 184, 122, 0.25); }
+.cm-kpi.is-bad { border-color: rgba(214, 106, 122, 0.3); }
+.cm-kpi-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+.cm-kpi-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.cm-kpi-unit {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.cm-kpi-sub {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Phase cards */
+.cm-phases {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--cm-gap);
+  margin-bottom: 1.5rem;
+}
+.cm-phase {
+  border-radius: var(--cm-radius);
+  background: var(--surface, #12151c);
+  border: 1px solid var(--border-soft, #1e2430);
+  overflow: hidden;
+}
+.cm-phase.is-good { border-top: 2px solid var(--cm-ok); }
+.cm-phase.is-warn { border-top: 2px solid var(--cm-warn); }
+.cm-phase.is-bad { border-top: 2px solid var(--cm-fail); }
+.cm-phase-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem 0.55rem;
+}
+.cm-phase-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(111, 179, 210, 0.12);
+  color: #6fb3d2;
+}
+.cm-phase-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--text);
+}
+.cm-phase-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.35rem;
+}
+.cm-phase-item {
+  padding: 0.55rem 1rem;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.cm-phase-item-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+.cm-phase-item-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+.cm-phase-item-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.cm-phase-item-metric {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.cm-phase-item-detail {
+  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Status pills */
+.cm-status {
+  display: inline-block;
+  min-width: 2.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.cm-status-ok { background: var(--cm-ok-bg); color: var(--cm-ok); }
+.cm-status-warn { background: var(--cm-warn-bg); color: var(--cm-warn); }
+.cm-status-fail { background: var(--cm-fail-bg); color: var(--cm-fail); }
+
+/* Panels */
+.cm-split {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: var(--cm-gap);
+  margin-bottom: 1.5rem;
+}
+.cm-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--cm-gap);
+  margin-bottom: 1.25rem;
+}
+.cm-panel {
+  border-radius: var(--cm-radius);
+  background: var(--surface, #12151c);
+  border: 1px solid var(--border-soft, #1e2430);
+  padding: 1rem 1.1rem;
+}
+.cm-panel-head { margin-bottom: 0.75rem; }
+.cm-panel-title {
+  margin: 0 0 0.15rem;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--text);
+}
+.cm-panel-sub {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.cm-panel-chart .cm-chart-wrap {
+  height: 200px;
+  position: relative;
+}
+.cm-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Checklist */
+.cm-check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.cm-check {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.cm-check:first-child { border-top: 0; padding-top: 0; }
+.cm-check-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.cm-check-detail {
+  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Stats */
+.cm-stats {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.cm-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+.cm-stat dt {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.cm-stat dd {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+.cm-stat-muted {
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.cm-featured {
+  list-style: none;
+  margin: 0.85rem 0 0;
+  padding: 0.65rem 0 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.cm-featured li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.25rem 0;
+  font-size: 0.75rem;
+}
+.cm-featured time {
+  flex: 0 0 2.5rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cm-featured a {
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-featured a:hover { color: var(--accent, #e3b341); }
+.cm-text-link {
+  display: inline-block;
+  margin-top: 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent, #e3b341);
+  text-decoration: none !important;
+}
+.cm-text-link:hover { opacity: 0.85; }
+
+/* Waste strip */
+.cm-waste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--cm-radius);
+  background: var(--surface, #12151c);
+  border: 1px solid var(--border-soft, #1e2430);
+}
+.cm-waste-label {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+.cm-waste-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.35rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.cm-waste-n {
+  font-weight: 700;
+  color: var(--text);
+  margin-inline-end: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+  .cm-kpis { grid-template-columns: repeat(2, 1fr); }
+  .cm-phases { grid-template-columns: 1fr; }
+  .cm-split { grid-template-columns: 1fr; }
+  .cm-grid-3 { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .cm-header-actions { align-items: flex-start; width: 100%; }
+  .cm-links { justify-content: flex-start; }
+  .cm-health { flex-direction: column; align-items: stretch; }
+  .cm-health-grade { flex-direction: row; gap: 0.75rem; justify-content: flex-start; min-width: 0; }
+  .cm-kpis { grid-template-columns: 1fr 1fr; }
+}
 </style>
 
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
 (function () {
-    if (typeof Chart === 'undefined') return;
-    var el = document.getElementById('crawlHitsChart');
-    if (!el) return;
-    var styles = getComputedStyle(document.documentElement);
-    var accent = styles.getPropertyValue('--accent').trim() || '#e3b341';
-    var muted = styles.getPropertyValue('--text-muted').trim();
-    Chart.defaults.color = muted;
-    Chart.defaults.font.family = 'Vazirmatn, sans-serif';
-    new Chart(el, {
-        type: 'bar',
-        data: {
-            labels: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => d.Date.Length >= 10 ? d.Date.Substring(5) : d.Date), json)),
-            datasets: [
-                {
-                    label: 'Search',
-                    data: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => d.SearchHits), json)),
-                    backgroundColor: 'rgba(111,179,210,0.7)',
-                    stack: 'h'
-                },
-                {
-                    label: 'AI',
-                    data: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => d.AiHits), json)),
-                    backgroundColor: 'rgba(201,160,242,0.7)',
-                    stack: 'h'
-                },
-                {
-                    label: 'Other',
-                    data: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => Math.Max(0, d.Hits - d.SearchHits - d.AiHits)), json)),
-                    backgroundColor: 'rgba(139,147,167,0.45)',
-                    stack: 'h'
-                }
-            ]
+  if (typeof Chart === 'undefined') return;
+  var el = document.getElementById('crawlHitsChart');
+  if (!el) return;
+  var styles = getComputedStyle(document.documentElement);
+  var muted = styles.getPropertyValue('--text-muted').trim() || '#8b93a7';
+  var border = styles.getPropertyValue('--border-soft').trim() || '#1e2430';
+  Chart.defaults.color = muted;
+  Chart.defaults.borderColor = border;
+  Chart.defaults.font.family = 'Vazirmatn, system-ui, sans-serif';
+  Chart.defaults.font.size = 11;
+  new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => d.Date.Length >= 10 ? d.Date.Substring(5) : d.Date), json)),
+      datasets: [
+        {
+          label: 'Search',
+          data: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => d.SearchHits), json)),
+          backgroundColor: 'rgba(111,179,210,0.75)',
+          stack: 'h',
+          borderRadius: 2,
+          maxBarThickness: 18
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
-            scales: {
-                x: { stacked: true, grid: { display: false }, ticks: { maxTicksLimit: 12 } },
-                y: { stacked: true, beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 5 } }
-            }
+        {
+          label: 'AI',
+          data: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => d.AiHits), json)),
+          backgroundColor: 'rgba(201,160,242,0.7)',
+          stack: 'h',
+          borderRadius: 2,
+          maxBarThickness: 18
+        },
+        {
+          label: 'Other',
+          data: @Html.Raw(JsonSerializer.Serialize(a.Daily.Select(d => Math.Max(0, d.Hits - d.SearchHits - d.AiHits)), json)),
+          backgroundColor: 'rgba(139,147,167,0.4)',
+          stack: 'h',
+          borderRadius: 2,
+          maxBarThickness: 18
         }
-    });
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { boxWidth: 8, padding: 12, font: { size: 10 } }
+        }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+        y: { stacked: true, beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
 })();
 </script>
 }
